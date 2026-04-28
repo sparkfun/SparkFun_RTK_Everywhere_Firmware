@@ -14,15 +14,7 @@ void changeProfileNumber(byte newProfileNumber, bool recordSettings)
     setSettingsFileName(); // Load the settings file name into memory (enabled profile name delete)
 
     // We need to load these settings from file so that we can record a profile name change correctly
-    bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName);
-    bool responseSD = loadSystemSettingsFromFileSD(settingsFileName);
-
-    // If this is an empty/new profile slot, overwrite our current settings with defaults
-    if (responseLFS == false && responseSD == false)
-    {
-        systemPrintln("No profile found: Applying default settings");
-        settingsToDefaults();
-    }
+    loadSettingsUsingTempSetting(true);
 }
 
 // Check various setting arrays (message rates, etc) to see if they need to be reset to defaults

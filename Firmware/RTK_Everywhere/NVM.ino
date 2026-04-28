@@ -45,10 +45,102 @@ NVM.ino
   edited in the index.html and main.js files.
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe = nullptr, char *found = nullptr,
+bool loadSystemSettingsFromFileLFS(char *fileName,
+                                   struct Settings * tempSettings,
+                                   const char *findMe = nullptr,
+                                   char *found = nullptr,
                                    int len = 0); // Header
-bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe = nullptr, char *found = nullptr,
+bool loadSystemSettingsFromFileSD(char *fileName,
+                                  struct Settings * tempSettings,
+                                  const char *findMe = nullptr,
+                                  char *found = nullptr,
                                   int len = 0); // Header
+
+// We use the LittleFS library to store user profiles in SPIFFs
+// Move selected user profile from SPIFFs into settings struct (RAM)
+// We originally used EEPROM but it was limited to 4096 bytes. Each settings struct is ~4000 bytes
+// so multiple user profiles wouldn't fit. Preferences was limited to a single putBytes of ~3000 bytes.
+// So we moved again to SPIFFs. It's being replaced by LittleFS so here we are.
+//
+// Return true if profile name was updated
+bool loadSettingsUsingTempSetting(bool startFromDefault)
+{
+    bool loadSuccessful;
+    bool profileNameUpdate;
+    bool settingsAllocated;
+    struct Settings * tempSettings;
+
+    // Allocate the tempSettings structure
+    settingsAllocated = false;
+    tempSettings = (struct Settings *)rtkMalloc(sizeof(*tempSettings), "loadSettings tempSettings");
+    if (tempSettings)
+    {
+        settingsAllocated = true;
+        if (settings.debugSettings)
+            systemPrintf("Allocated tempSettings: %p\r\n", (void *)tempSettings);
+
+        // Initialize the temporary settings
+        if (startFromDefault)
+            getDefaultSettings(tempSettings);
+        else
+            memcpy(tempSettings, &settings, sizeof(settings));
+    }
+    else
+    {
+        systemPrintf("ERROR: loadSettings failed to allocate tempSettings, using settings!\r\n");
+        reportHeapNow(true);
+        tempSettings = &settings;
+    }
+
+    // If we have a profile in both LFS and SD, the SD settings will overwrite LFS
+    // This will fail if LFS has been erased, a read error occurs or the file is
+    // corrupt.
+    loadSuccessful = loadSystemSettingsFromFileLFS(settingsFileName, tempSettings);
+    if (settingsAllocated)
+    {
+        if (loadSuccessful)
+            // Update the settings
+            memcpy(&settings, tempSettings, sizeof(settings));
+
+        // Restore the temporary settings upon load failure
+        else if (startFromDefault)
+            getDefaultSettings(tempSettings);
+        else
+            memcpy(tempSettings, &settings, sizeof(settings));
+    }
+
+    // Temporarily store any variables from LFS that should override SD
+    int resetCount = tempSettings->resetCount;
+    uint32_t gnssConfigureRequest = tempSettings->gnssConfigureRequest;
+
+    // Load the settings from the SD card
+    // This will fail if no SD is present. That's OK.
+    loadSuccessful = loadSystemSettingsFromFileSD(settingsFileName, tempSettings);
+    if (settingsAllocated)
+    {
+        // Update the settings with the values read from the SD card
+        if (loadSuccessful)
+            memcpy(&settings, tempSettings, sizeof(settings));
+
+        // Done with the tempSettings
+        if (settings.debugSettings)
+            systemPrintf("Freeing tempSettings: %p\r\n", (void *)tempSettings);
+        rtkFree(tempSettings, "loadSettings tempSettings");
+
+        // Restore the LFS settings values that should override SD card values
+        settings.resetCount = resetCount; // resetCount from LFS should override SD
+
+        // Trust gnssConfigureRequest from LittleFS over SD.
+        // LittleFS may have been erased, SD could be stale.
+        settings.gnssConfigureRequest = gnssConfigureRequest;
+    }
+
+    // Change empty profile name to 'Profile1' etc
+    profileNameUpdate = (strlen(settings.profileName) == 0);
+    if (profileNameUpdate)
+        snprintf(settings.profileName, sizeof(settings.profileName), "Profile%d", profileNumber + 1);
+    return profileNameUpdate;
+}
 
 // We use the LittleFS library to store user profiles in SPIFFs
 // Move selected user profile from SPIFFs into settings struct (RAM)
@@ -57,31 +149,10 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe = nullptr, 
 // So we moved again to SPIFFs. It's being replaced by LittleFS so here we are.
 void loadSettings()
 {
-    // If we have a profile in both LFS and SD, the SD settings will overwrite LFS
-    // This will fail if LFS has been erased. That's OK.
-    loadSystemSettingsFromFileLFS(settingsFileName);
-
-    // Temp store any variables from LFS that should override SD
-    int resetCount = settings.resetCount;
-    uint32_t gnssConfigureRequest = settings.gnssConfigureRequest;
-
-    // This will fail if no SD is present. That's OK.
-    loadSystemSettingsFromFileSD(settingsFileName);
-
-    settings.resetCount = resetCount; // resetCount from LFS should override SD
-
-    // Trust gnssConfigureRequest from LittleFS over SD.
-    // LittleFS may have been erased, SD could be stale.
-    settings.gnssConfigureRequest = gnssConfigureRequest;
-
-    // Change empty profile name to 'Profile1' etc
-    if (strlen(settings.profileName) == 0)
-    {
-        snprintf(settings.profileName, sizeof(settings.profileName), "Profile%d", profileNumber + 1);
-
+    // Load the settings from NVM and SD card
+    if (loadSettingsUsingTempSetting(false))
         // Record these settings to LittleFS and SD file to be sure they are the same
         recordSystemSettings();
-    }
 
     // Get bitmask of active profiles
     activeProfiles = loadProfileNames();
@@ -245,13 +316,51 @@ bool nvmCompareSettings(struct Settings * settings1, const char * name1,
 // Used at very first boot to test for resetCounter
 void loadSettingsPartial()
 {
+    bool loadSuccessful;
+    bool settingsAllocated;
+    struct Settings * tempSettings;
+
+    // Allocate the tempSettings structure
+    settingsAllocated = false;
+    loadSuccessful = false;
+    tempSettings = (struct Settings *)rtkMalloc(sizeof(*tempSettings), "loadSettings tempSettings");
+    if (tempSettings)
+    {
+        settingsAllocated = true;
+        if (settings.debugSettings)
+            systemPrintf("Allocated tempSettings: %p\r\n", (void *)tempSettings);
+
+        // Initialize the temporary settings
+        memcpy(tempSettings, &settings, sizeof(settings));
+    }
+    else
+    {
+        systemPrintf("ERROR: loadSettings failed to allocate tempSettings, using settings!\r\n");
+        reportHeapNow(true);
+        tempSettings = &settings;
+    }
+
     // First, look up the last used profile number
     loadProfileNumber();
 
     // Set the settingsFileName used in many places
     setSettingsFileName();
 
-    loadSystemSettingsFromFileLFS(settingsFileName);
+    // If we have a profile in both LFS and SD, the SD settings will overwrite LFS
+    // This will fail if LFS has been erased, a read error occurs or the file is
+    // corrupt.
+    loadSuccessful = loadSystemSettingsFromFileLFS(settingsFileName, tempSettings);
+    if (settingsAllocated)
+    {
+        // Update the settings with the values read from NVM
+        if (loadSuccessful)
+            memcpy(&settings, tempSettings, sizeof(settings));
+
+        // Done with the tempSettings
+        if (settings.debugSettings)
+            systemPrintf("Freeing tempSettings: %p\r\n", (void *)tempSettings);
+        rtkFree(tempSettings, "loadSettings tempSettings");
+    }
 }
 
 void recordSystemSettings()
@@ -630,7 +739,11 @@ void recordSystemSettingsToFile(File *settingsFile)
 // Returns false if a file was not opened/loaded
 // Optionally search for findMe. If findMe is found, return the remainder of the line in found.
 // Don't update settings when searching.
-bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *found, int len)
+bool loadSystemSettingsFromFileSD(char *fileName,
+                                  struct Settings * tempSettings,
+                                  const char *findMe,
+                                  char *found,
+                                  int len)
 {
     if ((findMe != nullptr) && (found != nullptr))
         *found = 0; // If searching, set found to NULL
@@ -720,7 +833,7 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
                     if (findMe == nullptr)
                     {
                         // parse each line and load into settings
-                        if (parseLine(line) == false)
+                        if (parseLine(line, tempSettings) == false)
                         {
                             line[strlen(line) - 1] = 0; // Remove \n for printing
                             systemPrintf("Failed to parse SD file %s line %d: %s\r\n", fileName, lineNumber, line);
@@ -795,7 +908,11 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
 // Returns false if a file was not opened/loaded
 // Optionally search for findMe. If findMe is found, return the remainder of the line in found.
 // Don't update settings when searching.
-bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *found, int len)
+bool loadSystemSettingsFromFileLFS(char *fileName,
+                                   struct Settings * tempSettings,
+                                   const char *findMe,
+                                   char *found,
+                                   int len)
 {
     if ((findMe != nullptr) && (found != nullptr))
         *found = 0; // If searching, set found to NULL
@@ -867,7 +984,7 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
             if (findMe == nullptr)
             {
                 // parse each line and load into settings
-                if (parseLine(line) == false)
+                if (parseLine(line, tempSettings) == false)
                 {
                     line[strlen(line) - 1] = 0; // Remove \n for printing
                     systemPrintf("Failed to parse LFS file %s line %d: %s\r\n", fileName, lineNumber, line);
@@ -1005,7 +1122,7 @@ bool printSystemSettingsFromFileLFS(char *fileName)
 // Sets the setting if the name is known
 // The order of variables matches the order found in settings.h
 // Both fgets and getLine leave theLine terminated with \n only (\r is removed)
-bool parseLine(const char *theLine)
+bool parseLine(const char *theLine, struct Settings * tempSettings)
 {
     // Make a copy. Manipulate the copy, not the original
     size_t strLen = strnlen(theLine, 100);
@@ -1164,14 +1281,19 @@ bool parseLine(const char *theLine)
         // Determine if settingName is in the command table
         if (i >= 0)
         {
+            size_t settingsOffset;
             qualifier = rtkSettingsEntries[i].qualifier;
             type = rtkSettingsEntries[i].type;
             var = rtkSettingsEntries[i].var;
+            if (var && (var >= &settings) && (var < &((uint8_t *)&settings)[sizeof(settings)]))
+            {
+                settingsOffset = ((uint8_t *)var) - (uint8_t *)&settings;
+                var = (uint8_t *)tempSettings + settingsOffset;
+            }
 
             // Handle the GNSS specific types
-            if (gnssNewSettingValue(&settings, type, suffix, qualifier, d))
-                knownSetting = true;
-            else
+            knownSetting = gnssNewSettingValue(tempSettings, type, suffix, qualifier, d);
+            if (knownSetting == false)
             {
                 // Handle the generic types
                 switch (type)
@@ -1297,7 +1419,7 @@ bool parseLine(const char *theLine)
                                    &mac[5]) == 6)
                         {
                             for (int i = 0; i < 6; i++)
-                                settings.espnowPeers[suffixNum][i] = mac[i];
+                                tempSettings->espnowPeers[suffixNum][i] = mac[i];
                             knownSetting = true;
                         }
                     }
@@ -1310,8 +1432,8 @@ bool parseLine(const char *theLine)
                     {
                         if (sscanf(suffix, "%dSSID", &network) == 1)
                         {
-                            strncpy(settings.wifiNetworks[network].ssid, settingString,
-                                    sizeof(settings.wifiNetworks[0].ssid));
+                            strncpy(tempSettings->wifiNetworks[network].ssid, settingString,
+                                    sizeof(tempSettings->wifiNetworks[0].ssid));
                             knownSetting = true;
                         }
                     }
@@ -1319,8 +1441,8 @@ bool parseLine(const char *theLine)
                     {
                         if (sscanf(suffix, "%dPassword", &network) == 1)
                         {
-                            strncpy(settings.wifiNetworks[network].password, settingString,
-                                    sizeof(settings.wifiNetworks[0].password));
+                            strncpy(tempSettings->wifiNetworks[network].password, settingString,
+                                    sizeof(tempSettings->wifiNetworks[0].password));
                             knownSetting = true;
                         }
                     }
@@ -1330,7 +1452,7 @@ bool parseLine(const char *theLine)
                     int server;
                     if (sscanf(suffix, "%d", &server) == 1)
                     {
-                        settings.ntripServer_CasterEnabled[server] = d;
+                        tempSettings->ntripServer_CasterEnabled[server] = d;
                         knownSetting = true;
                     }
                 }
@@ -1339,8 +1461,8 @@ bool parseLine(const char *theLine)
                     int server;
                     if (sscanf(suffix, "%d", &server) == 1)
                     {
-                        strncpy(&settings.ntripServer_CasterHost[server][0], settingString,
-                                sizeof(settings.ntripServer_CasterHost[server]));
+                        strncpy(&tempSettings->ntripServer_CasterHost[server][0], settingString,
+                                sizeof(tempSettings->ntripServer_CasterHost[server]));
                         knownSetting = true;
                     }
                 }
@@ -1349,7 +1471,7 @@ bool parseLine(const char *theLine)
                     int server;
                     if (sscanf(suffix, "%d", &server) == 1)
                     {
-                        settings.ntripServer_CasterPort[server] = d;
+                        tempSettings->ntripServer_CasterPort[server] = d;
                         knownSetting = true;
                     }
                 }
@@ -1358,8 +1480,8 @@ bool parseLine(const char *theLine)
                     int server;
                     if (sscanf(suffix, "%d", &server) == 1)
                     {
-                        strncpy(&settings.ntripServer_CasterUser[server][0], settingString,
-                                sizeof(settings.ntripServer_CasterUser[server]));
+                        strncpy(&tempSettings->ntripServer_CasterUser[server][0], settingString,
+                                sizeof(tempSettings->ntripServer_CasterUser[server]));
                         knownSetting = true;
                     }
                 }
@@ -1368,8 +1490,8 @@ bool parseLine(const char *theLine)
                     int server;
                     if (sscanf(suffix, "%d", &server) == 1)
                     {
-                        strncpy(&settings.ntripServer_CasterUserPW[server][0], settingString,
-                                sizeof(settings.ntripServer_CasterUserPW[server]));
+                        strncpy(&tempSettings->ntripServer_CasterUserPW[server][0], settingString,
+                                sizeof(tempSettings->ntripServer_CasterUserPW[server]));
                         knownSetting = true;
                     }
                 }
@@ -1378,8 +1500,8 @@ bool parseLine(const char *theLine)
                     int server;
                     if (sscanf(suffix, "%d", &server) == 1)
                     {
-                        strncpy(&settings.ntripServer_MountPoint[server][0], settingString,
-                                sizeof(settings.ntripServer_MountPoint[server]));
+                        strncpy(&tempSettings->ntripServer_MountPoint[server][0], settingString,
+                                sizeof(tempSettings->ntripServer_MountPoint[server]));
                         knownSetting = true;
                     }
                 }
@@ -1388,8 +1510,8 @@ bool parseLine(const char *theLine)
                     int server;
                     if (sscanf(suffix, "%d", &server) == 1)
                     {
-                        strncpy(&settings.ntripServer_MountPointPW[server][0], settingString,
-                                sizeof(settings.ntripServer_MountPointPW[server]));
+                        strncpy(&tempSettings->ntripServer_MountPointPW[server][0], settingString,
+                                sizeof(tempSettings->ntripServer_MountPointPW[server]));
                         knownSetting = true;
                     }
                 }
@@ -1399,7 +1521,7 @@ bool parseLine(const char *theLine)
                     {
                         if ((suffix[0] == correctionGetName(x)[0]) && (strcmp(suffix, correctionGetName(x)) == 0))
                         {
-                            settings.correctionsSourcesPriority[x] = d;
+                            tempSettings->correctionsSourcesPriority[x] = d;
                             knownSetting = true;
                             break;
                         }
@@ -1410,8 +1532,8 @@ bool parseLine(const char *theLine)
                     int region;
                     if (sscanf(suffix, "%d", &region) == 1)
                     {
-                        strncpy(&settings.regionalCorrectionTopics[region][0], settingString,
-                                sizeof(settings.regionalCorrectionTopics[0]));
+                        strncpy(&tempSettings->regionalCorrectionTopics[region][0], settingString,
+                                sizeof(tempSettings->regionalCorrectionTopics[0]));
                         knownSetting = true;
                     }
                 }
@@ -1611,9 +1733,9 @@ void setProfileName(uint8_t ProfileNumber)
 bool getProfileName(char *fileName, char *profileName, uint8_t profileNameLength)
 {
     char profileNameLFS[50];
-    loadSystemSettingsFromFileLFS(fileName, "profileName=", profileNameLFS, sizeof(profileNameLFS));
+    loadSystemSettingsFromFileLFS(fileName, nullptr, "profileName=", profileNameLFS, sizeof(profileNameLFS));
     char profileNameSD[50];
-    loadSystemSettingsFromFileSD(fileName, "profileName=", profileNameSD, sizeof(profileNameSD));
+    loadSystemSettingsFromFileSD(fileName, nullptr, "profileName=", profileNameSD, sizeof(profileNameSD));
 
     // Zero terminate the profile name
     *profileName = 0;
