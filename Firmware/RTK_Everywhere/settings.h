@@ -2141,7 +2141,6 @@ class RTK_WIFI
 {
   private:
 
-    WIFI_CHANNEL_t _apChannel;  // Channel required for soft AP, zero (0) use wifiChannel
     int16_t _apCount;           // The number or remote APs detected in the WiFi network
     IPAddress _apDnsAddress;    // DNS IP address to use while translating names into IP addresses
     IPAddress _apFirstDhcpAddress;  // First IP address to use for DHCP
@@ -2346,16 +2345,6 @@ class RTK_WIFI
     // Outputs:
     //   Returns the current WiFi channel number
     WIFI_CHANNEL_t getChannel();
-
-    // Get the soft AP channel
-    // Outputs:
-    //   Returns the requested soft AP channel
-    WIFI_CHANNEL_t softApChannelGet();
-
-    // Set the soft AP channel
-    // Inputs:
-    //   channel: Request the channel for WiFi soft AP
-    void softApChannelSet(WIFI_CHANNEL_t channel);
 
     // Configure the soft AP
     // Inputs:

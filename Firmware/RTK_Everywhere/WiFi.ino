@@ -683,20 +683,6 @@ void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
 }
 
 //*********************************************************************
-// Get the soft AP channel
-WIFI_CHANNEL_t wifiSoftApChannelGet()
-{
-    return wifi.softApChannelGet();
-}
-
-//*********************************************************************
-// Set the soft AP channel
-void wifiSoftApChannelSet(WIFI_CHANNEL_t channel)
-{
-    wifi.softApChannelSet(channel);
-}
-
-//*********************************************************************
 // Get the broadcast IP address being used for the software access point (AP)
 // Outputs:
 //   Returns an IPAddress object containing the IP address used by the
@@ -1341,7 +1327,7 @@ void wifiVerifyTables()
 //   verbose: Set to true to display additional WiFi debug data
 // For AP on RTK Firmware, we set the Gateway to 192.168.4.1, not 0.0.0.0. Let's do the same here.
 RTK_WIFI::RTK_WIFI(bool verbose)
-    : _apChannel{0}, _apCount{0}, _apDnsAddress{IPAddress((uint32_t)0)}, _apFirstDhcpAddress{IPAddress("192.168.4.32")},
+    : _apCount{0}, _apDnsAddress{IPAddress((uint32_t)0)}, _apFirstDhcpAddress{IPAddress("192.168.4.32")},
       _apGatewayAddress{IPAddress("192.168.4.1")}, _apIpAddress{IPAddress("192.168.4.1")},
       _apMacAddress{0, 0, 0, 0, 0, 0}, _apSubnetMask{IPAddress("255.255.255.0")},
       _scanRunning{false}, _staIpAddress{IPAddress((uint32_t)0)}, _staIpType{0}, _staMacAddress{0, 0, 0, 0, 0, 0},
@@ -1777,24 +1763,6 @@ bool RTK_WIFI::setWiFiProtocols(wifi_interface_t interface, bool enableWiFiProto
 
     // Return the final status
     return started;
-}
-
-//*********************************************************************
-// Get the soft AP channel
-// Outputs:
-//   Returns the requested soft AP channel
-WIFI_CHANNEL_t RTK_WIFI::softApChannelGet()
-{
-    return _apChannel;
-}
-
-//*********************************************************************
-// Set the soft AP channel
-// Inputs:
-//   channel: Request the channel for WiFi soft AP
-void RTK_WIFI::softApChannelSet(WIFI_CHANNEL_t channel)
-{
-    _apChannel = channel;
 }
 
 //*********************************************************************
@@ -2474,7 +2442,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     //      1. Active channel (not using default channel)
     //      2. _stationChannel
     //      3. Remote AP channel determined by scan
-    //      5. _apChannel
     //      6. Channel 1
     //****************************************
 
@@ -2507,14 +2474,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Restart ESP-NOW if necessary
         if (wifiEspNowRunning)
             stopping |= WIFI_START_ESP_NOW;
-    }
-
-    // Determine if the AP channel was specified
-    else if (_apChannel && ((starting | _started) & WIFI_AP_ONLINE))
-    {
-        channel = _apChannel;
-        if (settings.debugWifiState && _verbose)
-            systemPrintf("channel: %d, soft AP channel\r\n", channel);
     }
 
     // No channel specified and scan not being done, use the default channel
