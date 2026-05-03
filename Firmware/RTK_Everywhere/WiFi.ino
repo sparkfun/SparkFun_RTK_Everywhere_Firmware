@@ -1331,7 +1331,7 @@ RTK_WIFI::RTK_WIFI(bool verbose)
       _apGatewayAddress{IPAddress("192.168.4.1")}, _apIpAddress{IPAddress("192.168.4.1")},
       _apMacAddress{0, 0, 0, 0, 0, 0}, _apSubnetMask{IPAddress("255.255.255.0")},
       _scanRunning{false}, _staIpAddress{IPAddress((uint32_t)0)}, _staIpType{0}, _staMacAddress{0, 0, 0, 0, 0, 0},
-      _staRemoteApSsid{nullptr}, _staRemoteApPassword{nullptr}, _started{false}, _stationChannel{0},
+      _staRemoteApSsid{nullptr}, _staRemoteApPassword{nullptr}, _started{false},
       _usingDefaultChannel{true}, _verbose{verbose}
 {
     wifiChannel = 0;
@@ -2013,20 +2013,6 @@ bool RTK_WIFI::startAp(bool forceAP)
 }
 
 //*********************************************************************
-// Get the station channel
-WIFI_CHANNEL_t RTK_WIFI::stationChannelGet()
-{
-    return _stationChannel;
-}
-
-//*********************************************************************
-// Set the station channel
-void RTK_WIFI::stationChannelSet(WIFI_CHANNEL_t channel)
-{
-    _stationChannel = channel;
-}
-
-//*********************************************************************
 // Connect the station to a remote AP
 // Return true if the connection was successful and false upon failure.
 bool RTK_WIFI::stationConnectAP()
@@ -2440,9 +2426,8 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     //
     // The priority order for the channel is:
     //      1. Active channel (not using default channel)
-    //      2. _stationChannel
     //      3. Remote AP channel determined by scan
-    //      6. Channel 1
+    //      6. Use the previous channel (defaults to channel 1)
     //****************************************
 
     // Determine if there is an active channel
@@ -2454,14 +2439,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         channel = wifiChannel;
         if (settings.debugWifiState && _verbose)
             systemPrintf("channel: %d, active channel\r\n", channel);
-    }
-
-    // Use the station channel if specified
-    else if (_stationChannel && (starting & WIFI_STA_ONLINE))
-    {
-        channel = _stationChannel;
-        if (settings.debugWifiState && _verbose)
-            systemPrintf("channel: %d, WiFi station channel\r\n", channel);
     }
 
     // Determine if a scan for remote APs is needed
@@ -2476,10 +2453,10 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             stopping |= WIFI_START_ESP_NOW;
     }
 
-    // No channel specified and scan not being done, use the default channel
+    // No channel specified and scan not being done, use the previous channel
     else
     {
-        channel = WIFI_DEFAULT_CHANNEL;
+        channel = settings.wifiChannel;
         _usingDefaultChannel = true;
         if (settings.debugWifiState && _verbose)
             systemPrintf("channel: %d, default channel\r\n", channel);

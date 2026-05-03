@@ -2158,7 +2158,6 @@ class RTK_WIFI
     const char * _staRemoteApSsid;      // SSID of remote AP
     const char * _staRemoteApPassword;  // Password of remote AP
     volatile WIFI_ACTION_t _started;    // Components that are started and running
-    WIFI_CHANNEL_t _stationChannel; // Channel required for station, zero (0) use wifiChannel
     bool _usingDefaultChannel;  // Using default WiFi channel
     bool _verbose;              // True causes more debug output to be displayed
 
@@ -2383,16 +2382,6 @@ class RTK_WIFI
     //    Returns true if the soft AP was started successfully and false
     //    otherwise
     bool startAp(bool forceAP);
-
-    // Get the station channel
-    // Outputs:
-    //   Returns the requested station channel
-    WIFI_CHANNEL_t stationChannelGet();
-
-    // Set the station channel
-    // Inputs:
-    //   channel: Request the channel for WiFi station
-    void stationChannelSet(WIFI_CHANNEL_t channel);
 
     // Get the WiFi station IP address
     // Returns the IP address of the WiFi station
