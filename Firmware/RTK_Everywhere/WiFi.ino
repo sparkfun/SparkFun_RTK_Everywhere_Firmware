@@ -390,6 +390,8 @@ void menuWiFi()
         systemPrint("c) Captive Portal: ");
         systemPrintf("%s\r\n", settings.enableCaptivePortal ? "Enabled" : "Disabled");
 
+        systemPrintf("d) Set default WiFi channel: %d\r\n", wifiChannel);
+
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -423,6 +425,27 @@ void menuWiFi()
         {
             settings.enableCaptivePortal ^= 1;
         }
+
+        // Set the default WiFi channel
+        else if (incoming == 'd')
+        {
+            if (getNewSetting("Enter the default WiFi channel", 1, 14,
+                              &settings.wifiChannel) == INPUT_RESPONSE_VALID)
+            {
+                if (settings.wifiChannel == wifiChannel)
+                    systemPrintf("WiFi is already on channel %d.", settings.wifiChannel);
+                else
+                {
+                    if (wifiSoftApRunning || wifiStationRunning)
+                        systemPrintf("Restart WiFi to use channel %d.", settings.wifiChannel);
+                    else if (wifiEspNowRunning)
+                        systemPrintf("Restart ESP-NOW to use channel %d.", settings.wifiChannel);
+                    else
+                        systemPrintf("Please start ESP-NOW to use channel %d.", settings.wifiChannel);
+                }
+            }
+        }
+
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
