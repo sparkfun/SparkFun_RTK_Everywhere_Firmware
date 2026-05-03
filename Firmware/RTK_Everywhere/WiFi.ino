@@ -587,20 +587,6 @@ void wifiDisplayState()
 }
 
 //*********************************************************************
-// Get the ESP-NOW channel
-WIFI_CHANNEL_t wifiEspNowChannelGet()
-{
-    return wifi.espNowChannelGet();
-}
-
-//*********************************************************************
-// Set the ESP-NOW channel
-void wifiEspNowChannelSet(WIFI_CHANNEL_t channel)
-{
-    wifi.espNowChannelSet(channel);
-}
-
-//*********************************************************************
 // Stop ESP-NOW
 // Inputs:
 //   fileName: Name of file calling the enable routine
@@ -1357,7 +1343,7 @@ void wifiVerifyTables()
 RTK_WIFI::RTK_WIFI(bool verbose)
     : _apChannel{0}, _apCount{0}, _apDnsAddress{IPAddress((uint32_t)0)}, _apFirstDhcpAddress{IPAddress("192.168.4.32")},
       _apGatewayAddress{IPAddress("192.168.4.1")}, _apIpAddress{IPAddress("192.168.4.1")},
-      _apMacAddress{0, 0, 0, 0, 0, 0}, _apSubnetMask{IPAddress("255.255.255.0")}, _espNowChannel{0},
+      _apMacAddress{0, 0, 0, 0, 0, 0}, _apSubnetMask{IPAddress("255.255.255.0")},
       _scanRunning{false}, _staIpAddress{IPAddress((uint32_t)0)}, _staIpType{0}, _staMacAddress{0, 0, 0, 0, 0, 0},
       _staRemoteApSsid{nullptr}, _staRemoteApPassword{nullptr}, _started{false}, _stationChannel{0},
       _usingDefaultChannel{true}, _verbose{verbose}
@@ -1551,24 +1537,6 @@ bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation, 
     if (settings.debugWifiState && _verbose)
         systemPrintf("WiFi: RTK_WIFI::enable returning %s\r\n", status ? "true" : "false");
     return status;
-}
-
-//*********************************************************************
-// Get the ESP-NOW channel
-// Outputs:
-//   Returns the requested ESP-NOW channel
-WIFI_CHANNEL_t RTK_WIFI::espNowChannelGet()
-{
-    return _espNowChannel;
-}
-
-//*********************************************************************
-// Set the ESP-NOW channel
-// Inputs:
-//   channel: New ESP-NOW channel number
-void RTK_WIFI::espNowChannelSet(WIFI_CHANNEL_t channel)
-{
-    _espNowChannel = channel;
 }
 
 //*********************************************************************
@@ -2506,7 +2474,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     //      1. Active channel (not using default channel)
     //      2. _stationChannel
     //      3. Remote AP channel determined by scan
-    //      4. _espNowChannel
     //      5. _apChannel
     //      6. Channel 1
     //****************************************
@@ -2540,14 +2507,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Restart ESP-NOW if necessary
         if (wifiEspNowRunning)
             stopping |= WIFI_START_ESP_NOW;
-    }
-
-    // Determine if the ESP-NOW channel was specified
-    else if (_espNowChannel & ((starting | _started) & WIFI_EN_ESP_NOW_ONLINE))
-    {
-        channel = _espNowChannel;
-        if (settings.debugWifiState && _verbose)
-            systemPrintf("channel: %d, ESP-NOW channel\r\n", channel);
     }
 
     // Determine if the AP channel was specified

@@ -2149,7 +2149,6 @@ class RTK_WIFI
     IPAddress _apIpAddress;     // IP address of the soft AP
     uint8_t _apMacAddress[6];   // MAC address of the soft AP
     IPAddress _apSubnetMask;    // Subnet mask for soft AP
-    WIFI_CHANNEL_t _espNowChannel;  // Channel required for ESPNow, zero (0) use wifiChannel
     volatile bool _scanRunning; // Scan running
     int _staAuthType;           // Authorization type for the remote AP
     bool _staConnected;         // True when station is connected
@@ -2329,16 +2328,6 @@ class RTK_WIFI
                 bool enableStation,
                 const char * fileName,
                 int lineNumber);
-
-    // Get the ESP-NOW channel
-    // Outputs:
-    //   Returns the requested ESP-NOW channel
-    WIFI_CHANNEL_t espNowChannelGet();
-
-    // Set the ESP-NOW channel
-    // Inputs:
-    //   channel: New ESP-NOW channel number
-    void espNowChannelSet(WIFI_CHANNEL_t channel);
 
     // Get the ESP-NOW status
     // Outputs:

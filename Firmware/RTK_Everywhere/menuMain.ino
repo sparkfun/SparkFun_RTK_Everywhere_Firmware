@@ -586,20 +586,16 @@ void menuRadio()
             if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
                               &settings.wifiChannel) == INPUT_RESPONSE_VALID)
             {
-                wifiEspNowChannelSet(settings.wifiChannel);
-                if (settings.wifiChannel)
+                if (settings.wifiChannel == wifiChannel)
+                    systemPrintf("WiFi is already on channel %d.", settings.wifiChannel);
+                else
                 {
-                    if (settings.wifiChannel == wifiChannel)
-                        systemPrintf("WiFi is already on channel %d.", settings.wifiChannel);
+                    if (wifiSoftApRunning || wifiStationRunning)
+                        systemPrintf("Restart WiFi to use channel %d.", settings.wifiChannel);
+                    else if (wifiEspNowRunning)
+                        systemPrintf("Restart ESP-NOW to use channel %d.", settings.wifiChannel);
                     else
-                    {
-                        if (wifiSoftApRunning || wifiStationRunning)
-                            systemPrintf("Restart WiFi to use channel %d.", settings.wifiChannel);
-                        else if (wifiEspNowRunning)
-                            systemPrintf("Restart ESP-NOW to use channel %d.", settings.wifiChannel);
-                        else
-                            systemPrintf("Please start ESP-NOW to use channel %d.", settings.wifiChannel);
-                    }
+                        systemPrintf("Please start ESP-NOW to use channel %d.", settings.wifiChannel);
                 }
             }
         }
@@ -672,7 +668,7 @@ void menuRadio()
         }
         else if (present.radio_lora == true && settings.enableLora == true && incoming == 13)
             settings.loraSaveSettingsToFlash ^= 1;
-        else if (present.radio_lora == true && settings.enableLora == true 
+        else if (present.radio_lora == true && settings.enableLora == true
                  && present.loraDedicatedUart == false && incoming == 14)
         {
             getNewSetting("Enter the number of seconds without user serial that must elapse before LoRa radio goes "
