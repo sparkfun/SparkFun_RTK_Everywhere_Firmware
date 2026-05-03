@@ -2426,8 +2426,8 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     //
     // The priority order for the channel is:
     //      1. Active channel (not using default channel)
-    //      3. Remote AP channel determined by scan
-    //      6. Use the previous channel (defaults to channel 1)
+    //      2. Remote AP channel determined by scan
+    //      3. Use the previous saved channel (defaults to channel 1)
     //****************************************
 
     // Determine if there is an active channel
@@ -2836,6 +2836,13 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             if (!channel)
                 channel = WIFI_DEFAULT_CHANNEL;
             wifiChannel = channel;
+
+            // Save the updated channel
+            if (settings.wifiChannel != wifiChannel)
+            {
+                settings.wifiChannel = wifiChannel;
+                recordSystemSettings();
+            }
 
             // Display the selected channel
             if (settings.debugWifiState)
