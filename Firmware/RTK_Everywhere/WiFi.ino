@@ -541,6 +541,7 @@ void wifiDisplayNetworkData()
         }
     }
     systemPrintf("%s: %s%s\r\n", wifiSoftApName, status, netif->isDefault() ? ", default" : "");
+    systemPrintf("    Channel: %d\r\n", settings.wifiChannel);
     hostName = netif->getHostname();
     if (hostName)
         systemPrintf("    Host Name: %s\r\n", hostName);
