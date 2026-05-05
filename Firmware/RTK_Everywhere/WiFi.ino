@@ -749,6 +749,9 @@ const char *wifiSoftApGetSsid()
 //   Returns the status of WiFi soft AP stop
 bool wifiSoftApOff(const char *fileName, uint32_t lineNumber)
 {
+    // Disable mDNS
+    networkMulticastDNSUpdate(false);
+
     // Display the call
     if (settings.debugWifiState)
         systemPrintf("wifiSoftApOff called in %s at line %d\r\n", fileName, lineNumber);
@@ -765,6 +768,8 @@ bool wifiSoftApOff(const char *fileName, uint32_t lineNumber)
 //   Returns the status of WiFi soft AP start
 bool wifiSoftApOn(const char *fileName, uint32_t lineNumber)
 {
+    bool status;
+
     // Display the call
     if (settings.debugWifiState)
         systemPrintf("wifiSoftApOn called in %s at line %d\r\n", fileName, lineNumber);
@@ -775,7 +780,11 @@ bool wifiSoftApOn(const char *fileName, uint32_t lineNumber)
     else
         wifiSoftApSsid = "RTK";
 
-    return wifi.enable(wifiEspNowRunning, true, wifiStationRunning, __FILE__, __LINE__);
+    status = wifi.enable(wifiEspNowRunning, true, wifiStationRunning, __FILE__, __LINE__);
+
+    // Enable mDNS
+    networkMulticastDNSUpdate(wifiSoftApOnline);
+    return status;
 }
 
 //*********************************************************************
