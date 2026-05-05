@@ -1991,6 +1991,9 @@ enum NetworkTypes
     // Add new networks above this line in default priority order
     NETWORK_ANY,            // 3
     NETWORK_MAX = NETWORK_ANY,
+
+    // Reserved: Only used to manage mDNS
+    NETWORK_WIFI_AP         // 4
 };
 
 #ifdef  COMPILE_NETWORK
