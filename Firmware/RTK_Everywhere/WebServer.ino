@@ -215,21 +215,6 @@ bool webServerAssignResources(int httpPort = 80)
         }
         memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
 
-        // Note: MDNS should probably be begun by networkMulticastDNSUpdate, but that doesn't seem to be happening...
-        //       Is the networkInterface aware that AP needs it? Let's start it manually...
-        if (MDNS.begin(&settings.mdnsHostName[0]) == false)
-        {
-            systemPrintln("Error setting up MDNS responder!");
-        }
-        else
-        {
-            if (settings.debugNetworkLayer)
-                systemPrintf("mDNS started as %s.local\r\n", settings.mdnsHostName);
-        }
-
-        if (settings.mdnsEnable == true)
-            MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
-
         if (settings.debugWebServer == true)
             systemPrintln("Web Server: Started");
         reportHeapNow(false);
