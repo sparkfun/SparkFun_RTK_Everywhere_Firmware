@@ -429,7 +429,11 @@ bool GNSS_MOSAIC::checkNMEARates()
 //----------------------------------------
 bool GNSS_MOSAIC::checkPPPRates()
 {
-    return settings.enableLoggingRINEX;
+    if (settings.enableLoggingRINEX)
+        return true;
+
+    // Determine which state we are in
+    return (getActiveRtcmMessageCount() == (inRoverMode() ? 0 : 3));
 }
 
 // Enable / disable RINEX logging
@@ -1068,7 +1072,7 @@ uint8_t GNSS_MOSAIC::getLoggingType()
     LoggingType logType = LOGGING_CUSTOM;
 
     int messageCount = getActiveMessageCount();
-    if (messageCount == 5 || messageCount == 7)
+    if (messageCount == 5 || messageCount == 8) // Default NMEA 5. Default Base RTCM 3
     {
         if (checkNMEARates())
         {
