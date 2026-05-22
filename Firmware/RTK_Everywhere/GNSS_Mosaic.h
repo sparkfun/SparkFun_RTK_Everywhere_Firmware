@@ -675,10 +675,7 @@ class GNSS_MOSAIC : GNSS
     uint8_t getActiveMessageCount();
 
     // Return the number of active/enabled RTCM messages
-    uint8_t getActiveRtcmMessageCount()
-    {
-        return (0);
-    }
+    uint8_t getActiveRtcmMessageCount();
 
     // Get the altitude
     // Outputs:
