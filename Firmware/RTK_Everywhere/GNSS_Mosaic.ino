@@ -874,6 +874,14 @@ uint8_t GNSS_MOSAIC::getActiveMessageCount()
         if (settings.mosaicMessageStreamNMEA[x] > 0)
             count++;
 
+    count += getActiveRtcmMessageCount();
+
+    return (count);
+}
+uint8_t GNSS_MOSAIC::getActiveRtcmMessageCount()
+{
+    uint8_t count = 0;
+
     // Determine which state we are in
     if (inRoverMode() == true)
     {
