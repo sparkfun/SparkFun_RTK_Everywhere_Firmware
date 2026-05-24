@@ -413,21 +413,25 @@ void loadSettingsPartial()
 //----------------------------------------
 // Record settings to files in both the Little File System and SD card
 //----------------------------------------
-void recordSystemSettings()
+bool recordSystemSettings()
 {
+    bool status;
+
     settings.sizeOfSettings = sizeof(settings); // Update to current setting size
 
-    recordSystemSettingsToFileSD(settingsFileName);  // Record to SD if available
-    recordSystemSettingsToFileLFS(settingsFileName); // Record to LFS if available
+    status = recordSystemSettingsToFileSD(settingsFileName);  // Record to SD if available
+    status &= recordSystemSettingsToFileLFS(settingsFileName); // Record to LFS if available
+    return status;
 }
 
 //----------------------------------------
 // Export the current settings to a config file on SD
 // We share the recording with LittleFS so this is all the semaphore and SD specific handling
 //----------------------------------------
-void recordSystemSettingsToFileSD(char *fileName)
+bool recordSystemSettingsToFileSD(char *fileName)
 {
     bool gotSemaphore = false;
+    bool status = true;
     bool wasSdCardOnline;
 
     // Try to gain access the SD card
@@ -439,6 +443,7 @@ void recordSystemSettingsToFileSD(char *fileName)
     {
         // Attempt to write to file system. This avoids collisions with file writing from other functions like
         // updateLogs()
+        status = false;
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
         {
             markSemaphore(FUNCTION_RECORDSETTINGS);
@@ -463,10 +468,25 @@ void recordSystemSettingsToFileSD(char *fileName)
 
             recordSystemSettingsToFile((File *)&settingsFile); // Record all the settings via strings to file
 
-            sdUpdateFileAccessTimestamp(&settingsFile); // Update the file access time & date
+            // Write the CRC to the file
+            if (settings.debugSettings)
+                systemPrintf("Writing CRC 0x%08x to file SD:%s\r\n", nvmCrc, fileName);
+            status = (settingsFile.write((uint8_t *)&nvmCrc, sizeof(nvmCrc)) == sizeof(nvmCrc));
+            if (status)
+            {
+                if (settings.debugSettings)
+                    systemPrintf("Successfully wrote CRC 0x%08x to file SD:%s\r\n", nvmCrc, fileName);
 
+                // Update the access timestamp
+                sdUpdateFileAccessTimestamp(&settingsFile); // Update the file access time & date
+                if (settings.debugSettings)
+                    systemPrintf("Updated file access timestampon file SD:%s\r\n", fileName);
+            }
+            else
+                systemPrintf("ERROR: Failed to write CRC to file SD:%s\r\n", fileName);
+
+            // Close the file
             settingsFile.close();
-
             if (settings.debugSettings)
                 systemPrintf("Settings recorded to SD:%s\r\n", fileName);
         }
@@ -487,14 +507,17 @@ void recordSystemSettingsToFileSD(char *fileName)
         endSD(gotSemaphore, true);
     else if (gotSemaphore)
         xSemaphoreGive(sdCardSemaphore);
+    return status;
 }
 
 //----------------------------------------
 // Export the current settings to a config file on SD
 // We share the recording with LittleFS so this is all the semaphore and SD specific handling
 //----------------------------------------
-void recordSystemSettingsToFileLFS(char *fileName)
+bool recordSystemSettingsToFileLFS(char *fileName)
 {
+    bool status = false;
+
     if (online.fs == true)
     {
         if (LittleFS.exists(fileName))
@@ -512,11 +535,21 @@ void recordSystemSettingsToFileLFS(char *fileName)
         else
         {
             recordSystemSettingsToFile(&settingsFile); // Record all the settings via strings to file
+
+            // Write the CRC to the file
+            if (settings.debugSettings)
+                systemPrintf("Writing CRC 0x%08x to file LFS:%s\r\n", nvmCrc, fileName);
+            status = (settingsFile.write((uint8_t *)&nvmCrc, sizeof(nvmCrc)) == sizeof(nvmCrc));
+            if (status == false)
+                systemPrintf("ERROR: Failed to write CRC to file LFS:%s\r\n", fileName);
+
+            // Close the file
             settingsFile.close();
             if (settings.debugSettings)
                 systemPrintf("Settings recorded to LFS:%s\r\n", fileName);
         }
     }
+    return status;
 }
 
 //----------------------------------------
@@ -594,7 +627,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     // Write the header (required values) to the file
     SETTINGS_FILE_PRINTF_3("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
     SETTINGS_FILE_PRINTF_3("%s=%d\r\n", "rtkIdentifier", settings.rtkIdentifier);
-    SETTINGS_FILE_PRINTF_3("%s=%d\r\n", nvmSettingsFileHasCrc, false);
+    SETTINGS_FILE_PRINTF_3("%s=%d\r\n", nvmSettingsFileHasCrc, true);
 
     if (settings.debugSettings)
         systemPrintf("numRtkSettingsEntries: %d\r\n", numRtkSettingsEntries);
@@ -851,6 +884,10 @@ void recordSystemSettingsToFile(File *settingsFile)
     // Firmware URLs
     SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "otaRcFirmwareJsonUrl", otaRcFirmwareJsonUrl);
     SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "otaFirmwareJsonUrl", otaFirmwareJsonUrl);
+
+    //------------------------------------------------------------
+    // Add any new settings above this line!
+    //------------------------------------------------------------
 
     // Forget the file pointer
     nvmSettingsFile = nullptr;
