@@ -71,6 +71,25 @@ bool loadSystemSettingsFromFileSD(char *fileName,
 const uint32_t nvmCrc32Polynomial = 0x04c11db7;
 
 //----------------------------------------
+// Locals
+//----------------------------------------
+
+static uint32_t nvmCrc;
+static File * nvmSettingsFile;
+
+//----------------------------------------
+// Macros
+//----------------------------------------
+
+#define SETTINGS_FILE_PRINTF_3(format, name, value)             \
+    snprintf(line, sizeof(line), format, name, value);          \
+    nvmRecordStringToFile(line)
+
+#define SETTINGS_FILE_PRINTF_4(format, name, index, value)      \
+    snprintf(line, sizeof(line), format, name, index, value);   \
+    nvmRecordStringToFile(line)
+
+//----------------------------------------
 // We use the LittleFS library to store user profiles in SPIFFs
 // Move selected user profile from SPIFFs into settings struct (RAM)
 // We originally used EEPROM but it was limited to 4096 bytes. Each settings struct is ~4000 bytes
@@ -549,6 +568,15 @@ uint32_t nvmBitBangCrc32(uint32_t crc, const uint8_t * data, size_t length)
 }
 
 //----------------------------------------
+// Compute the CRC for the line and write the string to the file
+void nvmRecordStringToFile(const char * string)
+//----------------------------------------
+{
+    nvmCrc = nvmBitBangCrc32(nvmCrc, (uint8_t *)string, strlen(string));
+    nvmSettingsFile->printf("%s", string);
+}
+
+//----------------------------------------
 // Write the settings struct to a clear text file
 // The order of variables matches the order found in settings.h
 //----------------------------------------
@@ -556,6 +584,11 @@ void recordSystemSettingsToFile(File *settingsFile)
 {
     RTK_Settings_Types type;
 
+    // Initialize the CRC and save the file pointer
+    nvmCrc = 0;
+    nvmSettingsFile = settingsFile;
+
+    // Write the header (required values) to the file
     settingsFile->printf("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
     settingsFile->printf("%s=%d\r\n", "rtkIdentifier", settings.rtkIdentifier);
 
@@ -817,6 +850,9 @@ void recordSystemSettingsToFile(File *settingsFile)
     // Firmware URLs
     settingsFile->printf("%s=%s\r\n", "otaRcFirmwareJsonUrl", otaRcFirmwareJsonUrl);
     settingsFile->printf("%s=%s\r\n", "otaFirmwareJsonUrl", otaFirmwareJsonUrl);
+
+    // Forget the file pointer
+    nvmSettingsFile = nullptr;
 }
 
 //----------------------------------------
