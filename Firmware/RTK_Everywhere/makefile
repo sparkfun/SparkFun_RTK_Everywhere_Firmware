@@ -297,6 +297,15 @@ terminal_torch:
 	$(TERMINAL_APP)   -D $(TERMINAL_PORT_TORCH)   $(TERMINAL_PARAMS)
 
 ########
+# Handle crashes
+##########
+
+.PHONY: crash
+
+crash:
+	~/SparkFun/rc/RTK/Firmware/Tools/Read_Map_File   build/e*/*.ino.map
+
+########
 # Clean the build directory
 ##########
 
