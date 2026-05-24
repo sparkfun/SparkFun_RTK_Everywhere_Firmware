@@ -62,6 +62,15 @@ bool loadSystemSettingsFromFileSD(char *fileName,
                                   int len = 0); // Header
 
 //----------------------------------------
+// Constants
+//----------------------------------------
+
+// g(x) = x^32 + x^26 + (x^23 + x^22) + x^16 + x^12 + (x^11 + x^10 + x^8)
+//      + (x^5 + x^4) + (x^2 + x^1 + x^0)
+// 1 0000 0100 1100 0001 0001 1101 1011 0111
+const uint32_t nvmCrc32Polynomial = 0x04c11db7;
+
+//----------------------------------------
 // We use the LittleFS library to store user profiles in SPIFFs
 // Move selected user profile from SPIFFs into settings struct (RAM)
 // We originally used EEPROM but it was limited to 4096 bytes. Each settings struct is ~4000 bytes
@@ -487,6 +496,56 @@ void recordSystemSettingsToFileLFS(char *fileName)
                 systemPrintf("Settings recorded to LFS:%s\r\n", fileName);
         }
     }
+}
+
+//----------------------------------------
+// Compute the next byte of CRC32
+// x32 + x26 + x23 + x22 + x16 + x12 + x11 + x10 + x8 + x7 + x5 + x4 + x2 + x + 1
+// Inputs:
+//   crc: Initial or previous CRC value
+//   byte: Data byte to use in the CRC calculation
+//
+// Output:
+//   Returns the updated CRC value
+//----------------------------------------
+uint32_t nvmBitBangCrc32Byte(uint32_t crc, uint8_t byte)
+{
+    uint32_t bit;
+    int bitNumber;
+
+    // XOR byte into the LSB of the CRC
+    crc ^= byte;
+
+    // Compute the updated CRC32 value
+    for (int bitNumber = 0; bitNumber < 8; bitNumber++)
+    {
+        bit = crc & 1;
+        crc >>= 1;
+        if (bit)
+            crc ^= nvmCrc32Polynomial;
+    }
+    return crc;
+}
+
+//----------------------------------------
+// Compute the CRC32 for a range of data
+// Inputs:
+//   crc: Initial or previous CRC value
+//   data: Address of a buffer containing data for the CRC
+//   length: Number of data bytes in the buffer
+//
+// Output:
+//   Returns the updated CRC value
+//----------------------------------------
+uint32_t nvmBitBangCrc32(uint32_t crc, const uint8_t * data, size_t length)
+{
+    const uint8_t * end;
+
+    // Compute the CRC for the data buffer
+    end = &data[length];
+    while (data < end)
+        crc = nvmBitBangCrc32Byte(crc, *data++);
+    return crc;
 }
 
 //----------------------------------------
