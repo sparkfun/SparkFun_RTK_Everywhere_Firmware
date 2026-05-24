@@ -582,6 +582,7 @@ void nvmRecordStringToFile(const char * string)
 //----------------------------------------
 void recordSystemSettingsToFile(File *settingsFile)
 {
+    char line[256];
     RTK_Settings_Types type;
 
     // Initialize the CRC and save the file pointer
@@ -589,8 +590,8 @@ void recordSystemSettingsToFile(File *settingsFile)
     nvmSettingsFile = settingsFile;
 
     // Write the header (required values) to the file
-    settingsFile->printf("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
-    settingsFile->printf("%s=%d\r\n", "rtkIdentifier", settings.rtkIdentifier);
+    SETTINGS_FILE_PRINTF_3("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
+    SETTINGS_FILE_PRINTF_3("%s=%d\r\n", "rtkIdentifier", settings.rtkIdentifier);
 
     if (settings.debugSettings)
         systemPrintf("numRtkSettingsEntries: %d\r\n", numRtkSettingsEntries);
@@ -626,92 +627,92 @@ void recordSystemSettingsToFile(File *settingsFile)
             break;
         case _bool: {
             bool *ptr = (bool *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case _int: {
             int *ptr = (int *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case _float: {
             float *ptr = (float *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%0.*f\r\n", rtkSettingsEntries[i].name, rtkSettingsEntries[i].qualifier, *ptr);
+            SETTINGS_FILE_PRINTF_4("%s=%0.*f\r\n", rtkSettingsEntries[i].name, rtkSettingsEntries[i].qualifier, *ptr);
         }
         break;
         case _double: {
             double *ptr = (double *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%0.*f\r\n", rtkSettingsEntries[i].name, rtkSettingsEntries[i].qualifier, *ptr);
+            SETTINGS_FILE_PRINTF_4("%s=%0.*f\r\n", rtkSettingsEntries[i].name, rtkSettingsEntries[i].qualifier, *ptr);
         }
         break;
         case _uint8_t: {
             uint8_t *ptr = (uint8_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case _uint16_t: {
             uint16_t *ptr = (uint16_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case _uint32_t: {
             uint32_t *ptr = (uint32_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%lu\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%lu\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case _uint64_t: {
             uint64_t *ptr = (uint64_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%llu\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%llu\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case _int8_t: {
             int8_t *ptr = (int8_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case _int16_t: {
             int16_t *ptr = (int16_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case tMuxConn: {
             muxConnectionType_e *ptr = (muxConnectionType_e *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
         }
         break;
         case tSysState: {
             SystemState *ptr = (SystemState *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
         }
         break;
         case tPulseEdg: {
             pulseEdgeType_e *ptr = (pulseEdgeType_e *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
         }
         break;
         case tBtRadio: {
             BluetoothRadioType_e *ptr = (BluetoothRadioType_e *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
         }
         break;
         case tPerDisp: {
             PeriodicDisplay_t *ptr = (PeriodicDisplay_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%llu\r\n", rtkSettingsEntries[i].name, *ptr); // PeriodicDisplay_t is uint64_t
+            SETTINGS_FILE_PRINTF_3("%s=%llu\r\n", rtkSettingsEntries[i].name, *ptr); // PeriodicDisplay_t is uint64_t
         }
         break;
         case tCoordInp: {
             CoordinateInputType *ptr = (CoordinateInputType *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
         }
         break;
         case tCharArry: {
             char *ptr = (char *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%s\r\n", rtkSettingsEntries[i].name, ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%s\r\n", rtkSettingsEntries[i].name, ptr);
         }
         break;
         case _IPString: {
             IPAddress *ptr = (IPAddress *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%s\r\n", rtkSettingsEntries[i].name, ptr->toString().c_str());
+            SETTINGS_FILE_PRINTF_3("%s=%s\r\n", rtkSettingsEntries[i].name, ptr->toString().c_str());
             // Note: toString separates the four bytes with dots / periods "192.168.1.1"
         }
         break;
@@ -729,12 +730,11 @@ void recordSystemSettingsToFile(File *settingsFile)
             // Record ESP-NOW peer MAC addresses
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                char tempString[50]; // espnowPeer_1=B4:C1:33:42:DE:01,
-                snprintf(tempString, sizeof(tempString), "%s%d=%02X:%02X:%02X:%02X:%02X:%02X",
+                snprintf(line, sizeof(line), "%s%d=%02X:%02X:%02X:%02X:%02X:%02X\r\n",
                          rtkSettingsEntries[i].name, x, settings.espnowPeers[x][0], settings.espnowPeers[x][1],
                          settings.espnowPeers[x][2], settings.espnowPeers[x][3], settings.espnowPeers[x][4],
                          settings.espnowPeers[x][5]);
-                settingsFile->println(tempString);
+                nvmRecordStringToFile(line);
             }
         }
         break;
@@ -743,21 +743,19 @@ void recordSystemSettingsToFile(File *settingsFile)
             // Record WiFi credential table
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                char tempString[100]; // wifiNetwork_0Password=parachutes
-
-                snprintf(tempString, sizeof(tempString), "%s%dSSID=%s", rtkSettingsEntries[i].name, x,
+                snprintf(line, sizeof(line), "%s%dSSID=%s\r\n", rtkSettingsEntries[i].name, x,
                          settings.wifiNetworks[x].ssid);
-                settingsFile->println(tempString);
-                snprintf(tempString, sizeof(tempString), "%s%dPassword=%s", rtkSettingsEntries[i].name, x,
+                nvmRecordStringToFile(line);
+                snprintf(line, sizeof(line), "%s%dPassword=%s\r\n", rtkSettingsEntries[i].name, x,
                          settings.wifiNetworks[x].password);
-                settingsFile->println(tempString);
+                nvmRecordStringToFile(line);
             }
         }
         break;
         case tNSCEn: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                settingsFile->printf("%s%d=%d\r\n", rtkSettingsEntries[i].name, x,
+                SETTINGS_FILE_PRINTF_4("%s%d=%d\r\n", rtkSettingsEntries[i].name, x,
                                      settings.ntripServer_CasterEnabled[x]);
             }
         }
@@ -765,7 +763,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         case tNSCHost: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                SETTINGS_FILE_PRINTF_4("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
                                      &settings.ntripServer_CasterHost[x][0]);
             }
         }
@@ -773,14 +771,14 @@ void recordSystemSettingsToFile(File *settingsFile)
         case tNSCPort: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                settingsFile->printf("%s%d=%d\r\n", rtkSettingsEntries[i].name, x, settings.ntripServer_CasterPort[x]);
+                SETTINGS_FILE_PRINTF_4("%s%d=%d\r\n", rtkSettingsEntries[i].name, x, settings.ntripServer_CasterPort[x]);
             }
         }
         break;
         case tNSCUser: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                SETTINGS_FILE_PRINTF_4("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
                                      &settings.ntripServer_CasterUser[x][0]);
             }
         }
@@ -788,7 +786,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         case tNSCUsrPw: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                SETTINGS_FILE_PRINTF_4("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
                                      &settings.ntripServer_CasterUserPW[x][0]);
             }
         }
@@ -796,7 +794,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         case tNSMtPt: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                SETTINGS_FILE_PRINTF_4("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
                                      &settings.ntripServer_MountPoint[x][0]);
             }
         }
@@ -804,7 +802,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         case tNSMtPtPw: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                SETTINGS_FILE_PRINTF_4("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
                                      &settings.ntripServer_MountPointPW[x][0]);
             }
         }
@@ -815,23 +813,23 @@ void recordSystemSettingsToFile(File *settingsFile)
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
                 char tempString[80]; // correctionsPriority_Ethernet_IP_(PointPerfect/MQTT)=99
-                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name, correctionGetName(x),
+                snprintf(line, sizeof(line), "%s%s=%0d\r\n", rtkSettingsEntries[i].name, correctionGetName(x),
                          settings.correctionsSourcesPriority[x]);
-                settingsFile->println(tempString);
+                nvmRecordStringToFile(line);
             }
         }
         break;
         case tRegCorTp: {
             for (int r = 0; r < rtkSettingsEntries[i].qualifier; r++)
             {
-                settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, r,
+                SETTINGS_FILE_PRINTF_4("%s%d=%s\r\n", rtkSettingsEntries[i].name, r,
                                      &settings.regionalCorrectionTopics[r][0]);
             }
         }
         break;
         case tGnssReceiver: {
             gnssReceiverType_e *ptr = (gnssReceiverType_e *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
         }
         break;
         }
@@ -841,15 +839,15 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     char firmwareVersion[30]; // v1.3 December 31 2021
     firmwareVersionGet(firmwareVersion, sizeof(firmwareVersion), true);
-    settingsFile->printf("%s=%s\r\n", "rtkFirmwareVersion", firmwareVersion);
+    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "rtkFirmwareVersion", firmwareVersion);
 
-    settingsFile->printf("%s=%s\r\n", "gnssFirmwareVersion", gnssFirmwareVersion);
+    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "gnssFirmwareVersion", gnssFirmwareVersion);
 
-    settingsFile->printf("%s=%s\r\n", "gnssUniqueId", gnssUniqueId);
+    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "gnssUniqueId", gnssUniqueId);
 
     // Firmware URLs
-    settingsFile->printf("%s=%s\r\n", "otaRcFirmwareJsonUrl", otaRcFirmwareJsonUrl);
-    settingsFile->printf("%s=%s\r\n", "otaFirmwareJsonUrl", otaFirmwareJsonUrl);
+    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "otaRcFirmwareJsonUrl", otaRcFirmwareJsonUrl);
+    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "otaFirmwareJsonUrl", otaFirmwareJsonUrl);
 
     // Forget the file pointer
     nvmSettingsFile = nullptr;
