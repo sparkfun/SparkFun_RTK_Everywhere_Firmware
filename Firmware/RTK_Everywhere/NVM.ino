@@ -617,7 +617,7 @@ void recordSystemSettingsToFile(File *settingsFile)
 
         // Check for a GNSS receiver specific type
         type = rtkSettingsEntries[i].type;
-        if (gnssSettingsToFile(settingsFile, type, i))
+        if (gnssSettingsToFile(line, sizeof(line), type, i))
             continue;
 
         // Process the generic types

@@ -518,7 +518,7 @@ bool lg290pGetSettingValue(RTK_Settings_Types type, const char *suffix, int qual
 bool lg290pIsPresentOnFacetFP();
 void lg290pNewClass();
 bool lg290pNewSettingValue(struct Settings * tempSettings, RTK_Settings_Types type, const char *suffix, int qualifier, double d);
-bool lg290pSettingsToFile(File *settingsFile, RTK_Settings_Types type, int settingsIndex);
+bool lg290pSettingsToFile(char * line, size_t lineSize, RTK_Settings_Types type, int settingsIndex);
 
 #endif // COMPILE_LG290P
 #endif // __GNSS_LG290P_H__
