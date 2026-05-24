@@ -70,6 +70,8 @@ bool loadSystemSettingsFromFileSD(char *fileName,
 // 1 0000 0100 1100 0001 0001 1101 1011 0111
 const uint32_t nvmCrc32Polynomial = 0x04c11db7;
 
+const char * nvmSettingsFileHasCrc = "settingsFileHasCrc";
+
 //----------------------------------------
 // Locals
 //----------------------------------------
@@ -592,6 +594,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     // Write the header (required values) to the file
     SETTINGS_FILE_PRINTF_3("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
     SETTINGS_FILE_PRINTF_3("%s=%d\r\n", "rtkIdentifier", settings.rtkIdentifier);
+    SETTINGS_FILE_PRINTF_3("%s=%d\r\n", nvmSettingsFileHasCrc, false);
 
     if (settings.debugSettings)
         systemPrintf("numRtkSettingsEntries: %d\r\n", numRtkSettingsEntries);
@@ -1379,6 +1382,11 @@ bool parseLine(const char *theLine, struct Settings * tempSettings)
                              (int)d, (int)sizeof(Settings));
         }
 
+        knownSetting = true;
+    }
+    else if (strcmp(settingName, nvmSettingsFileHasCrc) == 0)
+    {
+        tempSettings->settingsFileHasCrc = (bool)d;
         knownSetting = true;
     }
 
