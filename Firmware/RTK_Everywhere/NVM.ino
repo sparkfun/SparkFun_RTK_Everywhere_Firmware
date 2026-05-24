@@ -948,6 +948,7 @@ bool loadSystemSettingsFromFileSD(char *fileName,
             int lineNumber = 0;
             status = true; // File is open. Default status to true
 
+            nvmCrc = 0;
             while (settingsFile.available())
             {
                 // Get the next line from the file
@@ -1041,6 +1042,29 @@ bool loadSystemSettingsFromFileSD(char *fileName,
                     // Should we return true or false? Going with true...
                     break; // /while (settingsFile.available())
                 }
+
+                // Read and verify the CRC if present
+                if (tempSettings && tempSettings->settingsFileHasCrc && (settingsFile.available() == 4))
+                {
+                    // Finish computing the CRC
+                    while (settingsFile.available())
+                        nvmCrc = nvmBitBangCrc32Byte(nvmCrc, settingsFile.read());
+
+                    // Check for a bad CRC
+                    if (nvmCrc)
+                    {
+                        // Bad file CRC
+                        if (settings.debugSettings)
+                            systemPrintf("ERROR: Failed CRC check for file; %s!\r\n", fileName);
+                        status = false;
+                        break; // /while (settingsFile.available())
+                    }
+
+                    // Good CRC
+                    if (settings.debugSettings)
+                        systemPrintf("Correct CRC for file; %s!\r\n", fileName);
+                    break;
+                }
             }
 
             // systemPrintln("Config file read complete");
@@ -1097,10 +1121,11 @@ bool loadSystemSettingsFromFileLFS(char *fileName,
         return (false);
     }
 
-    char line[100];
+    char line[256];
     int lineNumber = 0;
     bool status = true; // File is open. Default status to true
 
+    nvmCrc = 0;
     while (settingsFile.available())
     {
         // Get the next line from the file
@@ -1193,6 +1218,42 @@ bool loadSystemSettingsFromFileLFS(char *fileName,
 
             // Should we return true or false? Going with true...
             break; // /while (settingsFile.available())
+        }
+
+        // Read and verify the CRC if present
+        if (tempSettings && tempSettings->settingsFileHasCrc && (settingsFile.available() == 4))
+        {
+            if (settings.debugSettings)
+                Serial.printf("Computed CRC 0x%08x before reading in CRC value from LFS:%s\r\n",
+                              nvmCrc, fileName);
+
+            // Finish computing the CRC
+            if (settings.debugSettings)
+                Serial.printf("Read in CRC 0x");
+            while (settingsFile.available())
+            {
+                uint8_t byte = settingsFile.read();
+                if (settings.debugSettings)
+                    Serial.printf("%02x", byte);
+                nvmCrc = nvmBitBangCrc32Byte(nvmCrc, byte);
+            }
+            if (settings.debugSettings)
+                Serial.printf(" value from LFS:%s\r\n", fileName);
+
+            // Check for a bad CRC
+            if (nvmCrc)
+            {
+                // Bad file CRC
+                systemPrintf("ERROR: Failed CRC (0x%08x) check for LFS:%s!\r\n",
+                             nvmCrc, fileName);
+                status = false;
+                break; // /while (settingsFile.available())
+            }
+
+            // Good CRC
+            if (settings.debugSettings)
+                systemPrintf("Correct CRC for LFS:%s!\r\n", fileName);
+            break;
         }
     }
 
@@ -1768,6 +1829,7 @@ int getLine(File *openFile, char *lineChars, int lineSize)
 
         // Get the data byte
         byte incoming = (byte)data;
+        nvmCrc = nvmBitBangCrc32Byte(nvmCrc, incoming);
         if (incoming == '\0')
         {
             break; // Something bad happened...
