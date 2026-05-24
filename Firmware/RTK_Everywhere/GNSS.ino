@@ -1091,12 +1091,12 @@ bool gnssNewSettingValue(struct Settings * tempSettings, RTK_Settings_Types type
 //----------------------------------------
 // Called by recordSystemSettingsToFile to save GNSS specific settings
 //----------------------------------------
-bool gnssSettingsToFile(File *settingsFile, RTK_Settings_Types type, int settingsIndex)
+bool gnssSettingsToFile(char * line, size_t lineSize, RTK_Settings_Types type, int settingsIndex)
 {
     for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
     {
         if (gnssSupportRoutines[index]._settingToFile &&
-            gnssSupportRoutines[index]._settingToFile(settingsFile, type, settingsIndex))
+            gnssSupportRoutines[index]._settingToFile(line, lineSize, type, settingsIndex))
             return true;
     }
     return false;

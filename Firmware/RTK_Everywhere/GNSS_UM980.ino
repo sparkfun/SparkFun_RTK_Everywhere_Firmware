@@ -2498,7 +2498,10 @@ bool um980NewSettingValue(struct Settings * tempSettings, RTK_Settings_Types typ
 //----------------------------------------
 // Called by gnssSettingsToFile to save UM980 specific settings
 //----------------------------------------
-bool um980SettingsToFile(File *settingsFile, RTK_Settings_Types type, int settingsIndex)
+bool um980SettingsToFile(char * line,
+                         size_t lineSize,
+                         RTK_Settings_Types type,
+                         int settingsIndex)
 {
     switch (type)
     {
@@ -2509,10 +2512,10 @@ bool um980SettingsToFile(File *settingsFile, RTK_Settings_Types type, int settin
         // Record UM980 NMEA rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // um980MessageRatesNMEA_GPDTM=0.05
-            snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+            // um980MessageRatesNMEA_GPDTM=0.05
+            snprintf(line, lineSize, "%s%s=%0.2f\r\n", rtkSettingsEntries[settingsIndex].name,
                      umMessagesNMEA[x].msgTextName, settings.um980MessageRatesNMEA[x]);
-            settingsFile->println(tempString);
+            nvmRecordStringToFile(line);
         }
     }
     break;
@@ -2520,10 +2523,10 @@ bool um980SettingsToFile(File *settingsFile, RTK_Settings_Types type, int settin
         // Record UM980 Rover RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // um980MessageRatesRTCMRover_RTCM1001=0.2
-            snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+            // um980MessageRatesRTCMRover_RTCM1001=0.2
+            snprintf(line, lineSize, "%s%s=%0.2f\r\n", rtkSettingsEntries[settingsIndex].name,
                      umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMRover[x]);
-            settingsFile->println(tempString);
+            nvmRecordStringToFile(line);
         }
     }
     break;
@@ -2531,10 +2534,10 @@ bool um980SettingsToFile(File *settingsFile, RTK_Settings_Types type, int settin
         // Record UM980 Base RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // um980MessageRatesRTCMBase_RTCM1001=0.2
-            snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+            // um980MessageRatesRTCMBase_RTCM1001=0.2
+            snprintf(line, lineSize, "%s%s=%0.2f\r\n", rtkSettingsEntries[settingsIndex].name,
                      umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMBase[x]);
-            settingsFile->println(tempString);
+            nvmRecordStringToFile(line);
         }
     }
     break;
@@ -2542,10 +2545,10 @@ bool um980SettingsToFile(File *settingsFile, RTK_Settings_Types type, int settin
         // Record UM980 Constellations
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // um980Constellations_GLONASS=1
-            snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[settingsIndex].name,
+            // um980Constellations_GLONASS=1
+            snprintf(line, lineSize, "%s%s=%0d\r\n", rtkSettingsEntries[settingsIndex].name,
                      um980ConstellationCommands[x].textName, settings.um980Constellations[x]);
-            settingsFile->println(tempString);
+            nvmRecordStringToFile(line);
         }
     }
     break;
