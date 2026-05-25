@@ -944,16 +944,15 @@ bool loadSystemSettingsFromFileSD(char *fileName,
                 break; // /while (online.microSD == true)
             }
 
-            char line[100];
+            char line[256];
             int lineNumber = 0;
             status = true; // File is open. Default status to true
 
             nvmCrc = 0;
             while (settingsFile.available())
             {
-                // Get the next line from the file
-                // Note: fgets stripts the \r (if there is one) leaving only \n
-                int n = settingsFile.fgets(line, sizeof(line));
+                // Get the next line from the file, stript the \r leaving just \n
+                int n = getSdLine(&settingsFile, line, sizeof(line));
 
                 // Handle the file error
                 if (n < 0)
@@ -1044,25 +1043,38 @@ bool loadSystemSettingsFromFileSD(char *fileName,
                 }
 
                 // Read and verify the CRC if present
-                if (tempSettings && tempSettings->settingsFileHasCrc && (settingsFile.available() == 4))
+                if (tempSettings && tempSettings->settingsFileHasCrc && (settingsFile.available() == sizeof(nvmCrc)))
                 {
+                    if (settings.debugSettings)
+                        Serial.printf("Computed CRC 0x%08x before reading in CRC value from SD:%s\r\n",
+                                      nvmCrc, fileName);
+
                     // Finish computing the CRC
+                    if (settings.debugSettings)
+                        Serial.printf("Read in CRC 0x");
                     while (settingsFile.available())
-                        nvmCrc = nvmBitBangCrc32Byte(nvmCrc, settingsFile.read());
+                    {
+                        uint8_t byte = settingsFile.read();
+                        if (settings.debugSettings)
+                            Serial.printf("%02x", byte);
+                        nvmCrc = nvmBitBangCrc32Byte(nvmCrc, byte);
+                    }
+                    if (settings.debugSettings)
+                        Serial.printf(" value from SD:%s\r\n", fileName);
 
                     // Check for a bad CRC
                     if (nvmCrc)
                     {
                         // Bad file CRC
-                        if (settings.debugSettings)
-                            systemPrintf("ERROR: Failed CRC check for file; %s!\r\n", fileName);
+                        systemPrintf("ERROR: Failed CRC (0x%08x) check for SD:%s!\r\n",
+                                     nvmCrc, fileName);
                         status = false;
                         break; // /while (settingsFile.available())
                     }
 
                     // Good CRC
                     if (settings.debugSettings)
-                        systemPrintf("Correct CRC for file; %s!\r\n", fileName);
+                        systemPrintf("Correct CRC for SD:%s!\r\n", fileName);
                     break;
                 }
             }
@@ -1819,6 +1831,49 @@ int getLfsLine(File *lfsFile, char *lineChars, int lineSize)
     {
         // Read the next byte from the file
         int data = lfsFile->read();
+
+        // Handle any file errors
+        if (data < 0)
+            return data;
+
+        // Get the data byte
+        byte incoming = (byte)data;
+        nvmCrc = nvmBitBangCrc32Byte(nvmCrc, incoming);
+        if (incoming == '\0')
+        {
+            break; // Something bad happened...
+        }
+        else if (incoming == '\r')
+        {
+            // Skip \r. fgets does the same thing
+        }
+        else if (incoming == '\n')
+        {
+            lineChars[count++] = incoming; // Record the \n. fgets does the same thing
+            break; // We are done
+        }
+        else if ((incoming >= ' ') && (incoming <= '~')) // Reject non-printables
+        {
+            lineChars[count++] = incoming; // Record everything else
+            if (count == lineSize - 1)
+                break; // Stop before overrun of buffer
+        }
+    }
+    lineChars[count] = '\0'; // Terminate string
+    return (count);
+}
+
+//----------------------------------------
+// Read the current line from the LFS file until we hit a EOL char \r or
+// \n while computing the CRC.  Remove the \r leaving only the \n.
+//----------------------------------------
+int getSdLine(SdFile *sdFile, char *lineChars, int lineSize)
+{
+    int count = 0;
+    while (sdFile->available() > 0)
+    {
+        // Read the next byte from the file
+        int data = sdFile->read();
 
         // Handle any file errors
         if (data < 0)
