@@ -1128,9 +1128,8 @@ bool loadSystemSettingsFromFileLFS(char *fileName,
     nvmCrc = 0;
     while (settingsFile.available())
     {
-        // Get the next line from the file
-        // getLine will remove the \r - to match SD fgets
-        int n = getLine(&settingsFile, line, sizeof(line));
+        // Get the next line from the file and remove the \r
+        int n = getLfsLine(&settingsFile, line, sizeof(line));
 
         // Handle the file error
         if (n < 0)
@@ -1293,9 +1292,8 @@ bool printSystemSettingsFromFileLFS(char *fileName)
 
     while (settingsFile.available())
     {
-        // Get the next line from the file
-        // getLine will remove the \r - to match SD fgets
-        int n = getLine(&settingsFile, line, sizeof(line));
+        // Get the next line from the file and remove the \r
+        int n = getLfsLine(&settingsFile, line, sizeof(line));
 
         // Handle the file error
         if (n < 0)
@@ -1811,17 +1809,16 @@ bool parseLine(const char *theLine, struct Settings * tempSettings)
 }
 
 //----------------------------------------
-// The SD library doesn't have a fgets function like SD fat so recreate it here
-// Read the current line in the file until we hit a EOL char \r or \n
-// fgets removes the \r leaving only \n. getLine does the same thing
+// Read the current line from the LFS file until we hit a EOL char \r or
+// \n while computing the CRC.  Remove the \r leaving only the \n.
 //----------------------------------------
-int getLine(File *openFile, char *lineChars, int lineSize)
+int getLfsLine(File *lfsFile, char *lineChars, int lineSize)
 {
     int count = 0;
-    while (openFile->available() > 0)
+    while (lfsFile->available() > 0)
     {
         // Read the next byte from the file
-        int data = openFile->read();
+        int data = lfsFile->read();
 
         // Handle any file errors
         if (data < 0)
