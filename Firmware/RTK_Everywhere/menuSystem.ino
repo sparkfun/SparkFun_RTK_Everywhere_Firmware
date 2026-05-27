@@ -498,7 +498,7 @@ void menuDebugFiles()
         // *** Start of menu ***
         // Support file dumping
         getProfileFileName(profile, fileName, sizeof(fileName));
-        systemPrintf("d) Dump file: %s%s\r\n",
+        systemPrintf("d) Dump file: %s:%s\r\n",
                      sdActive ? "SD" : "NVM", fileName);
 
         // Support directory listings
@@ -507,6 +507,10 @@ void menuDebugFiles()
         // Toggle between NVM and SD card
         if (online.microSD)
             systemPrintf("t) Toggle between NVM and SD\r\n");
+
+        // Verify file CRC
+        systemPrintf("v) Verify %s:%s CRC\r\n",
+                     sdActive ? "SD" : "NVM", fileName);
 
         // Release access the SD card
         if (sdActive)
@@ -559,6 +563,15 @@ void menuDebugFiles()
         // Toggle the selection between NVM and the SD card
         else if (incoming == 't')
             sdActive = ! sdActive;
+
+        // Verify the file CRC
+        else if (incoming == 'v')
+        {
+            if (sdActive)
+                nvmVerifySdFileCrc(fileName);
+            else
+                nvmVerifyLfsFileCrc(fileName);
+        }
 
         // All done with this menu
         else if (incoming == 'x')

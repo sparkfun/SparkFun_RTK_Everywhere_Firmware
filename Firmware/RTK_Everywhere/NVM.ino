@@ -2134,6 +2134,54 @@ void nvmDirectoryListing()
 }
 
 //----------------------------------------
+// Fill buffer with LFS file data
+//----------------------------------------
+ssize_t nvmReadLfsFileData(File * file, uint8_t * buffer, size_t bufferLength)
+{
+    ssize_t bytesRead;
+
+    // Read some data
+    bytesRead = 0;
+    do
+    {
+        int data = file->read();
+        if (data < 0)
+        {
+            if (bytesRead == 0)
+                bytesRead = data;
+            break;
+        }
+        buffer[bytesRead] = (uint8_t)data;
+        bytesRead += 1;
+    } while ((bytesRead > 0) && (bytesRead < bufferLength));
+    return bytesRead;
+}
+
+//----------------------------------------
+// Fill buffer with SD file data
+//----------------------------------------
+ssize_t nvmReadSdFileData(SdFile * file, uint8_t * buffer, size_t bufferLength)
+{
+    ssize_t bytesRead;
+
+    // Read some data
+    bytesRead = 0;
+    do
+    {
+        int data = file->read();
+        if (data < 0)
+        {
+            if (bytesRead == 0)
+                bytesRead = data;
+            break;
+        }
+        buffer[bytesRead] = (uint8_t)data;
+        bytesRead += 1;
+    } while ((bytesRead > 0) && (bytesRead < bufferLength));
+    return bytesRead;
+}
+
+//----------------------------------------
 // Dump an NVM file
 //----------------------------------------
 void nvmDumpFile(const char * fileName)
@@ -2170,19 +2218,7 @@ void nvmDumpFile(const char * fileName)
         while (file.available())
         {
             // Read some data
-            bytesRead = 0;
-            do
-            {
-                int data = file.read();
-                if (data < 0)
-                {
-                    if (bytesRead == 0)
-                        bytesRead = data;
-                    break;
-                }
-                buffer[bytesRead] = (uint8_t)data;
-                bytesRead += 1;
-            } while ((bytesRead > 0) && (bytesRead < bufferLength));
+            bytesRead = nvmReadLfsFileData(&file, buffer ,bufferLength);
             if (bytesRead < 0)
             {
                 systemPrintf("ERROR: Hard read error at offset %ld in LFS:%s\r\n",
@@ -2203,4 +2239,436 @@ void nvmDumpFile(const char * fileName)
     // Done with the buffer
     if (buffer)
         rtkFree(buffer, "NVM file dump buffer");
+}
+
+//----------------------------------------
+// Verify LFS file CRC
+//----------------------------------------
+void nvmVerifyLfsFileCrc(const char * fileName)
+{
+    uint8_t * buffer = nullptr;
+    const size_t bufferLength = 8192;
+    ssize_t bytesRead;
+    uint8_t * data;
+    File file;
+    size_t length;
+    size_t offset;
+    size_t remainingBytes;
+    const char * rtkIdentifier = "rtkIdentifier";
+    const char * sizeOfSettings = "sizeOfSettings=";
+
+    do
+    {
+        // Attempt to open the file
+        file = LittleFS.open(fileName, FILE_READ);
+        if (! file)
+        {
+            systemPrintf("ERROR: Failed to open NVM file %s\r\n", fileName);
+            break;
+        }
+        remainingBytes = file.size();
+
+        // Allocate the buffer
+        buffer = (uint8_t *)rtkMalloc(bufferLength, "NVM file dump buffer");
+        if (buffer == nullptr)
+        {
+            systemPrintf("ERROR: Failed to allocate the dump buffer\r\n");
+            break;
+        }
+
+        // Walk the contents of the file
+        bytesRead = 0;
+        length = 0;
+        offset = 0;
+        if (remainingBytes > sizeof(nvmCrc))
+        {
+            // Determine how much data to read
+            length = remainingBytes - sizeof(nvmCrc);
+            if (length > bufferLength)
+                length = bufferLength;
+
+            // Read some data
+            bytesRead = nvmReadLfsFileData(&file, buffer, length);
+            if (bytesRead < 0)
+            {
+                systemPrintf("ERROR: Hard read error at offset %ld in NVM file %s\r\n",
+                             offset, fileName);
+                break;
+            }
+            if (bytesRead < length)
+            {
+                systemPrintf("ERROR: Failed to read all of the bytes!\r\n",
+                             offset, fileName);
+                break;
+            }
+            offset += bytesRead;
+            remainingBytes -= bytesRead;
+        }
+        if ((bytesRead < 0) || (bytesRead < length))
+            break;
+
+        //--------------------
+        // Verify the file header
+        //--------------------
+
+        // Check for sizeOfSettings value
+        length = strlen(sizeOfSettings);
+        if (strncmp((char *)buffer, sizeOfSettings, length) != 0)
+        {
+            systemPrintf("ERROR: Not a settings file, %s missing!\r\n", sizeOfSettings);
+            break;
+        }
+
+        // Skip over value
+        data = &buffer[length];
+        while (*data++ != '\n');
+
+        // Check for rtkIdentifier value
+        length = strlen(rtkIdentifier);
+        if (strncmp((char *)data, rtkIdentifier, length) != 0)
+        {
+            systemPrintf("ERROR: Not a settings file, %s missing!\r\n", rtkIdentifier);
+            break;
+        }
+
+        // Skip over value
+        data = &data[length];
+        while (*data++ != '\n');
+
+        // Check for sizeOfSettings value
+        length = strlen(nvmSettingsFileHasCrc);
+        if ((strncmp((char *)data, nvmSettingsFileHasCrc, length) !=0)
+            || (data[length] != '=') || (data[length + 1] != '1'))
+        {
+            systemPrintf("LFS:%s does not contain a CRC\r\n", fileName);
+            break;
+        }
+
+        //--------------------
+        // Compute the CRC across the setting values
+        //--------------------
+
+        // Compute the CRC across the first buffer of setting values
+        nvmCrc = 0;
+        nvmCrc = nvmBitBangCrc32(nvmCrc, buffer, bytesRead);
+
+        // Compute the CRC across the rest of the setting values
+        length = 0;
+        bytesRead = 0;
+        while (remainingBytes > sizeof(nvmCrc))
+        {
+            // Determine how much data to read
+            length = remainingBytes - sizeof(nvmCrc);
+            if (length > bufferLength)
+                length = bufferLength;
+
+            // Read some data, but not the CRC
+            bytesRead = nvmReadLfsFileData(&file, buffer, length);
+            if (bytesRead < 0)
+            {
+                systemPrintf("ERROR: Hard read error at offset %ld in NVM file %s\r\n",
+                             offset, fileName);
+                break;
+            }
+            if (bytesRead < length)
+            {
+                systemPrintf("ERROR: Failed to read all of the bytes!\r\n",
+                             offset, fileName);
+                break;
+            }
+            offset += bytesRead;
+            remainingBytes -= bytesRead;
+
+            // Compute the CRC across the setting values
+            nvmCrc = nvmBitBangCrc32(nvmCrc, buffer, bytesRead);
+        }
+        if ((bytesRead < 0) || (bytesRead < length))
+            break;
+
+        // Verify that the file contains enough bytes for the CRC
+        if (remainingBytes < sizeof(nvmCrc))
+        {
+            systemPrintf("ERROR: File too short to comtain a CRC value!\r\n");
+            break;
+        }
+
+        //--------------------
+        // Verify the final CRC value
+        //--------------------
+
+        uint32_t expectedCrc;
+
+        // Get the file CRC
+        uint32_t fileCrc;
+
+        bytesRead = nvmReadLfsFileData(&file, (uint8_t *)&fileCrc, sizeof(fileCrc));
+        if (bytesRead < 0)
+        {
+            systemPrintf("ERROR: Hard read error at offset %ld in LFS:%s\r\n",
+                         offset, fileName);
+            break;
+        }
+        if (bytesRead != sizeof(fileCrc))
+        {
+            systemPrintf("ERROR: Failed to read the CRC value from LFS:%s!\r\n", fileName);
+            break;
+        }
+
+        // Verify the file CRC
+        if (fileCrc == nvmCrc)
+            systemPrintf("Correct CRC for LFS:%s!\r\n", fileName);
+        else
+            systemPrintf("ERROR: Bad CRC for LFS:%s, expected: 0x%08x, in file: 0x%08x\r\n",
+                         fileName, nvmCrc, fileCrc);
+
+        // Verify that the CRC across the setting values and the fileCrc
+        // compute a value of zero
+        uint32_t finalCrc = nvmBitBangCrc32(nvmCrc, (uint8_t *)&nvmCrc, sizeof(nvmCrc));
+        if (finalCrc)
+            systemPrintf("ERROR: Bad CRC calculation, expected: 0x00000000, computed: 0x%08x\r\n", finalCrc);
+    } while (0);
+
+    // Done with the file
+    if (file)
+        file.close();
+
+    // Done with the buffer
+    if (buffer)
+        rtkFree(buffer, "NVM file dump buffer");
+}
+
+//----------------------------------------
+// Verify SD file CRC
+//----------------------------------------
+void nvmVerifySdFileCrc(const char * fileName)
+{
+    uint8_t * buffer = nullptr;
+    const size_t bufferLength = 8192;
+    ssize_t bytesRead;
+    uint8_t * data;
+    bool gotSemaphore = false;
+    size_t length;
+    size_t offset;
+    size_t remainingBytes;
+    const char * rtkIdentifier = "rtkIdentifier";
+    SdFile settingsFile; // FAT32
+    const char * sizeOfSettings = "sizeOfSettings=";
+    bool status = false; // Return false - until file is opened
+    bool wasSdCardOnline;
+
+    // Try to gain access the SD card
+    wasSdCardOnline = online.microSD;
+    if (online.microSD != true)
+        beginSD();
+
+    while (online.microSD == true)
+    {
+        // Attempt to access file system. This avoids collisions with file writing from other functions like
+        // recordSystemSettingsToFile() and gnssSerialReadTask()
+        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+        {
+            markSemaphore(FUNCTION_LOADSETTINGS);
+
+            gotSemaphore = true;
+
+            if (!sd->exists(fileName))
+            {
+                if (settings.debugSettings)
+                    systemPrintf("SD:%s not found\r\n", fileName);
+                break; // /while (online.microSD == true)
+            }
+
+            // Attempt to open the file
+            if (settingsFile.open(fileName, O_READ) == false)
+            {
+                systemPrintf("Failed to open settings SD:%s\r\n", fileName);
+                break; // /while (online.microSD == true)
+            }
+
+            do
+            {
+                remainingBytes = settingsFile.size();
+
+                // Allocate the buffer
+                buffer = (uint8_t *)rtkMalloc(bufferLength, "NVM file dump buffer");
+                if (buffer == nullptr)
+                {
+                    systemPrintf("ERROR: Failed to allocate the dump buffer\r\n");
+                    break;
+                }
+
+                // Walk the contents of the file
+                bytesRead = 0;
+                length = 0;
+                offset = 0;
+                if (remainingBytes > sizeof(nvmCrc))
+                {
+                    // Determine how much data to read
+                    length = remainingBytes - sizeof(nvmCrc);
+                    if (length > bufferLength)
+                        length = bufferLength;
+
+                    // Read some data
+                    bytesRead = nvmReadSdFileData(&settingsFile, buffer, length);
+                    if (bytesRead < 0)
+                    {
+                        systemPrintf("ERROR: Hard read error at offset %ld in NVM file %s\r\n",
+                                     offset, fileName);
+                        break;
+                    }
+                    if (bytesRead < length)
+                    {
+                        systemPrintf("ERROR: Failed to read all of the bytes!\r\n",
+                                     offset, fileName);
+                        break;
+                    }
+                    offset += bytesRead;
+                    remainingBytes -= bytesRead;
+                }
+                if ((bytesRead < 0) || (bytesRead < length))
+                    break;
+
+                //--------------------
+                // Verify the file header
+                //--------------------
+
+                // Check for sizeOfSettings value
+                length = strlen(sizeOfSettings);
+                if (strncmp((char *)buffer, sizeOfSettings, length) != 0)
+                {
+                    systemPrintf("ERROR: Not a settings file, %s missing!\r\n", sizeOfSettings);
+                    break;
+                }
+
+                // Skip over value
+                data = &buffer[length];
+                while (*data++ != '\n');
+
+                // Check for rtkIdentifier value
+                length = strlen(rtkIdentifier);
+                if (strncmp((char *)data, rtkIdentifier, length) != 0)
+                {
+                    systemPrintf("ERROR: Not a settings file, %s missing!\r\n", rtkIdentifier);
+                    break;
+                }
+
+                // Skip over value
+                data = &data[length];
+                while (*data++ != '\n');
+
+                // Check for sizeOfSettings value
+                length = strlen(nvmSettingsFileHasCrc);
+                if ((strncmp((char *)data, nvmSettingsFileHasCrc, length) !=0)
+                    || (data[length] != '=') || (data[length + 1] != '1'))
+                {
+                    systemPrintf("SD:%s does not contain a CRC\r\n", fileName);
+                    break;
+                }
+
+                //--------------------
+                // Compute the CRC across the setting values
+                //--------------------
+
+                // Compute the CRC across the first buffer of setting values
+                nvmCrc = 0;
+                nvmCrc = nvmBitBangCrc32(nvmCrc, buffer, bytesRead);
+
+                // Compute the CRC across the rest of the setting values
+                length = 0;
+                bytesRead = 0;
+                while (remainingBytes > sizeof(nvmCrc))
+                {
+                    // Determine how much data to read
+                    length = remainingBytes - sizeof(nvmCrc);
+                    if (length > bufferLength)
+                        length = bufferLength;
+
+                    // Read some data, but not the CRC
+                    bytesRead = nvmReadSdFileData(&settingsFile, buffer, length);
+                    if (bytesRead < 0)
+                    {
+                        systemPrintf("ERROR: Hard read error at offset %ld in NVM file %s\r\n",
+                                     offset, fileName);
+                        break;
+                    }
+                    if (bytesRead < length)
+                    {
+                        systemPrintf("ERROR: Failed to read all of the bytes!\r\n",
+                                     offset, fileName);
+                        break;
+                    }
+                    offset += bytesRead;
+                    remainingBytes -= bytesRead;
+
+                    // Compute the CRC across the setting values
+                    nvmCrc = nvmBitBangCrc32(nvmCrc, buffer, bytesRead);
+                }
+                if ((bytesRead < 0) || (bytesRead < length))
+                    break;
+
+                // Verify that the file contains enough bytes for the CRC
+                if (remainingBytes < sizeof(nvmCrc))
+                {
+                    systemPrintf("ERROR: File too short to comtain a CRC value!\r\n");
+                    break;
+                }
+
+                //--------------------
+                // Verify the final CRC value
+                //--------------------
+
+                uint32_t expectedCrc;
+
+                // Get the file CRC
+                uint32_t fileCrc;
+
+                bytesRead = nvmReadSdFileData(&settingsFile, (uint8_t *)&fileCrc, sizeof(fileCrc));
+                if (bytesRead < 0)
+                {
+                    systemPrintf("ERROR: Hard read error at offset %ld in SD:%s\r\n",
+                                 offset, fileName);
+                    break;
+                }
+                if (bytesRead != sizeof(fileCrc))
+                {
+                    systemPrintf("ERROR: Failed to read the CRC value from SD:%s!\r\n", fileName);
+                    break;
+                }
+
+                // Verify the file CRC
+                if (fileCrc == nvmCrc)
+                    systemPrintf("Correct CRC for SD:%s!\r\n", fileName);
+                else
+                    systemPrintf("ERROR: Bad CRC for SD:%s, expected: 0x%08x, in file: 0x%08x\r\n",
+                                 fileName, nvmCrc, fileCrc);
+
+                // Verify that the CRC across the setting values and the fileCrc
+                // compute a value of zero
+                uint32_t finalCrc = nvmBitBangCrc32(nvmCrc, (uint8_t *)&nvmCrc, sizeof(nvmCrc));
+                if (finalCrc)
+                    systemPrintf("ERROR: Bad CRC calculation, expected: 0x00000000, computed: 0x%08x\r\n", finalCrc);
+            } while (0);
+
+            // Done with the file
+            if (settingsFile)
+                settingsFile.close();
+
+            // Done with the buffer
+            if (buffer)
+                rtkFree(buffer, "NVM file dump buffer");
+        } // End Semaphore check
+        else
+        {
+            // This is an error because if the settings exist on the microSD card that
+            // those settings are not overriding the current settings as documented!
+            systemPrintf("sdCardSemaphore failed to yield, NVM.ino line %d\r\n", __LINE__);
+        }
+        break; // /while (online.microSD == true)
+    } // End SD online
+
+    // Release access the SD card
+    if (online.microSD && (!wasSdCardOnline))
+        endSD(gotSemaphore, true);
+    else if (gotSemaphore)
+        xSemaphoreGive(sdCardSemaphore);
 }
