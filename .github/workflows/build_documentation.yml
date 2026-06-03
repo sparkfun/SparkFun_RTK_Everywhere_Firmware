@@ -49,5 +49,5 @@ jobs:
       - name: Install Insiders build
         env:
           MKDOCS_TOKEN: ${{ secrets.MKDOCS_SECRET }}
-        run: pip install git+https://${MKDOCS_TOKEN}@github.com/squidfunk/mkdocs-material-insiders.git
+        run: pip install mkdocs-material
       - run: mkdocs gh-deploy --clean
