@@ -338,6 +338,7 @@ void gnssReadTask(void *e)
 
     rtkBuffer = nullptr;
     sbfBuffer = nullptr;
+    spartnBuffer = nullptr;
 
     // Start notification
     task.gnssReadTaskRunning = true;
