@@ -45,17 +45,23 @@ NVM.ino
   edited in the index.html and main.js files.
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+//----------------------------------------
+// Forward routine declarations
+//----------------------------------------
+
 bool loadSystemSettingsFromFileLFS(char *fileName,
                                    struct Settings * tempSettings,
                                    const char *findMe = nullptr,
                                    char *found = nullptr,
                                    int len = 0); // Header
+
 bool loadSystemSettingsFromFileSD(char *fileName,
                                   struct Settings * tempSettings,
                                   const char *findMe = nullptr,
                                   char *found = nullptr,
                                   int len = 0); // Header
 
+//----------------------------------------
 // We use the LittleFS library to store user profiles in SPIFFs
 // Move selected user profile from SPIFFs into settings struct (RAM)
 // We originally used EEPROM but it was limited to 4096 bytes. Each settings struct is ~4000 bytes
@@ -63,6 +69,7 @@ bool loadSystemSettingsFromFileSD(char *fileName,
 // So we moved again to SPIFFs. It's being replaced by LittleFS so here we are.
 //
 // Return true if profile name was updated
+//----------------------------------------
 bool loadSettingsUsingTempSetting(bool startFromDefault)
 {
     bool loadSuccessful;
@@ -142,11 +149,13 @@ bool loadSettingsUsingTempSetting(bool startFromDefault)
     return profileNameUpdate;
 }
 
+//----------------------------------------
 // We use the LittleFS library to store user profiles in SPIFFs
 // Move selected user profile from SPIFFs into settings struct (RAM)
 // We originally used EEPROM but it was limited to 4096 bytes. Each settings struct is ~4000 bytes
 // so multiple user profiles wouldn't fit. Preferences was limited to a single putBytes of ~3000 bytes.
 // So we moved again to SPIFFs. It's being replaced by LittleFS so here we are.
+//----------------------------------------
 void loadSettings()
 {
     // Load the settings from NVM and SD card
@@ -160,7 +169,9 @@ void loadSettings()
     systemPrintf("Profile '%s' loaded\r\n", profileNames[profileNumber]);
 }
 
+//----------------------------------------
 // Set the settingsFileName and coordinate file names used many places
+//----------------------------------------
 void setSettingsFileName()
 {
     snprintf(settingsFileName, sizeof(settingsFileName), "/%s_Settings_%d.txt", platformFilePrefix, profileNumber);
@@ -173,7 +184,9 @@ void setSettingsFileName()
         systemPrintf("Settings file name: %s\r\n", settingsFileName);
 }
 
+//----------------------------------------
 // Display the difference
+//----------------------------------------
 void nvmDisplayDifference(const uint8_t * u8_1,
                           const char * name1,
                           const uint8_t * u8_2,
@@ -227,7 +240,9 @@ void nvmDisplayDifference(const uint8_t * u8_1,
     dumpBuffer(diffStart, &u8_2[diffStart], diffEnd - diffStart);
 }
 
+//----------------------------------------
 // Compare two sets of settings
+//----------------------------------------
 bool nvmCompareSettings(struct Settings * settings1, const char * name1,
                         struct Settings * settings2, const char * name2)
 {
@@ -312,8 +327,10 @@ bool nvmCompareSettings(struct Settings * settings1, const char * name1,
     return true;
 }
 
+//----------------------------------------
 // Load only LFS settings without recording
 // Used at very first boot to test for resetCounter
+//----------------------------------------
 void loadSettingsPartial()
 {
     bool loadSuccessful;
@@ -363,6 +380,9 @@ void loadSettingsPartial()
     }
 }
 
+//----------------------------------------
+// Record settings to files in both the Little File System and SD card
+//----------------------------------------
 void recordSystemSettings()
 {
     settings.sizeOfSettings = sizeof(settings); // Update to current setting size
@@ -371,8 +391,10 @@ void recordSystemSettings()
     recordSystemSettingsToFileLFS(settingsFileName); // Record to LFS if available
 }
 
+//----------------------------------------
 // Export the current settings to a config file on SD
 // We share the recording with LittleFS so this is all the semaphore and SD specific handling
+//----------------------------------------
 void recordSystemSettingsToFileSD(char *fileName)
 {
     bool gotSemaphore = false;
@@ -437,8 +459,10 @@ void recordSystemSettingsToFileSD(char *fileName)
         xSemaphoreGive(sdCardSemaphore);
 }
 
+//----------------------------------------
 // Export the current settings to a config file on SD
 // We share the recording with LittleFS so this is all the semaphore and SD specific handling
+//----------------------------------------
 void recordSystemSettingsToFileLFS(char *fileName)
 {
     if (online.fs == true)
@@ -465,8 +489,10 @@ void recordSystemSettingsToFileLFS(char *fileName)
     }
 }
 
+//----------------------------------------
 // Write the settings struct to a clear text file
 // The order of variables matches the order found in settings.h
+//----------------------------------------
 void recordSystemSettingsToFile(File *settingsFile)
 {
     RTK_Settings_Types type;
@@ -734,11 +760,13 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%s\r\n", "otaFirmwareJsonUrl", otaFirmwareJsonUrl);
 }
 
+//----------------------------------------
 // Given a fileName, parse the file and load the settings struct
 // Returns true if some settings were loaded from a file
 // Returns false if a file was not opened/loaded
 // Optionally search for findMe. If findMe is found, return the remainder of the line in found.
 // Don't update settings when searching.
+//----------------------------------------
 bool loadSystemSettingsFromFileSD(char *fileName,
                                   struct Settings * tempSettings,
                                   const char *findMe,
@@ -903,11 +931,13 @@ bool loadSystemSettingsFromFileSD(char *fileName,
     return status;
 }
 
+//----------------------------------------
 // Given a fileName, parse the file and load the settings struct
 // Returns true if some settings were loaded from a file
 // Returns false if a file was not opened/loaded
 // Optionally search for findMe. If findMe is found, return the remainder of the line in found.
 // Don't update settings when searching.
+//----------------------------------------
 bool loadSystemSettingsFromFileLFS(char *fileName,
                                    struct Settings * tempSettings,
                                    const char *findMe,
@@ -1037,6 +1067,10 @@ bool loadSystemSettingsFromFileLFS(char *fileName,
     return (status);
 }
 
+//----------------------------------------
+// Convert the settings in the LFS file into ASCII and display using the
+// serial port
+//----------------------------------------
 bool printSystemSettingsFromFileLFS(char *fileName)
 {
     if (settings.debugSettings)
@@ -1118,10 +1152,12 @@ bool printSystemSettingsFromFileLFS(char *fileName)
     return (status);
 }
 
+//----------------------------------------
 // Convert a given line from file into a settingName and value
 // Sets the setting if the name is known
 // The order of variables matches the order found in settings.h
 // Both fgets and getLine leave theLine terminated with \n only (\r is removed)
+//----------------------------------------
 bool parseLine(const char *theLine, struct Settings * tempSettings)
 {
     // Make a copy. Manipulate the copy, not the original
@@ -1575,9 +1611,11 @@ bool parseLine(const char *theLine, struct Settings * tempSettings)
     return (true);
 }
 
+//----------------------------------------
 // The SD library doesn't have a fgets function like SD fat so recreate it here
 // Read the current line in the file until we hit a EOL char \r or \n
 // fgets removes the \r leaving only \n. getLine does the same thing
+//----------------------------------------
 int getLine(File *openFile, char *lineChars, int lineSize)
 {
     int count = 0;
@@ -1616,8 +1654,10 @@ int getLine(File *openFile, char *lineChars, int lineSize)
     return (count);
 }
 
+//----------------------------------------
 // Check for extra characters in field or find minus sign.
 // This will skip spaces \t \n \v \f \r
+//----------------------------------------
 char *skipSpace(char *str)
 {
     while (isspace(*str))
@@ -1625,7 +1665,9 @@ char *skipSpace(char *str)
     return str;
 }
 
+//----------------------------------------
 // Load the special profileNumber file in LittleFS and return one byte value
+//----------------------------------------
 void loadProfileNumber()
 {
     if (profileNumber < MAX_PROFILE_COUNT)
@@ -1667,7 +1709,9 @@ void loadProfileNumber()
     systemPrintf("Using profile #%d\r\n", profileNumber);
 }
 
+//----------------------------------------
 // Record the given profile number as well as a config bool
+//----------------------------------------
 void recordProfileNumber(uint8_t newProfileNumber)
 {
     profileNumber = newProfileNumber;
@@ -1682,6 +1726,9 @@ void recordProfileNumber(uint8_t newProfileNumber)
     fileProfileNumber.close();
 }
 
+//----------------------------------------
+// Convert the profile number into a file name
+//----------------------------------------
 bool getProfileFileName(int profileNumber, char * fileName, size_t nameLength)
 {
     size_t bytesNeeded;
@@ -1694,8 +1741,10 @@ bool getProfileFileName(int profileNumber, char * fileName, size_t nameLength)
     return success;
 }
 
+//----------------------------------------
 // Populate profileNames[][] based on names found in LittleFS and SD
 // If both SD and LittleFS contain a profile, SD wins.
+//----------------------------------------
 uint8_t loadProfileNames()
 {
     int profiles = 0;
@@ -1717,7 +1766,9 @@ uint8_t loadProfileNames()
     return (profiles);
 }
 
+//----------------------------------------
 // Given a profile number, copy the current settings.profileName into the array of profile names
+//----------------------------------------
 void setProfileName(uint8_t ProfileNumber)
 {
     // Update the name in the array of profile names
@@ -1727,9 +1778,11 @@ void setProfileName(uint8_t ProfileNumber)
     activeProfiles |= 1 << ProfileNumber;
 }
 
+//----------------------------------------
 // Open the clear text file, scan for 'profileName' and return the string
 // Returns true if successfully found tag in file, length may be zero
 // Looks at LittleFS first, then SD
+//----------------------------------------
 bool getProfileName(char *fileName, char *profileName, uint8_t profileNameLength)
 {
     char profileNameLFS[50];
@@ -1749,9 +1802,11 @@ bool getProfileName(char *fileName, char *profileName, uint8_t profileNameLength
     return ((strlen(profileNameLFS) > 0) || (strlen(profileNameSD) > 0));
 }
 
+//----------------------------------------
 // Loads a given profile name.
 // Profiles may not be sequential (user might have empty profile #2, but filled #3) so we load the profile unit, not the
 // number Return true if successful
+//----------------------------------------
 bool getProfileNameFromUnit(uint8_t profileUnit, char *profileName, uint8_t profileNameLength)
 {
     uint8_t located = 0;
@@ -1776,9 +1831,11 @@ bool getProfileNameFromUnit(uint8_t profileUnit, char *profileName, uint8_t prof
     return (false);
 }
 
+//----------------------------------------
 // Return profile number based on units
 // Profiles may not be sequential (user might have empty profile #2, but filled #3) so we look up the profile unit and
 // return the count. Return -1 if profileUnit is not found.
+//----------------------------------------
 int8_t getProfileNumberFromUnit(uint8_t profileUnit)
 {
     uint8_t located = 0;
@@ -1800,8 +1857,10 @@ int8_t getProfileNumberFromUnit(uint8_t profileUnit)
     return (-1);
 }
 
+//----------------------------------------
 // Returns the number of available profiles
 // https://stackoverflow.com/questions/8871204/count-number-of-1s-in-binary-representation
+//----------------------------------------
 uint8_t getProfileCount()
 {
     int count = 0;
@@ -1814,7 +1873,9 @@ uint8_t getProfileCount()
     return (count);
 }
 
+//----------------------------------------
 // Record large character blob to file
+//----------------------------------------
 void recordFile(const char *fileID, char *fileContents, uint32_t fileSize)
 {
     char fileName[80];
@@ -1842,7 +1903,9 @@ void recordFile(const char *fileID, char *fileContents, uint32_t fileSize)
     }
 }
 
+//----------------------------------------
 // Read file into given char array
+//----------------------------------------
 bool loadFile(const char *fileID, char *fileContents, bool debug)
 {
     char fileName[80];
@@ -1875,6 +1938,7 @@ bool loadFile(const char *fileID, char *fileContents, bool debug)
 
 //----------------------------------------
 // List the files in NVM
+//----------------------------------------
 void nvmDirectoryListing()
 {
     File rootDir;
@@ -1933,6 +1997,7 @@ void nvmDirectoryListing()
 
 //----------------------------------------
 // Dump an NVM file
+//----------------------------------------
 void nvmDumpFile(const char * fileName)
 {
     uint8_t * buffer = nullptr;
