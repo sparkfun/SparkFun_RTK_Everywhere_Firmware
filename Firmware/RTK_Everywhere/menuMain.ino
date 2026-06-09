@@ -469,8 +469,6 @@ void menuRadio()
 
             systemPrintln("3) Forget all radios");
 
-            systemPrintf("4) Current channel: %d\r\n", wifiChannel);
-
             if (settings.debugEspNow == true)
             {
                 systemPrintln("5) Add dummy radio");
@@ -478,6 +476,7 @@ void menuRadio()
                 systemPrintln("7) Broadcast dummy data");
             }
         }
+
 #endif // COMPILE_ESPNOW
 
         if (present.radio_lora == true)
@@ -510,6 +509,8 @@ void menuRadio()
                                  settings.loraSerialInteractionTimeout_s);
             }
         }
+
+        systemPrintf("20) Set default WiFi channel: %d\r\n", wifiChannel);
 
         // Display Bluetooth menu
         mmDisplayBluetoothRadioMenu('b', bluetoothUserChoice);
@@ -581,28 +582,6 @@ void menuRadio()
                 systemPrintln("Radios forgotten");
             }
         }
-        else if (settings.enableEspNow == true && incoming == 4)
-        {
-            if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
-                              &settings.wifiChannel) == INPUT_RESPONSE_VALID)
-            {
-                wifiEspNowChannelSet(settings.wifiChannel);
-                if (settings.wifiChannel)
-                {
-                    if (settings.wifiChannel == wifiChannel)
-                        systemPrintf("WiFi is already on channel %d.", settings.wifiChannel);
-                    else
-                    {
-                        if (wifiSoftApRunning || wifiStationRunning)
-                            systemPrintf("Restart WiFi to use channel %d.", settings.wifiChannel);
-                        else if (wifiEspNowRunning)
-                            systemPrintf("Restart ESP-NOW to use channel %d.", settings.wifiChannel);
-                        else
-                            systemPrintf("Please start ESP-NOW to use channel %d.", settings.wifiChannel);
-                    }
-                }
-            }
-        }
         else if (settings.enableEspNow == true && incoming == 5 && settings.debugEspNow == true)
         {
             if (wifiEspNowRunning == false)
@@ -672,12 +651,32 @@ void menuRadio()
         }
         else if (present.radio_lora == true && settings.enableLora == true && incoming == 13)
             settings.loraSaveSettingsToFlash ^= 1;
-        else if (present.radio_lora == true && settings.enableLora == true 
+        else if (present.radio_lora == true && settings.enableLora == true
                  && present.loraDedicatedUart == false && incoming == 14)
         {
             getNewSetting("Enter the number of seconds without user serial that must elapse before LoRa radio goes "
                           "into dedicated listening mode",
                           10, 600, &settings.loraSerialInteractionTimeout_s);
+        }
+
+        // Set the default WiFi channel
+        else if (incoming == 20)
+        {
+            if (getNewSetting("Enter the default WiFi channel", 1, 14,
+                              &settings.wifiChannel) == INPUT_RESPONSE_VALID)
+            {
+                if (settings.wifiChannel == wifiChannel)
+                    systemPrintf("WiFi is already on channel %d.", settings.wifiChannel);
+                else
+                {
+                    if (wifiSoftApRunning || wifiStationRunning)
+                        systemPrintf("Restart WiFi to use channel %d.", settings.wifiChannel);
+                    else if (wifiEspNowRunning)
+                        systemPrintf("Restart ESP-NOW to use channel %d.", settings.wifiChannel);
+                    else
+                        systemPrintf("Please start ESP-NOW to use channel %d.", settings.wifiChannel);
+                }
+            }
         }
 
         else if (incoming == 'x')

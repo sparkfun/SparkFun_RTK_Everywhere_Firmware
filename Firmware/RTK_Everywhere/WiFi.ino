@@ -390,6 +390,8 @@ void menuWiFi()
         systemPrint("c) Captive Portal: ");
         systemPrintf("%s\r\n", settings.enableCaptivePortal ? "Enabled" : "Disabled");
 
+        systemPrintf("d) Set default WiFi channel: %d\r\n", wifiChannel);
+
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -423,6 +425,27 @@ void menuWiFi()
         {
             settings.enableCaptivePortal ^= 1;
         }
+
+        // Set the default WiFi channel
+        else if (incoming == 'd')
+        {
+            if (getNewSetting("Enter the default WiFi channel", 1, 14,
+                              &settings.wifiChannel) == INPUT_RESPONSE_VALID)
+            {
+                if (settings.wifiChannel == wifiChannel)
+                    systemPrintf("WiFi is already on channel %d.", settings.wifiChannel);
+                else
+                {
+                    if (wifiSoftApRunning || wifiStationRunning)
+                        systemPrintf("Restart WiFi to use channel %d.", settings.wifiChannel);
+                    else if (wifiEspNowRunning)
+                        systemPrintf("Restart ESP-NOW to use channel %d.", settings.wifiChannel);
+                    else
+                        systemPrintf("Please start ESP-NOW to use channel %d.", settings.wifiChannel);
+                }
+            }
+        }
+
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
@@ -518,6 +541,7 @@ void wifiDisplayNetworkData()
         }
     }
     systemPrintf("%s: %s%s\r\n", wifiSoftApName, status, netif->isDefault() ? ", default" : "");
+    systemPrintf("    Channel: %d\r\n", settings.wifiChannel);
     hostName = netif->getHostname();
     if (hostName)
         systemPrintf("    Host Name: %s\r\n", hostName);
@@ -584,20 +608,6 @@ void wifiDisplayState()
         systemPrintf("    WiFi Strength: %d dBm\r\n", WiFi.RSSI());
         systemPrintf("    WiFi Status: %d (%s)\r\n", wifiStatus, wifiStatusString);
     }
-}
-
-//*********************************************************************
-// Get the ESP-NOW channel
-WIFI_CHANNEL_t wifiEspNowChannelGet()
-{
-    return wifi.espNowChannelGet();
-}
-
-//*********************************************************************
-// Set the ESP-NOW channel
-void wifiEspNowChannelSet(WIFI_CHANNEL_t channel)
-{
-    wifi.espNowChannelSet(channel);
 }
 
 //*********************************************************************
@@ -697,20 +707,6 @@ void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
 }
 
 //*********************************************************************
-// Get the soft AP channel
-WIFI_CHANNEL_t wifiSoftApChannelGet()
-{
-    return wifi.softApChannelGet();
-}
-
-//*********************************************************************
-// Set the soft AP channel
-void wifiSoftApChannelSet(WIFI_CHANNEL_t channel)
-{
-    wifi.softApChannelSet(channel);
-}
-
-//*********************************************************************
 // Get the broadcast IP address being used for the software access point (AP)
 // Outputs:
 //   Returns an IPAddress object containing the IP address used by the
@@ -753,6 +749,9 @@ const char *wifiSoftApGetSsid()
 //   Returns the status of WiFi soft AP stop
 bool wifiSoftApOff(const char *fileName, uint32_t lineNumber)
 {
+    // Disable mDNS
+    networkMulticastDNSUpdate(false);
+
     // Display the call
     if (settings.debugWifiState)
         systemPrintf("wifiSoftApOff called in %s at line %d\r\n", fileName, lineNumber);
@@ -769,6 +768,8 @@ bool wifiSoftApOff(const char *fileName, uint32_t lineNumber)
 //   Returns the status of WiFi soft AP start
 bool wifiSoftApOn(const char *fileName, uint32_t lineNumber)
 {
+    bool status;
+
     // Display the call
     if (settings.debugWifiState)
         systemPrintf("wifiSoftApOn called in %s at line %d\r\n", fileName, lineNumber);
@@ -779,7 +780,11 @@ bool wifiSoftApOn(const char *fileName, uint32_t lineNumber)
     else
         wifiSoftApSsid = "RTK";
 
-    return wifi.enable(wifiEspNowRunning, true, wifiStationRunning, __FILE__, __LINE__);
+    status = wifi.enable(wifiEspNowRunning, true, wifiStationRunning, __FILE__, __LINE__);
+
+    // Enable mDNS
+    networkMulticastDNSUpdate(wifiSoftApOnline);
+    return status;
 }
 
 //*********************************************************************
@@ -1355,11 +1360,11 @@ void wifiVerifyTables()
 //   verbose: Set to true to display additional WiFi debug data
 // For AP on RTK Firmware, we set the Gateway to 192.168.4.1, not 0.0.0.0. Let's do the same here.
 RTK_WIFI::RTK_WIFI(bool verbose)
-    : _apChannel{0}, _apCount{0}, _apDnsAddress{IPAddress((uint32_t)0)}, _apFirstDhcpAddress{IPAddress("192.168.4.32")},
+    : _apCount{0}, _apDnsAddress{IPAddress((uint32_t)0)}, _apFirstDhcpAddress{IPAddress("192.168.4.32")},
       _apGatewayAddress{IPAddress("192.168.4.1")}, _apIpAddress{IPAddress("192.168.4.1")},
-      _apMacAddress{0, 0, 0, 0, 0, 0}, _apSubnetMask{IPAddress("255.255.255.0")}, _espNowChannel{0},
+      _apMacAddress{0, 0, 0, 0, 0, 0}, _apSubnetMask{IPAddress("255.255.255.0")},
       _scanRunning{false}, _staIpAddress{IPAddress((uint32_t)0)}, _staIpType{0}, _staMacAddress{0, 0, 0, 0, 0, 0},
-      _staRemoteApSsid{nullptr}, _staRemoteApPassword{nullptr}, _started{false}, _stationChannel{0},
+      _staRemoteApSsid{nullptr}, _staRemoteApPassword{nullptr}, _started{false},
       _usingDefaultChannel{true}, _verbose{verbose}
 {
     wifiChannel = 0;
@@ -1551,24 +1556,6 @@ bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation, 
     if (settings.debugWifiState && _verbose)
         systemPrintf("WiFi: RTK_WIFI::enable returning %s\r\n", status ? "true" : "false");
     return status;
-}
-
-//*********************************************************************
-// Get the ESP-NOW channel
-// Outputs:
-//   Returns the requested ESP-NOW channel
-WIFI_CHANNEL_t RTK_WIFI::espNowChannelGet()
-{
-    return _espNowChannel;
-}
-
-//*********************************************************************
-// Set the ESP-NOW channel
-// Inputs:
-//   channel: New ESP-NOW channel number
-void RTK_WIFI::espNowChannelSet(WIFI_CHANNEL_t channel)
-{
-    _espNowChannel = channel;
 }
 
 //*********************************************************************
@@ -1809,24 +1796,6 @@ bool RTK_WIFI::setWiFiProtocols(wifi_interface_t interface, bool enableWiFiProto
 
     // Return the final status
     return started;
-}
-
-//*********************************************************************
-// Get the soft AP channel
-// Outputs:
-//   Returns the requested soft AP channel
-WIFI_CHANNEL_t RTK_WIFI::softApChannelGet()
-{
-    return _apChannel;
-}
-
-//*********************************************************************
-// Set the soft AP channel
-// Inputs:
-//   channel: Request the channel for WiFi soft AP
-void RTK_WIFI::softApChannelSet(WIFI_CHANNEL_t channel)
-{
-    _apChannel = channel;
 }
 
 //*********************************************************************
@@ -2074,20 +2043,6 @@ bool RTK_WIFI::softApSetSsidPassword(const char *ssid, const char *password)
 bool RTK_WIFI::startAp(bool forceAP)
 {
     return enable(wifiEspNowRunning, forceAP | settings.wifiConfigOverAP, wifiStationRunning, __FILE__, __LINE__);
-}
-
-//*********************************************************************
-// Get the station channel
-WIFI_CHANNEL_t RTK_WIFI::stationChannelGet()
-{
-    return _stationChannel;
-}
-
-//*********************************************************************
-// Set the station channel
-void RTK_WIFI::stationChannelSet(WIFI_CHANNEL_t channel)
-{
-    _stationChannel = channel;
 }
 
 //*********************************************************************
@@ -2504,11 +2459,8 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     //
     // The priority order for the channel is:
     //      1. Active channel (not using default channel)
-    //      2. _stationChannel
-    //      3. Remote AP channel determined by scan
-    //      4. _espNowChannel
-    //      5. _apChannel
-    //      6. Channel 1
+    //      2. Remote AP channel determined by scan
+    //      3. Use the previous saved channel (defaults to channel 1)
     //****************************************
 
     // Determine if there is an active channel
@@ -2520,14 +2472,6 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         channel = wifiChannel;
         if (settings.debugWifiState && _verbose)
             systemPrintf("channel: %d, active channel\r\n", channel);
-    }
-
-    // Use the station channel if specified
-    else if (_stationChannel && (starting & WIFI_STA_ONLINE))
-    {
-        channel = _stationChannel;
-        if (settings.debugWifiState && _verbose)
-            systemPrintf("channel: %d, WiFi station channel\r\n", channel);
     }
 
     // Determine if a scan for remote APs is needed
@@ -2542,26 +2486,10 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             stopping |= WIFI_START_ESP_NOW;
     }
 
-    // Determine if the ESP-NOW channel was specified
-    else if (_espNowChannel & ((starting | _started) & WIFI_EN_ESP_NOW_ONLINE))
-    {
-        channel = _espNowChannel;
-        if (settings.debugWifiState && _verbose)
-            systemPrintf("channel: %d, ESP-NOW channel\r\n", channel);
-    }
-
-    // Determine if the AP channel was specified
-    else if (_apChannel && ((starting | _started) & WIFI_AP_ONLINE))
-    {
-        channel = _apChannel;
-        if (settings.debugWifiState && _verbose)
-            systemPrintf("channel: %d, soft AP channel\r\n", channel);
-    }
-
-    // No channel specified and scan not being done, use the default channel
+    // No channel specified and scan not being done, use the previous channel
     else
     {
-        channel = WIFI_DEFAULT_CHANNEL;
+        channel = settings.wifiChannel;
         _usingDefaultChannel = true;
         if (settings.debugWifiState && _verbose)
             systemPrintf("channel: %d, default channel\r\n", channel);
@@ -2941,6 +2869,13 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             if (!channel)
                 channel = WIFI_DEFAULT_CHANNEL;
             wifiChannel = channel;
+
+            // Save the updated channel
+            if (settings.wifiChannel != wifiChannel)
+            {
+                settings.wifiChannel = wifiChannel;
+                recordSystemSettings();
+            }
 
             // Display the selected channel
             if (settings.debugWifiState)

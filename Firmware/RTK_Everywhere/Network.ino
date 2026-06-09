@@ -321,7 +321,7 @@ void menuTcpUdp()
         else if (incoming == 'm')
         {
             settings.mdnsEnable ^= 1;
-            networkMulticastDNSUpdate();
+            networkMulticastDNSUpdate(wifiSoftApOnline);
         }
 
         else if (settings.mdnsEnable && (incoming == 'n'))
@@ -511,7 +511,7 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
                 networkDisplayStatus();
         }
 
-        // When Web Config is started, all consumers are stopped marking the networkPriority as offline. 
+        // When Web Config is started, all consumers are stopped marking the networkPriority as offline.
         // If the ethernet interface is running, mark the network priority so that consumers within Web Config will use it
         if(networkPriority == NETWORK_OFFLINE && ethernetLinkUp() == true)
         {
@@ -526,7 +526,7 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
             if(settings.debugNetworkLayer)
                 systemPrintf("Network: WiFi station interface running, setting WiFi as highest network priority\r\n");
             networkPriority = 1;
-        }        
+        }
     }
     else
     {
@@ -1588,7 +1588,7 @@ bool networkMulticastDNSStart(NetIndex_t index)
         networkMdnsRequests |= bitMask;
 
         // Start mDNS on this interface
-        mdnsStarted = networkMulticastDNSUpdate();
+        mdnsStarted = networkMulticastDNSUpdate(wifiSoftApOnline);
     }
     return mdnsStarted;
 }
@@ -1609,7 +1609,7 @@ bool networkMulticastDNSStop(NetIndex_t index)
         networkMdnsRequests &= ~bitMask;
 
         // Stop mDNS on this interface
-        mdnsStopped = networkMulticastDNSUpdate();
+        mdnsStopped = networkMulticastDNSUpdate(wifiSoftApOnline);
     }
     return mdnsStopped;
 }
@@ -1633,13 +1633,13 @@ bool networkMulticastDNSStop()
     // Restart mDNS on the highest priority network
     if ((startIndex < NETWORK_OFFLINE) && networkInterfaceTable[startIndex].mDNS)
         networkMdnsRequests |= 1 << startIndex;
-    return networkMulticastDNSUpdate();
+    return networkMulticastDNSUpdate(wifiSoftApOnline);
 }
 
 //----------------------------------------
 // Start multicast DNS
 //----------------------------------------
-bool networkMulticastDNSUpdate()
+bool networkMulticastDNSUpdate(bool wifiRunning)
 {
     NetMask_t deltaMask;
     NetMask_t requests;
@@ -1648,6 +1648,7 @@ bool networkMulticastDNSUpdate()
     // Determine if mDNS needs to restart
     status = true;
     requests = networkMdnsRequests;
+    requests |= wifiRunning ? (1 << NETWORK_WIFI_AP) : 0;
 
     // Update the mDNS state
     if (settings.mdnsEnable == false)
@@ -2157,7 +2158,7 @@ void networkSoftApConsumerAdd(NETCONSUMER_t consumer, const char *fileName, uint
             if (settings.debugNetworkLayer)
                 networkDisplayStatus();
         }
-        
+
         // If the WiFi station interface is running, mark the network priority so that consumers within Soft AP will use it
         if(networkPriority == NETWORK_OFFLINE && wifiStationRunning == true)
         {
@@ -2505,7 +2506,7 @@ void networkUpdate()
 
     // Update the network services
     // Start or stop mDNS
-    networkMulticastDNSUpdate();
+    networkMulticastDNSUpdate(wifiSoftApOnline);
 
     // Update the network services
     DMW_n("mqttClientUpdate");

@@ -1991,6 +1991,9 @@ enum NetworkTypes
     // Add new networks above this line in default priority order
     NETWORK_ANY,            // 3
     NETWORK_MAX = NETWORK_ANY,
+
+    // Reserved: Only used to manage mDNS
+    NETWORK_WIFI_AP         // 4
 };
 
 #ifdef  COMPILE_NETWORK
@@ -2141,7 +2144,6 @@ class RTK_WIFI
 {
   private:
 
-    WIFI_CHANNEL_t _apChannel;  // Channel required for soft AP, zero (0) use wifiChannel
     int16_t _apCount;           // The number or remote APs detected in the WiFi network
     IPAddress _apDnsAddress;    // DNS IP address to use while translating names into IP addresses
     IPAddress _apFirstDhcpAddress;  // First IP address to use for DHCP
@@ -2149,7 +2151,6 @@ class RTK_WIFI
     IPAddress _apIpAddress;     // IP address of the soft AP
     uint8_t _apMacAddress[6];   // MAC address of the soft AP
     IPAddress _apSubnetMask;    // Subnet mask for soft AP
-    WIFI_CHANNEL_t _espNowChannel;  // Channel required for ESPNow, zero (0) use wifiChannel
     volatile bool _scanRunning; // Scan running
     int _staAuthType;           // Authorization type for the remote AP
     bool _staConnected;         // True when station is connected
@@ -2160,7 +2161,6 @@ class RTK_WIFI
     const char * _staRemoteApSsid;      // SSID of remote AP
     const char * _staRemoteApPassword;  // Password of remote AP
     volatile WIFI_ACTION_t _started;    // Components that are started and running
-    WIFI_CHANNEL_t _stationChannel; // Channel required for station, zero (0) use wifiChannel
     bool _usingDefaultChannel;  // Using default WiFi channel
     bool _verbose;              // True causes more debug output to be displayed
 
@@ -2330,16 +2330,6 @@ class RTK_WIFI
                 const char * fileName,
                 int lineNumber);
 
-    // Get the ESP-NOW channel
-    // Outputs:
-    //   Returns the requested ESP-NOW channel
-    WIFI_CHANNEL_t espNowChannelGet();
-
-    // Set the ESP-NOW channel
-    // Inputs:
-    //   channel: New ESP-NOW channel number
-    void espNowChannelSet(WIFI_CHANNEL_t channel);
-
     // Get the ESP-NOW status
     // Outputs:
     //   Returns true when ESP-NOW is online and ready for use
@@ -2357,16 +2347,6 @@ class RTK_WIFI
     // Outputs:
     //   Returns the current WiFi channel number
     WIFI_CHANNEL_t getChannel();
-
-    // Get the soft AP channel
-    // Outputs:
-    //   Returns the requested soft AP channel
-    WIFI_CHANNEL_t softApChannelGet();
-
-    // Set the soft AP channel
-    // Inputs:
-    //   channel: Request the channel for WiFi soft AP
-    void softApChannelSet(WIFI_CHANNEL_t channel);
 
     // Configure the soft AP
     // Inputs:
@@ -2405,16 +2385,6 @@ class RTK_WIFI
     //    Returns true if the soft AP was started successfully and false
     //    otherwise
     bool startAp(bool forceAP);
-
-    // Get the station channel
-    // Outputs:
-    //   Returns the requested station channel
-    WIFI_CHANNEL_t stationChannelGet();
-
-    // Set the station channel
-    // Inputs:
-    //   channel: Request the channel for WiFi station
-    void stationChannelSet(WIFI_CHANNEL_t channel);
 
     // Get the WiFi station IP address
     // Returns the IP address of the WiFi station
