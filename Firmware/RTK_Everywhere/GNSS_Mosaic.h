@@ -1103,7 +1103,8 @@ bool mosaicNewSettingValue(struct Settings * tempSettings,
                            const char * suffix,
                            int qualifier,
                            double d);
-bool mosaicSettingsToFile(File *settingsFile,
+bool mosaicSettingsToFile(char * line,
+                          size_t lineSize,
                           RTK_Settings_Types type,
                           int settingsIndex);
 

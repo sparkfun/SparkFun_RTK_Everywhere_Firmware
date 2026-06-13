@@ -3305,7 +3305,10 @@ bool zedNewSettingValue(struct Settings *tempSettings, RTK_Settings_Types type, 
 //----------------------------------------
 // Called by gnssSettingsToFile to save ZED specific settings
 //----------------------------------------
-bool zedSettingsToFile(File *settingsFile, RTK_Settings_Types type, int settingsIndex)
+bool zedSettingsToFile(char * line,
+                       size_t lineSize,
+                       RTK_Settings_Types type,
+                       int settingsIndex)
 {
     switch (type)
     {
@@ -3319,10 +3322,10 @@ bool zedSettingsToFile(File *settingsFile, RTK_Settings_Types type, int settings
             // Only record constellations which are supported on this platform and firmware version
             if (constellationSupported(x) == true)
             {
-                char tempString[50]; // constellation_BeiDou=1
-                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+                // constellation_BeiDou=1
+                snprintf(line, lineSize, "%s%s=%d\r\n", rtkSettingsEntries[settingsIndex].name,
                          ubxConstellations[x].textName, settings.ubxConstellationsEnabled[x]);
-                settingsFile->println(tempString);
+                nvmRecordStringToFile(line);
             }
         }
     }
@@ -3331,10 +3334,10 @@ bool zedSettingsToFile(File *settingsFile, RTK_Settings_Types type, int settings
         // Record message settings
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // ubxMessageRate_UBX_NMEA_DTM=5
-            snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+            // ubxMessageRate_UBX_NMEA_DTM=5
+            snprintf(line, lineSize, "%s%s=%d\r\n", rtkSettingsEntries[settingsIndex].name,
                      ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
-            settingsFile->println(tempString);
+            nvmRecordStringToFile(line);
         }
     }
     break;
@@ -3346,10 +3349,10 @@ bool zedSettingsToFile(File *settingsFile, RTK_Settings_Types type, int settings
 
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // ubxMessageRateBase_UBX_NMEA_DTM=5
-            snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+            // ubxMessageRateBase_UBX_NMEA_DTM=5
+            snprintf(line, lineSize, "%s%s=%d\r\n", rtkSettingsEntries[settingsIndex].name,
                      ubxMessages[firstRTCMRecord + x].msgTextName, settings.ubxMessageRatesBase[x]);
-            settingsFile->println(tempString);
+            nvmRecordStringToFile(line);
         }
     }
     break;

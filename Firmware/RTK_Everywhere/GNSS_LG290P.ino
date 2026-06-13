@@ -3279,7 +3279,10 @@ bool lg290pNewSettingValue(struct Settings * tempSettings, RTK_Settings_Types ty
 //----------------------------------------
 // Called by gnssSettingsToFile to save LG290P specific settings
 //----------------------------------------
-bool lg290pSettingsToFile(File *settingsFile, RTK_Settings_Types type, int settingsIndex)
+bool lg290pSettingsToFile(char * line,
+                          size_t lineSize,
+                          RTK_Settings_Types type,
+                          int settingsIndex)
 {
     switch (type)
     {
@@ -3290,10 +3293,10 @@ bool lg290pSettingsToFile(File *settingsFile, RTK_Settings_Types type, int setti
         // Record LG290P NMEA rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // lg290pMessageRatesNMEA_GPGGA=2
-            snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+            // lg290pMessageRatesNMEA_GPGGA=2
+            snprintf(line, lineSize, "%s%s=%d\r\n", rtkSettingsEntries[settingsIndex].name,
                      lgMessagesNMEA[x].msgTextName, settings.lg290pMessageRatesNMEA[x]);
-            settingsFile->println(tempString);
+            nvmRecordStringToFile(line);
         }
     }
     break;
@@ -3301,10 +3304,10 @@ bool lg290pSettingsToFile(File *settingsFile, RTK_Settings_Types type, int setti
         // Record LG290P Rover RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // lg290pMessageRatesRTCMRover_RTCM1005=2
-            snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+            // lg290pMessageRatesRTCMRover_RTCM1005=2
+            snprintf(line, lineSize, "%s%s=%d\r\n", rtkSettingsEntries[settingsIndex].name,
                      lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMRover[x]);
-            settingsFile->println(tempString);
+            nvmRecordStringToFile(line);
         }
     }
     break;
@@ -3312,10 +3315,10 @@ bool lg290pSettingsToFile(File *settingsFile, RTK_Settings_Types type, int setti
         // Record LG290P Base RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // lg290pMessageRatesRTCMBase_RTCM1005=2
-            snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+            // lg290pMessageRatesRTCMBase_RTCM1005=2
+            snprintf(line, lineSize, "%s%s=%d\r\n", rtkSettingsEntries[settingsIndex].name,
                      lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMBase[x]);
-            settingsFile->println(tempString);
+            nvmRecordStringToFile(line);
         }
     }
     break;
@@ -3323,10 +3326,10 @@ bool lg290pSettingsToFile(File *settingsFile, RTK_Settings_Types type, int setti
         // Record LG290P PQTM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // lg290pMessageRatesPQTM_EPE=1
-            snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+            // lg290pMessageRatesPQTM_EPE=1
+            snprintf(line, lineSize, "%s%s=%d\r\n", rtkSettingsEntries[settingsIndex].name,
                      lgMessagesPQTM[x].msgTextName, settings.lg290pMessageRatesPQTM[x]);
-            settingsFile->println(tempString);
+            nvmRecordStringToFile(line);
         }
     }
     break;
@@ -3334,10 +3337,10 @@ bool lg290pSettingsToFile(File *settingsFile, RTK_Settings_Types type, int setti
         // Record LG290P Constellations
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // lg290pConstellations_GLONASS=1
-            snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[settingsIndex].name,
+            // lg290pConstellations_GLONASS=1
+            snprintf(line, lineSize, "%s%s=%d\r\n", rtkSettingsEntries[settingsIndex].name,
                      lg290pConstellationNames[x], settings.lg290pConstellations[x]);
-            settingsFile->println(tempString);
+            nvmRecordStringToFile(line);
         }
     }
     break;
