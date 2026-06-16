@@ -66,7 +66,7 @@ tiltSaveDataOffset = 0;
 //            startMsec = millis();
 //            while ((millis() - startMsec) < timeoutMsec)
 //                delay(1);
-            result = tiltWaitForOkResponse(timeoutMsec);
+            result = tiltIm19WaitForOkResponse(timeoutMsec);
 if (tiltSaveData)
 {
 systemPrintf("After end-of-transmission\r\n");
@@ -80,7 +80,7 @@ tiltSaveDataOffset = 0;
             }
 
             // Display the updated firmware version
-            if (tiltReset())
+            if (tiltIm19Reset())
                 systemPrintf("%s\r\n", tiltGetFirmwareVersion().c_str());
         }
     } while (0);
@@ -118,7 +118,7 @@ bool im19CmdAppUpdate()
     timeoutMsec = 500;
     startMsec = millis();
     return ((bytesWritten == strlen(update))
-        && tiltWaitForOkResponse(timeoutMsec)
+        && tiltIm19WaitForOkResponse(timeoutMsec)
         && ((millis() - startMsec) < timeoutMsec));
 }
 
@@ -174,7 +174,7 @@ bool im19Open(DEVICE_FIRMWARE_CTX * ctx)
 //----------------------------------------
 bool im19Reset(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
-    return tiltReset();
+    return tiltIm19Reset();
 }
 
 //----------------------------------------
