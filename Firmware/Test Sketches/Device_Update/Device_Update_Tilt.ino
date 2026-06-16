@@ -5,37 +5,6 @@ Device_Update_Tilt.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
-// Configure the serial port
-//----------------------------------------
-bool tiltConfigureSerialPort(HardwareSerial ** hwSerialPort)
-{
-    HardwareSerial * serialPort;
-
-    // Determine if serial port is already configured
-    serialPort = *hwSerialPort;
-    if (serialPort)
-        return true;
-
-    // Allocate the serial port object
-    serialPort = new HardwareSerial(2);
-
-    // Determine if the allocation failed
-    if (serialPort == nullptr)
-    {
-        systemPrintf("ERROR: Failed to allocate the serial port!\r\n");
-        return false;
-    }
-
-    // Configure the serial port
-    serialPort->setRxBufferSize(1024 * 1);
-
-    // We must start the serial port before handing it over to the library
-    serialPort->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
-    *hwSerialPort = serialPort;
-    return true;
-}
-
-//----------------------------------------
 // Get the IM19 firmware version message
 //----------------------------------------
 String tiltGetFirmwareVersion()
@@ -60,7 +29,7 @@ bool tiltReset()
     {
         // Configure the serial port
         versionFound = false;
-        if (tiltConfigureSerialPort(&SerialForTilt) == false)
+        if (configureUart2(&SerialForTilt) == false)
             break;
 
         // Reset the IM19
