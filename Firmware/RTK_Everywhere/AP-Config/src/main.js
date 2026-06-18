@@ -98,6 +98,8 @@ var divTables = {
     tiltConfig: ["enableTiltCompensation"],
     loraConfig: ["enableLora"],
     loraSerialInteractionTimeoutConfig: ["loraSerialInteractionTimeout"],
+    rtkDifferentialAgeConfig: ["rtkDifferentialAge"],
+    rtkDifferentialSourceTypeConfig: ["rtkDifferentialSourceType"],
 };
 
 function showHideDivs() {
@@ -1218,6 +1220,9 @@ function validateFields() {
     checkElementValue("minCN0", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
     if (isElementShown("lg290pGnssSettings") == true) {
         checkElementValue("rtcmMinElev", -90, 90, "Must be between -90 and 90", "collapseGNSSConfig");
+    }
+    if (isElementShown("rtkDifferentialAgeConfig") == true) {
+        checkElementValue("rtkDifferentialAge", 1, 600, "Must be between 1 and 600", "collapseGNSSConfig");
     }
 
     if (isElementShown("pppSettings") == true) {

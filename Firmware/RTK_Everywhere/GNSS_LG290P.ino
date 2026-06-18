@@ -1383,24 +1383,29 @@ void GNSS_LG290P::menuConstellations()
             systemPrintln();
         }
 
+        systemPrintf("%d) RTK Differential Age: %ds\r\n", MAX_LG290P_CONSTELLATIONS + 1, settings.rtkDifferentialAge);
+        systemPrintf("%d) RTK Differential Source Type: %s\r\n", MAX_LG290P_CONSTELLATIONS + 2,
+            settings.rtkDifferentialSourceType == 0 ? "Auto" :
+            settings.rtkDifferentialSourceType == 1 ? "Normal" : "Wide Lane");
+
         if (present.pppCapable)
         {
-            systemPrintf("%d) PPP Mode: %s\r\n", MAX_LG290P_CONSTELLATIONS + 1,
+            systemPrintf("%d) PPP Mode: %s\r\n", MAX_LG290P_CONSTELLATIONS + 3,
                          settings.pppMode == PPP_MODE_DISABLE ? "Disabled"
                          : settings.pppMode == PPP_MODE_HAS   ? "HAS"
                          : settings.pppMode == PPP_MODE_B2B   ? "B2B"
                                                               : "Auto");
             if (settings.pppMode > PPP_MODE_DISABLE)
             {
-                systemPrintf("%d) PPP Datum: %s\r\n", MAX_LG290P_CONSTELLATIONS + 2,
+                systemPrintf("%d) PPP Datum: %s\r\n", MAX_LG290P_CONSTELLATIONS + 4,
                              settings.pppDatum == 1   ? "WGS84"
                              : settings.pppDatum == 2 ? "PPP Original"
                              : settings.pppDatum == 3 ? "CGCS2000"
                                                       : "Unknown");
-                systemPrintf("%d) PPP Timeout: %d\r\n", MAX_LG290P_CONSTELLATIONS + 3, settings.pppTimeout);
-                systemPrintf("%d) PPP Horizontal Convergence Accuracy: %0.2f\r\n", MAX_LG290P_CONSTELLATIONS + 4,
+                systemPrintf("%d) PPP Timeout: %d\r\n", MAX_LG290P_CONSTELLATIONS + 5, settings.pppTimeout);
+                systemPrintf("%d) PPP Horizontal Convergence Accuracy: %0.2f\r\n", MAX_LG290P_CONSTELLATIONS + 6,
                              settings.pppHorizontalConvergence);
-                systemPrintf("%d) PPP Vertical Convergence Accuracy: %0.2f\r\n", MAX_LG290P_CONSTELLATIONS + 5,
+                systemPrintf("%d) PPP Vertical Convergence Accuracy: %0.2f\r\n", MAX_LG290P_CONSTELLATIONS + 7,
                              settings.pppVerticalConvergence);
             }
         }
@@ -1416,7 +1421,22 @@ void GNSS_LG290P::menuConstellations()
             settings.lg290pConstellations[incoming] ^= 1;
             gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
         }
-        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 1) && present.pppCapable)
+        else if (incoming == MAX_LG290P_CONSTELLATIONS + 1)
+        {
+            uint16_t newAge = 120;
+            if (getNewSetting("Enter RTK Differential Age", 1, 600, &newAge) == INPUT_RESPONSE_VALID)
+            {
+                settings.rtkDifferentialAge = newAge;
+                gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
+            }
+        }
+        else if (incoming == MAX_LG290P_CONSTELLATIONS + 2)
+        {
+            settings.rtkDifferentialSourceType += 1;
+            settings.rtkDifferentialSourceType %= 3;
+            gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
+        }
+        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 3) && present.pppCapable)
         {
             int newMode = 0;
             if (getNewSetting("Enter PPP Mode (0 = Disable, 1 = B2b PPP, 2 = E6 HAS, 255 = Auto)", 0, 255, &newMode) ==
@@ -1432,7 +1452,7 @@ void GNSS_LG290P::menuConstellations()
                     systemPrintln("Error: Out of range");
             }
         }
-        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 2) && present.pppCapable)
+        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 4) && present.pppCapable)
         {
             if (getNewSetting("Enter PPP Datum Number (1 = WGS84, 2 = PPP Original, 3 = CGCS2000)", 1, 3,
                               &settings.pppDatum) == INPUT_RESPONSE_VALID)
@@ -1440,7 +1460,7 @@ void GNSS_LG290P::menuConstellations()
                 gnssConfigure(GNSS_CONFIG_PPP); // Request receiver to use new settings
             }
         }
-        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 3) && present.pppCapable)
+        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 5) && present.pppCapable)
         {
             if (getNewSetting("Enter PPP Timeout before fallback (seconds)", 90, 180, &settings.pppTimeout) ==
                 INPUT_RESPONSE_VALID)
@@ -1448,7 +1468,7 @@ void GNSS_LG290P::menuConstellations()
                 gnssConfigure(GNSS_CONFIG_PPP); // Request receiver to use new settings
             }
         }
-        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 4) && present.pppCapable)
+        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 6) && present.pppCapable)
         {
             if (getNewSetting("Enter PPP Horizontal Convergence Accuracy (meters)", 0.0f, 5.0f,
                               &settings.pppHorizontalConvergence) == INPUT_RESPONSE_VALID)
@@ -1456,7 +1476,7 @@ void GNSS_LG290P::menuConstellations()
                 gnssConfigure(GNSS_CONFIG_PPP); // Request receiver to use new settings
             }
         }
-        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 5) && present.pppCapable)
+        else if ((incoming == MAX_LG290P_CONSTELLATIONS + 7) && present.pppCapable)
         {
             if (getNewSetting("Enter PPP Vertical Convergence Accuracy (meters)", 0.0f, 5.0f,
                               &settings.pppVerticalConvergence) == INPUT_RESPONSE_VALID)
@@ -1951,12 +1971,14 @@ bool GNSS_LG290P::setConstellations()
 
     if (online.gnss)
     {
-        response = _lg290p->setConstellations(settings.lg290pConstellations[0],  // GPS
-                                              settings.lg290pConstellations[1],  // GLONASS
-                                              settings.lg290pConstellations[2],  // Galileo
-                                              settings.lg290pConstellations[3],  // BDS
-                                              settings.lg290pConstellations[4],  // QZSS
-                                              settings.lg290pConstellations[5]); // NavIC
+        response &= _lg290p->setConstellations(settings.lg290pConstellations[0],  // GPS
+                                               settings.lg290pConstellations[1],  // GLONASS
+                                               settings.lg290pConstellations[2],  // Galileo
+                                               settings.lg290pConstellations[3],  // BDS
+                                               settings.lg290pConstellations[4],  // QZSS
+                                               settings.lg290pConstellations[5]); // NavIC
+        response &= _lg290p->setRtkDifferentialAge(settings.rtkDifferentialAge);
+        response &= _lg290p->setRtkDifferentialSourceType(settings.rtkDifferentialSourceType);
     }
 
     gnssConfigure(GNSS_CONFIG_RESET); // Constellation changes require device save/restart
@@ -2078,10 +2100,8 @@ bool GNSS_LG290P::setPppService()
         // Check if a setting has changed
         bool settingsChanged = false;
 
-        if (settings.pppMode)
-
-            if (currentMode != settings.pppMode)
-                settingsChanged = true;
+        if (currentMode != settings.pppMode)
+            settingsChanged = true;
         if (currentDatum != settings.pppDatum)
             settingsChanged = true;
         if (currentTimeout != settings.pppTimeout)

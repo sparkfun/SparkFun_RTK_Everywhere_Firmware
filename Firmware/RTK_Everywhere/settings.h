@@ -1180,6 +1180,8 @@ struct Settings
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Quectel recommended rates.
     int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied.
+    uint16_t rtkDifferentialAge = 120; // LG290P only. Sets the max differential age of RTK fix. 1-600s. Default: 120s
+    uint16_t rtkDifferentialSourceType = 0; // LG290P only. 0 = Auto, 1 = Normal, 2 = Wide Lane. Default is Auto.
 #endif // COMPILE_LG290P
 
     bool debugSettings = false;
@@ -1832,6 +1834,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 0, 0, 1, L29, 1, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 0, 1, L29, 1, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 0, 1, L29, 1, tLgMRPqtm, MAX_LG290P_PQTM_MSG, & settings.lg290pMessageRatesPQTM, "messageRatePQTM_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 0, 0, 0, 0, 1, L29, 1, _uint16_t, 0, & settings.rtkDifferentialAge, "rtkDifferentialAge", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, L29, 1, _uint16_t, 0, & settings.rtkDifferentialSourceType, "rtkDifferentialSourceType", nullptr, },
 #endif  // COMPILE_LG290P
 
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugSettings, "debugSettings", nullptr, },
