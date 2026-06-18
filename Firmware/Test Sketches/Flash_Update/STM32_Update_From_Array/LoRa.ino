@@ -29,10 +29,101 @@ void loraReset()
 uint8_t *stm32PageBuffer = nullptr; // Buffer written to the STM32 flash in 256 byte chunks
 uint16_t stm32BufferIndex = 0;
 
+uint32_t stm32ExpectedFlashBytes = 0;
+uint32_t stm32BytesWritten = 0;
+
 uint32_t stm32CurrentAddress = 0x08000000; // Default Flash Start
 uint32_t stm32LastWriteAddr = 0xFFFFFFFF;  // Track last write address globally
 
 char *stm32HexLine = nullptr; // Buffer for assembling incoming hex lines until we get a newline
+
+uint8_t stm32HexToNibble(char c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+
+    if (c >= 'a' && c <= 'f')
+        return (c - 'a') + 10;
+
+    if (c >= 'A' && c <= 'F')
+        return (c - 'A') + 10;
+
+    return 0;
+}
+
+uint8_t stm32HexToByte(char high, char low)
+{
+    return (stm32HexToNibble(high) << 4) | stm32HexToNibble(low);
+}
+
+uint32_t stm32CalculateExpectedFlashBytes()
+{
+    uint32_t totalBytes = 0;
+    char line[STM32_HEX_BUFFER_SIZE];
+    int lineSpot = 0;
+
+    for (uint32_t i = 0; i < sizeof(lora_firmware); i++)
+    {
+        char c = (char)lora_firmware[i];
+
+        if (c == '\n' || c == '\r')
+        {
+            if (lineSpot > 10 && line[0] == ':')
+            {
+                uint8_t len = stm32HexToByte(line[1], line[2]);
+                uint8_t type = stm32HexToByte(line[7], line[8]);
+                if (type == 0x00)
+                    totalBytes += len;
+            }
+
+            lineSpot = 0;
+            continue;
+        }
+
+        if (c == ':')
+            lineSpot = 0;
+
+        if (lineSpot == 0 && c != ':')
+            continue;
+
+        if (lineSpot < STM32_HEX_BUFFER_SIZE - 1)
+            line[lineSpot++] = c;
+    }
+
+    if (lineSpot > 10 && line[0] == ':')
+    {
+        uint8_t len = stm32HexToByte(line[1], line[2]);
+        uint8_t type = stm32HexToByte(line[7], line[8]);
+        if (type == 0x00)
+            totalBytes += len;
+    }
+
+    return totalBytes;
+}
+
+void stm32PageBufferWrittenCallback(uint16_t bytesJustWritten)
+{
+    const uint8_t progressBarWidth = 20;
+
+    stm32BytesWritten += bytesJustWritten;
+
+    uint32_t progressPercent = 0;
+    if (stm32ExpectedFlashBytes > 0)
+        progressPercent = (stm32BytesWritten * 100UL) / stm32ExpectedFlashBytes;
+
+    if (progressPercent > 100)
+        progressPercent = 100;
+
+    uint8_t filled = (progressPercent * progressBarWidth) / 100;
+
+    Serial.print("\rWrite Progress: [");
+    for (uint8_t i = 0; i < progressBarWidth; i++)
+        Serial.print(i < filled ? '#' : '-');
+
+    Serial.print("] ");
+    Serial.print(progressPercent);
+    Serial.print("%");
+}
 
 // Given a chunk of bytes, feed the STM32 firmware update machine
 void stm32UpdateFirmware(uint8_t *dataArray, uint16_t bytesToWrite, bool sendLastLine)
@@ -130,6 +221,8 @@ void stm32UpdateFirmwareBegin()
         stm32HexLine = (char *)malloc(STM32_HEX_BUFFER_SIZE);
 
     stm32BufferIndex = 0;
+    stm32BytesWritten = 0;
+    stm32ExpectedFlashBytes = stm32CalculateExpectedFlashBytes();
 }
 
 // Write a 256-byte chunk to the STM32 Flash
@@ -180,9 +273,12 @@ void stm32UpdatePageBuffer(uint8_t *dataArray, uint16_t bytesToWrite, uint32_t w
         // Once we hit 256 bytes, write to STM32
         if (stm32BufferIndex == STM32_WRITE_BLOCK_MAX)
         {
-            stm32FirmwareUpdateFlashBlock(stm32LastWriteAddr, stm32PageBuffer, STM32_WRITE_BLOCK_MAX);
-            stm32BufferIndex = 0;
-            stm32LastWriteAddr += STM32_WRITE_BLOCK_MAX;
+            if (stm32FirmwareUpdateFlashBlock(stm32LastWriteAddr, stm32PageBuffer, STM32_WRITE_BLOCK_MAX))
+            {
+                stm32PageBufferWrittenCallback(STM32_WRITE_BLOCK_MAX);
+                stm32BufferIndex = 0;
+                stm32LastWriteAddr += STM32_WRITE_BLOCK_MAX;
+            }
         }
     }
 }
@@ -199,7 +295,12 @@ bool stm32UpdateFirmwareEnd()
         // Use stm32LastWriteAddr if available, else fallback to stm32CurrentAddress
         uint32_t addr = (stm32LastWriteAddr != 0xFFFFFFFF) ? stm32LastWriteAddr : stm32CurrentAddress;
         success = stm32FirmwareUpdateFlashBlock(addr, stm32PageBuffer, stm32BufferIndex);
+        if (success)
+            stm32PageBufferWrittenCallback(stm32BufferIndex);
     }
+
+    if (success)
+        Serial.println();
 
     free(stm32PageBuffer);
     stm32PageBuffer = nullptr;
@@ -255,7 +356,10 @@ void stm32FirmwareUpdateParseHexLine(char *line)
                           stm32LastWriteAddr, stm32BufferIndex, writeAddr);
 
             if (stm32LastWriteAddr != 0xFFFFFFFF)
-                stm32FirmwareUpdateFlashBlock(stm32LastWriteAddr, stm32PageBuffer, stm32BufferIndex);
+            {
+                if (stm32FirmwareUpdateFlashBlock(stm32LastWriteAddr, stm32PageBuffer, stm32BufferIndex))
+                    stm32PageBufferWrittenCallback(stm32BufferIndex);
+            }
 
             // If stm32LastWriteAddr is invalid, just reset buffer and set stm32LastWriteAddr to new writeAddr
             stm32BufferIndex = 0;

@@ -50,11 +50,12 @@ const int loraBaud = 115200; // Increasing the baud rate does not decrease the p
 
 // External GPIO functions (provided by your hardware abstraction)
 extern void gpioExpanderLoraBootEnable();
+extern void gpioExpanderLoraEnable();
+extern void gpioExpanderLoraDisable();
+
 // Timer for firmware update duration
 unsigned long firmwareUpdateStartTime = 0;
 unsigned long firmwareUpdateElapsed = 0;
-extern void gpioExpanderLoraEnable();
-extern void gpioExpanderLoraDisable();
 
 void setup()
 {
