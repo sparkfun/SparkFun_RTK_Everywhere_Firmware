@@ -170,8 +170,9 @@ void GNSS_ZED::begin()
         //"1.51" - ZED-F9P released November, 2024
         //"2.00" - ZED-X20P released May, 2025
         //"2.02" - ZED-X20P released July, 2025
+        //"2.10" - ZED-X20P released May, 2026
 
-        const uint8_t knownFirmwareVersions[] = {100, 112, 113, 120, 121, 130, 132, 150, 151, 200, 202};
+        const uint8_t knownFirmwareVersions[] = {100, 112, 113, 120, 121, 130, 132, 150, 151, 200, 202, 210};
         bool knownFirmware = false;
         for (uint8_t i = 0; i < (sizeof(knownFirmwareVersions) / sizeof(knownFirmwareVersions[0])); i++)
         {
@@ -206,6 +207,12 @@ void GNSS_ZED::begin()
                     "https://docs.sparkfun.com/SparkFun_RTK_Firmware/firmware_update/#updating-u-blox-firmware");
                 displayUpdateZEDF9R(3000);
             }
+
+        // v2.10 officially supports E6 HAS
+        if (gnssFirmwareVersionInt >= 210)
+        {
+            present.pppCapable = true;
+        }
 
         printModuleInfo(); // Print module type and firmware version
 
@@ -1388,13 +1395,20 @@ bool GNSS_ZED::isFullyResolved()
 //----------------------------------------
 bool GNSS_ZED::isPppConverged()
 {
-    return (false);
+    if (present.pppCapable == false)
+        return (false);
+
+    // Is this the best we can do? TODO...
+    return ((settings.pppMode == PPP_MODE_HAS) && (_carrierSolution == 1));
 }
 
 //----------------------------------------
 bool GNSS_ZED::isPppConverging()
 {
-    return (false);
+    if (present.pppCapable == false)
+        return (false);
+
+    return (settings.pppMode == PPP_MODE_HAS);
 }
 
 //----------------------------------------
@@ -1524,6 +1538,13 @@ void GNSS_ZED::menuConstellations()
             systemPrintln();
         }
 
+        if (present.pppCapable)
+        {
+            systemPrintf("%d) PPP Mode: %s\r\n", MAX_UBX_CONSTELLATIONS + 1,
+                         settings.pppMode == PPP_MODE_DISABLE ? "Disabled"
+                         : "E6/HAS");
+        }
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -1548,6 +1569,15 @@ void GNSS_ZED::menuConstellations()
             }
 
             gnssConfigure(GNSS_CONFIG_CONSTELLATION); // Request receiver to use new settings
+        }
+        else if ((present.pppCapable) && (incoming == MAX_UBX_CONSTELLATIONS + 1))
+        {
+            if (settings.pppMode == PPP_MODE_DISABLE)
+                settings.pppMode = PPP_MODE_HAS;
+            else
+                settings.pppMode = PPP_MODE_DISABLE;
+
+            gnssConfigure(GNSS_CONFIG_PPP); // Request receiver to use new settings
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -2033,8 +2063,16 @@ bool GNSS_ZED::setElevation(uint8_t elevationDegrees)
 //----------------------------------------
 bool GNSS_ZED::setPppService()
 {
-    // Not yet supported on this platform
-    return (true); // Return true to clear gnssConfigure test
+    if (present.pppCapable)
+    {
+        bool setValueSuccess = true;
+        setValueSuccess &= _zed->newCfgValset(VAL_LAYER_ALL);
+        setValueSuccess &= _zed->addCfgValset(UBLOX_CFG_NAVCOR_ENABLE_HOST, (settings.pppMode == PPP_MODE_DISABLE) ? 1 : 0);    // Enable/Disable HOST corrections
+        setValueSuccess &= _zed->addCfgValset(UBLOX_CFG_NAVCOR_ENABLE_GAL_HAS, (settings.pppMode == PPP_MODE_DISABLE) ? 0 : 1); // Disable/Enable Galileo HAS corrections
+        setValueSuccess &= _zed->sendCfgValset();
+        return setValueSuccess;
+    }
+    return true; // Return true to clear gnssConfigure test
 }
 
 //----------------------------------------
@@ -2941,8 +2979,14 @@ bool messageSupported(int messageNumber)
             messageSupported = true;
 
     if (present.gnss_zedx20p)
+    {
         if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].x20pFirmwareVersionSupported)
+        {
             messageSupported = true;
+            if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].x20pFirmwareVersionNotSupported)
+                messageSupported = false;
+        }
+    }
 
     return (messageSupported);
 }

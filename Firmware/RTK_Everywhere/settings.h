@@ -1218,7 +1218,8 @@ typedef enum
     ALL = (1 << 5) - 1, // ALL - must be the highest single variant
     ZED = ZF9 | ZX2,    // Hybrids are possible (enums don't have to be consecutive)
     MSM = L29,          // Platforms which require parameter selection of MSM7 over MSM4
-    HAS = L29,          // Platforms which support Galileo HAS
+    HAS = L29 | ZX2,    // Platforms which support Galileo HAS - includes ZED-X20P with HPG >= 2.10
+    // Note: when adding new variants or hybrids, update settingAvailableOnPlatform in menuComands.ino to match
 } Facet_FP_Variant;
 
 typedef bool (* AFTER_CMD)(const char *settingName, void *settingData, int settingType);

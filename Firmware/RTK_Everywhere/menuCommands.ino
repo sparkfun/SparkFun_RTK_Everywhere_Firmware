@@ -2899,6 +2899,15 @@ bool settingAvailableOnPlatform(int i)
             if ((rtkSettingsEntries[i].platFacetFP == ZX2)
                 && (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P))
                 break;
+            if (rtkSettingsEntries[i].platFacetFP == HAS)
+            {
+                if (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P)
+                    break;
+                if (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P)
+                    // Note: we can't use present.pppCapable here, because that gets set by gnss->begin()
+                    //       which is called after commandIndexFillActual()
+                    break;
+            }
         }
         if ((productVariant == RTK_TORCH_X2) && rtkSettingsEntries[i].platTorchX2)
             break;
