@@ -62,6 +62,36 @@ bool loadSystemSettingsFromFileSD(char *fileName,
                                   int len = 0); // Header
 
 //----------------------------------------
+// Constants
+//----------------------------------------
+
+// g(x) = x^32 + x^26 + (x^23 + x^22) + x^16 + x^12 + (x^11 + x^10 + x^8)
+//      + (x^5 + x^4) + (x^2 + x^1 + x^0)
+// 1 0000 0100 1100 0001 0001 1101 1011 0111
+const uint32_t nvmCrc32Polynomial = 0x04c11db7;
+
+const char * nvmSettingsFileHasCrc = "settingsFileHasCrc";
+
+//----------------------------------------
+// Locals
+//----------------------------------------
+
+static uint32_t nvmCrc;
+static File * nvmSettingsFile;
+
+//----------------------------------------
+// Macros
+//----------------------------------------
+
+#define SETTINGS_FILE_PRINTF_3(format, name, value)             \
+    snprintf(line, sizeof(line), format, name, value);          \
+    nvmRecordStringToFile(line)
+
+#define SETTINGS_FILE_PRINTF_4(format, name, index, value)      \
+    snprintf(line, sizeof(line), format, name, index, value);   \
+    nvmRecordStringToFile(line)
+
+//----------------------------------------
 // We use the LittleFS library to store user profiles in SPIFFs
 // Move selected user profile from SPIFFs into settings struct (RAM)
 // We originally used EEPROM but it was limited to 4096 bytes. Each settings struct is ~4000 bytes
@@ -383,21 +413,25 @@ void loadSettingsPartial()
 //----------------------------------------
 // Record settings to files in both the Little File System and SD card
 //----------------------------------------
-void recordSystemSettings()
+bool recordSystemSettings()
 {
+    bool status;
+
     settings.sizeOfSettings = sizeof(settings); // Update to current setting size
 
-    recordSystemSettingsToFileSD(settingsFileName);  // Record to SD if available
-    recordSystemSettingsToFileLFS(settingsFileName); // Record to LFS if available
+    status = recordSystemSettingsToFileSD(settingsFileName);  // Record to SD if available
+    status &= recordSystemSettingsToFileLFS(settingsFileName); // Record to LFS if available
+    return status;
 }
 
 //----------------------------------------
 // Export the current settings to a config file on SD
 // We share the recording with LittleFS so this is all the semaphore and SD specific handling
 //----------------------------------------
-void recordSystemSettingsToFileSD(char *fileName)
+bool recordSystemSettingsToFileSD(char *fileName)
 {
     bool gotSemaphore = false;
+    bool status = true;
     bool wasSdCardOnline;
 
     // Try to gain access the SD card
@@ -409,6 +443,7 @@ void recordSystemSettingsToFileSD(char *fileName)
     {
         // Attempt to write to file system. This avoids collisions with file writing from other functions like
         // updateLogs()
+        status = false;
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
         {
             markSemaphore(FUNCTION_RECORDSETTINGS);
@@ -418,14 +453,14 @@ void recordSystemSettingsToFileSD(char *fileName)
             if (sd->exists(fileName))
             {
                 if (settings.debugSettings)
-                    systemPrintf("Removing from SD: %s\r\n", fileName);
+                    systemPrintf("Removing from SD:%s\r\n", fileName);
                 sd->remove(fileName);
             }
 
             SdFile settingsFile; // FAT32
             if (settingsFile.open(fileName, O_CREAT | O_APPEND | O_WRITE) == false)
             {
-                systemPrintf("Failed to create SD settings file %s\r\n", fileName);
+                systemPrintf("Failed to create SD:%s\r\n", fileName);
                 break; // /while (online.microSD == true)
             }
 
@@ -433,12 +468,27 @@ void recordSystemSettingsToFileSD(char *fileName)
 
             recordSystemSettingsToFile((File *)&settingsFile); // Record all the settings via strings to file
 
-            sdUpdateFileAccessTimestamp(&settingsFile); // Update the file access time & date
-
-            settingsFile.close();
-
+            // Write the CRC to the file
             if (settings.debugSettings)
-                systemPrintf("Settings recorded to SD: %s\r\n", fileName);
+                systemPrintf("Writing CRC 0x%08x to file SD:%s\r\n", nvmCrc, fileName);
+            status = (settingsFile.write((uint8_t *)&nvmCrc, sizeof(nvmCrc)) == sizeof(nvmCrc));
+            if (status)
+            {
+                if (settings.debugSettings)
+                    systemPrintf("Successfully wrote CRC 0x%08x to file SD:%s\r\n", nvmCrc, fileName);
+
+                // Update the access timestamp
+                sdUpdateFileAccessTimestamp(&settingsFile); // Update the file access time & date
+                if (settings.debugSettings)
+                    systemPrintf("Updated file access timestampon file SD:%s\r\n", fileName);
+            }
+            else
+                systemPrintf("ERROR: Failed to write CRC to file SD:%s\r\n", fileName);
+
+            // Close the file
+            settingsFile.close();
+            if (settings.debugSettings)
+                systemPrintf("Settings recorded to SD:%s\r\n", fileName);
         }
         else
         {
@@ -457,36 +507,108 @@ void recordSystemSettingsToFileSD(char *fileName)
         endSD(gotSemaphore, true);
     else if (gotSemaphore)
         xSemaphoreGive(sdCardSemaphore);
+    return status;
 }
 
 //----------------------------------------
 // Export the current settings to a config file on SD
 // We share the recording with LittleFS so this is all the semaphore and SD specific handling
 //----------------------------------------
-void recordSystemSettingsToFileLFS(char *fileName)
+bool recordSystemSettingsToFileLFS(char *fileName)
 {
+    bool status = false;
+
     if (online.fs == true)
     {
         if (LittleFS.exists(fileName))
         {
             if (settings.debugSettings)
-                    systemPrintf("Removing LittleFS: %s\r\n", fileName);
+                    systemPrintf("Removing LFS:%s\r\n", fileName);
             LittleFS.remove(fileName);
         }
 
         File settingsFile = LittleFS.open(fileName, FILE_WRITE);
         if (!settingsFile)
         {
-            systemPrintf("Failed to create LFS settings file %s\r\n", fileName);
+            systemPrintf("Failed to create LFS:%s\r\n", fileName);
         }
         else
         {
             recordSystemSettingsToFile(&settingsFile); // Record all the settings via strings to file
+
+            // Write the CRC to the file
+            if (settings.debugSettings)
+                systemPrintf("Writing CRC 0x%08x to file LFS:%s\r\n", nvmCrc, fileName);
+            status = (settingsFile.write((uint8_t *)&nvmCrc, sizeof(nvmCrc)) == sizeof(nvmCrc));
+            if (status == false)
+                systemPrintf("ERROR: Failed to write CRC to file LFS:%s\r\n", fileName);
+
+            // Close the file
             settingsFile.close();
             if (settings.debugSettings)
-                systemPrintf("Settings recorded to LittleFS: %s\r\n", fileName);
+                systemPrintf("Settings recorded to LFS:%s\r\n", fileName);
         }
     }
+    return status;
+}
+
+//----------------------------------------
+// Compute the next byte of CRC32
+// x32 + x26 + x23 + x22 + x16 + x12 + x11 + x10 + x8 + x7 + x5 + x4 + x2 + x + 1
+// Inputs:
+//   crc: Initial or previous CRC value
+//   byte: Data byte to use in the CRC calculation
+//
+// Output:
+//   Returns the updated CRC value
+//----------------------------------------
+uint32_t nvmBitBangCrc32Byte(uint32_t crc, uint8_t byte)
+{
+    uint32_t bit;
+    int bitNumber;
+
+    // XOR byte into the LSB of the CRC
+    crc ^= byte;
+
+    // Compute the updated CRC32 value
+    for (int bitNumber = 0; bitNumber < 8; bitNumber++)
+    {
+        bit = crc & 1;
+        crc >>= 1;
+        if (bit)
+            crc ^= nvmCrc32Polynomial;
+    }
+    return crc;
+}
+
+//----------------------------------------
+// Compute the CRC32 for a range of data
+// Inputs:
+//   crc: Initial or previous CRC value
+//   data: Address of a buffer containing data for the CRC
+//   length: Number of data bytes in the buffer
+//
+// Output:
+//   Returns the updated CRC value
+//----------------------------------------
+uint32_t nvmBitBangCrc32(uint32_t crc, const uint8_t * data, size_t length)
+{
+    const uint8_t * end;
+
+    // Compute the CRC for the data buffer
+    end = &data[length];
+    while (data < end)
+        crc = nvmBitBangCrc32Byte(crc, *data++);
+    return crc;
+}
+
+//----------------------------------------
+// Compute the CRC for the line and write the string to the file
+void nvmRecordStringToFile(const char * string)
+//----------------------------------------
+{
+    nvmCrc = nvmBitBangCrc32(nvmCrc, (uint8_t *)string, strlen(string));
+    nvmSettingsFile->printf("%s", string);
 }
 
 //----------------------------------------
@@ -495,10 +617,17 @@ void recordSystemSettingsToFileLFS(char *fileName)
 //----------------------------------------
 void recordSystemSettingsToFile(File *settingsFile)
 {
+    char line[256];
     RTK_Settings_Types type;
 
-    settingsFile->printf("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
-    settingsFile->printf("%s=%d\r\n", "rtkIdentifier", settings.rtkIdentifier);
+    // Initialize the CRC and save the file pointer
+    nvmCrc = 0;
+    nvmSettingsFile = settingsFile;
+
+    // Write the header (required values) to the file
+    SETTINGS_FILE_PRINTF_3("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
+    SETTINGS_FILE_PRINTF_3("%s=%d\r\n", "rtkIdentifier", settings.rtkIdentifier);
+    SETTINGS_FILE_PRINTF_3("%s=%d\r\n", nvmSettingsFileHasCrc, true);
 
     if (settings.debugSettings)
         systemPrintf("numRtkSettingsEntries: %d\r\n", numRtkSettingsEntries);
@@ -524,7 +653,7 @@ void recordSystemSettingsToFile(File *settingsFile)
 
         // Check for a GNSS receiver specific type
         type = rtkSettingsEntries[i].type;
-        if (gnssSettingsToFile(settingsFile, type, i))
+        if (gnssSettingsToFile(line, sizeof(line), type, i))
             continue;
 
         // Process the generic types
@@ -534,92 +663,92 @@ void recordSystemSettingsToFile(File *settingsFile)
             break;
         case _bool: {
             bool *ptr = (bool *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case _int: {
             int *ptr = (int *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case _float: {
             float *ptr = (float *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%0.*f\r\n", rtkSettingsEntries[i].name, rtkSettingsEntries[i].qualifier, *ptr);
+            SETTINGS_FILE_PRINTF_4("%s=%0.*f\r\n", rtkSettingsEntries[i].name, rtkSettingsEntries[i].qualifier, *ptr);
         }
         break;
         case _double: {
             double *ptr = (double *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%0.*f\r\n", rtkSettingsEntries[i].name, rtkSettingsEntries[i].qualifier, *ptr);
+            SETTINGS_FILE_PRINTF_4("%s=%0.*f\r\n", rtkSettingsEntries[i].name, rtkSettingsEntries[i].qualifier, *ptr);
         }
         break;
         case _uint8_t: {
             uint8_t *ptr = (uint8_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case _uint16_t: {
             uint16_t *ptr = (uint16_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case _uint32_t: {
             uint32_t *ptr = (uint32_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%lu\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%lu\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case _uint64_t: {
             uint64_t *ptr = (uint64_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%llu\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%llu\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case _int8_t: {
             int8_t *ptr = (int8_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case _int16_t: {
             int16_t *ptr = (int16_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
         }
         break;
         case tMuxConn: {
             muxConnectionType_e *ptr = (muxConnectionType_e *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
         }
         break;
         case tSysState: {
             SystemState *ptr = (SystemState *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
         }
         break;
         case tPulseEdg: {
             pulseEdgeType_e *ptr = (pulseEdgeType_e *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
         }
         break;
         case tBtRadio: {
             BluetoothRadioType_e *ptr = (BluetoothRadioType_e *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
         }
         break;
         case tPerDisp: {
             PeriodicDisplay_t *ptr = (PeriodicDisplay_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%llu\r\n", rtkSettingsEntries[i].name, *ptr); // PeriodicDisplay_t is uint64_t
+            SETTINGS_FILE_PRINTF_3("%s=%llu\r\n", rtkSettingsEntries[i].name, *ptr); // PeriodicDisplay_t is uint64_t
         }
         break;
         case tCoordInp: {
             CoordinateInputType *ptr = (CoordinateInputType *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
         }
         break;
         case tCharArry: {
             char *ptr = (char *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%s\r\n", rtkSettingsEntries[i].name, ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%s\r\n", rtkSettingsEntries[i].name, ptr);
         }
         break;
         case _IPString: {
             IPAddress *ptr = (IPAddress *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%s\r\n", rtkSettingsEntries[i].name, ptr->toString().c_str());
+            SETTINGS_FILE_PRINTF_3("%s=%s\r\n", rtkSettingsEntries[i].name, ptr->toString().c_str());
             // Note: toString separates the four bytes with dots / periods "192.168.1.1"
         }
         break;
@@ -637,12 +766,11 @@ void recordSystemSettingsToFile(File *settingsFile)
             // Record ESP-NOW peer MAC addresses
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                char tempString[50]; // espnowPeer_1=B4:C1:33:42:DE:01,
-                snprintf(tempString, sizeof(tempString), "%s%d=%02X:%02X:%02X:%02X:%02X:%02X",
+                snprintf(line, sizeof(line), "%s%d=%02X:%02X:%02X:%02X:%02X:%02X\r\n",
                          rtkSettingsEntries[i].name, x, settings.espnowPeers[x][0], settings.espnowPeers[x][1],
                          settings.espnowPeers[x][2], settings.espnowPeers[x][3], settings.espnowPeers[x][4],
                          settings.espnowPeers[x][5]);
-                settingsFile->println(tempString);
+                nvmRecordStringToFile(line);
             }
         }
         break;
@@ -651,21 +779,19 @@ void recordSystemSettingsToFile(File *settingsFile)
             // Record WiFi credential table
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                char tempString[100]; // wifiNetwork_0Password=parachutes
-
-                snprintf(tempString, sizeof(tempString), "%s%dSSID=%s", rtkSettingsEntries[i].name, x,
+                snprintf(line, sizeof(line), "%s%dSSID=%s\r\n", rtkSettingsEntries[i].name, x,
                          settings.wifiNetworks[x].ssid);
-                settingsFile->println(tempString);
-                snprintf(tempString, sizeof(tempString), "%s%dPassword=%s", rtkSettingsEntries[i].name, x,
+                nvmRecordStringToFile(line);
+                snprintf(line, sizeof(line), "%s%dPassword=%s\r\n", rtkSettingsEntries[i].name, x,
                          settings.wifiNetworks[x].password);
-                settingsFile->println(tempString);
+                nvmRecordStringToFile(line);
             }
         }
         break;
         case tNSCEn: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                settingsFile->printf("%s%d=%d\r\n", rtkSettingsEntries[i].name, x,
+                SETTINGS_FILE_PRINTF_4("%s%d=%d\r\n", rtkSettingsEntries[i].name, x,
                                      settings.ntripServer_CasterEnabled[x]);
             }
         }
@@ -673,7 +799,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         case tNSCHost: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                SETTINGS_FILE_PRINTF_4("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
                                      &settings.ntripServer_CasterHost[x][0]);
             }
         }
@@ -681,14 +807,14 @@ void recordSystemSettingsToFile(File *settingsFile)
         case tNSCPort: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                settingsFile->printf("%s%d=%d\r\n", rtkSettingsEntries[i].name, x, settings.ntripServer_CasterPort[x]);
+                SETTINGS_FILE_PRINTF_4("%s%d=%d\r\n", rtkSettingsEntries[i].name, x, settings.ntripServer_CasterPort[x]);
             }
         }
         break;
         case tNSCUser: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                SETTINGS_FILE_PRINTF_4("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
                                      &settings.ntripServer_CasterUser[x][0]);
             }
         }
@@ -696,7 +822,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         case tNSCUsrPw: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                SETTINGS_FILE_PRINTF_4("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
                                      &settings.ntripServer_CasterUserPW[x][0]);
             }
         }
@@ -704,7 +830,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         case tNSMtPt: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                SETTINGS_FILE_PRINTF_4("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
                                      &settings.ntripServer_MountPoint[x][0]);
             }
         }
@@ -712,7 +838,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         case tNSMtPtPw: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                SETTINGS_FILE_PRINTF_4("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
                                      &settings.ntripServer_MountPointPW[x][0]);
             }
         }
@@ -723,23 +849,23 @@ void recordSystemSettingsToFile(File *settingsFile)
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
                 char tempString[80]; // correctionsPriority_Ethernet_IP_(PointPerfect/MQTT)=99
-                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name, correctionGetName(x),
+                snprintf(line, sizeof(line), "%s%s=%0d\r\n", rtkSettingsEntries[i].name, correctionGetName(x),
                          settings.correctionsSourcesPriority[x]);
-                settingsFile->println(tempString);
+                nvmRecordStringToFile(line);
             }
         }
         break;
         case tRegCorTp: {
             for (int r = 0; r < rtkSettingsEntries[i].qualifier; r++)
             {
-                settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, r,
+                SETTINGS_FILE_PRINTF_4("%s%d=%s\r\n", rtkSettingsEntries[i].name, r,
                                      &settings.regionalCorrectionTopics[r][0]);
             }
         }
         break;
         case tGnssReceiver: {
             gnssReceiverType_e *ptr = (gnssReceiverType_e *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+            SETTINGS_FILE_PRINTF_3("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
         }
         break;
         }
@@ -749,15 +875,22 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     char firmwareVersion[30]; // v1.3 December 31 2021
     firmwareVersionGet(firmwareVersion, sizeof(firmwareVersion), true);
-    settingsFile->printf("%s=%s\r\n", "rtkFirmwareVersion", firmwareVersion);
+    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "rtkFirmwareVersion", firmwareVersion);
 
-    settingsFile->printf("%s=%s\r\n", "gnssFirmwareVersion", gnssFirmwareVersion);
+    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "gnssFirmwareVersion", gnssFirmwareVersion);
 
-    settingsFile->printf("%s=%s\r\n", "gnssUniqueId", gnssUniqueId);
+    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "gnssUniqueId", gnssUniqueId);
 
     // Firmware URLs
-    settingsFile->printf("%s=%s\r\n", "otaRcFirmwareJsonUrl", otaRcFirmwareJsonUrl);
-    settingsFile->printf("%s=%s\r\n", "otaFirmwareJsonUrl", otaFirmwareJsonUrl);
+    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "otaRcFirmwareJsonUrl", otaRcFirmwareJsonUrl);
+    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "otaFirmwareJsonUrl", otaFirmwareJsonUrl);
+
+    //------------------------------------------------------------
+    // Add any new settings above this line!
+    //------------------------------------------------------------
+
+    // Forget the file pointer
+    nvmSettingsFile = nullptr;
 }
 
 //----------------------------------------
@@ -776,7 +909,7 @@ bool loadSystemSettingsFromFileSD(char *fileName,
     if ((findMe != nullptr) && (found != nullptr))
         *found = 0; // If searching, set found to NULL
     else if (settings.debugSettings)
-        systemPrintf("Loading system settings from SD: %s\r\n", fileName);
+        systemPrintf("Loading system settings from SD:%s\r\n", fileName);
 
     bool gotSemaphore = false;
     bool status = false; // Return false - until file is opened
@@ -800,31 +933,31 @@ bool loadSystemSettingsFromFileSD(char *fileName,
             if (!sd->exists(fileName))
             {
                 if (settings.debugSettings)
-                    systemPrintf("SD File %s not found\r\n", fileName);
+                    systemPrintf("SD:%s not found\r\n", fileName);
                 break; // /while (online.microSD == true)
             }
 
             SdFile settingsFile; // FAT32
             if (settingsFile.open(fileName, O_READ) == false)
             {
-                systemPrintf("Failed to open settings SD file %s\r\n", fileName);
+                systemPrintf("Failed to open settings SD:%s\r\n", fileName);
                 break; // /while (online.microSD == true)
             }
 
-            char line[100];
+            char line[256];
             int lineNumber = 0;
             status = true; // File is open. Default status to true
 
+            nvmCrc = 0;
             while (settingsFile.available())
             {
-                // Get the next line from the file
-                // Note: fgets stripts the \r (if there is one) leaving only \n
-                int n = settingsFile.fgets(line, sizeof(line));
+                // Get the next line from the file, stript the \r leaving just \n
+                int n = getSdLine(&settingsFile, line, sizeof(line));
 
                 // Handle the file error
                 if (n < 0)
                 {
-                    systemPrintf("Hard read error at line %d in SD file %s!\r\n", lineNumber, fileName);
+                    systemPrintf("Hard read error at line %d in SD:%s!\r\n", lineNumber, fileName);
                     if (findMe)
                         strncpy(found, "SD Card Read Error!", len);
                     break;
@@ -833,7 +966,7 @@ bool loadSystemSettingsFromFileSD(char *fileName,
                 // Handle non-printable data in file
                 else if (n == 0)
                 {
-                    systemPrintf("Line %d contains non-printable data in SD file %s!\r\n", lineNumber, fileName);
+                    systemPrintf("Line %d contains non-printable data in SD:%s!\r\n", lineNumber, fileName);
                     if (findMe)
                     {
                         strncpy(found, "SD Card corrupt file!", len);
@@ -843,13 +976,13 @@ bool loadSystemSettingsFromFileSD(char *fileName,
                 else if (line[n - 1] != '\n')
                 {
                     if (n == (sizeof(line) - 1))
-                        systemPrintf("SD settings file %s line %d too long\r\n", fileName, lineNumber);
+                        systemPrintf("SD:%s line %d too long\r\n", fileName, lineNumber);
                     else
-                        systemPrintf("SD settings file %s line %d not LF terminated\r\n", fileName, lineNumber);
+                        systemPrintf("SD:%s line %d not LF terminated\r\n", fileName, lineNumber);
                     if (lineNumber == 0)
                     {
                         // If we can't read the first line of the settings file, give up
-                        systemPrintf("Giving up on SD settings file %s\r\n", fileName);
+                        systemPrintf("Giving up on SD:%s\r\n", fileName);
                         if (findMe)
                             strncpy(found, "SD Card file line too long!", len);
                         status = false;
@@ -864,11 +997,11 @@ bool loadSystemSettingsFromFileSD(char *fileName,
                         if (parseLine(line, tempSettings) == false)
                         {
                             line[strlen(line) - 1] = 0; // Remove \n for printing
-                            systemPrintf("Failed to parse SD file %s line %d: %s\r\n", fileName, lineNumber, line);
+                            systemPrintf("Failed to parse SD:%s line %d: %s\r\n", fileName, lineNumber, line);
                             if (lineNumber == 0)
                             {
                                 // If we can't read the first line of the settings file, give up
-                                systemPrintf("Giving up on SD settings file %s\r\n", fileName);
+                                systemPrintf("Giving up on SD:%s\r\n", fileName);
                                 status = false;
                                 break; // /while (settingsFile.available())
                             }
@@ -898,7 +1031,7 @@ bool loadSystemSettingsFromFileSD(char *fileName,
                 lineNumber++;
                 if (lineNumber > 800) // Arbitrary limit. Catch corrupt files.
                 {
-                    systemPrintf("Max line number exceeded. Giving up reading SD file: %s\r\n", fileName);
+                    systemPrintf("Max line number exceeded. Giving up reading SD:%s\r\n", fileName);
                     if (findMe)
                     {
                         strncpy(found, "SD Card file too many lines!", len);
@@ -907,6 +1040,42 @@ bool loadSystemSettingsFromFileSD(char *fileName,
 
                     // Should we return true or false? Going with true...
                     break; // /while (settingsFile.available())
+                }
+
+                // Read and verify the CRC if present
+                if (tempSettings && tempSettings->settingsFileHasCrc && (settingsFile.available() == sizeof(nvmCrc)))
+                {
+                    if (settings.debugSettings)
+                        Serial.printf("Computed CRC 0x%08x before reading in CRC value from SD:%s\r\n",
+                                      nvmCrc, fileName);
+
+                    // Finish computing the CRC
+                    if (settings.debugSettings)
+                        Serial.printf("Read in CRC 0x");
+                    while (settingsFile.available())
+                    {
+                        uint8_t byte = settingsFile.read();
+                        if (settings.debugSettings)
+                            Serial.printf("%02x", byte);
+                        nvmCrc = nvmBitBangCrc32Byte(nvmCrc, byte);
+                    }
+                    if (settings.debugSettings)
+                        Serial.printf(" value from SD:%s\r\n", fileName);
+
+                    // Check for a bad CRC
+                    if (nvmCrc)
+                    {
+                        // Bad file CRC
+                        systemPrintf("ERROR: Failed CRC (0x%08x) check for SD:%s!\r\n",
+                                     nvmCrc, fileName);
+                        status = false;
+                        break; // /while (settingsFile.available())
+                    }
+
+                    // Good CRC
+                    if (settings.debugSettings)
+                        systemPrintf("Correct CRC for SD:%s!\r\n", fileName);
+                    break;
                 }
             }
 
@@ -947,12 +1116,12 @@ bool loadSystemSettingsFromFileLFS(char *fileName,
     if ((findMe != nullptr) && (found != nullptr))
         *found = 0; // If searching, set found to NULL
     else if (settings.debugSettings)
-        systemPrintf("Loading system settings from LFS: %s\r\n", fileName);
+        systemPrintf("Loading system settings from LFS:%s\r\n", fileName);
 
     if (!LittleFS.exists(fileName))
     {
         if (settings.debugSettings)
-            systemPrintf("settingsFile %s not found in LittleFS\r\n", fileName);
+            systemPrintf("LFS:%s not found\r\n", fileName);
         return (false);
     }
 
@@ -964,20 +1133,20 @@ bool loadSystemSettingsFromFileLFS(char *fileName,
         return (false);
     }
 
-    char line[100];
+    char line[256];
     int lineNumber = 0;
     bool status = true; // File is open. Default status to true
 
+    nvmCrc = 0;
     while (settingsFile.available())
     {
-        // Get the next line from the file
-        // getLine will remove the \r - to match SD fgets
-        int n = getLine(&settingsFile, line, sizeof(line));
+        // Get the next line from the file and remove the \r
+        int n = getLfsLine(&settingsFile, line, sizeof(line));
 
         // Handle the file error
         if (n < 0)
         {
-            systemPrintf("Hard read error at line %d in LFS file %s!\r\n", lineNumber, fileName);
+            systemPrintf("Hard read error at line %d in LFS:%s!\r\n", lineNumber, fileName);
             if (findMe)
                 strncpy(found, "LFS Read Error!", len);
             break;
@@ -986,7 +1155,7 @@ bool loadSystemSettingsFromFileLFS(char *fileName,
         // Handle non-printable data in file
         else if (n == 0)
         {
-            systemPrintf("Line %d contains non-printable data in LFS file %s!\r\n", lineNumber, fileName);
+            systemPrintf("Line %d contains non-printable data in LFS:%s!\r\n", lineNumber, fileName);
             if (findMe)
             {
                 strncpy(found, "LFS Bad Character!", len);
@@ -996,13 +1165,13 @@ bool loadSystemSettingsFromFileLFS(char *fileName,
         else if (line[n - 1] != '\n')
         {
             if (n == (sizeof(line) - 1))
-                systemPrintf("LFS settings file %s line %d too long\r\n", fileName, lineNumber);
+                systemPrintf("LFS:%s line %d too long\r\n", fileName, lineNumber);
             else
-                systemPrintf("LSF settings file %s line %d not LF terminated\r\n", fileName, lineNumber);
+                systemPrintf("LFS:%s line %d not LF terminated\r\n", fileName, lineNumber);
             if (lineNumber == 0)
             {
                 // If we can't read the first line of the settings file, give up
-                systemPrintf("Giving up on LFS settings file %s\r\n", fileName);
+                systemPrintf("Giving up on LFS:%s\r\n", fileName);
                 if (findMe)
                     strncpy(found, "LFS Line too long!", len);
                 status = false;
@@ -1017,11 +1186,11 @@ bool loadSystemSettingsFromFileLFS(char *fileName,
                 if (parseLine(line, tempSettings) == false)
                 {
                     line[strlen(line) - 1] = 0; // Remove \n for printing
-                    systemPrintf("Failed to parse LFS file %s line %d: %s\r\n", fileName, lineNumber, line);
+                    systemPrintf("Failed to parse LFS:%s line %d: %s\r\n", fileName, lineNumber, line);
                     if (lineNumber == 0)
                     {
                         // If we can't read the first line of the settings file, give up
-                        systemPrintf("Giving up on LFS settings file %s\r\n", fileName);
+                        systemPrintf("Giving up on LFS:%s\r\n", fileName);
                         status = false;
                         break; // /while (settingsFile.available())
                     }
@@ -1051,7 +1220,7 @@ bool loadSystemSettingsFromFileLFS(char *fileName,
         lineNumber++;
         if (lineNumber > 800) // Arbitrary limit. Catch corrupt files.
         {
-            systemPrintf("Max line number exceeded. Giving up reading LFS file: %s\r\n", fileName);
+            systemPrintf("Max line number exceeded. Giving up reading LFS:%s\r\n", fileName);
             if (findMe)
             {
                 strncpy(found, "LFS Too Many Lines!", len);
@@ -1060,6 +1229,42 @@ bool loadSystemSettingsFromFileLFS(char *fileName,
 
             // Should we return true or false? Going with true...
             break; // /while (settingsFile.available())
+        }
+
+        // Read and verify the CRC if present
+        if (tempSettings && tempSettings->settingsFileHasCrc && (settingsFile.available() == 4))
+        {
+            if (settings.debugSettings)
+                Serial.printf("Computed CRC 0x%08x before reading in CRC value from LFS:%s\r\n",
+                              nvmCrc, fileName);
+
+            // Finish computing the CRC
+            if (settings.debugSettings)
+                Serial.printf("Read in CRC 0x");
+            while (settingsFile.available())
+            {
+                uint8_t byte = settingsFile.read();
+                if (settings.debugSettings)
+                    Serial.printf("%02x", byte);
+                nvmCrc = nvmBitBangCrc32Byte(nvmCrc, byte);
+            }
+            if (settings.debugSettings)
+                Serial.printf(" value from LFS:%s\r\n", fileName);
+
+            // Check for a bad CRC
+            if (nvmCrc)
+            {
+                // Bad file CRC
+                systemPrintf("ERROR: Failed CRC (0x%08x) check for LFS:%s!\r\n",
+                             nvmCrc, fileName);
+                status = false;
+                break; // /while (settingsFile.available())
+            }
+
+            // Good CRC
+            if (settings.debugSettings)
+                systemPrintf("Correct CRC for LFS:%s!\r\n", fileName);
+            break;
         }
     }
 
@@ -1074,19 +1279,19 @@ bool loadSystemSettingsFromFileLFS(char *fileName,
 bool printSystemSettingsFromFileLFS(char *fileName)
 {
     if (settings.debugSettings)
-        systemPrintf("Printing setting fileName: %s\r\n", fileName);
+        systemPrintf("Printing LFS:%s\r\n", fileName);
 
     if (!LittleFS.exists(fileName))
     {
         if (settings.debugSettings)
-            systemPrintf("settingsFile %s not found in LittleFS\r\n", fileName);
+            systemPrintf("LFS:%s not found\r\n", fileName);
         return (false);
     }
 
     File settingsFile = LittleFS.open(fileName, FILE_READ);
     if (!settingsFile)
     {
-        systemPrintln("Failed to open LFS settings file");
+        systemPrintf("Failed to open LFS:%s\r\n", fileName);
         return (false);
     }
 
@@ -1099,21 +1304,20 @@ bool printSystemSettingsFromFileLFS(char *fileName)
 
     while (settingsFile.available())
     {
-        // Get the next line from the file
-        // getLine will remove the \r - to match SD fgets
-        int n = getLine(&settingsFile, line, sizeof(line));
+        // Get the next line from the file and remove the \r
+        int n = getLfsLine(&settingsFile, line, sizeof(line));
 
         // Handle the file error
         if (n < 0)
         {
-            systemPrintf("Hard read error at line %d in file %s!\r\n", lineNumber, fileName);
+            systemPrintf("Hard read error at line %d in LFS:%s!\r\n", lineNumber, fileName);
             break;
         }
 
         // Handle non-printable data in file
         else if (n == 0)
         {
-            systemPrintf("Line %d contains non-printable data in file %s!\r\n", lineNumber, fileName);
+            systemPrintf("Line %d contains non-printable data in LFS:%s!\r\n", lineNumber, fileName);
 //            break;
         }
         else if (line[n - 1] != '\n')
@@ -1139,7 +1343,7 @@ bool printSystemSettingsFromFileLFS(char *fileName)
         lineNumber++;
         if (lineNumber > 800) // Arbitrary limit. Catch corrupt files.
         {
-            systemPrintf("Max line number exceeded. Giving up reading LFS file: %s\r\n", fileName);
+            systemPrintf("Max line number exceeded. Giving up reading LFS:%s\r\n", fileName);
             // Should we return true or false? Going with true...
             break;
         }
@@ -1286,6 +1490,11 @@ bool parseLine(const char *theLine, struct Settings * tempSettings)
                              (int)d, (int)sizeof(Settings));
         }
 
+        knownSetting = true;
+    }
+    else if (strcmp(settingName, nvmSettingsFileHasCrc) == 0)
+    {
+        tempSettings->settingsFileHasCrc = (bool)d;
         knownSetting = true;
     }
 
@@ -1612,17 +1821,16 @@ bool parseLine(const char *theLine, struct Settings * tempSettings)
 }
 
 //----------------------------------------
-// The SD library doesn't have a fgets function like SD fat so recreate it here
-// Read the current line in the file until we hit a EOL char \r or \n
-// fgets removes the \r leaving only \n. getLine does the same thing
+// Read the current line from the LFS file until we hit a EOL char \r or
+// \n while computing the CRC.  Remove the \r leaving only the \n.
 //----------------------------------------
-int getLine(File *openFile, char *lineChars, int lineSize)
+int getLfsLine(File *lfsFile, char *lineChars, int lineSize)
 {
     int count = 0;
-    while (openFile->available() > 0)
+    while (lfsFile->available() > 0)
     {
         // Read the next byte from the file
-        int data = openFile->read();
+        int data = lfsFile->read();
 
         // Handle any file errors
         if (data < 0)
@@ -1630,6 +1838,50 @@ int getLine(File *openFile, char *lineChars, int lineSize)
 
         // Get the data byte
         byte incoming = (byte)data;
+        nvmCrc = nvmBitBangCrc32Byte(nvmCrc, incoming);
+        if (incoming == '\0')
+        {
+            break; // Something bad happened...
+        }
+        else if (incoming == '\r')
+        {
+            // Skip \r. fgets does the same thing
+        }
+        else if (incoming == '\n')
+        {
+            lineChars[count++] = incoming; // Record the \n. fgets does the same thing
+            break; // We are done
+        }
+        else if ((incoming >= ' ') && (incoming <= '~')) // Reject non-printables
+        {
+            lineChars[count++] = incoming; // Record everything else
+            if (count == lineSize - 1)
+                break; // Stop before overrun of buffer
+        }
+    }
+    lineChars[count] = '\0'; // Terminate string
+    return (count);
+}
+
+//----------------------------------------
+// Read the current line from the LFS file until we hit a EOL char \r or
+// \n while computing the CRC.  Remove the \r leaving only the \n.
+//----------------------------------------
+int getSdLine(SdFile *sdFile, char *lineChars, int lineSize)
+{
+    int count = 0;
+    while (sdFile->available() > 0)
+    {
+        // Read the next byte from the file
+        int data = sdFile->read();
+
+        // Handle any file errors
+        if (data < 0)
+            return data;
+
+        // Get the data byte
+        byte incoming = (byte)data;
+        nvmCrc = nvmBitBangCrc32Byte(nvmCrc, incoming);
         if (incoming == '\0')
         {
             break; // Something bad happened...
@@ -1885,21 +2137,21 @@ void recordFile(const char *fileID, char *fileContents, uint32_t fileSize)
     {
         LittleFS.remove(fileName);
         if (settings.debugSettings)
-            systemPrintf("Removing LittleFS: %s\r\n", fileName);
+            systemPrintf("Removing LFS:%s\r\n", fileName);
     }
 
     File fileToWrite = LittleFS.open(fileName, FILE_WRITE);
     if (!fileToWrite)
     {
         if (settings.debugSettings)
-            systemPrintf("Failed to write to file %s\r\n", fileName);
+            systemPrintf("Failed to write to LFS:%s\r\n", fileName);
     }
     else
     {
         fileToWrite.write((uint8_t *)fileContents, fileSize); // Store cert into file
         fileToWrite.close();
         if (settings.debugSettings)
-            systemPrintf("File recorded to LittleFS: %s\r\n", fileName);
+            systemPrintf("File recorded to LFS:%s\r\n", fileName);
     }
 }
 
@@ -1914,7 +2166,7 @@ bool loadFile(const char *fileID, char *fileContents, bool debug)
     if (!LittleFS.exists(fileName))
     {
         if (debug)
-            systemPrintf("File %s does not exist on LittleFS\r\n", fileName);
+            systemPrintf("LFS:%s does not exist\r\n", fileName);
         return false;
     }
 
@@ -1927,12 +2179,12 @@ bool loadFile(const char *fileID, char *fileContents, bool debug)
         if (length == bytesRead)
         {
             if (debug)
-                systemPrintf("File loaded from LittleFS: %s\r\n", fileName);
+                systemPrintf("File loaded from LFS:%s\r\n", fileName);
             return true;
         }
     }
     else if (debug)
-        systemPrintf("Failed to read from LittleFS: %s\r\n", fileName);
+        systemPrintf("Failed to read from LFS:%s\r\n", fileName);
     return false;
 }
 
@@ -1996,6 +2248,54 @@ void nvmDirectoryListing()
 }
 
 //----------------------------------------
+// Fill buffer with LFS file data
+//----------------------------------------
+ssize_t nvmReadLfsFileData(File * file, uint8_t * buffer, size_t bufferLength)
+{
+    ssize_t bytesRead;
+
+    // Read some data
+    bytesRead = 0;
+    do
+    {
+        int data = file->read();
+        if (data < 0)
+        {
+            if (bytesRead == 0)
+                bytesRead = data;
+            break;
+        }
+        buffer[bytesRead] = (uint8_t)data;
+        bytesRead += 1;
+    } while ((bytesRead > 0) && (bytesRead < bufferLength));
+    return bytesRead;
+}
+
+//----------------------------------------
+// Fill buffer with SD file data
+//----------------------------------------
+ssize_t nvmReadSdFileData(SdFile * file, uint8_t * buffer, size_t bufferLength)
+{
+    ssize_t bytesRead;
+
+    // Read some data
+    bytesRead = 0;
+    do
+    {
+        int data = file->read();
+        if (data < 0)
+        {
+            if (bytesRead == 0)
+                bytesRead = data;
+            break;
+        }
+        buffer[bytesRead] = (uint8_t)data;
+        bytesRead += 1;
+    } while ((bytesRead > 0) && (bytesRead < bufferLength));
+    return bytesRead;
+}
+
+//----------------------------------------
 // Dump an NVM file
 //----------------------------------------
 void nvmDumpFile(const char * fileName)
@@ -2012,7 +2312,7 @@ void nvmDumpFile(const char * fileName)
         file = LittleFS.open(fileName, FILE_READ);
         if (! file)
         {
-            systemPrintf("ERROR: Failed to open NVM file %s\r\n", fileName);
+            systemPrintf("ERROR: Failed to open LFS:%s\r\n", fileName);
             break;
         }
 
@@ -2025,29 +2325,17 @@ void nvmDumpFile(const char * fileName)
         }
 
         // Display the file name
-        systemPrintf("NVM file %s dump:\r\n", fileName);
+        systemPrintf("LFS:%s dump:\r\n", fileName);
 
         // Walk the contents of the file
         offset = 0;
         while (file.available())
         {
             // Read some data
-            bytesRead = 0;
-            do
-            {
-                int data = file.read();
-                if (data < 0)
-                {
-                    if (bytesRead == 0)
-                        bytesRead = data;
-                    break;
-                }
-                buffer[bytesRead] = (uint8_t)data;
-                bytesRead += 1;
-            } while ((bytesRead > 0) && (bytesRead < bufferLength));
+            bytesRead = nvmReadLfsFileData(&file, buffer ,bufferLength);
             if (bytesRead < 0)
             {
-                systemPrintf("ERROR: Hard read error at offset %ld in NVM file %s\r\n",
+                systemPrintf("ERROR: Hard read error at offset %ld in LFS:%s\r\n",
                              offset, fileName);
                 break;
             }
@@ -2065,4 +2353,436 @@ void nvmDumpFile(const char * fileName)
     // Done with the buffer
     if (buffer)
         rtkFree(buffer, "NVM file dump buffer");
+}
+
+//----------------------------------------
+// Verify LFS file CRC
+//----------------------------------------
+void nvmVerifyLfsFileCrc(const char * fileName)
+{
+    uint8_t * buffer = nullptr;
+    const size_t bufferLength = 8192;
+    ssize_t bytesRead;
+    uint8_t * data;
+    File file;
+    size_t length;
+    size_t offset;
+    size_t remainingBytes;
+    const char * rtkIdentifier = "rtkIdentifier";
+    const char * sizeOfSettings = "sizeOfSettings=";
+
+    do
+    {
+        // Attempt to open the file
+        file = LittleFS.open(fileName, FILE_READ);
+        if (! file)
+        {
+            systemPrintf("ERROR: Failed to open NVM file %s\r\n", fileName);
+            break;
+        }
+        remainingBytes = file.size();
+
+        // Allocate the buffer
+        buffer = (uint8_t *)rtkMalloc(bufferLength, "NVM file dump buffer");
+        if (buffer == nullptr)
+        {
+            systemPrintf("ERROR: Failed to allocate the dump buffer\r\n");
+            break;
+        }
+
+        // Walk the contents of the file
+        bytesRead = 0;
+        length = 0;
+        offset = 0;
+        if (remainingBytes > sizeof(nvmCrc))
+        {
+            // Determine how much data to read
+            length = remainingBytes - sizeof(nvmCrc);
+            if (length > bufferLength)
+                length = bufferLength;
+
+            // Read some data
+            bytesRead = nvmReadLfsFileData(&file, buffer, length);
+            if (bytesRead < 0)
+            {
+                systemPrintf("ERROR: Hard read error at offset %ld in NVM file %s\r\n",
+                             offset, fileName);
+                break;
+            }
+            if (bytesRead < length)
+            {
+                systemPrintf("ERROR: Failed to read all of the bytes!\r\n",
+                             offset, fileName);
+                break;
+            }
+            offset += bytesRead;
+            remainingBytes -= bytesRead;
+        }
+        if ((bytesRead < 0) || (bytesRead < length))
+            break;
+
+        //--------------------
+        // Verify the file header
+        //--------------------
+
+        // Check for sizeOfSettings value
+        length = strlen(sizeOfSettings);
+        if (strncmp((char *)buffer, sizeOfSettings, length) != 0)
+        {
+            systemPrintf("ERROR: Not a settings file, %s missing!\r\n", sizeOfSettings);
+            break;
+        }
+
+        // Skip over value
+        data = &buffer[length];
+        while (*data++ != '\n');
+
+        // Check for rtkIdentifier value
+        length = strlen(rtkIdentifier);
+        if (strncmp((char *)data, rtkIdentifier, length) != 0)
+        {
+            systemPrintf("ERROR: Not a settings file, %s missing!\r\n", rtkIdentifier);
+            break;
+        }
+
+        // Skip over value
+        data = &data[length];
+        while (*data++ != '\n');
+
+        // Check for sizeOfSettings value
+        length = strlen(nvmSettingsFileHasCrc);
+        if ((strncmp((char *)data, nvmSettingsFileHasCrc, length) !=0)
+            || (data[length] != '=') || (data[length + 1] != '1'))
+        {
+            systemPrintf("LFS:%s does not contain a CRC\r\n", fileName);
+            break;
+        }
+
+        //--------------------
+        // Compute the CRC across the setting values
+        //--------------------
+
+        // Compute the CRC across the first buffer of setting values
+        nvmCrc = 0;
+        nvmCrc = nvmBitBangCrc32(nvmCrc, buffer, bytesRead);
+
+        // Compute the CRC across the rest of the setting values
+        length = 0;
+        bytesRead = 0;
+        while (remainingBytes > sizeof(nvmCrc))
+        {
+            // Determine how much data to read
+            length = remainingBytes - sizeof(nvmCrc);
+            if (length > bufferLength)
+                length = bufferLength;
+
+            // Read some data, but not the CRC
+            bytesRead = nvmReadLfsFileData(&file, buffer, length);
+            if (bytesRead < 0)
+            {
+                systemPrintf("ERROR: Hard read error at offset %ld in NVM file %s\r\n",
+                             offset, fileName);
+                break;
+            }
+            if (bytesRead < length)
+            {
+                systemPrintf("ERROR: Failed to read all of the bytes!\r\n",
+                             offset, fileName);
+                break;
+            }
+            offset += bytesRead;
+            remainingBytes -= bytesRead;
+
+            // Compute the CRC across the setting values
+            nvmCrc = nvmBitBangCrc32(nvmCrc, buffer, bytesRead);
+        }
+        if ((bytesRead < 0) || (bytesRead < length))
+            break;
+
+        // Verify that the file contains enough bytes for the CRC
+        if (remainingBytes < sizeof(nvmCrc))
+        {
+            systemPrintf("ERROR: File too short to comtain a CRC value!\r\n");
+            break;
+        }
+
+        //--------------------
+        // Verify the final CRC value
+        //--------------------
+
+        uint32_t expectedCrc;
+
+        // Get the file CRC
+        uint32_t fileCrc;
+
+        bytesRead = nvmReadLfsFileData(&file, (uint8_t *)&fileCrc, sizeof(fileCrc));
+        if (bytesRead < 0)
+        {
+            systemPrintf("ERROR: Hard read error at offset %ld in LFS:%s\r\n",
+                         offset, fileName);
+            break;
+        }
+        if (bytesRead != sizeof(fileCrc))
+        {
+            systemPrintf("ERROR: Failed to read the CRC value from LFS:%s!\r\n", fileName);
+            break;
+        }
+
+        // Verify the file CRC
+        if (fileCrc == nvmCrc)
+            systemPrintf("Correct CRC for LFS:%s!\r\n", fileName);
+        else
+            systemPrintf("ERROR: Bad CRC for LFS:%s, expected: 0x%08x, in file: 0x%08x\r\n",
+                         fileName, nvmCrc, fileCrc);
+
+        // Verify that the CRC across the setting values and the fileCrc
+        // compute a value of zero
+        uint32_t finalCrc = nvmBitBangCrc32(nvmCrc, (uint8_t *)&nvmCrc, sizeof(nvmCrc));
+        if (finalCrc)
+            systemPrintf("ERROR: Bad CRC calculation, expected: 0x00000000, computed: 0x%08x\r\n", finalCrc);
+    } while (0);
+
+    // Done with the file
+    if (file)
+        file.close();
+
+    // Done with the buffer
+    if (buffer)
+        rtkFree(buffer, "NVM file dump buffer");
+}
+
+//----------------------------------------
+// Verify SD file CRC
+//----------------------------------------
+void nvmVerifySdFileCrc(const char * fileName)
+{
+    uint8_t * buffer = nullptr;
+    const size_t bufferLength = 8192;
+    ssize_t bytesRead;
+    uint8_t * data;
+    bool gotSemaphore = false;
+    size_t length;
+    size_t offset;
+    size_t remainingBytes;
+    const char * rtkIdentifier = "rtkIdentifier";
+    SdFile settingsFile; // FAT32
+    const char * sizeOfSettings = "sizeOfSettings=";
+    bool status = false; // Return false - until file is opened
+    bool wasSdCardOnline;
+
+    // Try to gain access the SD card
+    wasSdCardOnline = online.microSD;
+    if (online.microSD != true)
+        beginSD();
+
+    while (online.microSD == true)
+    {
+        // Attempt to access file system. This avoids collisions with file writing from other functions like
+        // recordSystemSettingsToFile() and gnssSerialReadTask()
+        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+        {
+            markSemaphore(FUNCTION_LOADSETTINGS);
+
+            gotSemaphore = true;
+
+            if (!sd->exists(fileName))
+            {
+                if (settings.debugSettings)
+                    systemPrintf("SD:%s not found\r\n", fileName);
+                break; // /while (online.microSD == true)
+            }
+
+            // Attempt to open the file
+            if (settingsFile.open(fileName, O_READ) == false)
+            {
+                systemPrintf("Failed to open settings SD:%s\r\n", fileName);
+                break; // /while (online.microSD == true)
+            }
+
+            do
+            {
+                remainingBytes = settingsFile.size();
+
+                // Allocate the buffer
+                buffer = (uint8_t *)rtkMalloc(bufferLength, "NVM file dump buffer");
+                if (buffer == nullptr)
+                {
+                    systemPrintf("ERROR: Failed to allocate the dump buffer\r\n");
+                    break;
+                }
+
+                // Walk the contents of the file
+                bytesRead = 0;
+                length = 0;
+                offset = 0;
+                if (remainingBytes > sizeof(nvmCrc))
+                {
+                    // Determine how much data to read
+                    length = remainingBytes - sizeof(nvmCrc);
+                    if (length > bufferLength)
+                        length = bufferLength;
+
+                    // Read some data
+                    bytesRead = nvmReadSdFileData(&settingsFile, buffer, length);
+                    if (bytesRead < 0)
+                    {
+                        systemPrintf("ERROR: Hard read error at offset %ld in NVM file %s\r\n",
+                                     offset, fileName);
+                        break;
+                    }
+                    if (bytesRead < length)
+                    {
+                        systemPrintf("ERROR: Failed to read all of the bytes!\r\n",
+                                     offset, fileName);
+                        break;
+                    }
+                    offset += bytesRead;
+                    remainingBytes -= bytesRead;
+                }
+                if ((bytesRead < 0) || (bytesRead < length))
+                    break;
+
+                //--------------------
+                // Verify the file header
+                //--------------------
+
+                // Check for sizeOfSettings value
+                length = strlen(sizeOfSettings);
+                if (strncmp((char *)buffer, sizeOfSettings, length) != 0)
+                {
+                    systemPrintf("ERROR: Not a settings file, %s missing!\r\n", sizeOfSettings);
+                    break;
+                }
+
+                // Skip over value
+                data = &buffer[length];
+                while (*data++ != '\n');
+
+                // Check for rtkIdentifier value
+                length = strlen(rtkIdentifier);
+                if (strncmp((char *)data, rtkIdentifier, length) != 0)
+                {
+                    systemPrintf("ERROR: Not a settings file, %s missing!\r\n", rtkIdentifier);
+                    break;
+                }
+
+                // Skip over value
+                data = &data[length];
+                while (*data++ != '\n');
+
+                // Check for sizeOfSettings value
+                length = strlen(nvmSettingsFileHasCrc);
+                if ((strncmp((char *)data, nvmSettingsFileHasCrc, length) !=0)
+                    || (data[length] != '=') || (data[length + 1] != '1'))
+                {
+                    systemPrintf("SD:%s does not contain a CRC\r\n", fileName);
+                    break;
+                }
+
+                //--------------------
+                // Compute the CRC across the setting values
+                //--------------------
+
+                // Compute the CRC across the first buffer of setting values
+                nvmCrc = 0;
+                nvmCrc = nvmBitBangCrc32(nvmCrc, buffer, bytesRead);
+
+                // Compute the CRC across the rest of the setting values
+                length = 0;
+                bytesRead = 0;
+                while (remainingBytes > sizeof(nvmCrc))
+                {
+                    // Determine how much data to read
+                    length = remainingBytes - sizeof(nvmCrc);
+                    if (length > bufferLength)
+                        length = bufferLength;
+
+                    // Read some data, but not the CRC
+                    bytesRead = nvmReadSdFileData(&settingsFile, buffer, length);
+                    if (bytesRead < 0)
+                    {
+                        systemPrintf("ERROR: Hard read error at offset %ld in NVM file %s\r\n",
+                                     offset, fileName);
+                        break;
+                    }
+                    if (bytesRead < length)
+                    {
+                        systemPrintf("ERROR: Failed to read all of the bytes!\r\n",
+                                     offset, fileName);
+                        break;
+                    }
+                    offset += bytesRead;
+                    remainingBytes -= bytesRead;
+
+                    // Compute the CRC across the setting values
+                    nvmCrc = nvmBitBangCrc32(nvmCrc, buffer, bytesRead);
+                }
+                if ((bytesRead < 0) || (bytesRead < length))
+                    break;
+
+                // Verify that the file contains enough bytes for the CRC
+                if (remainingBytes < sizeof(nvmCrc))
+                {
+                    systemPrintf("ERROR: File too short to comtain a CRC value!\r\n");
+                    break;
+                }
+
+                //--------------------
+                // Verify the final CRC value
+                //--------------------
+
+                uint32_t expectedCrc;
+
+                // Get the file CRC
+                uint32_t fileCrc;
+
+                bytesRead = nvmReadSdFileData(&settingsFile, (uint8_t *)&fileCrc, sizeof(fileCrc));
+                if (bytesRead < 0)
+                {
+                    systemPrintf("ERROR: Hard read error at offset %ld in SD:%s\r\n",
+                                 offset, fileName);
+                    break;
+                }
+                if (bytesRead != sizeof(fileCrc))
+                {
+                    systemPrintf("ERROR: Failed to read the CRC value from SD:%s!\r\n", fileName);
+                    break;
+                }
+
+                // Verify the file CRC
+                if (fileCrc == nvmCrc)
+                    systemPrintf("Correct CRC for SD:%s!\r\n", fileName);
+                else
+                    systemPrintf("ERROR: Bad CRC for SD:%s, expected: 0x%08x, in file: 0x%08x\r\n",
+                                 fileName, nvmCrc, fileCrc);
+
+                // Verify that the CRC across the setting values and the fileCrc
+                // compute a value of zero
+                uint32_t finalCrc = nvmBitBangCrc32(nvmCrc, (uint8_t *)&nvmCrc, sizeof(nvmCrc));
+                if (finalCrc)
+                    systemPrintf("ERROR: Bad CRC calculation, expected: 0x00000000, computed: 0x%08x\r\n", finalCrc);
+            } while (0);
+
+            // Done with the file
+            if (settingsFile)
+                settingsFile.close();
+
+            // Done with the buffer
+            if (buffer)
+                rtkFree(buffer, "NVM file dump buffer");
+        } // End Semaphore check
+        else
+        {
+            // This is an error because if the settings exist on the microSD card that
+            // those settings are not overriding the current settings as documented!
+            systemPrintf("sdCardSemaphore failed to yield, NVM.ino line %d\r\n", __LINE__);
+        }
+        break; // /while (online.microSD == true)
+    } // End SD online
+
+    // Release access the SD card
+    if (online.microSD && (!wasSdCardOnline))
+        endSD(gotSemaphore, true);
+    else if (gotSemaphore)
+        xSemaphoreGive(sdCardSemaphore);
 }

@@ -3916,7 +3916,8 @@ bool mosaicNewSettingValue(struct Settings * tempSettings,
 //----------------------------------------
 // Called by gnssSettingsToFile to save mosaic specific settings
 //----------------------------------------
-bool mosaicSettingsToFile(File *settingsFile,
+bool mosaicSettingsToFile(char * line,
+                          size_t lineSize,
                           RTK_Settings_Types type,
                           int settingsIndex)
 {
@@ -3929,10 +3930,10 @@ bool mosaicSettingsToFile(File *settingsFile,
             // Record Mosaic Constellations
             for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
             {
-                char tempString[50]; // constellation_GLONASS=1
-                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[settingsIndex].name,
+                // constellation_GLONASS=1
+                snprintf(line, lineSize, "%s%s=%0d\r\n", rtkSettingsEntries[settingsIndex].name,
                          mosaicSignalConstellations[x].configName, settings.mosaicConstellations[x]);
-                settingsFile->println(tempString);
+                nvmRecordStringToFile(line);
             }
         }
         break;
@@ -3940,10 +3941,10 @@ bool mosaicSettingsToFile(File *settingsFile,
             // Record Mosaic NMEA message streams
             for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
             {
-                char tempString[50]; // messageStreamNMEA_GGA=1
-                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[settingsIndex].name,
+                // messageStreamNMEA_GGA=1
+                snprintf(line, lineSize, "%s%s=%0d\r\n", rtkSettingsEntries[settingsIndex].name,
                          mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageStreamNMEA[x]);
-                settingsFile->println(tempString);
+                nvmRecordStringToFile(line);
             }
         }
         break;
@@ -3951,10 +3952,10 @@ bool mosaicSettingsToFile(File *settingsFile,
             // Record Mosaic NMEA stream intervals
             for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
             {
-                char tempString[50]; // streamIntervalNMEA_1=1
-                snprintf(tempString, sizeof(tempString), "%s%d=%0d", rtkSettingsEntries[settingsIndex].name, x,
+                // streamIntervalNMEA_1=1
+                snprintf(line, lineSize, "%s%d=%0d\r\n", rtkSettingsEntries[settingsIndex].name, x,
                          settings.mosaicStreamIntervalsNMEA[x]);
-                settingsFile->println(tempString);
+                nvmRecordStringToFile(line);
             }
         }
         break;
@@ -3962,10 +3963,10 @@ bool mosaicSettingsToFile(File *settingsFile,
             // Record Mosaic Rover RTCM intervals
             for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
             {
-                char tempString[50]; // messageIntervalRTCMRover_RTCM1001=0.2
-                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+                // messageIntervalRTCMRover_RTCM1001=0.2
+                snprintf(line, lineSize, "%s%s=%0.2f\r\n", rtkSettingsEntries[settingsIndex].name,
                          mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
-                settingsFile->println(tempString);
+                nvmRecordStringToFile(line);
             }
         }
         break;
@@ -3973,10 +3974,10 @@ bool mosaicSettingsToFile(File *settingsFile,
             // Record Mosaic Base RTCM intervals
             for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
             {
-                char tempString[50]; // messageIntervalRTCMBase_RTCM1001=0.2
-                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+                // messageIntervalRTCMBase_RTCM1001=0.2
+                snprintf(line, lineSize, "%s%s=%0.2f\r\n", rtkSettingsEntries[settingsIndex].name,
                          mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Base[x]);
-                settingsFile->println(tempString);
+                nvmRecordStringToFile(line);
             }
         }
         break;
@@ -3984,10 +3985,10 @@ bool mosaicSettingsToFile(File *settingsFile,
             // Record Mosaic Rover RTCM enabled
             for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
             {
-                char tempString[50]; // messageEnabledRTCMRover_RTCM1001=0
-                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[settingsIndex].name,
+                // messageEnabledRTCMRover_RTCM1001=0
+                snprintf(line, lineSize, "%s%s=%0d\r\n", rtkSettingsEntries[settingsIndex].name,
                          mosaicMessagesRTCMv3[x].name, settings.mosaicMessageEnabledRTCMv3Rover[x]);
-                settingsFile->println(tempString);
+                nvmRecordStringToFile(line);
             }
         }
         break;
@@ -3995,10 +3996,10 @@ bool mosaicSettingsToFile(File *settingsFile,
             // Record Mosaic Base RTCM enabled
             for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
             {
-                char tempString[50]; // messageEnabledRTCMBase_RTCM1001=0
-                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[settingsIndex].name,
+                // messageEnabledRTCMBase_RTCM1001=0
+                snprintf(line, lineSize, "%s%s=%0d\r\n", rtkSettingsEntries[settingsIndex].name,
                          mosaicMessagesRTCMv3[x].name, settings.mosaicMessageEnabledRTCMv3Base[x]);
-                settingsFile->println(tempString);
+                nvmRecordStringToFile(line);
             }
         }
         break;

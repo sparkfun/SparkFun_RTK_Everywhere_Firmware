@@ -736,6 +736,9 @@ struct Settings
     int sizeOfSettings = 0;             // sizeOfSettings **must** be the first entry and must be int
     int rtkIdentifier = RTK_IDENTIFIER; // rtkIdentifier **must** be the second entry
 
+    // CRC control, old files missing this value use false, new file write true
+    bool settingsFileHasCrc = false;    // settingsFileHasCrc **must** be the third entry
+
     //Once we detect the platform or receiver, no need to re-detect
     //ProductVariant previouslyDetectedPlatform = RTK_UNKNOWN; //Because LFS is started after deviceID, this is mute
     gnssReceiverType_e detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN;
