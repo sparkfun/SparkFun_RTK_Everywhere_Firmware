@@ -1,0 +1,125 @@
+/*
+    This example shows how to read a firmware file from an array and send chunks to the STM32WL.
+    The goal is to eventually read from WiFi so we intentionally don't expect HEX file lines.
+
+    Non-contiguous addresses are detected and written when necessary.
+
+    This was written for FP hardware but should be adaptable to the Torch.
+
+    To test: load this sketch onto an FP. 
+    Press 'u' to start the update. Allow the update to complete.
+    Load RTK Everywhere and put the device into STM32 passthrough mode. 
+    Use STM32CubeProgrammer to read the flash and compare it against the contents of 'lora_firmware.hex'. 
+    Files should be identical.
+
+    All loaders should have similar structure:
+    Given the web address of the binary to load,
+    Do the WiFi stuff to begin reading the file data
+    Put the target into bootload mode and malloc any necessary buffers xxxUpdateFirmwareBegin()
+    Grab chunks of bytes over WiFi and throw at xxxUpdateFirmware(*data, length)
+    When done, call xxxUpdateFirmwareEnd() to free buffers and exit the bootloader mode or reset the target
+*/
+
+#define COMPILE_ALL_FIRMWARE // Comment this out to test with a smaller firmware blob
+
+#include "TheData.h" //Array containing the PKG data
+
+#include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
+SFE_PCA95XX io(PCA95XX_PCA9534); // Create a PCA9534
+SFE_PCA95XX *gpioExpanderSwitches = nullptr;
+
+int pin_SDA = 15;
+int pin_SCL = 4;
+
+const int gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
+const int gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
+const int gpioExpanderSwitch_S3 = 2; // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
+const int gpioExpanderSwitch_S4 = 3; // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
+const int gpioExpanderSwitch_LoraEnable = 4; // LoRa_EN
+const int gpioExpanderSwitch_GNSS_Reset = 5; // RST_GNSS
+const int gpioExpanderSwitch_LoraBoot = 6;   // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
+const int gpioExpanderSwitch_S5 = 7;         // Controls U61 switch 5: connect GNSS UART1 to Port A of CH342
+const int gpioExpanderNumSwitches = 8;
+
+// Communication Port
+HardwareSerial SerialForLoRa(2);
+#define pin_IMU_TX 17
+#define pin_IMU_RX 14
+const int loraBaud = 115200; // Increasing the baud rate does not decrease the programming time. Programming time is
+                             // likely limited by STM32's internal flash write time.
+
+// External GPIO functions (provided by your hardware abstraction)
+extern void gpioExpanderLoraBootEnable();
+// Timer for firmware update duration
+unsigned long firmwareUpdateStartTime = 0;
+unsigned long firmwareUpdateElapsed = 0;
+extern void gpioExpanderLoraEnable();
+extern void gpioExpanderLoraDisable();
+
+void setup()
+{
+    Serial.begin(115200);
+    delay(250);
+
+    Serial.println("STM32 bootloader test");
+
+    Wire.begin(pin_SDA, pin_SCL);
+
+    beginGpioExpanderSwitches();
+
+    SerialForLoRa.begin(loraBaud, SERIAL_8E1, pin_IMU_RX, pin_IMU_TX); // STM32 bootloader requires Even parity
+
+    // Connect ESP32 UART2 to LoRa UART2 via SW3 for configuration and bootloading/firmware updates
+    gpioExpanderSelectLoraConfigure();
+
+    Serial.println("Serial LoRa started");
+}
+
+void loop()
+{
+    if (Serial.available())
+    {
+        byte incoming = Serial.read();
+        if (incoming == 'r')
+        {
+            ESP.restart();
+        }
+        else if (incoming == 'u')
+        {
+            Serial.println("Starting firmware update...");
+
+            // Start timer before erase
+            firmwareUpdateStartTime = millis();
+
+            stm32UpdateFirmwareBegin();
+
+            Serial.println("Loading new firmware...");
+
+            // We will be given bytes over WiFi so we need to parse the incoming
+            // stream to look for starting HEX lines and extract the data from those lines to send to stm32FirmwareUpdateParseHexLine().
+
+            uint32_t blobIndex = 0;
+
+            while (blobIndex < sizeof(lora_firmware))
+            {
+                uint8_t c = lora_firmware[blobIndex++];
+                stm32UpdateFirmware(&c, 1, false);
+            }
+
+            // Send any remaining lines
+            stm32UpdateFirmware(NULL, 0, true);
+
+            if (stm32UpdateFirmwareEnd())
+                Serial.println("Firmware Updated Successfully.");
+            else
+                Serial.println("Firmware Update Failed.");
+
+            // Stop timer and print elapsed time
+            firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
+            Serial.print("Firmware update time: ");
+            Serial.print(firmwareUpdateElapsed / 1000.0, 3);
+            Serial.println(" seconds");
+        }
+    }
+}
+
