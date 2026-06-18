@@ -99,8 +99,8 @@ RUN arduino-cli config set library.enable_unsafe_install true
 # Install SparkFun fork of ESP32_BleSerial
 RUN arduino-cli lib install --git-url https://github.com/sparkfun/ESP32_BleSerial.git
 
-# Install new release of SparkFun LG290P Quadband RTK GNSS Arduino Library
-#RUN arduino-cli lib install --git-url https://github.com/sparkfun/.git
+# Install v3.0.2 of SparkFun LG290P Quadband RTK GNSS Arduino Library
+#RUN arduino-cli lib install --git-url https://github.com/sparkfun/SparkFun_LG290P_GNSS_Arduino_Library.git
 
 # The Accessory and Authentication Coprocessor libraries depends=SparkFun Toolkit (>=1.0.6)
 RUN arduino-cli lib install "SparkFun Toolkit"@1.0.6
