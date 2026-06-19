@@ -1,0 +1,1596 @@
+/*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Device_Firmware_Update.ino
+
+  Generic support routines to program firmware devices
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
+//----------------------------------------
+// Constants
+//----------------------------------------
+
+const char * deviceFirmwareStateName[] =
+{
+    "DFUS_DONE",
+    "DFUS_INIT",
+    "DFUS_WAIT_NETWORK",
+    "DFUS_GET_DEVICE",
+    "DFUS_GET_NETWORK_FILES",
+    "DFUS_GET_HTTP_FILE_LIST_REQ",
+    "DFUS_GET_NETWORK_FILE_LIST",
+    "DFUS_GET_NVM_FILE_LIST",
+    "DFUS_GET_SD_FILE_LIST",
+    "DFUS_SELECT_FILE",
+    "DFUS_SELECT_ACTION",
+    "DFUS_CRC_OPEN_INPUT",
+    "DFUS_CRC_READ_DATA",
+    "DFUS_CRC_CLOSE",
+    "DFUS_DEVICE_OPEN_INPUT",
+    "DFUS_DEVICE_FILL_BUFFER",
+    "DFUS_DEVICE_RESET",
+    "DFUS_DEVICE_OPEN_OUTPUT",
+    "DFUS_DEVICE_PROGRAM_FIRMWARE",
+    "DFUS_READ_FIRMWARE_DATA",
+    "DFUS_DEVICE_CLOSE",
+    "DFUS_NEXT_DEVICE",
+    "DFUS_REBOOT",
+};
+const int deviceFirmwareStateNameCount = sizeof(deviceFirmwareStateName)
+                                       / sizeof(deviceFirmwareStateName[0]);
+
+#define USER_INPUT_STRING           0
+#define USER_INPUT_NOT_DONE         -1
+#define USER_INPUT_EXIT             -2
+#define USER_INPUT_TIMEOUT          -3
+#define USER_INPUT_OVERFLOWS_BUFFER -4
+#define USER_INPUT_NOT_A_NUMBER     -5
+
+#ifdef COMPILE_MENU_FIRMWARE
+
+const char * equalSigns = "==================================================";
+
+const uint32_t crc32_table[256] =
+{
+    0x00000000, 0x77073096, 0xee0e612c, 0x990951ba,
+    0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
+    0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
+    0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91,
+    0x1db71064, 0x6ab020f2, 0xf3b97148, 0x84be41de,
+    0x1adad47d, 0x6ddde4eb, 0xf4d4b551, 0x83d385c7,
+    0x136c9856, 0x646ba8c0, 0xfd62f97a, 0x8a65c9ec,
+    0x14015c4f, 0x63066cd9, 0xfa0f3d63, 0x8d080df5,
+    0x3b6e20c8, 0x4c69105e, 0xd56041e4, 0xa2677172,
+    0x3c03e4d1, 0x4b04d447, 0xd20d85fd, 0xa50ab56b,
+    0x35b5a8fa, 0x42b2986c, 0xdbbbc9d6, 0xacbcf940,
+    0x32d86ce3, 0x45df5c75, 0xdcd60dcf, 0xabd13d59,
+    0x26d930ac, 0x51de003a, 0xc8d75180, 0xbfd06116,
+    0x21b4f4b5, 0x56b3c423, 0xcfba9599, 0xb8bda50f,
+    0x2802b89e, 0x5f058808, 0xc60cd9b2, 0xb10be924,
+    0x2f6f7c87, 0x58684c11, 0xc1611dab, 0xb6662d3d,
+    0x76dc4190, 0x01db7106, 0x98d220bc, 0xefd5102a,
+    0x71b18589, 0x06b6b51f, 0x9fbfe4a5, 0xe8b8d433,
+    0x7807c9a2, 0x0f00f934, 0x9609a88e, 0xe10e9818,
+    0x7f6a0dbb, 0x086d3d2d, 0x91646c97, 0xe6635c01,
+    0x6b6b51f4, 0x1c6c6162, 0x856530d8, 0xf262004e,
+    0x6c0695ed, 0x1b01a57b, 0x8208f4c1, 0xf50fc457,
+    0x65b0d9c6, 0x12b7e950, 0x8bbeb8ea, 0xfcb9887c,
+    0x62dd1ddf, 0x15da2d49, 0x8cd37cf3, 0xfbd44c65,
+    0x4db26158, 0x3ab551ce, 0xa3bc0074, 0xd4bb30e2,
+    0x4adfa541, 0x3dd895d7, 0xa4d1c46d, 0xd3d6f4fb,
+    0x4369e96a, 0x346ed9fc, 0xad678846, 0xda60b8d0,
+    0x44042d73, 0x33031de5, 0xaa0a4c5f, 0xdd0d7cc9,
+    0x5005713c, 0x270241aa, 0xbe0b1010, 0xc90c2086,
+    0x5768b525, 0x206f85b3, 0xb966d409, 0xce61e49f,
+    0x5edef90e, 0x29d9c998, 0xb0d09822, 0xc7d7a8b4,
+    0x59b33d17, 0x2eb40d81, 0xb7bd5c3b, 0xc0ba6cad,
+    0xedb88320, 0x9abfb3b6, 0x03b6e20c, 0x74b1d29a,
+    0xead54739, 0x9dd277af, 0x04db2615, 0x73dc1683,
+    0xe3630b12, 0x94643b84, 0x0d6d6a3e, 0x7a6a5aa8,
+    0xe40ecf0b, 0x9309ff9d, 0x0a00ae27, 0x7d079eb1,
+    0xf00f9344, 0x8708a3d2, 0x1e01f268, 0x6906c2fe,
+    0xf762575d, 0x806567cb, 0x196c3671, 0x6e6b06e7,
+    0xfed41b76, 0x89d32be0, 0x10da7a5a, 0x67dd4acc,
+    0xf9b9df6f, 0x8ebeeff9, 0x17b7be43, 0x60b08ed5,
+    0xd6d6a3e8, 0xa1d1937e, 0x38d8c2c4, 0x4fdff252,
+    0xd1bb67f1, 0xa6bc5767, 0x3fb506dd, 0x48b2364b,
+    0xd80d2bda, 0xaf0a1b4c, 0x36034af6, 0x41047a60,
+    0xdf60efc3, 0xa867df55, 0x316e8eef, 0x4669be79,
+    0xcb61b38c, 0xbc66831a, 0x256fd2a0, 0x5268e236,
+    0xcc0c7795, 0xbb0b4703, 0x220216b9, 0x5505262f,
+    0xc5ba3bbe, 0xb2bd0b28, 0x2bb45a92, 0x5cb36a04,
+    0xc2d7ffa7, 0xb5d0cf31, 0x2cd99e8b, 0x5bdeae1d,
+    0x9b64c2b0, 0xec63f226, 0x756aa39c, 0x026d930a,
+    0x9c0906a9, 0xeb0e363f, 0x72076785, 0x05005713,
+    0x95bf4a82, 0xe2b87a14, 0x7bb12bae, 0x0cb61b38,
+    0x92d28e9b, 0xe5d5be0d, 0x7cdcefb7, 0x0bdbdf21,
+    0x86d3d2d4, 0xf1d4e242, 0x68ddb3f8, 0x1fda836e,
+    0x81be16cd, 0xf6b9265b, 0x6fb077e1, 0x18b74777,
+    0x88085ae6, 0xff0f6a70, 0x66063bca, 0x11010b5c,
+    0x8f659eff, 0xf862ae69, 0x616bffd3, 0x166ccf45,
+    0xa00ae278, 0xd70dd2ee, 0x4e048354, 0x3903b3c2,
+    0xa7672661, 0xd06016f7, 0x4969474d, 0x3e6e77db,
+    0xaed16a4a, 0xd9d65adc, 0x40df0b66, 0x37d83bf0,
+    0xa9bcae53, 0xdebb9ec5, 0x47b2cf7f, 0x30b5ffe9,
+    0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6,
+    0xbad03605, 0xcdd70693, 0x54de5729, 0x23d967bf,
+    0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94,
+    0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
+};
+
+//----------------------------------------
+// Compute the CRC32 for the specified data region
+//----------------------------------------
+uint32_t computeCrc32(uint32_t initialValue, const uint8_t * data, size_t length)
+{
+    uint32_t crc;
+    const uint8_t * end;
+
+    // Compute the CRC for the data buffer
+    crc = initialValue ^ 0xffffffff;
+    end = &data[length];
+    while (data < end)
+        crc = crc32_table[(crc ^ *data++) & 0xFF] ^ (crc >> 8);
+    crc ^= 0xffffffff;
+    return crc;
+}
+
+//----------------------------------------
+// Display the action menu
+//----------------------------------------
+void deviceFirmwareActionMenu(DEVICE_FIRMWARE_CTX * ctx)
+{
+    if (ctx->_doAll == false)
+    {
+        inMainMenu = true;
+        systemPrintf("\r\nAction:\r\n");
+
+        // Display the menu
+        if ((ctx->_inputDeviceType == IDT_NVM) || (ctx->_inputDeviceType == IDT_SD))
+            systemPrintf("d) Delete the file\r\n");
+        if (ctx->_deviceInfo->_useNvm)
+            systemPrintf("n) Copy file to NVM\r\n");
+        if (present.microSd)
+            systemPrintf("s) Copy filie to SD card\r\n");
+        systemPrintf("u) Update device firmware\r\n");
+        systemPrintf("x) Exit\r\n");
+
+        // Discard the input
+        serialInputClear();
+
+        // Output the prompt
+        systemPrintf("Select an action: ");
+
+        // Start the menu timeout timer
+        deviceFirmwareTimerStart(ctx);
+    }
+}
+
+//----------------------------------------
+// Allocate the buffers
+//----------------------------------------
+bool deviceFirmwareBufferAllocate(DEVICE_FIRMWARE_CTX * ctx)
+{
+    // Determine which buffers need to be dynamically allocated
+    ctx->_dynamicAllocationFd = bufferDynamicallyAllocate(&firmwareData);
+    deviceFirmwareBufferRestore(ctx, nullptr);
+    ctx->_dynamicAllocationNet = bufferDynamicallyAllocate(&firmwareFileNamesNet);
+    if (ctx->_doAll == false)
+    {
+        ctx->_dynamicAllocationNvm = bufferDynamicallyAllocate(&firmwareFileNamesNvm);
+        ctx->_dynamicAllocationSd = false;
+        if (present.microSd)
+            ctx->_dynamicAllocationSd = bufferDynamicallyAllocate(&firmwareFileNamesSd);
+    }
+
+    // Return buffer allocation status
+    return (firmwareData._address && firmwareFileNamesNet._address
+        && ((ctx->_doAll == true)
+            || (firmwareFileNamesNvm._address
+                && ((present.microSd == false)
+                    || firmwareFileNamesSd._address))));
+}
+
+//----------------------------------------
+// Free the buffers
+//----------------------------------------
+void deviceFirmwareBufferFree(DEVICE_FIRMWARE_CTX * ctx)
+{
+    // Release any buffers
+    bufferFree(&firmwareData);
+    ctx->_dynamicAllocationFd = false;
+
+    bufferFree(&firmwareFileNamesNet);
+    ctx->_dynamicAllocationNet = false;
+
+    if (ctx->_doAll == false)
+    {
+        bufferFree(&firmwareFileNamesNvm);
+        ctx->_dynamicAllocationNvm = false;
+
+        bufferFree(&firmwareFileNamesSd);
+        ctx->_dynamicAllocationSd = false;
+    }
+}
+
+//----------------------------------------
+// Restore the data buffer
+//----------------------------------------
+void deviceFirmwareBufferRestore(DEVICE_FIRMWARE_CTX * ctx,
+                                 BUFFER_DATA * bufferData)
+{
+    // Update the offset value
+    if (bufferData)
+        bufferData->_offset = ctx->_validDataBytes;
+
+    // Restore the context to point at the data buffer
+    if (firmwareData._address)
+    {
+        ctx->_buffer = firmwareData._address;
+        ctx->_bufferLength = firmwareData._length;
+    }
+    else
+    {
+        ctx->_buffer = nullptr;
+        ctx->_bufferLength = 0;
+    }
+}
+
+//----------------------------------------
+// Cleanup after performing the device firmware update
+//----------------------------------------
+void deviceFirmwareCleanup(DEVICE_FIRMWARE_CTX * ctx)
+{
+    if (ctx == nullptr)
+        return;
+
+    // Done with the network
+    if (ctx->_networkConfigured)
+        networkConsumerRemove(NETCONSUMER_DEVICE_OTA, NETWORK_ANY, __FILE__, __LINE__);
+
+    // Done with the context
+    rtkFree(ctx, "Device firmware context");
+    deviceFirmwareContext = nullptr;
+    inMainMenu = false;
+}
+
+//----------------------------------------
+// Close the files
+//----------------------------------------
+void deviceFirmwareClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    // Close the output file
+    deviceFirmwareCloseOutput(ctx);
+
+    // Close the input file
+    deviceFirmwareCloseInput(ctx);
+
+    // Determine if all firmware was written
+    if (ctx->_doAll)
+    {
+        if (ctx->_complete == false)
+            ctx->_reboot = false;
+        deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+    }
+    else
+        deviceFirmwareStateSet(ctx, ctx->_reboot ? DFUS_REBOOT : DFUS_DONE);
+}
+
+//----------------------------------------
+// Close the input file
+//----------------------------------------
+void deviceFirmwareCloseInput(DEVICE_FIRMWARE_CTX * ctx)
+{
+    // Close the input file
+    if (ctx->_inputDeviceType == IDT_NETWORK)
+        deviceFirmwareNetworkCleanup(ctx, nullptr);
+    else if (ctx->_inputDeviceType = IDT_NVM)
+        ctx->_nvmFile.close();
+    else if (ctx->_inputDeviceType == IDT_SD)
+        ctx->_sdFile.close();
+
+    // Display the statistics
+    if (ctx->_complete)
+        deviceFirmwarePerformUpdate(ctx);
+}
+
+//----------------------------------------
+// Close the output file or device
+//----------------------------------------
+void deviceFirmwareCloseOutput(DEVICE_FIRMWARE_CTX * ctx)
+{
+    // Close the output file
+    if (ctx->_outputDeviceType == ODT_DEVICE)
+    {
+        // Finish the firmware update
+        if (ctx->_deviceInfo->_close)
+        {
+            if (settings.debugFirmwareUpdate && ctx->_complete)
+                systemPrintf("Done with the %s firmware update\r\n",
+                             ctx->_deviceInfo->_deviceName);
+            ctx->_deviceInfo->_close(ctx);
+        }
+        else if (settings.debugFirmwareUpdate)
+            systemPrintf("NOT IMPLEMENTED: %s firmware update close routine!\r\n",
+                         ctx->_deviceInfo->_deviceName);
+    }
+    else if (ctx->_outputDeviceType == ODT_NVM)
+        ctx->_nvmFile.close();
+    else if (ctx->_outputDeviceType == ODT_SD)
+        ctx->_sdFile.close();
+}
+
+//----------------------------------------
+// Close the firmware file
+//----------------------------------------
+void deviceFirmwareCrcClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    deviceFirmwareCloseInput(ctx);
+    if (ctx->_bytesRead == ctx->_fileBytes)
+    {
+        // Display the statistics
+        deviceFirmwarePerformUpdate(ctx);
+        deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_INPUT);
+    }
+    else
+        deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+}
+
+//----------------------------------------
+// Open the firmware file and output device
+//----------------------------------------
+void deviceFirmwareCrcOpen(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    // Give user a hint as to what is taking so long
+    if (settings.debugFirmwareUpdate)
+    {
+        if (ctx->_inputDeviceType == IDT_NETWORK)
+            systemPrintf("Opening URL: %s\r\n", ctx->_url.c_str());
+        else
+            systemPrintf("Opening firmware file: %s\r\n", ctx->_fileName.c_str());
+    }
+    systemPrintf("Computing %s firmware CRC\r\n", ctx->_deviceInfo->_deviceName);
+    if (deviceFirmwareOpenInput(ctx, currentMsec))
+        deviceFirmwareStateSet(ctx, DFUS_CRC_READ_DATA);
+    else
+        deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+}
+
+//----------------------------------------
+// Read some firmware data
+//----------------------------------------
+void deviceFirmwareCrcReadData(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    if (deviceFirmwareRead(ctx, currentMsec, DFUS_CRC_CLOSE))
+    {
+        // Compute the CRC across these bytes
+        ctx->_crc = computeCrc32(ctx->_crc, ctx->_buffer, ctx->_validDataBytes);
+
+        // Empty the buffer
+        ctx->_validDataBytes = 0;
+
+        // Wait until done
+        if (ctx->_bytesRead == ctx->_fileBytes)
+            deviceFirmwareStateSet(ctx, DFUS_CRC_CLOSE);
+    }
+}
+
+//----------------------------------------
+// Determine if the device is available for firmware updates
+//----------------------------------------
+bool deviceFirmwareDeviceAvailable(int deviceIndex)
+{
+    bool deviceAvailable;
+    const DEVICE_FIRMWARE_INFO * deviceInfo;
+    bool * devicePresent;
+
+    do
+    {
+        deviceAvailable = false;
+        deviceInfo = &deviceFirmwareInfo[deviceIndex];
+
+        // Check if this device is in the system
+        devicePresent = deviceInfo->_present;
+        if (devicePresent && (*devicePresent == false))
+            // Not in the system
+            break;
+
+        // We cannot do OTA if there is only one partition
+        if ((strcmp("ESP32", deviceInfo->_deviceName) == 0)
+            && (countAppPartitions() < 2))
+        {
+            break;
+        }
+        deviceAvailable = true;
+    } while (0);
+    return deviceAvailable;
+}
+
+//----------------------------------------
+// Display the device menu
+//----------------------------------------
+void deviceFirmwareDeviceListMenu(DEVICE_FIRMWARE_CTX * ctx)
+{
+    if (ctx->_doAll == false)
+    {
+        inMainMenu = true;
+        systemPrintf("\r\nDevice List:\r\n");
+
+        // Walk the list of devices
+        for (int index = 0; index < deviceFirmwareInfoCount; index++)
+        {
+            // Check if this device is in the system
+            if (deviceFirmwareDeviceAvailable(index) == false)
+                continue;
+
+            // Display the device
+            systemPrintf("%c) %s\r\n", '0' + index, deviceFirmwareInfo[index]._deviceName);
+        }
+
+        systemPrintf("x) Exit\r\n");
+
+        // Discard the input
+        serialInputClear();
+        ctx->_buffer[0] = 0;
+        ctx->_validDataBytes = 0;
+
+        // Output the prompt
+        systemPrintf("Select a device: ");
+
+        // Start the menu timeout timer
+        deviceFirmwareTimerStart(ctx);
+    }
+}
+
+//----------------------------------------
+// List the files
+//----------------------------------------
+void deviceFirmwareFileList(int bufferIndex,
+                            int fileCount,
+                            const char * prefix,
+                            int offset)
+{
+    BUFFER_DATA * bufferData = bufferInfo[bufferIndex]._bufferData;
+    char ** nameArray = bufferData->_nameArray;
+    int * sortArray = bufferData->_sortArray;
+
+    // List the files
+    if (nameArray && sortArray)
+        for (int index = 0; index < fileCount; index++)
+            systemPrintf("%d) %s:/%s\r\n", offset + index, prefix, nameArray[sortArray[index]]);
+}
+
+//----------------------------------------
+// Display the file list menu
+//----------------------------------------
+void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx)
+{
+    int offset;
+
+    if (ctx->_doAll == false)
+    {
+        inMainMenu = true;
+        systemPrintf("File List:\r\n");
+
+        // Display the files
+        offset = 0;
+        deviceFirmwareFileList(bufferGetIndex(&firmwareFileNamesNet),
+                               ctx->_fileCountNet,
+                               "NET:/",
+                               offset);
+        offset += ctx->_fileCountNet;
+        deviceFirmwareFileList(bufferGetIndex(&firmwareFileNamesNvm),
+                               ctx->_fileCountNvm,
+                               "NVM:/",
+                               offset);
+        offset += ctx->_fileCountNvm;
+        deviceFirmwareFileList(bufferGetIndex(&firmwareFileNamesSd),
+                               ctx->_fileCountSd,
+                               "SD:/",
+                               offset);
+
+        systemPrintf("x) Exit\r\n");
+
+        // Discard the input
+        serialInputClear();
+        ctx->_buffer[0] = 0;
+        ctx->_validDataBytes = 0;
+
+        // Output the prompt
+        systemPrintf("Select file: ");
+
+        // Start the menu timeout timer
+        deviceFirmwareTimerStart(ctx);
+    }
+}
+
+//----------------------------------------
+// Sort the list of firmware files
+//----------------------------------------
+void deviceFirmwareFileSort(int bufferIndex, int fileCount)
+{
+    BUFFER_DATA * bufferData = bufferInfo[bufferIndex]._bufferData;
+    char ** nameArray = bufferData->_nameArray;
+    int * sortArray = bufferData->_sortArray;
+
+    // Bubble sort the file names newest to oldest
+    for (int i = 0; i < (fileCount - 1); i++)
+        for (int j = i + 1; j < fileCount; j++)
+            // Determine if the entries should be switched
+            if (strcmp(nameArray[sortArray[i]], nameArray[sortArray[j]]) < 0)
+            {
+                // Switch the entries
+                int temp = sortArray[i];
+                sortArray[i] = sortArray[j];
+                sortArray[j] = temp;
+            }
+}
+
+//----------------------------------------
+// Get a number from the user
+//----------------------------------------
+int deviceFirmwareGetNumber(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    int value;
+
+    // Get the user input
+    value = deviceFirmwareGetUserInput(ctx, currentMsec);
+    if (value == USER_INPUT_STRING)
+    {
+        // Determine if a number was input
+        if ((sscanf((char *)ctx->_buffer, "0x%x", &value) == 1)
+            || (sscanf((char *)ctx->_buffer, "0X%x", &value) == 1)
+            || (sscanf((char *)ctx->_buffer, "%d", &value) == 1))
+        {
+            return value;
+        }
+
+        // Return the input error
+        value = USER_INPUT_NOT_A_NUMBER;
+    }
+
+    return value;
+}
+
+//----------------------------------------
+// Get a value from the user
+//----------------------------------------
+int deviceFirmwareGetUserInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    uint8_t incoming;
+    int value;
+
+    // Handle the menu timeout
+    ctx = deviceFirmwareContext;
+    if ((currentMsec - ctx->_timerMsec) >= (menuTimeout * MILLISECONDS_IN_A_SECOND))
+    {
+        systemPrintf("\r\nUser input timeout\r\n");
+        deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+        return USER_INPUT_TIMEOUT;
+    }
+
+    // Get the user selection
+    if (Serial.available())
+    {
+        // Get an input character
+        incoming = Serial.read();
+
+        // All done at the end of the line
+        if ((incoming == '\r') || (incoming == '\n'))
+        {
+            systemPrintln();
+            return USER_INPUT_STRING;
+        }
+
+        // Echo the input
+        systemPrintf("%c", incoming);
+
+        // Handle the error cases
+        if ((ctx->_validDataBytes == 0) && (incoming == 'x'))
+        {
+            systemPrintln();
+            deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+            return USER_INPUT_EXIT;
+        }
+
+        // Save the input
+        ctx->_buffer[ctx->_validDataBytes++] = incoming;
+        ctx->_buffer[ctx->_validDataBytes] = 0;
+
+        // Check for buffer overflow
+        if (ctx->_validDataBytes >= (ctx->_bufferLength - 1))
+        {
+            systemPrintf("\r\nBuffer overflow\r\n");
+            deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+            return USER_INPUT_OVERFLOWS_BUFFER;
+        }
+    }
+    return USER_INPUT_NOT_DONE;
+}
+
+//----------------------------------------
+// Initialize the firmware update
+//----------------------------------------
+void deviceFirmwareInit(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    int nextState;
+
+    do
+    {
+        nextState = DFUS_NEXT_DEVICE;
+
+        // Allocate the buffers
+        if (deviceFirmwareBufferAllocate(ctx) == false)
+            break;
+
+        // Determine if the network is online
+        ctx->_networkConfigured = (present.ethernet_ws5500 || wifiStationSsidSet);
+        if ((present.microSd == false) && (ctx->_networkConfigured == false))
+        {
+            systemPrintf("Network not configured!\r\n");
+            nextState = DFUS_GET_DEVICE;
+            break;
+        }
+
+        // Request the network
+        networkConsumerAdd(NETCONSUMER_DEVICE_OTA, NETWORK_ANY, __FILE__, __LINE__);
+        systemPrintf("Waiting for network\r\n");
+        deviceFirmwareTimerStart(ctx);
+        nextState = DFUS_WAIT_NETWORK;
+    } while (0);
+    deviceFirmwareStateSet(ctx, nextState);
+}
+
+//----------------------------------------
+// Blink a LED to indicate activity
+//----------------------------------------
+void deviceFirmwareLedBlink(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    if ((currentMsec - ctx->_lastBlinkMsec) >= (MILLISECONDS_IN_A_SECOND / 4))
+    {
+        ctx->_lastBlinkMsec = currentMsec;
+
+        // Toggle LED to indicate activity
+        bluetoothLedBlink();
+    }
+}
+
+//----------------------------------------
+// Cleanup after the current firmware update and prepare for the next one
+//----------------------------------------
+void deviceFirmwareNextDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    // Done with the web server
+    if (ctx->_https)
+    {
+        ctx->_networkClient;
+        ctx->_https->end();
+        delete ctx->_https;
+        ctx->_https = nullptr;
+    }
+
+    // Free the buffers
+    bufferNameSortFree(bufferGetIndex(&firmwareFileNamesNet));
+    if (ctx->_doAll == false)
+    {
+        bufferNameSortFree(bufferGetIndex(&firmwareFileNamesNvm));
+        bufferNameSortFree(bufferGetIndex(&firmwareFileNamesSd));
+    }
+    deviceFirmwareBufferFree(ctx);
+
+    // Free the write buffer
+    if (ctx->_writeBuffer)
+    {
+        rtkFree(ctx->_writeBuffer, "Firmware update write buffer");
+        ctx->_writeBuffer = nullptr;
+    }
+
+    // Free the device specific context
+    if (ctx->_devCtx)
+    {
+        rtkFree(ctx->_devCtx, "Device specific firmware update context");
+        ctx->_devCtx = nullptr;
+    }
+
+    // Handle the next device
+    deviceFirmwareStateSet(ctx, ctx->_doAll ? DFUS_GET_DEVICE :
+                               (ctx->_reboot ? DFUS_REBOOT : DFUS_DONE));
+}
+
+//----------------------------------------
+// Open the firmware file
+//----------------------------------------
+void deviceFirmwareOpenFirmwareFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    // Give user a hint as to what is taking so long
+    systemPrintf("Opening %s firmware file\r\n", ctx->_deviceInfo->_deviceName);
+    if (deviceFirmwareOpenInput(ctx, currentMsec))
+        deviceFirmwareStateSet(ctx, DFUS_DEVICE_FILL_BUFFER);
+    else
+        deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+}
+
+//----------------------------------------
+// Open the input device
+//----------------------------------------
+bool deviceFirmwareOpenInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    // Verify that the output was specified
+    if (ctx->_outputDeviceType == ODT_NONE)
+        reportFatalError("Output device type is ODT_NONE!");
+
+    ctx->_bytesRead = 0;
+    ctx->_complete = false;
+    ctx->_startMsec = millis();
+
+    // Network file read path
+    //    _ctx->_http --> _ctx->_networkClient --> ctx->_buffer
+    if (ctx->_inputDeviceType == IDT_NETWORK)
+        // Send HTTP GET request
+        return deviceFirmwareOpenUrl(ctx, currentMsec);
+
+    // NVM file read data path:
+    //    _ctx->_nvmFile --> ctx->_buffer
+    if (ctx->_inputDeviceType == IDT_NVM)
+        return deviceUpdateNvmOpen(ctx, false);
+
+    // SD file read data path:
+    //    _ctx->_sdFile --> ctx->_buffer
+    if (ctx->_inputDeviceType == IDT_SD)
+        return deviceUpdateSdOpen(ctx, false);
+
+    // Testing case
+    return true;
+}
+
+//----------------------------------------
+// Open the output device
+//----------------------------------------
+void deviceFirmwareOpenOutput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    bool result;
+
+    do
+    {
+        ctx->_bytesWritten = 0;
+        ctx->_packetNumber = 0;
+        result = false;
+
+        // Network write data path
+        //    ctx->_buffer --> ctx->_writeBuffer --> device
+        if (ctx->_outputDeviceType == ODT_DEVICE)
+        {
+            systemPrintf("Updating %s firmware\r\n", ctx->_deviceInfo->_deviceName);
+
+            // Determine if there is an open routine
+            if (ctx->_deviceInfo->_open)
+            {
+                // Yes, prepare the device for firmware updates
+                if (settings.debugFirmwareUpdate)
+                    systemPrintf("Preparing the %s for firmware update\r\n",
+                                 ctx->_deviceInfo->_deviceName);
+                result = ctx->_deviceInfo->_open(ctx);
+                if (result)
+                    break;
+
+                // Display the error
+                systemPrintf("ERROR: %s firmware open failed!\r\n",
+                             ctx->_deviceInfo->_deviceName);
+            }
+            else if (settings.debugFirmwareUpdate)
+                systemPrintf("NOT IMPLEMENTED: %s firmware update open routine!\r\n",
+                             ctx->_deviceInfo->_deviceName);
+            break;
+        }
+
+        // NVM write data path
+        //    ctx->_buffer --> ctx->_nvmFile --> NVM
+        if (ctx->_outputDeviceType == ODT_NVM)
+        {
+            result = deviceUpdateNvmOpen(ctx, true);
+            break;
+        }
+
+        // SD card write data path
+        //    ctx->_buffer --> ctx->_sdFile --> SD card
+        if (ctx->_outputDeviceType == ODT_SD)
+        {
+            result = deviceUpdateSdOpen(ctx, true);
+            break;
+        }
+
+        // testing case
+        result = true;
+    } while (0);
+
+    // Set the next state
+    if (result)
+        deviceFirmwareStateSet(ctx, DFUS_DEVICE_PROGRAM_FIRMWARE);
+    else
+        deviceFirmwareClose(ctx, currentMsec);
+}
+
+//----------------------------------------
+// Open the URL
+//----------------------------------------
+bool deviceFirmwareOpenUrl(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    int attempt;
+    int httpResponseCode;
+
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("URL: %s\r\n", ctx->_url.c_str());
+
+    // Send HTTP GET request
+    attempt = 0;
+    do
+    {
+        // Open the connection to the web server
+        ctx->_startMsec = currentMsec;
+        ctx->_https = new HTTPClient;
+        ctx->_https->begin(ctx->_url);
+        ctx->_https->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        httpResponseCode = ctx->_https->GET();
+        if (httpResponseCode == -1)
+            ctx->_https->end();
+
+        // Display the error
+        if ((httpResponseCode != 200) || (settings.debugFirmwareUpdate))
+            systemPrintf("HTTP Response code: %d\r\n", httpResponseCode);
+    } while ((httpResponseCode == -1) && (++attempt < 3));
+
+    // Handle the responses
+    if (httpResponseCode != 200)
+    {
+        systemPrintf("ERROR: Failed to open url: %s\r\n", ctx->_url.c_str());
+        return false;
+    }
+
+    // Save the file length
+    ctx->_fileBytes = ctx->_https->getSize();
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("File size: %d bytes\r\n", ctx->_fileBytes);
+
+    // Get TCP stream
+    ctx->_networkClient = ctx->_https->getStreamPtr();
+    return true;
+}
+
+//----------------------------------------
+// Perform the firmware update
+//----------------------------------------
+void deviceFirmwarePerformUpdate(DEVICE_FIRMWARE_CTX * ctx)
+{
+    uint64_t bytesPerSecond;
+    uint32_t milliseconds;
+    uint32_t seconds;
+    uint32_t startMsec;
+
+    // Display the firmware transfer / update rate
+    milliseconds = millis() - ctx->_startMsec;
+    if (milliseconds == 0)
+        milliseconds = 1;
+    bytesPerSecond = (ctx->_fileBytes * 1000ULL) / (uint64_t)milliseconds;
+    seconds = milliseconds / MILLISECONDS_IN_A_SECOND;
+    milliseconds -= seconds * MILLISECONDS_IN_A_SECOND;
+    systemPrintf("%d firmware bytes in %d.%03d seconds, %d bytes/second\r\n",
+                 ctx->_fileBytes, seconds, milliseconds,
+                 (uint32_t)bytesPerSecond);
+}
+
+//----------------------------------------
+// Read data from the input device
+// Returns true when buffer is full
+//----------------------------------------
+bool deviceFirmwareRead(DEVICE_FIRMWARE_CTX * ctx,
+                        uint32_t currentMsec,
+                        int readErrorState)
+{
+    ssize_t bytesRead;
+    size_t length;
+
+    // Blink the LED
+    deviceFirmwareLedBlink(ctx, currentMsec);
+
+    // Move remaining data to the beginning of the buffer
+    if (ctx->_validDataBytes && (ctx->_data != ctx->_buffer))
+        memcpy(ctx->_buffer, ctx->_data, ctx->_validDataBytes);
+
+    // Read firmware data from the input device
+    bytesRead = 0;
+    length = ctx->_fileBytes - ctx->_bytesRead;
+    if (length)
+    {
+        // Fill the buffer or read the remaining bytes
+        length = min(length, ctx->_bufferLength - ctx->_validDataBytes);
+
+        // Read firmware data from the input device
+        ctx->_data = &ctx->_buffer[ctx->_validDataBytes];
+        if (ctx->_inputDeviceType == IDT_NETWORK)
+            bytesRead = deviceUpdateNetworkRead(ctx, ctx->_data, length);
+        else if (ctx->_inputDeviceType == IDT_NVM)
+            bytesRead = deviceUpdateNvmRead(ctx, ctx->_data, length);
+        else
+            bytesRead = deviceUpdateSdRead(ctx, ctx->_data, length);
+
+        // Check for read error
+        if (bytesRead < 0)
+        {
+            // Read failed
+            systemPrintf("Read failed, closing files\r\n");
+            deviceFirmwareStateSet(ctx, readErrorState);
+            return false;
+        }
+    }
+
+    // Remaining data starts at the beginning of the buffer
+    ctx->_data = ctx->_buffer;
+    if (bytesRead > 0)
+    {
+        // Account for the firmware bytes read
+        ctx->_validDataBytes += bytesRead;
+        ctx->_bytesRead += bytesRead;
+    }
+
+    // Done when:
+    //  * Buffer is full
+    //  * Have all remaining bytes
+    //  * All bytes have been read
+    //  * At least one packet/frame can be programmed on the device
+    if ((ctx->_validDataBytes == ctx->_bufferLength)
+        || (ctx->_validDataBytes == (ctx->_fileBytes - ctx->_bytesRead))
+        || (ctx->_bytesRead == ctx->_fileBytes)
+        || ((ctx->_outputDeviceType == ODT_DEVICE)
+            && (ctx->_validDataBytes >= ctx->_bytesMax)))
+    {
+        return true;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Fill the read buffer
+//----------------------------------------
+void deviceFirmwareReadFillBuffer(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    if (deviceFirmwareRead(ctx, currentMsec, DFUS_DEVICE_CLOSE))
+        deviceFirmwareStateSet(ctx, DFUS_DEVICE_RESET);
+}
+
+//----------------------------------------
+// Read some firmware data
+//----------------------------------------
+void deviceFirmwareReadFirmwareData(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    if (deviceFirmwareRead(ctx, currentMsec, DFUS_CRC_CLOSE))
+        deviceFirmwareStateSet(ctx, DFUS_DEVICE_PROGRAM_FIRMWARE);
+}
+
+//----------------------------------------
+// Reset the device before doing the firmware update
+//----------------------------------------
+void deviceFirmwareReset(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    const char * deviceName;
+
+    deviceName = ctx->_deviceInfo->_deviceName;
+    if (ctx->_deviceInfo->_reset)
+    {
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("Resetting %s for firmware update\r\n", deviceName);
+        if (ctx->_deviceInfo->_reset(ctx, currentMsec))
+            deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_OUTPUT);
+        else
+        {
+            systemPrintf("ERROR: %s firmware reset failed!\r\n", deviceName);
+            deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+        }
+        return;
+    }
+
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("NOT IMPLEMENTED: %s firmware update reset routine!\r\n",
+                     deviceName);
+    deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_OUTPUT);
+}
+
+//----------------------------------------
+// Determine which action to perform
+//----------------------------------------
+void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    int action;
+    BUFFER_DATA * bufferData;
+    int bufferIndex;
+    const DEVICE_FIRMWARE_INFO * deviceInfo;
+    int fileNumber;
+    const char **nameArray;
+    const int * sortArray;
+    String url;
+
+    do
+    {
+        // Verify that the input was specified
+        if (ctx->_inputDeviceType == IDT_NONE)
+            reportFatalError("Input device type is ODT_NONE!");
+
+        // Are all the devices being updated?
+        deviceInfo = ctx->_deviceInfo;
+        if (ctx->_doAll)
+        {
+            // Performing the firmware update
+            ctx->_outputDeviceType = ODT_DEVICE;
+            deviceFirmwareStateSet(ctx, ctx->_deviceInfo->_crcNeeded
+                                        ? DFUS_CRC_OPEN_INPUT
+                                        : DFUS_DEVICE_OPEN_INPUT);
+            break;
+        }
+
+        // Handle the menu timeout
+        if ((currentMsec - ctx->_timerMsec) >= (menuTimeout * MILLISECONDS_IN_A_SECOND))
+        {
+            systemPrintf("\r\nUser input timeout\r\n");
+            deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+            break;
+        }
+
+        // Get the action from user input
+        if (Serial.available() == 0)
+            break;
+        action = Serial.read();
+
+        // Echo the input
+        systemPrintf("%c\r\n", action);
+
+        // Initiate the action
+        if ((action == 'd')
+            && ((ctx->_inputDeviceType == IDT_NVM)
+                || (ctx->_inputDeviceType == IDT_SD)))
+        {
+            // Display the menu choice
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("\r\nDelete the firmware file\r\n");
+
+            // Delete the file
+            if (ctx->_inputDeviceType == IDT_NVM)
+                deviceUpdateNvmDelete(ctx->_fileName.c_str());
+            else
+                deviceUpdateSdDelete(ctx->_fileName.c_str());
+
+            // Display the file list again
+            ctx->_inputDeviceType = IDT_NONE;
+            ctx->_outputDeviceType = ODT_NONE;
+            deviceFirmwareStateSet(ctx, ctx->_networkConfigured ? DFUS_GET_NETWORK_FILES
+                                                                : DFUS_GET_NVM_FILE_LIST);
+        }
+        else if ((action == 'n') && ctx->_deviceInfo->_useNvm)
+        {
+            // Display the menu choice
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("\r\nCopy firmware file to NVM\r\n");
+
+            // Start the file copy
+            ctx->_outputDeviceType = ODT_NVM;
+            deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_INPUT);
+        }
+        else if ((action == 's') && present.microSd)
+        {
+            // Display the menu choice
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("\r\nCopy firmware file to SD card\r\n");
+
+            // Start the file copy
+            ctx->_outputDeviceType = ODT_SD;
+            deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_INPUT);
+        }
+        else if (action == 'u')
+        {
+            // Display the menu choice
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("\r\nUpdate %s firmware\r\n", ctx->_deviceInfo->_deviceName);
+
+            // Start the programming process
+            ctx->_outputDeviceType = ODT_DEVICE;
+            deviceFirmwareStateSet(ctx, ctx->_deviceInfo->_crcNeeded
+                                        ? DFUS_CRC_OPEN_INPUT
+                                        : DFUS_DEVICE_OPEN_INPUT);
+        }
+        else
+        {
+            systemPrintf("\r\nInvalid selection\r\n");
+            deviceFirmwareActionMenu(ctx);
+        }
+    } while (0);
+}
+
+//----------------------------------------
+// Select the device to use
+//----------------------------------------
+void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    int incoming;
+    size_t length;
+
+    do
+    {
+        // Are all devices being updated
+        if (ctx->_doAll)
+        {
+            // Start from the end of the device list
+            if (ctx->_deviceInfo == nullptr)
+                ctx->_deviceInfo = &deviceFirmwareInfo[deviceFirmwareInfoCount];
+
+            // Locate the next device
+            while (1)
+            {
+                // Determine if it is time to reboot
+                if (ctx->_deviceInfo == &deviceFirmwareInfo[0])
+                {
+                    if (ctx->_reboot)
+                        esp32Reboot();
+
+                    systemPrintf("%s\r\n", equalSigns);
+                    systemPrintf("HALTED: Firmware update failed!\r\n");
+                    systemPrintf("%s\r\n", equalSigns);
+                    reportFatalError("Firmware update failed!");
+                }
+
+                // Determine if the next device is in the system
+                ctx->_deviceInfo -= 1;
+                if ((ctx->_deviceInfo->_present == nullptr)
+                    || (*ctx->_deviceInfo->_present))
+                {
+                    if ((bufferInfo[0]._bufferData == nullptr)
+                        || (bufferInfo[0]._bufferData->_address == nullptr))
+                    {
+                        // Allocate the buffers
+                        if (deviceFirmwareBufferAllocate(ctx) == false)
+                            reportFatalError("Failed buffer allocation!");
+                    }
+
+                    // Program the next device
+                    ctx->_reboot = true;
+                    goto nextDevice;
+                }
+            }
+        }
+
+        // Handle the menu timeout
+        incoming = deviceFirmwareGetNumber(ctx, currentMsec);
+        if (incoming == USER_INPUT_NOT_A_NUMBER)
+        {
+            systemPrintf("Invalid selection\r\n");
+
+            // Done timing out the menu choice
+            ctx->_timerMsec = 0;
+
+            // Display the menu again
+            deviceFirmwareDeviceListMenu(ctx);
+            break;
+        }
+
+        // Get the user selection
+        if ((incoming >= 0) && (incoming <= deviceFirmwareInfoCount))
+        {
+            // Valid menu choice
+            ctx->_deviceInfo = &deviceFirmwareInfo[incoming];
+
+nextDevice:
+            // Done timing out the menu choice
+            ctx->_timerMsec = 0;
+
+            // Display the menu choice
+            systemPrintf("Selected device: %s\r\n", ctx->_deviceInfo->_deviceName);
+
+            // Allocate the necessary write buffer
+            length = ctx->_deviceInfo->_writeBufferBytes;
+            if (length)
+            {
+                // Allocate the write buffer for this device
+                ctx->_writeBuffer = (uint8_t *)rtkMalloc(length, "Firmware update write buffer");
+                if (ctx->_writeBuffer == nullptr)
+                {
+                    systemPrintf("ERROR: Failed to allocate the write buffer of %d bytes\r\n", length);
+                    reportHeapNow(true);
+                    if (ctx->_doAll)
+                        ctx->_reboot = false;
+                    deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+                    break;
+                }
+            }
+
+            // Determine maximum bytes to write at a time
+            ctx->_bytesMax = ctx->_deviceInfo->_maxWriteBytes
+                           ? ctx->_deviceInfo->_maxWriteBytes : ctx->_bufferLength;
+
+            // Get the files
+            deviceFirmwareStateSet(ctx, ctx->_networkConfigured ? DFUS_GET_NETWORK_FILES
+                                                                : DFUS_GET_NVM_FILE_LIST);
+            break;
+        }
+
+        // Continue putting together the input string
+    } while (0);
+}
+
+//----------------------------------------
+// Determine which file was selected
+//----------------------------------------
+void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    BUFFER_DATA * bufferData;
+    int bufferIndex;
+    const DEVICE_FIRMWARE_INFO * deviceInfo;
+    int fileNumber;
+    const char **nameArray;
+    const int * sortArray;
+    String url;
+
+    do
+    {
+        // Are all the devices being updated?
+        deviceInfo = ctx->_deviceInfo;
+        if (ctx->_doAll)
+        {
+            // Yes, does this device have some firmware?
+            if (ctx->_fileCountNet)
+            {
+                // Yes, use the most recent network firmware file
+                ctx->_inputDeviceType = IDT_NETWORK;
+                fileNumber = 0;
+                break;
+            }
+
+            // Skip this device
+            deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+            break;
+        }
+
+        // Get the file selection from user input
+
+        // Handle invalid input
+        fileNumber = deviceFirmwareGetNumber(ctx, currentMsec);
+        switch (fileNumber)
+        {
+        default:
+            if ((fileNumber >= 0) && (fileNumber < ctx->_fileCount))
+            {
+                // Valid menu choice
+                // Reboot the system upon completion
+                ctx->_reboot = true;
+                break;
+            }
+
+            // Fall through
+            //      |
+            //      V
+
+        case USER_INPUT_NOT_A_NUMBER:
+            // Stop timing out the user input
+            ctx->_timerMsec = 0;
+
+            systemPrintf("Invalid selection\r\n");
+            deviceFirmwareFileListMenu(ctx);
+            return;
+
+        case USER_INPUT_NOT_DONE:
+            // Continue putting together the input string
+            return;
+
+        case USER_INPUT_OVERFLOWS_BUFFER:
+            systemPrintf("ERROR: Input buffer overflow\r\n");
+            deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+            return;
+
+        case USER_INPUT_TIMEOUT:
+            systemPrintf("ERROR: User input timeout\r\n");
+            deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+            return;
+        }
+    } while (0);
+
+    // Stop timing out the user input
+    ctx->_timerMsec = 0;
+
+    // Determine the type of input and the file name array and index
+    if (fileNumber < ctx->_fileCountNet)
+    {
+        ctx->_inputDeviceType = IDT_NETWORK;
+        bufferData = &firmwareFileNamesNet;
+    }
+    else
+    {
+        fileNumber -= ctx->_fileCountNet;
+        if (fileNumber < ctx->_fileCountNvm)
+        {
+            ctx->_inputDeviceType = IDT_NVM;
+            bufferData = &firmwareFileNamesNvm;
+        }
+        else
+        {
+            fileNumber -= ctx->_fileCountNvm;
+            ctx->_inputDeviceType = IDT_SD;
+            bufferData = &firmwareFileNamesSd;
+        }
+    }
+
+    // Get the array addresses
+    bufferIndex = bufferGetIndex(bufferData);
+    nameArray = (const char **)bufferData->_nameArray;
+    sortArray = bufferData->_sortArray;
+
+    // Build the file name
+    ctx->_fileName = "/";
+    ctx->_fileName += nameArray[sortArray[fileNumber]];
+
+    // Build the raw URL
+    url = deviceInfo->_server;
+    if (deviceInfo->_rawBranch)
+        url += deviceInfo->_rawBranch;
+    if (deviceInfo->_directory)
+        url += deviceInfo->_directory;
+    url += ctx->_fileName;
+    ctx->_url = url;
+    ctx->_validDataBytes = 0;
+
+    // Display the menu choice
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Selected file; %s\r\n", ctx->_fileName.c_str());
+
+    // Determine what to do with this file
+    deviceFirmwareStateSet(ctx, DFUS_SELECT_ACTION);
+
+    // Display the menu
+    deviceFirmwareActionMenu(ctx);
+}
+
+//----------------------------------------
+// Get the state name
+//----------------------------------------
+const char * deviceFirmwareStateGetName(int state)
+{
+    if ((state >= 0) && (state < deviceFirmwareStateNameCount))
+        return deviceFirmwareStateName[state];
+    else
+        return "Unknown";
+}
+
+//----------------------------------------
+// Update device firmware state
+//----------------------------------------
+void deviceFirmwareStateSet(DEVICE_FIRMWARE_CTX * ctx,int newState)
+{
+    const char * currentStateName;
+    const char * newStateName;
+
+    if (settings.debugFirmwareUpdate)
+    {
+        currentStateName = deviceFirmwareStateGetName(ctx->_state);
+        newStateName = deviceFirmwareStateGetName(newState);
+        if (newStateName == currentStateName)
+            systemPrintf("Device firmware state transition: *%s\r\n", currentStateName);
+        else
+            systemPrintf("Device firmware state transition: %s --> %s\r\n", currentStateName, newStateName);
+    }
+    ctx->_state = newState;
+}
+
+//----------------------------------------
+// Start the timer
+//----------------------------------------
+void deviceFirmwareTimerStart(DEVICE_FIRMWARE_CTX * ctx)
+{
+    // Verify that the timer is not already in use
+    if (ctx->_timerMsec)
+        reportFatalError("Device firmware update timer in use!");
+
+    ctx->_timerMsec = millis();
+}
+
+//----------------------------------------
+// Perform the device firmware update
+//----------------------------------------
+bool deviceFirmwareUpdate(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    bool running;
+    const char * stateName;
+
+    do
+    {
+        running = false;
+
+        // Get the context value
+        if (ctx == nullptr)
+            break;
+
+        running = true;
+
+        // Blink the LED
+        deviceFirmwareLedBlink(ctx, currentMsec);
+
+        // Keep the network running
+        if (ctx->_networkConfigured)
+            networkUpdate();
+
+        // Perform the firmware update
+        switch (ctx->_state)
+        {
+        case DFUS_INIT: deviceFirmwareInit(ctx, currentMsec); break;
+        case DFUS_WAIT_NETWORK: deviceFirmwareWaitForNetwork(ctx, currentMsec); break;
+        case DFUS_GET_DEVICE: deviceFirmwareSelectDevice(ctx, currentMsec); break;
+        case DFUS_GET_NETWORK_FILES: deviceFirmwareNetworkFileListBuildUrl(ctx); break;
+        case DFUS_GET_HTTP_FILE_LIST_REQ: deviceFirmwareNetworkFileListHtmlRequest(ctx, currentMsec); break;
+        case DFUS_GET_NETWORK_FILE_LIST: deviceFirmwareNetworkFileListGetFileName(ctx, currentMsec); break;
+        case DFUS_GET_NVM_FILE_LIST: deviceUpdateNvmGetFiles(ctx, currentMsec); break;
+        case DFUS_GET_SD_FILE_LIST: deviceUpdateSdGetFiles(ctx, currentMsec); break;
+        case DFUS_SELECT_FILE: deviceFirmwareSelectFile(ctx, currentMsec); break;
+        case DFUS_SELECT_ACTION: deviceFirmwareSelectAction(ctx, currentMsec); break;
+        case DFUS_CRC_OPEN_INPUT: deviceFirmwareCrcOpen(ctx, currentMsec); break;
+        case DFUS_CRC_READ_DATA: deviceFirmwareCrcReadData(ctx, currentMsec); break;
+        case DFUS_CRC_CLOSE: deviceFirmwareCrcClose(ctx, currentMsec); break;
+        case DFUS_DEVICE_OPEN_INPUT: deviceFirmwareOpenFirmwareFile(ctx, currentMsec); break;
+        case DFUS_DEVICE_FILL_BUFFER: deviceFirmwareReadFillBuffer(ctx, currentMsec); break;
+        case DFUS_DEVICE_RESET: deviceFirmwareReset(ctx, currentMsec); break;
+        case DFUS_DEVICE_OPEN_OUTPUT: deviceFirmwareOpenOutput(ctx, currentMsec); break;
+        case DFUS_DEVICE_PROGRAM_FIRMWARE: deviceFirmwareWrite(ctx, currentMsec); break;
+        case DFUS_READ_FIRMWARE_DATA: deviceFirmwareReadFirmwareData(ctx, currentMsec); break;
+        case DFUS_DEVICE_CLOSE: deviceFirmwareClose(ctx, currentMsec); break;
+        case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
+        case DFUS_REBOOT: esp32Reboot(); break;
+        case DFUS_DONE: deviceFirmwareCleanup(ctx); running = false; break;
+
+        default:
+            stateName = deviceFirmwareStateGetName(ctx->_state);
+            systemPrintf("Device firmware update state: %d (%s)\r\n", ctx->_state, stateName);
+            reportFatalError("Device firmware update state not implemented!");
+            break;
+        }
+    } while (0);
+    return running;
+}
+
+//----------------------------------------
+// State machine to perform the device firmware update
+//----------------------------------------
+void deviceFirmwareUpdateBegin(bool doAll)
+{
+    DEVICE_FIRMWARE_CTX * ctx;
+    uint32_t currentMsec;
+    size_t length;
+
+    // Verify the state table
+    deviceFirmwareVerifyTables();
+
+    // Allocate the device context structure
+    length = sizeof(*ctx);
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Allocating %d bytes for device firmware update context\r\n", length);
+    ctx = (DEVICE_FIRMWARE_CTX *)rtkMalloc(length, "Device firmware context");
+    if (ctx == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the device firmware context of %d bytes\r\n", length);
+        reportHeapNow(true);
+        return;
+    }
+
+    // Initialize the context
+    memset(ctx, 0, length);
+    ctx->_doAll = doAll;
+    if (doAll)
+        ctx->_outputDeviceType = ODT_DEVICE;
+
+    // Set the initial state
+    deviceFirmwareStateSet(ctx, DFUS_INIT);
+    deviceFirmwareContext = ctx;
+}
+
+//----------------------------------------
+// Verify the tables have the correct number of entries
+//----------------------------------------
+void deviceFirmwareVerifyTables()
+{
+    if (DFUS_MAX != deviceFirmwareStateNameCount)
+        reportFatalError("Fix _DEVICE_FIRMWARE_UPDATE_STATE and deviceFirmwareStateName!");
+}
+
+//----------------------------------------
+// Wait for a network connection
+//----------------------------------------
+bool deviceFirmwareWaitForNetwork(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    bool hasInternetAccess;
+
+    do
+    {
+        hasInternetAccess = false;
+
+        // Determine if the network is configured
+        if (ctx->_networkConfigured == false)
+            reportFatalError("deviceFirmwareWaitForNetwork when ctx->_networkConfigured = false");
+
+        // Wait for the link to come up
+        hasInternetAccess = networkHasInternet();
+        if (hasInternetAccess == false)
+        {
+            // Don't wait forever
+            if ((currentMsec - ctx->_timerMsec) < WIFI_IP_ADDRESS_TIMEOUT_MSEC)
+                break;
+
+            // Stop polling the network
+            ctx->_networkConfigured = false;
+        }
+
+        // Done timing out the network connection
+        ctx->_timerMsec = 0;
+
+        // Display the menu
+        deviceFirmwareStateSet(ctx, DFUS_GET_DEVICE);
+        deviceFirmwareDeviceListMenu(ctx);
+    } while (0);
+    return hasInternetAccess;
+}
+
+//----------------------------------------
+// Perform the firmware update
+//----------------------------------------
+void deviceFirmwareWrite(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    size_t bytesToWrite;
+    size_t bytesWritten;
+    int percentage;
+    DEVICE_WRITE write;
+
+    // Determine if there is enough data to write
+    write = ctx->_deviceInfo->_write;
+    bytesWritten = 0;
+    while (ctx->_validDataBytes
+        && ((ctx->_validDataBytes >= ctx->_bytesMax)
+            || (ctx->_validDataBytes == (ctx->_fileBytes - ctx->_bytesWritten))))
+    {
+        // Determine how much firmware data can be written
+        bytesToWrite = min(ctx->_bytesMax, ctx->_fileBytes - ctx->_bytesWritten);
+
+        // Use this value for testing
+        bytesWritten = ctx->_bytesMax;
+
+        // Write the data to the device
+        if (ctx->_outputDeviceType == ODT_DEVICE)
+        {
+            bytesWritten = write(ctx, ctx->_data, bytesToWrite);
+            if (bytesWritten > bytesToWrite)
+                bytesWritten = bytesToWrite;
+        }
+        else if (ctx->_outputDeviceType == ODT_NVM)
+            bytesWritten = deviceUpdateNvmWrite(ctx, ctx->_data, bytesToWrite);
+        else if (ctx->_outputDeviceType == ODT_SD)
+            bytesWritten = deviceUpdateSdWrite(ctx, ctx->_data, bytesToWrite);
+        if (bytesWritten >= 0)
+        {
+            // Account for the data written
+            ctx->_validDataBytes -= bytesWritten;
+            ctx->_data += bytesWritten;
+            ctx->_bytesWritten += bytesWritten;
+            if (ctx->_bytesWritten == ctx->_fileBytes)
+                ctx->_complete = true;
+        }
+    }
+
+    // Display the percentage changes
+    percentage = ctx->_bytesWritten * 100 / ctx->_fileBytes;
+    if (percentage != ctx->_percentage)
+    {
+        ctx->_percentage = percentage;
+        displayFirmwareUpdateProgress(percentage);
+        systemPrintf("\r[%s %d%%",
+                     &equalSigns[strlen(equalSigns) - (percentage >> 1)],
+                     percentage);
+        if (settings.debugFirmwareUpdate)
+            systemPrintln();
+    }
+
+    // Read more data
+    if (ctx->_complete)
+        systemPrintln();
+    deviceFirmwareStateSet(ctx, ctx->_complete ? DFUS_DEVICE_CLOSE
+                                               : DFUS_READ_FIRMWARE_DATA);
+}
+
+#endif  // COMPILE_MENU_FIRMWARE
