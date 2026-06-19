@@ -460,7 +460,7 @@ const float um980MaxRateHz = 20.0; // 20Hz
 
 bool GNSS_UM980::fixRateIsAllowed(uint32_t fixRateMs)
 {
-    if (fixRateMs > (1000.0 / um980MinRateHz) && fixRateMs < (1000.0 / um980MaxRateHz))
+    if (fixRateMs >= fixRateGetMinimumMs() && fixRateMs <= fixRateGetMaximumMs())
         return (true);
     return (false);
 }
@@ -468,13 +468,13 @@ bool GNSS_UM980::fixRateIsAllowed(uint32_t fixRateMs)
 // Return minimum in milliseconds
 uint32_t GNSS_UM980::fixRateGetMinimumMs()
 {
-    return (1000.0 / um980MinRateHz);
+    return (1000.0 / um980MaxRateHz); // Max Hz is min ms
 }
 
 // Return maximum in milliseconds
 uint32_t GNSS_UM980::fixRateGetMaximumMs()
 {
-    return (1000.0 / um980MaxRateHz);
+    return (1000.0 / um980MinRateHz); // Min Hz is max ms
 }
 
 //----------------------------------------
