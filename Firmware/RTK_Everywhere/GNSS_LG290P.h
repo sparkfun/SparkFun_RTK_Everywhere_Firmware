@@ -344,6 +344,10 @@ class GNSS_LG290P : GNSS
     bool gnssInBaseSurveyInMode();
     bool gnssInRoverMode();
 
+    // Indicate if there are any additional settings specific to this GNSS
+    // This governs setGnssSpecificConfiguration() and menuGnssSpecificConfiguration()
+    bool hasGnssSpecificConfiguration();
+
     bool isBlocking();
 
     // Date is confirmed once we have GNSS fix
@@ -394,6 +398,9 @@ class GNSS_LG290P : GNSS
 
     // Controls the constellations that are used to generate a fix and logged
     void menuConstellations();
+
+    // Configure any settings specific to this GNSS
+    void menuGnssSpecificConfiguration();
 
     void menuMessageBaseRtcm();
 
@@ -448,6 +455,9 @@ class GNSS_LG290P : GNSS
     // Inputs:
     //   elevationDegrees: The elevation value in degrees
     bool setElevation(uint8_t elevationDegrees);
+
+    // Configure any additional settings specific to this GNSS
+    bool setGnssSpecificConfiguration();
 
     bool setPppService();
 
