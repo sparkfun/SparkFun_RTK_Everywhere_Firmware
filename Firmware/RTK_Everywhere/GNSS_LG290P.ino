@@ -2006,11 +2006,11 @@ bool GNSS_LG290P::setConstellations()
     if (online.gnss)
     {
         response = _lg290p->setConstellations(settings.lg290pConstellations[0],  // GPS
-                                               settings.lg290pConstellations[1],  // GLONASS
-                                               settings.lg290pConstellations[2],  // Galileo
-                                               settings.lg290pConstellations[3],  // BDS
-                                               settings.lg290pConstellations[4],  // QZSS
-                                               settings.lg290pConstellations[5]); // NavIC
+                                              settings.lg290pConstellations[1],  // GLONASS
+                                              settings.lg290pConstellations[2],  // Galileo
+                                              settings.lg290pConstellations[3],  // BDS
+                                              settings.lg290pConstellations[4],  // QZSS
+                                              settings.lg290pConstellations[5]); // NavIC
     }
 
     gnssConfigure(GNSS_CONFIG_RESET); // Constellation changes require device save/restart
