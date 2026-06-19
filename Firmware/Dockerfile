@@ -99,6 +99,9 @@ RUN arduino-cli config set library.enable_unsafe_install true
 # Install SparkFun fork of ESP32_BleSerial
 RUN arduino-cli lib install --git-url https://github.com/sparkfun/ESP32_BleSerial.git
 
+# Install SparkFun SSD168x I2C Interface Library
+RUN arduino-cli lib install --git-url https://github.com/sparkfun/SparkFun_SSD168x_I2C_Interface_Library.git
+
 # The Accessory and Authentication Coprocessor libraries depends=SparkFun Toolkit (>=1.0.6)
 RUN arduino-cli lib install "SparkFun Toolkit"@1.0.6
 

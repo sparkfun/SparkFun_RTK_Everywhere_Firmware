@@ -649,6 +649,7 @@ const uint8_t btMaxEscapeCharacters = 3; // Number of characters needed to enter
 // External Display
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_Qwiic_OLED.h>  //http://librarymanager/All#SparkFun_Qwiic_Graphic_OLED
+#include <SparkFun_SSD168x_I2C_Interface_Library.h> // http://librarymanager/All#SparkFun_SSD168x_I2C_Interface_Library
 unsigned long minSplashFor = 100; // Display SparkFun Logo for at least 1/10 of a second
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

@@ -335,6 +335,7 @@ typedef enum
 {
     DISPLAY_64x48,
     DISPLAY_128x64,
+    DISPLAY_184x88, // Facet FP e-Paper (SSD168x via I2C-SPI bridge)
     // Add new displays above this line
     DISPLAY_MAX_NONE // This represents the maximum numbers of display and also "no display"
 } DisplayType;

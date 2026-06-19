@@ -573,7 +573,7 @@ void beginBoard()
 
         present.display_i2c0 = true;
         // present.i2c0BusSpeed_400 = true; // The BQ40Z50 fuel gauge requires 100kHz
-        present.display_type = DISPLAY_128x64;
+        present.display_type = DISPLAY_128x64; // Standard Facet FP OLED. Changed to DISPLAY_184x88 e-Paper if needed
         present.displayInverted = true;
 
         present.fastPowerOff = true;
@@ -1807,6 +1807,11 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
 
             case 0x42: {
                 systemPrintf("  0x%02X - u-blox GNSS Receiver\r\n", addr);
+                break;
+            }
+
+            case 0x48: {
+                systemPrintf("  0x%02X - SSD168x e-Paper Driver (Facet FP)\r\n", addr);
                 break;
             }
 
