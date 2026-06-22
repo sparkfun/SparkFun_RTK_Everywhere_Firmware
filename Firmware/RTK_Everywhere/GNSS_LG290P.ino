@@ -1148,6 +1148,14 @@ bool GNSS_LG290P::gnssInRoverMode()
     return (false);
 }
 
+//----------------------------------------
+// Indicate if there are any additional settings specific to this GNSS
+//----------------------------------------
+bool GNSS_LG290P::hasGnssSpecificConfiguration()
+{
+    return true;
+}
+
 // If we issue a library command that must wait for a response, we don't want
 // the gnssReadTask() gobbling up the data before the library can use it
 // Check to see if the library is expecting a response
@@ -1463,6 +1471,52 @@ void GNSS_LG290P::menuConstellations()
             {
                 gnssConfigure(GNSS_CONFIG_PPP); // Request receiver to use new settings
             }
+        }
+
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
+}
+
+//----------------------------------------
+// Configure any settings specific to this GNSS
+//----------------------------------------
+void GNSS_LG290P::menuGnssSpecificConfiguration()
+{
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: GNSS-Specific Configuration");
+
+        systemPrintf("1) RTK Differential Age: %ds\r\n", settings.lg290pRtkDifferentialAge);
+        systemPrintf("2) RTK Differential Source Type: %s\r\n",
+            settings.lg290pRtkDifferentialSourceType == 0 ? "Auto" :
+            settings.lg290pRtkDifferentialSourceType == 1 ? "Normal" : "Wide Lane");
+
+        systemPrintln("x) Exit");
+
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+        if (incoming == 1)
+        {
+            uint16_t newAge = 120;
+            if (getNewSetting("Enter RTK Differential Age", 1, 600, &newAge) == INPUT_RESPONSE_VALID)
+            {
+                settings.lg290pRtkDifferentialAge = newAge;
+                gnssConfigure(GNSS_CONFIG_GNSS_SPECIFIC); // Request receiver to use new settings
+            }
+        }
+        else if (incoming == 2)
+        {
+            settings.lg290pRtkDifferentialSourceType += 1;
+            settings.lg290pRtkDifferentialSourceType %= 3;
+            gnssConfigure(GNSS_CONFIG_GNSS_SPECIFIC); // Request receiver to use new settings
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -2033,6 +2087,24 @@ bool GNSS_LG290P::setElevation(uint8_t elevationDegrees)
 }
 
 //----------------------------------------
+// Configure any additional settings specific to this GNSS
+//----------------------------------------
+bool GNSS_LG290P::setGnssSpecificConfiguration()
+{
+    bool response = true;
+
+    if (online.gnss)
+    {
+        response &= _lg290p->setRtkDifferentialAge(settings.lg290pRtkDifferentialAge);
+        response &= _lg290p->setRtkDifferentialSourceType(settings.lg290pRtkDifferentialSourceType);
+    }
+
+    gnssConfigure(GNSS_CONFIG_RESET); // Changes require device save/restart
+
+    return (response);
+}
+
+//----------------------------------------
 // Control whether HAS E6 is used in location fixes or not
 //----------------------------------------
 bool GNSS_LG290P::setPppService()
@@ -2078,10 +2150,8 @@ bool GNSS_LG290P::setPppService()
         // Check if a setting has changed
         bool settingsChanged = false;
 
-        if (settings.pppMode)
-
-            if (currentMode != settings.pppMode)
-                settingsChanged = true;
+        if (currentMode != settings.pppMode)
+            settingsChanged = true;
         if (currentDatum != settings.pppDatum)
             settingsChanged = true;
         if (currentTimeout != settings.pppTimeout)

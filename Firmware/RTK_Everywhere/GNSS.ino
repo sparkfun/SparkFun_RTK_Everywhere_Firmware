@@ -154,6 +154,7 @@ enum
     GNSS_CONFIG_LOGGING,         // Enable / disable logging
     GNSS_CONFIG_SAVE,            // Indicates current settings be saved to GNSS receiver NVM
     GNSS_CONFIG_RESET,           // Indicates receiver needs resetting
+    GNSS_CONFIG_GNSS_SPECIFIC,   // Settings specific to this GNSS
 
     // Add new entries above here
     GNSS_CONFIG_MAX,
@@ -184,6 +185,7 @@ static const char *gnssConfigDisplayNames[] = {
     "LOGGING",
     "SAVE",
     "RESET",
+    "GNSS_SPECIFIC",
 };
 
 static const int gnssConfigStateEntries = sizeof(gnssConfigDisplayNames) / sizeof(gnssConfigDisplayNames[0]);
@@ -201,6 +203,15 @@ bool GNSS::comPortRefresh()
 }
 
 //----------------------------------------
+// Indicate if there are any additional settings specific to this GNSS
+// This governs setGnssSpecificConfiguration() and menuGnssSpecificConfiguration()
+//----------------------------------------
+bool GNSS::hasGnssSpecificConfiguration()
+{
+    return false; // Default to false ("no"). GNSS class implementation - if present - return true.
+}
+
+//----------------------------------------
 // Returns true if the antenna is shorted
 //----------------------------------------
 bool GNSS::isAntennaShorted()
@@ -214,6 +225,22 @@ bool GNSS::isAntennaShorted()
 bool GNSS::isAntennaOpen()
 {
     return false;
+}
+
+//----------------------------------------
+// Configure any settings specific to this GNSS
+//----------------------------------------
+void GNSS::menuGnssSpecificConfiguration()
+{
+    ; // Nothing to do here....
+}
+
+//----------------------------------------
+// Configure any additional settings specific to this GNSS
+//----------------------------------------
+bool GNSS::setGnssSpecificConfiguration()
+{
+    return true; // Return true to clear GNSS_CONFIG_GNSS_SPECIFIC
 }
 
 // Antenna Short / Open detection
@@ -471,6 +498,15 @@ void gnssUpdate()
             if (gnss->setLogging() == true)
             {
                 gnssConfigureClear(GNSS_CONFIG_LOGGING);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
+        if (gnssConfigureRequested(GNSS_CONFIG_GNSS_SPECIFIC))
+        {
+            if (gnss->setGnssSpecificConfiguration() == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_GNSS_SPECIFIC);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
         }
