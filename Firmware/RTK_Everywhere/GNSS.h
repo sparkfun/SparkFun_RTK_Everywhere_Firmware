@@ -253,6 +253,10 @@ class GNSS
     virtual bool gnssInBaseSurveyInMode();
     virtual bool gnssInRoverMode();
 
+    // Indicate if there are any additional settings specific to this GNSS
+    // This governs setGnssSpecificConfiguration() and menuGnssSpecificConfiguration()
+    virtual bool hasGnssSpecificConfiguration();
+
     // Antenna Short / Open detection
     virtual bool isAntennaShorted();
     virtual bool isAntennaOpen();
@@ -308,6 +312,9 @@ class GNSS
     // Controls the constellations that are used to generate a fix and logged
     virtual void menuConstellations();
 
+    // Configure any settings specific to this GNSS
+    virtual void menuGnssSpecificConfiguration();
+
     virtual void menuMessageBaseRtcm();
 
     // Control the messages that get broadcast over Bluetooth and logged (if enabled)
@@ -361,6 +368,9 @@ class GNSS
     // Inputs:
     //   elevationDegrees: The elevation value in degrees
     virtual bool setElevation(uint8_t elevationDegrees);
+
+    // Configure any additional settings specific to this GNSS
+    virtual bool setGnssSpecificConfiguration();
 
     virtual bool setPppService();
 

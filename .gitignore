@@ -53,6 +53,14 @@ Icon
 # Linux Files
 # =========================
 
+# Build files
+Firmware/Test\ Sketches/*/build/*
+
+# Temporary files
+Firmware/?/*
+Firmware/RTK_Everywhere/*.txt
+
+# Executables
 Compare
 NMEA_Client
 Read_Map_File

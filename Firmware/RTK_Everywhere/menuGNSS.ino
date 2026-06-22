@@ -220,6 +220,9 @@ void menuGNSS()
                          settings.enableMultipathMitigation ? "Enabled" : "Disabled");
         }
 
+        if (gnss->hasGnssSpecificConfiguration())
+            systemPrintln("16) GNSS-Specific Configuration");
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -416,6 +419,11 @@ void menuGNSS()
         {
             settings.enableMultipathMitigation ^= 1;
             gnssConfigure(GNSS_CONFIG_MULTIPATH); // Request update
+        }
+
+        else if ((incoming == 16) && (gnss->hasGnssSpecificConfiguration()))
+        {
+            gnss->menuGnssSpecificConfiguration();
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
