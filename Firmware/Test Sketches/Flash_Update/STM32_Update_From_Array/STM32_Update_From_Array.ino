@@ -57,6 +57,10 @@ extern void gpioExpanderLoraDisable();
 unsigned long firmwareUpdateStartTime = 0;
 unsigned long firmwareUpdateElapsed = 0;
 
+// Global variables used by firmwareUpdateProgressCallback, called by all firmware update procedures
+uint32_t firmwareUpdateBytesToProcess = 0;
+uint32_t firmwareUpdateBytesProcessed = 0;
+
 void setup()
 {
     Serial.begin(115200);
