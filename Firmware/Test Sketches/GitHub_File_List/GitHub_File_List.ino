@@ -326,10 +326,13 @@ void locateFileList(String url)
             fileName = (char *)&buffer[bufferOffset];
             while (1)
             {
-                buffer[bufferOffset] = stream->read();
-                if (buffer[bufferOffset] == entryEnd[0])
-                    break;
-                bufferOffset += 1;
+                if (stream->available())
+                {
+                    buffer[bufferOffset] = stream->read();
+                    if (buffer[bufferOffset] == entryEnd[0])
+                        break;
+                    bufferOffset += 1;
+                }
             }
 
             // Zero terminate the file name string
@@ -420,10 +423,14 @@ bool expandBuffer()
     }
 
     // Copy the existing file names into the new buffer
-    memcpy(newBuffer, (char *)buffer, bufferOffset);
+    if (buffer)
+    {
+        if (bufferOffset)
+            memcpy(newBuffer, (char *)buffer, bufferOffset);
 
-    // Free the old buffer
-    free((void *)buffer);
+        // Free the old buffer
+        free((void *)buffer);
+    }
 
     // Switch to using the new buffer
     buffer = newBuffer;
