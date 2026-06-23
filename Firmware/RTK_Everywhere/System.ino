@@ -50,7 +50,10 @@ void rtkValidateHeap(const char *string)
 void rtkFree(void *data, const char *text)
 {
     if (settings.debugMalloc && !inMainMenu)
+    {
         systemPrintf("%p: Freeing %s\r\n", data, text);
+        Serial.flush();
+    }
     free(data);
 }
 
@@ -75,10 +78,16 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
     if (data)
     {
         if (settings.debugMalloc && !inMainMenu)
+        {
             systemPrintf("%p, %s %d bytes allocated: %s\r\n", data, area, sizeInBytes, text);
+            Serial.flush();
+        }
     }
     else
+    {
         systemPrintf("Error: Failed to allocate %d bytes from %s: %s\r\n", sizeInBytes, area, text);
+        Serial.flush();
+    }
 
     // If you are trying to trace "CORRUPT HEAP Bad tail" issues, add the tail address here:
     const uint32_t badTail = 0; // E.g. 0x3f80135c which was being allocated to the oled
@@ -93,8 +102,11 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
         uint32_t alignedSize = (sizeInBytes + 3) & (~3);
         // Look for address == badTail - alignedSize (ignore the canary)
         if (ptr2address.address == badTail - alignedSize)
+        {
             systemPrintf("rtkMalloc: tail 0x%08x length 0x%04X (%ld) allocated to %s\r\n",
                          badTail, sizeInBytes, sizeInBytes, text);
+            Serial.flush();
+        }
     }
 
     // If you are trying to trace "CORRUPT HEAP Bad head" issues, add the head address here:
@@ -110,8 +122,11 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
         uint32_t alignedSize = (sizeInBytes + 3) & (~3);
         // Look for badHead == address + alignedSize + two 4-byte canaries:
         if (badHead == ptr2address.address + alignedSize + 8)
+        {
             systemPrintf("rtkMalloc: head 0x%08x length 0x%04X (%ld) allocated to %s\r\n",
                          ptr2address.address, sizeInBytes, sizeInBytes, text);
+            Serial.flush();
+        }
     }
 
     return data;
