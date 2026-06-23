@@ -1069,7 +1069,7 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
        *    *    *                                                                                   *  *   *                                                                 ****           
        *    *    *                                                                                   *   * *                                                                  *** *          
        *    *    *                                                                                    *   *   *                                                               **   *         
-     ******* ******* |----- Horiz Acc (5 chars) (8x16) -----|                                         *    * *    |---- SIV (3 chars) ---|                                          *        
+     ******* ******* |---------- Horiz Acc (5 chars) (10x20) ---------|                               *    * *    |--- SIV (3 chars) (10x20) ---|                                   *        
        *    *    *                                                                                     *    *                                                                        *       
        *    *    *                                                                                     **    *                                                                        *      
        *    *    *                                                                                     ****   *                                                                      * *     
@@ -1403,7 +1403,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
         }
         else if (present.display_type == DISPLAY_184x88)
         {
-            paintMACAddress6digit(0, 0); // Columns 0 to 59 (font 10x20)
+            paintSerial6digit(0, 0); // Columns 0 to 59 (font 10x20)
 
             // Bluetooth indicated when connected: Columns 64 to 70 . TODO don't count if BT radio type is OFF.
             if (bluetoothGetState() == BT_CONNECTED)
@@ -1994,7 +1994,6 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
 // Display horizontal accuracy
 void paintHorizontalAccuracy(displayCoords textCoords)
 {
-    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);                 // Set font to type 1: 8x16
     theDisplay->setCursor(textCoords.x, textCoords.y); // x, y
     theDisplay->print(":");
 
@@ -2291,7 +2290,7 @@ void displayTiltIcon(std::vector<iconPropertyBlinking> *iconList)
     // Display tilt icon - but only on 128x64 / 184x88 displays. 64x48 has no room.
     if ((present.display_type == DISPLAY_128x64) || (present.display_type == DISPLAY_184x88))
     {
-        //if ((present.imu_im19 == true) && (settings.enableTiltCompensation == true) && (tiltState == TILT_CORRECTING))
+        if ((present.imu_im19 == true) && (settings.enableTiltCompensation == true) && (tiltState == TILT_CORRECTING))
         {
             const iconProperties *icon = &TiltIconProperties;
             iconPropertyBlinking prop;
@@ -2312,7 +2311,19 @@ void displayHorizontalAccuracy(std::vector<iconPropertyBlinking> *iconList, cons
 
     displayCoords textCoords;
     textCoords.x = prop.icon.xPos + 16;
-    textCoords.y = prop.icon.yPos + 2;
+
+    if (present.display_type == DISPLAY_184x88)
+    {
+        textCoords.y = prop.icon.yPos - 2;
+
+        theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10X20); // Set font to 10x20
+    }
+    else
+    {
+        textCoords.y = prop.icon.yPos + 2;
+
+        theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16); // Set font to type 1: 8x16
+    }
 
     paintHorizontalAccuracy(textCoords);
 }
@@ -2327,7 +2338,19 @@ void displayRTKAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconP
 
     displayCoords textCoords;
     textCoords.x = prop.icon.xPos + 16;
-    textCoords.y = prop.icon.yPos + 2;
+
+    if (present.display_type == DISPLAY_184x88)
+    {
+        textCoords.y = prop.icon.yPos - 2;
+
+        theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10X20); // Set font to 10x20
+    }
+    else
+    {
+        textCoords.y = prop.icon.yPos + 2;
+
+        theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16); // Set font to type 1: 8x16
+    }
 
     paintHorizontalAccuracy(textCoords);
 }
@@ -2427,7 +2450,16 @@ void nudgeAndPrintSIV(displayCoords textCoords, uint8_t siv)
 
 void paintSIVText(displayCoords textCoords)
 {
-    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);                 // Set font to type 1: 8x16
+    if (present.display_type == DISPLAY_184x88)
+    {
+        textCoords.y -= 2;
+
+        theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10X20); // Set font to 10x20
+    }
+    else
+    {
+        theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16); // Set font to type 1: 8x16
+    }
     theDisplay->setCursor(textCoords.x, textCoords.y); // x, y
 
     uint8_t siv = gnss->getSatellitesInView();
@@ -2762,16 +2794,12 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
     }
 }
 
-void paintMACAddress6digit(uint8_t xPos, uint8_t yPos) // 184x88 e-paper only
+void paintSerial6digit(uint8_t xPos, uint8_t yPos) // 184x88 e-paper only
 {
-    char macAddress[7];
-    const uint8_t *rtkMacAddress = networkGetMacAddress();
-
-    // Print six characters of MAC
-    snprintf(macAddress, sizeof(macAddress), "%02X%02X%02X", rtkMacAddress[3], rtkMacAddress[4], rtkMacAddress[5]);
+    // Print six character serial number
     theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10x20);
     theDisplay->setCursor(xPos, yPos);
-    theDisplay->print(macAddress);
+    theDisplay->print(serialNumber);
 }
 void paintMACAddress4digit(uint8_t xPos, uint8_t yPos)
 {

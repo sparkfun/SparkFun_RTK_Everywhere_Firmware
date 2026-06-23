@@ -40,6 +40,8 @@ void powerDown(bool displayInfo)
         delay(2000);
     }
 
+    // Wes' idea: display "OFF" and serialNumber on e-paper
+
     // Disable SD card use
     endSD(false, false);
 

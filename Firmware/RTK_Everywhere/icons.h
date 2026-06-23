@@ -2065,7 +2065,7 @@ const uint8_t AccuracyIconYPos64x48 = 18;
 const uint8_t AccuracyIconXPos128x64 = 0;
 const uint8_t AccuracyIconYPos128x64 = 26; // Just because we can, move accuracy down by 8 pixels on 128x64
 const uint8_t AccuracyIconXPos184x88 = 0;
-const uint8_t AccuracyIconYPos184x88 = 38;
+const uint8_t AccuracyIconYPos184x88 = 34;
 
 const iconProperties CrossHairProperties = {{{ &CrossHair, CrossHair_Width, CrossHair_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
                                              { &CrossHair, CrossHair_Width, CrossHair_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 },
