@@ -154,7 +154,13 @@ void HYBRID_DISPLAY::display(void)
     if (_isOLED)
         _oled->display();
     else
-        _epaper->display();
+    {
+        unsigned long startTime = millis();
+        while (_epaper->isBusy() && ((millis() - startTime) < 3000))
+            delay(10);
+        if (!_epaper->isBusy())
+            _epaper->display();
+    }
 }
 void HYBRID_DISPLAY::erase(void)
 {
@@ -321,14 +327,26 @@ void HYBRID_DISPLAY::displayBackground(void)
     if (_isOLED)
         _oled->display();
     else
-        _epaper->displayBackground();
+    {
+        unsigned long startTime = millis();
+        while (_epaper->isBusy() && ((millis() - startTime) < 3000))
+            delay(10);
+        if (!_epaper->isBusy())
+            _epaper->displayBackground();
+    }
 }
 void HYBRID_DISPLAY::displayPartial(void)
 {
     if (_isOLED)
         _oled->display();
     else
-        _epaper->displayPartial();
+    {
+        unsigned long startTime = millis();
+        while (_epaper->isBusy() && ((millis() - startTime) < 3000))
+            delay(10);
+        if (!_epaper->isBusy())
+            _epaper->displayPartial();
+    }
 }
 bool HYBRID_DISPLAY::isBusy(void)
 {
@@ -342,7 +360,82 @@ void HYBRID_DISPLAY::deepSleep(bool mode2)
     if (!_isOLED)
         _epaper->deepSleep(mode2);
 }
+size_t HYBRID_DISPLAY::printf(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
 
+    va_list args2;
+    va_copy(args2, args);
+    char buf[vsnprintf(nullptr, 0, format, args) + 1];
+
+    vsnprintf(buf, sizeof buf, format, args2);
+
+    size_t res;
+    if (_isOLED)
+        res = _oled->print(buf);
+    else
+        res = _epaper->print(buf);
+
+    va_end(args);
+    va_end(args2);
+    return res;
+}
+size_t HYBRID_DISPLAY::print(const char *text)
+{
+    if (_isOLED)
+        return _oled->print(text);
+    else
+        return _epaper->print(text);
+}
+size_t HYBRID_DISPLAY::print(double number, int digits) {
+    if (_isOLED)
+        return _oled->print(number, digits);
+    else
+        return _epaper->print(number, digits);
+}
+size_t HYBRID_DISPLAY::print(unsigned long n, uint8_t base)
+{
+    if (_isOLED)
+        return _oled->print(n, base);
+    else
+        return _epaper->print(n, base);
+}
+size_t HYBRID_DISPLAY::print(unsigned long n)
+{
+    if (_isOLED)
+        return _oled->print(n);
+    else
+        return _epaper->print(n);
+}
+size_t HYBRID_DISPLAY::print(float flt, int dp)
+{
+    if (_isOLED)
+        return _oled->print(flt, dp);
+    else
+        return _epaper->print(flt, dp);
+}
+size_t HYBRID_DISPLAY::print(uint8_t i)
+{
+    if (_isOLED)
+        return _oled->print(i);
+    else
+        return _epaper->print(i);
+}
+size_t HYBRID_DISPLAY::print(int i)
+{
+    if (_isOLED)
+        return _oled->print(i);
+    else
+        return _epaper->print(i);
+}
+size_t HYBRID_DISPLAY::print(char c)
+{
+    if (_isOLED)
+        return _oled->print(c);
+    else
+        return _epaper->print(c);
+}
 
 //----------------------------------------
 // Routines
@@ -572,6 +665,7 @@ void displayUpdate()
                     
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
+                displayTiltIcon(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 / 184x88 only
                 setRadioIcons(&iconPropertyList);
@@ -590,6 +684,7 @@ void displayUpdate()
 
                     paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
+                displayTiltIcon(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 / 184x88 only
                 setRadioIcons(&iconPropertyList);
@@ -600,6 +695,7 @@ void displayUpdate()
                 displayRTKAccuracy(&iconPropertyList, &CrossHairDualProperties, true); // Dual crosshair, no blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
+                displayTiltIcon(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 / 184x88 only
                 setRadioIcons(&iconPropertyList);
@@ -2195,7 +2291,7 @@ void displayTiltIcon(std::vector<iconPropertyBlinking> *iconList)
     // Display tilt icon - but only on 128x64 / 184x88 displays. 64x48 has no room.
     if ((present.display_type == DISPLAY_128x64) || (present.display_type == DISPLAY_184x88))
     {
-        if ((present.imu_im19 == true) && (settings.enableTiltCompensation == true) && (tiltState == TILT_CORRECTING))
+        //if ((present.imu_im19 == true) && (settings.enableTiltCompensation == true) && (tiltState == TILT_CORRECTING))
         {
             const iconProperties *icon = &TiltIconProperties;
             iconPropertyBlinking prop;

@@ -7,7 +7,7 @@ Display.h
 #ifndef __DISPLAY_H__
 #define __DISPLAY_H__
 
-class HYBRID_DISPLAY : public Print
+class HYBRID_DISPLAY
 {
   private:
     QwiicCustomOLED *_oled;
@@ -79,6 +79,15 @@ class HYBRID_DISPLAY : public Print
     bool isBusy(void);
     void deepSleep(bool mode2);
 
+    size_t printf(const char *format, ...);
+    size_t print(const char *text);
+    size_t print(double number, int digits);
+    size_t print(unsigned long n, uint8_t base);
+    size_t print(float flt, int dp);
+    size_t print(uint8_t i);
+    size_t print(unsigned long i);
+    size_t print(int i);
+    size_t print(char c);
 };
 
 HYBRID_DISPLAY *theDisplay = nullptr;
