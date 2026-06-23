@@ -434,8 +434,7 @@ void tiltStop()
         SerialForTilt = nullptr;
     }
 
-    if (tiltState == TILT_CORRECTING)
-        beepDurationMs(1000); // Indicate we are going offline
+    beepDurationMs(1000); // Indicate we are going offline
 
     online.imu_im19 = false;
 }
