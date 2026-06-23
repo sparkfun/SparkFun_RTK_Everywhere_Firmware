@@ -37,17 +37,6 @@ Tilt.ino
 
 #ifdef COMPILE_IM19_IMU
 
-typedef enum
-{
-    TILT_DISABLED = 0,
-    TILT_OFFLINE,
-    TILT_STARTED,
-    TILT_INITIALIZED,
-    TILT_CORRECTING,
-    TILT_REQUEST_STOP,
-} TiltState;
-TiltState tiltState = TILT_DISABLED;
-
 // Tilt compensation sensor state machine
 void tiltUpdate()
 {

@@ -241,6 +241,16 @@ const productHousingProperties productHousingPropertiesTable[] =
 };
 const int productHousingEntries = sizeof(productHousingPropertiesTable) / sizeof(productHousingPropertiesTable[0]);
 
+typedef enum
+{
+    TILT_DISABLED = 0,
+    TILT_OFFLINE,
+    TILT_STARTED,
+    TILT_INITIALIZED,
+    TILT_CORRECTING,
+    TILT_REQUEST_STOP,
+} TiltState;
+
 // Product Properties Table
 // ========================
 // name is used to create the BT broadcast deviceName
@@ -340,8 +350,8 @@ typedef enum
     DISPLAY_MAX_NONE // This represents the maximum numbers of display and also "no display"
 } DisplayType;
 
-const uint8_t DisplayWidth[DISPLAY_MAX_NONE] = { 64, 128 }; // We could get these from the oled, but this is const
-const uint8_t DisplayHeight[DISPLAY_MAX_NONE] = { 48, 64 };
+const uint8_t DisplayWidth[DISPLAY_MAX_NONE] = { 64, 128, 184 }; // We could get these from the oled, but this is const
+const uint8_t DisplayHeight[DISPLAY_MAX_NONE] = { 48, 64, 88 };
 
 typedef enum
 {

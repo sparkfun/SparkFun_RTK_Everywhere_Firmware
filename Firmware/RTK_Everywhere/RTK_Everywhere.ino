@@ -782,6 +782,7 @@ HardwareSerial *SerialForTilt; // Don't instantiate until we know the tilt senso
 unsigned long lastTiltCheck;   // Limits polling on IM19 to 1Hz
 bool tiltFailedBegin;          // Goes true if IMU fails beginTilt()
 unsigned long lastTiltBeepMs;  // Emit a beep every 10s if tilt is active
+TiltState tiltState = TILT_DISABLED;
 #endif                         // COMPILE_IM19_IMU
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

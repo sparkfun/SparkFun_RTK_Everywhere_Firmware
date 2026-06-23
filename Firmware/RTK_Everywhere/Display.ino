@@ -84,15 +84,17 @@ enum ICON_POSITION_t
     ICON_POSITION_LEFT = 0,
     ICON_POSITION_CENTER,
     ICON_POSITION_RIGHT,
+    ICON_POSITION_184x88,
     ICON_POSITION_MAX
 };
 
 // WiFi icons
-const iconProperty *wifiIconTable[ICON_POSITION_MAX][4]{
+const iconProperty *wifiIconTable[ICON_POSITION_MAX][5]{
     //          0                       1                       2                       3
-    {&WiFiSymbol0Left64x48, &WiFiSymbol1Left64x48, &WiFiSymbol2Left64x48, &WiFiSymbol3Left64x48},
-    {&WiFiSymbol0128x64, &WiFiSymbol1128x64, &WiFiSymbol2128x64, &WiFiSymbol3128x64},
-    {&WiFiSymbol0Right64x48, &WiFiSymbol1Right64x48, &WiFiSymbol2Right64x48, &WiFiSymbol3Right64x48},
+    {&WiFiSymbol0Left64x48, &WiFiSymbol1Left64x48, &WiFiSymbol2Left64x48, &WiFiSymbol3Left64x48, &WiFiSymbol3Left64x48},
+    {&WiFiSymbol0128x64, &WiFiSymbol1128x64, &WiFiSymbol2128x64, &WiFiSymbol3128x64, &WiFiSymbol3128x64},
+    {&WiFiSymbol0Right64x48, &WiFiSymbol1Right64x48, &WiFiSymbol2Right64x48, &WiFiSymbol3Right64x48, &WiFiSymbol3Right64x48},
+    {&WiFiSymbol0184x88, &WiFiSymbol1184x88, &WiFiSymbol2184x88, &WiFiSymbol3184x88, &WiFiSymbolNC184x88},
 };
 //----------------------------------------
 // Locals
@@ -105,6 +107,11 @@ const iconProperty *wifiIconTable[ICON_POSITION_MAX][4]{
 #include <res/qw_fnt_5x7.h>
 #include <res/qw_fnt_8x16.h>
 #include <res/qw_fnt_largenum.h>
+#include <res/qw_ep_fnt_31x48.h>
+#include <res/qw_ep_fnt_5x7.h>
+#include <res/qw_ep_fnt_8x16.h>
+#include <res/qw_ep_fnt_10x20.h>
+#include <res/qw_ep_fnt_largenum.h>
 
 // Icons
 #include "icons.h"
@@ -112,241 +119,230 @@ const iconProperty *wifiIconTable[ICON_POSITION_MAX][4]{
 void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse = true, bool NTP = false); // Header
 
 //----------------------------------------
-// SFE_DISPLAY_OLED
+// HYBRID_DISPLAY implementation
 //----------------------------------------
-bool SFE_DISPLAY_OLED::begin(TwoWire &wirePort, uint8_t address)
+bool HYBRID_DISPLAY::begin(TwoWire &wirePort, uint8_t address)
 {
-    return theDisplay->begin(wirePort, address);
+    if (_isOLED)
+        return _oled->begin(wirePort, address);
+    else
+        return _epaper->begin(wirePort, address);
 }
-uint8_t SFE_DISPLAY_OLED::getWidth(void)
+uint8_t HYBRID_DISPLAY::getWidth(void)
 {
-    return theDisplay->getWidth();
+    if (_isOLED)
+        return _oled->getWidth();
+    else
+        return _epaper->getWidth();
 }
-uint8_t SFE_DISPLAY_OLED::getHeight(void)
+uint8_t HYBRID_DISPLAY::getHeight(void)
 {
-    return theDisplay->getHeight();
+    if (_isOLED)
+        return _oled->getHeight();
+    else
+        return _epaper->getHeight();
 }
-bool SFE_DISPLAY_OLED::reset(bool clearDisplay)
+bool HYBRID_DISPLAY::reset(bool clearDisplay)
 {
-    return theDisplay->reset(clearDisplay);
+    if (_isOLED)
+        return _oled->reset(clearDisplay);
+    else
+        return _epaper->reset(clearDisplay);
 }
-void SFE_DISPLAY_OLED::display(void)
+void HYBRID_DISPLAY::display(void)
 {
-    theDisplay->display();
+    if (_isOLED)
+        _oled->display();
+    else
+        _epaper->display();
 }
-void SFE_DISPLAY_OLED::erase(void)
+void HYBRID_DISPLAY::erase(void)
 {
-    theDisplay->erase();
+    if (_isOLED)
+        _oled->erase();
+    else
+        _epaper->erase();
 }
-void SFE_DISPLAY_OLED::invert(bool bInvert)
+void HYBRID_DISPLAY::invert(bool bInvert)
 {
-    theDisplay->invert(bInvert);
+    if (_isOLED)
+        _oled->invert(bInvert);
 }
-void SFE_DISPLAY_OLED::flipVertical(bool bFlip)
+void HYBRID_DISPLAY::flipVertical(bool bFlip)
 {
-    theDisplay->flipVertical(bFlip);
+    if (_isOLED)
+        _oled->flipVertical(bFlip);
 }
-void SFE_DISPLAY_OLED::flipHorizontal(bool bFlip)
+void HYBRID_DISPLAY::flipHorizontal(bool bFlip)
 {
-    theDisplay->flipHorizontal(bFlip);
+    if (_isOLED)
+        _oled->flipHorizontal(bFlip);
 }
-void SFE_DISPLAY_OLED::setFont(QwiicFont &theFont)
+void HYBRID_DISPLAY::setFont(QwiicFont &theFont, QwiicEpFont &theEpFont)
 {
-    theDisplay->setFont(theFont);
+    if (_isOLED)
+        _oled->setFont(theFont);
+    else
+        _epaper->setFont(theEpFont);
 }
-void SFE_DISPLAY_OLED::setFont(const QwiicFont *theFont)
+void HYBRID_DISPLAY::setDrawMode(grRasterOp_t rop, grEpRasterOp_t eprop)
 {
-    theDisplay->setFont(theFont);
+    if (_isOLED)
+        _oled->setDrawMode(rop);
+    else
+        _epaper->setDrawMode(eprop);
 }
-void SFE_DISPLAY_OLED::setDrawMode(grRasterOp_t rop)
+void HYBRID_DISPLAY::pixel(uint8_t x, uint8_t y, uint8_t clr)
 {
-    theDisplay->setDrawMode(rop);
+    if (_isOLED)
+        _oled->pixel(x, y, clr);
+    else
+        _epaper->pixel(x, y, clr);
 }
-void SFE_DISPLAY_OLED::pixel(uint8_t x, uint8_t y, uint8_t clr)
+void HYBRID_DISPLAY::line(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t clr)
 {
-    theDisplay->pixel(x, y, clr);
+    if (_isOLED)
+        _oled->line(x0, y0, x1, y1, clr);
+    else
+        _epaper->line(x0, y0, x1, y1, clr);
 }
-void SFE_DISPLAY_OLED::line(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t clr)
+void HYBRID_DISPLAY::rectangle(uint8_t x0, uint8_t y0, uint8_t width, uint8_t height, uint8_t clr)
 {
-    theDisplay->line(x0, y0, x1, y1, clr);
+    if (_isOLED)
+        _oled->rectangle(x0, y0, width, height, clr);
+    else
+        _epaper->rectangle(x0, y0, width, height, clr);
 }
-void SFE_DISPLAY_OLED::rectangle(uint8_t x0, uint8_t y0, uint8_t width, uint8_t height, uint8_t clr)
+void HYBRID_DISPLAY::rectangleFill(uint8_t x0, uint8_t y0, uint8_t width, uint8_t height, uint8_t clr)
 {
-    theDisplay->rectangle(x0, y0, width, height, clr);
+    if (_isOLED)
+        _oled->rectangleFill(x0, y0, width, height, clr);
+    else
+        _epaper->rectangleFill(x0, y0, width, height, clr);
 }
-void SFE_DISPLAY_OLED::rectangleFill(uint8_t x0, uint8_t y0, uint8_t width, uint8_t height, uint8_t clr)
+void HYBRID_DISPLAY::bitmap(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t *pBitmap, uint8_t bmp_width, uint8_t bmp_height)
 {
-    theDisplay->rectangleFill(x0, y0, width, height, clr);
+    if (_isOLED)
+        _oled->bitmap(x0, y0, x1, y1, pBitmap, bmp_width, bmp_height);
+    else
+        _epaper->bitmap(x0, y0, x1, y1, pBitmap, bmp_width, bmp_height);
 }
-void SFE_DISPLAY_OLED::bitmap(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t *pBitmap, uint8_t bmp_width, uint8_t bmp_height)
+void HYBRID_DISPLAY::bitmap(uint8_t x0, uint8_t y0, uint8_t *pBitmap, uint8_t bmp_width, uint8_t bmp_height)
 {
-    theDisplay->bitmap(x0, y0, x1, y1, pBitmap, bmp_width, bmp_height);
+    if (_isOLED)
+        _oled->bitmap(x0, y0, pBitmap, bmp_width, bmp_height);
+    else
+        _epaper->bitmap(x0, y0, pBitmap, bmp_width, bmp_height);
 }
-void SFE_DISPLAY_OLED::bitmap(uint8_t x0, uint8_t y0, uint8_t *pBitmap, uint8_t bmp_width, uint8_t bmp_height)
+void HYBRID_DISPLAY::text(uint8_t x0, uint8_t y0, const char *text, uint8_t clr)
 {
-    theDisplay->bitmap(x0, y0, pBitmap, bmp_width, bmp_height);
+    if (_isOLED)
+        _oled->text(x0, y0, text, clr);
+    else
+        _epaper->text(x0, y0, text, clr);
 }
-void SFE_DISPLAY_OLED::bitmap(uint8_t x0, uint8_t y0, QwiicBitmap &bitmap)
+void HYBRID_DISPLAY::text(uint8_t x0, uint8_t y0, String &text, uint8_t clr)
 {
-    theDisplay->bitmap(x0, y0, bitmap);
+    if (_isOLED)
+        _oled->text(x0, y0, text, clr);
+    else
+        _epaper->text(x0, y0, text, clr);
 }
-void SFE_DISPLAY_OLED::text(uint8_t x0, uint8_t y0, const char *text, uint8_t clr)
+void HYBRID_DISPLAY::setCursor(uint8_t x, uint8_t y)
 {
-    theDisplay->text(x0, y0, text, clr);
+    if (_isOLED)
+        _oled->setCursor(x, y);
+    else
+        _epaper->setCursor(x, y);
 }
-void SFE_DISPLAY_OLED::text(uint8_t x0, uint8_t y0, String &text, uint8_t clr)
+void HYBRID_DISPLAY::setXOffset(uint8_t xOffset)
 {
-    theDisplay->text(x0, y0, text, clr);
+    if (_isOLED)
+        _oled->setXOffset(xOffset);
 }
-void SFE_DISPLAY_OLED::setCursor(uint8_t x, uint8_t y)
+void HYBRID_DISPLAY::setYOffset(uint8_t yOffset)
 {
-    theDisplay->setCursor(x, y);
+    if (_isOLED)
+        _oled->setYOffset(yOffset);
 }
-void SFE_DISPLAY_OLED::setXOffset(uint8_t xOffset)
+void HYBRID_DISPLAY::setDisplayWidth(uint8_t displayWidth)
 {
-    theDisplay->setXOffset(xOffset);
+    if (_isOLED)
+        _oled->setDisplayWidth(displayWidth);
 }
-void SFE_DISPLAY_OLED::setYOffset(uint8_t yOffset)
+void HYBRID_DISPLAY::setDisplayHeight(uint8_t displayHeight)
 {
-    theDisplay->setYOffset(yOffset);
+    if (_isOLED)
+        _oled->setDisplayHeight(displayHeight);
 }
-void SFE_DISPLAY_OLED::setDisplayWidth(uint8_t displayWidth)
+void HYBRID_DISPLAY::setPinConfig(uint8_t pinConfig)
 {
-    theDisplay->setDisplayWidth(displayWidth);
+    if (_isOLED)
+        _oled->setPinConfig(pinConfig);
 }
-void SFE_DISPLAY_OLED::setDisplayHeight(uint8_t displayHeight)
+void HYBRID_DISPLAY::setPreCharge(uint8_t preCharge)
 {
-    theDisplay->setDisplayHeight(displayHeight);
+    if (_isOLED)
+        _oled->setPreCharge(preCharge);
 }
-void SFE_DISPLAY_OLED::setPinConfig(uint8_t pinConfig)
+void HYBRID_DISPLAY::setVcomDeselect(uint8_t vcomDeselect)
 {
-    theDisplay->setPinConfig(pinConfig);
+    if (_isOLED)
+        _oled->setVcomDeselect(vcomDeselect);
 }
-void SFE_DISPLAY_OLED::setPreCharge(uint8_t preCharge)
+void HYBRID_DISPLAY::setContrast(uint8_t contrast)
 {
-    theDisplay->setPreCharge(preCharge);
+    if (_isOLED)
+        _oled->setContrast(contrast);
 }
-void SFE_DISPLAY_OLED::setVcomDeselect(uint8_t vcomDeselect)
+unsigned int HYBRID_DISPLAY::getStringWidth(String &text)
 {
-    theDisplay->setVcomDeselect(vcomDeselect);
+    if (_isOLED)
+        return _oled->getStringWidth(text);
+    else
+        return _epaper->getStringWidth(text);
 }
-void SFE_DISPLAY_OLED::setContrast(uint8_t contrast)
+unsigned int HYBRID_DISPLAY::getStringWidth(const char *text)
 {
-    theDisplay->setContrast(contrast);
+    if (_isOLED)
+        return _oled->getStringWidth(text);
+    else
+        return _epaper->getStringWidth(text);
 }
-unsigned int SFE_DISPLAY_OLED::getStringWidth(String &text)
+size_t HYBRID_DISPLAY::write(uint8_t theChar)
 {
-    return theDisplay->getStringWidth(text);
+    if (_isOLED)
+        return _oled->write(theChar);
+    else
+        return _epaper->write(theChar);
 }
-unsigned int SFE_DISPLAY_OLED::getStringWidth(const char *text)
+void HYBRID_DISPLAY::displayBackground(void)
 {
-    return theDisplay->getStringWidth(text);
+    if (_isOLED)
+        _oled->display();
+    else
+        _epaper->displayBackground();
 }
-size_t SFE_DISPLAY_OLED::write(uint8_t theChar)
+void HYBRID_DISPLAY::displayPartial(void)
 {
-    return theDisplay->write(theChar);
+    if (_isOLED)
+        _oled->display();
+    else
+        _epaper->displayPartial();
+}
+bool HYBRID_DISPLAY::isBusy(void)
+{
+    if (_isOLED)
+        return false;
+    else
+        return _epaper->isBusy();
+}
+void HYBRID_DISPLAY::deepSleep(bool mode2)
+{
+    if (!_isOLED)
+        _epaper->deepSleep(mode2);
 }
 
-//----------------------------------------
-// SFE_DISPLAY_EPAPER
-//----------------------------------------
-bool SFE_DISPLAY_EPAPER::begin(TwoWire &wirePort, uint8_t address)
-{
-    return theDisplay->begin(wirePort, address);
-}
-uint8_t SFE_DISPLAY_EPAPER::getWidth(void)
-{
-    return theDisplay->getWidth();
-}
-uint8_t SFE_DISPLAY_EPAPER::getHeight(void)
-{
-    return theDisplay->getHeight();
-}
-bool SFE_DISPLAY_EPAPER::reset(bool clearDisplay)
-{
-    return theDisplay->reset(clearDisplay);
-}
-void SFE_DISPLAY_EPAPER::display(void)
-{
-    theDisplay->display();
-}
-void SFE_DISPLAY_EPAPER::erase(void)
-{
-    theDisplay->erase();
-}
-void SFE_DISPLAY_EPAPER::invert(bool bInvert)
-{
-}
-void SFE_DISPLAY_EPAPER::flipVertical(bool bFlip)
-{
-}
-void SFE_DISPLAY_EPAPER::flipHorizontal(bool bFlip)
-{
-}
-void SFE_DISPLAY_EPAPER::setFont(QwiicFont &theFont)
-{
-    theDisplay->setFont((QwiicEpFont &)theFont);
-}
-void SFE_DISPLAY_EPAPER::setFont(const QwiicFont *theFont)
-{
-    theDisplay->setFont((const QwiicEpFont *)theFont);
-}
-void SFE_DISPLAY_EPAPER::setDrawMode(grRasterOp_t rop)
-{
-    theDisplay->setDrawMode((grEpRasterOp_t)rop);
-}
-void SFE_DISPLAY_EPAPER::pixel(uint8_t x, uint8_t y, uint8_t clr)
-{
-    theDisplay->pixel(x, y, clr);
-}
-void SFE_DISPLAY_EPAPER::line(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t clr)
-{
-    theDisplay->line(x0, y0, x1, y1, clr);
-}
-void SFE_DISPLAY_EPAPER::rectangle(uint8_t x0, uint8_t y0, uint8_t width, uint8_t height, uint8_t clr)
-{
-    theDisplay->rectangle(x0, y0, width, height, clr);
-}
-void SFE_DISPLAY_EPAPER::rectangleFill(uint8_t x0, uint8_t y0, uint8_t width, uint8_t height, uint8_t clr)
-{
-    theDisplay->rectangleFill(x0, y0, width, height, clr);
-}
-void SFE_DISPLAY_EPAPER::bitmap(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t *pBitmap, uint8_t bmp_width, uint8_t bmp_height)
-{
-    theDisplay->bitmap(x0, y0, x1, y1, pBitmap, bmp_width, bmp_height);
-}
-void SFE_DISPLAY_EPAPER::bitmap(uint8_t x0, uint8_t y0, uint8_t *pBitmap, uint8_t bmp_width, uint8_t bmp_height)
-{
-    theDisplay->bitmap(x0, y0, pBitmap, bmp_width, bmp_height);
-}
-void SFE_DISPLAY_EPAPER::bitmap(uint8_t x0, uint8_t y0, QwiicBitmap &bitmap)
-{
-    theDisplay->bitmap(x0, y0, (QwiicEpBitmap &)bitmap);
-}
-void SFE_DISPLAY_EPAPER::text(uint8_t x0, uint8_t y0, const char *text, uint8_t clr)
-{
-    theDisplay->text(x0, y0, text, clr);
-}
-void SFE_DISPLAY_EPAPER::text(uint8_t x0, uint8_t y0, String &text, uint8_t clr)
-{
-    theDisplay->text(x0, y0, text, clr);
-}
-void SFE_DISPLAY_EPAPER::setCursor(uint8_t x, uint8_t y)
-{
-    theDisplay->setCursor(x, y);
-}
-unsigned int SFE_DISPLAY_EPAPER::getStringWidth(String &text)
-{
-    return theDisplay->getStringWidth(text);
-}
-unsigned int SFE_DISPLAY_EPAPER::getStringWidth(const char *text)
-{
-    return theDisplay->getStringWidth(text);
-}
-size_t SFE_DISPLAY_EPAPER::write(uint8_t theChar)
-{
-    return theDisplay->write(theChar);
-}
 
 //----------------------------------------
 // Routines
@@ -370,7 +366,7 @@ void beginDisplay(TwoWire *i2cBus)
     {
         i2cAddress = kOLEDMicroDefaultAddress;
         if (theDisplay == nullptr)
-            theDisplay = (SFE_DISPLAY *)(new SFE_DISPLAY_OLED);
+            theDisplay = new HYBRID_DISPLAY(true);
         if (!theDisplay)
         {
             systemPrintln("ERROR: Failed to allocate the display data structure!\r\n");
@@ -395,7 +391,7 @@ void beginDisplay(TwoWire *i2cBus)
             i2cAddress = 0x3C;
 
         if (theDisplay == nullptr)
-            theDisplay = (SFE_DISPLAY *)(new SFE_DISPLAY_OLED);
+            theDisplay = new HYBRID_DISPLAY(true);
         if (!theDisplay)
         {
             systemPrintln("ERROR: Failed to allocate oled data structure!\r\n");
@@ -417,10 +413,10 @@ void beginDisplay(TwoWire *i2cBus)
         i2cAddress = kI2cSsd1681184x88RotatedDefaultAddress;
 
         if (theDisplay == nullptr)
-            theDisplay = (SFE_DISPLAY *)(new SFE_DISPLAY_OLED);
+            theDisplay = new HYBRID_DISPLAY(false);
         if (!theDisplay)
         {
-            systemPrintln("ERROR: Failed to allocate oled data structure!\r\n");
+            systemPrintln("ERROR: Failed to allocate e-paper data structure!\r\n");
             return;
         }
     }
@@ -561,8 +557,9 @@ void displayUpdate()
                                           0b01010101); // Single crosshair, blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
+                displayTiltIcon(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
-                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 / 184x88 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_FIX):
@@ -576,7 +573,7 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
-                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 / 184x88 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FLOAT):
@@ -594,7 +591,7 @@ void displayUpdate()
                     paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
-                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 / 184x88 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FIX):
@@ -604,7 +601,7 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
-                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 / 184x88 only
                 setRadioIcons(&iconPropertyList);
                 break;
 
@@ -624,38 +621,38 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
-                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 / 184x88 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_BASE_TEMP_SURVEY_STARTED):
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
-                displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
+                displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 / 184x88 only
                 setRadioIcons(&iconPropertyList);
                 paintBaseTempSurveyStarted(&iconPropertyList);
-                displayBaseSiv(&iconPropertyList); // 128x64 only
+                displayBaseSiv(&iconPropertyList); // 128x64 / 184x88 only
                 break;
             case (STATE_BASE_TEMP_TRANSMITTING):
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
-                displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
+                displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 / 184x88 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
-                displayBaseSiv(&iconPropertyList); // 128x64 only
+                displayBaseSiv(&iconPropertyList); // 128x64 / 184x88 only
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
                 displayBaseSuccess(0); // Show 'Base Started' while the system configures the Base
                 // displayBatteryVsEthernet(&iconPropertyList); // Top right
-                // displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
+                // displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 / 184x88 only
                 // setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_BASE_FIXED_TRANSMITTING):
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
-                displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
+                displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 / 184x88 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
-                displayBaseSiv(&iconPropertyList); // 128x64 only
+                displayBaseSiv(&iconPropertyList); // 128x64 / 184x88 only
                 break;
 
             case (STATE_NTPSERVER_NOT_STARTED):
@@ -676,7 +673,7 @@ void displayUpdate()
                 if (present.display_type == DISPLAY_64x48)
                     paintIPAddress(); // Top left
                 else
-                    displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                    displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 / 184x88 only
             }
             break;
 
@@ -698,7 +695,7 @@ void displayUpdate()
                 if (present.display_type == DISPLAY_64x48)
                     paintIPAddress(); // Top left
                 else
-                    displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                    displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 / 184x88 only
             }
             break;
 
@@ -790,22 +787,22 @@ void displaySplashCommon(bool nameKnown)
 
         // Display the product name
         printTextCenter(getBrandAttributeFromProductVariant(productVariant)->name,
-                        yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+                            yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         if (productVariantProperties->rtkPrefix)
         {
             yPos = yPos + fontHeight + 2;
-            printTextCenter("RTK", yPos, QW_FONT_8X16, 1, false);
+            printTextCenter("RTK", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);
         }
 
         yPos = yPos + fontHeight + 5;
         printTextCenter(nameKnown ? displayName : productVariantProperties->name,
-                        yPos, QW_FONT_8X16, 1, false);
+                        yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);
 
         yPos = yPos + fontHeight + 7;
         char unitFirmware[50];
         firmwareVersionGet(unitFirmware, sizeof(unitFirmware), false);
-        printTextCenter(unitFirmware, yPos, QW_FONT_5X7, 1, false);
+        printTextCenter(unitFirmware, yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
 
         theDisplay->display();
 
@@ -829,11 +826,11 @@ void displayError(const char *errorMessage)
         theDisplay->erase(); // Clear the display's internal buffer
 
         theDisplay->setCursor(0, 0);      // x, y
-        theDisplay->setFont(QW_FONT_5X7); // Set font to smallest
+        theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7); // Set font to smallest
         theDisplay->print("Error:");
 
         theDisplay->setCursor(2, 10);
-        // theDisplay->setFont(QW_FONT_8X16);
+        // theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
         theDisplay->print(errorMessage);
 
         theDisplay->display(); // Push internal buffer to display
@@ -941,9 +938,53 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
                111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999AAAAAAAAAABBBBBBBBBBCCCCCCCC
      01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
     .--------------------------------------------------------------------------------------------------------------------------------
-     |-----4 digit MAC-----|  |--BT-|  |---WiFi----|  |--Cellular-|  |--ESP-|  |-Down-| |--Up--| |-Dynamic/Base| |--Battery / ETH--|
+     |-----4 digit MAC-----|  |--BT-|  |---WiFi----|  |--Cellular-|  |--ESP-|  |-Down-| |--Up--| |-Dynamic/Base|  |--Battery / ETH--|
+
+
+            *                                                                                                          ***         
+         *******                                                        **   *                                        ****         
+        *   *   *                                                       * * *                                        ****          
+       *    *    *                                                      *  *   *                                    ****           
+       *    *    *                                                      *   * *                                     *** *          
+       *    *    *                                                       *   *   *                                  **   *         
+     ******* ******* |----- Horiz Acc (5 chars) (8x16) -----|            *    * *    |---- SIV (3 chars) ---|             *        
+       *    *    *                                                        *    *                                           *       
+       *    *    *                                                        **    *                                           *      
+       *    *    *                                                        ****   *                                         * *     
+        *   *   *                                                         **  ****                                      **    *    
+         *******                                                          **                                           *       *   
+            *                                                           ******                                         *        *  
+            *                                                                                                         *          * 
+                                                                                                                    ***************
 
      |------------------------------------------ IP ------------------------------------------|      |-Corr Source-|       |Logging|
+
+  On 184x88:
+
+               111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999AAAAAAAAAABBBBBBBBBBCCCCCCCCCCDDDDDDDDDDEEEEEEEEEEFFFFFFFFFFHHHHHHHHHHIIIIIIIIIIJJJJ
+     0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123
+    .--------------------------------------------------------------------------------------------------------------------------------
+     |-------------------- 6 digit MAC (10x20) -----------------|    |--BT-|    |---WiFi----|    |--Cellular-|    |--ESP-|    |-Down-|   |--Up--|   |-Dynamic/Base|      |--Battery / ETH--|
+
+
+            *                                                                                                                                                                    ***         
+         *******                                                                                     **   *                                                                     ****         
+        *   *   *                                                                                    * * *                                                                     ****          
+       *    *    *                                                                                   *  *   *                                                                 ****           
+       *    *    *                                                                                   *   * *                                                                  *** *          
+       *    *    *                                                                                    *   *   *                                                               **   *         
+     ******* ******* |----- Horiz Acc (5 chars) (8x16) -----|                                         *    * *    |---- SIV (3 chars) ---|                                          *        
+       *    *    *                                                                                     *    *                                                                        *       
+       *    *    *                                                                                     **    *                                                                        *      
+       *    *    *                                                                                     ****   *                                                                      * *     
+        *   *   *                                                                                      **  ****                                                                   **    *    
+         *******                                                                                       **                                                                        *       *   
+            *                                                                                        ******                                                                      *        *  
+            *                                                                                                                                                                   *          * 
+                                                                                                                                                                              ***************
+
+
+     |----------------------------------------------------------------- IP (15 chars) (10x20) -------------------------------------------------------------|    |-Corr Source-|    |Logging|
 
 */
 
@@ -1264,6 +1305,228 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 }
             }
         }
+        else if (present.display_type == DISPLAY_184x88)
+        {
+            paintMACAddress6digit(0, 0); // Columns 0 to 59 (font 10x20)
+
+            // Bluetooth indicated when connected: Columns 64 to 70 . TODO don't count if BT radio type is OFF.
+            if (bluetoothGetState() == BT_CONNECTED)
+            {
+                prop.duty = 0b11111111;
+                prop.icon = BTSymbol184x88;
+                iconList->push_back(prop);
+            }
+
+            // WiFi : Columns 75 - 87
+            if (wifiStationRunning && networkInterfaceHasInternet(NETWORK_WIFI_STATION))
+            {
+                // Display solid icon based on RSSI
+                displayWiFiIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
+            }
+            else if (wifiStationRunning && (networkInterfaceHasInternet(NETWORK_WIFI_STATION) == false))
+            {
+                // We are not connected, no blink on e-paper
+                displayWiFiNotConnectedIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
+            }
+            else if (wifiSoftApRunning)
+            {
+                // We are in AP mode, solid WiFi icon
+                displayWiFiIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
+            }
+
+#ifdef COMPILE_CELLULAR
+            // Cellular : Columns 92 - 104
+            // From the LARA_R6 AT Command Reference AT+CSQ, RSSI can be 0-31:
+            // 0 RSSI of the network <= -113 dBm
+            // 1 -111 dBm
+            // 2...30 -109 dBm <= RSSI of the network <= -53 dBm
+            // 31 -51 dBm <= RSSI of the network
+            if (cellularIsAttached)
+            {
+                prop.duty = 0b11111111;
+                prop.icon.bitmap = nullptr;
+                // Based on RSSI, select icon
+                if (cellularRSSI >= 31)
+                    prop.icon = CellularSymbol3184x88;
+                else if (cellularRSSI >= 2)
+                    prop.icon = CellularSymbol2184x88;
+                else if (cellularRSSI >= 1)
+                    prop.icon = CellularSymbol1184x88;
+                else
+                    prop.icon = CellularSymbol0184x88;
+                if (prop.icon.bitmap != nullptr)
+                    iconList->push_back(prop);
+            }
+#endif // /COMPILE_CELLULAR
+
+            if (espNowIsPaired()) // ESPNOW : Columns 109 - 116
+            {
+                iconPropertyBlinking prop;
+                prop.duty = 0b11111111;
+                prop.icon.bitmap = nullptr;
+                // Based on RSSI, select icon
+                if (espNowRSSI >= -40)
+                    prop.icon = ESPNowSymbol3184x88;
+                else if (espNowRSSI >= -60)
+                    prop.icon = ESPNowSymbol2184x88;
+                else if (espNowRSSI >= -80)
+                    prop.icon = ESPNowSymbol1184x88;
+                else if (espNowRSSI > -255)
+                    prop.icon = ESPNowSymbol0184x88;
+                // Don't display a symbol if RSSI == -255
+                if (prop.icon.bitmap != nullptr)
+                    iconList->push_back(prop);
+            }
+
+            if (bluetoothGetState() == BT_CONNECTED)
+            {
+                if (bluetoothIncomingRTCM == true) // Download : Columns 121 - 128
+                {
+                    prop.icon = DownloadArrow184x88;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    bluetoothIncomingRTCM = false;
+                }
+                if (bluetoothOutgoingRTCM == true) // Upload : Columns 132 - 139
+                {
+                    prop.icon = UploadArrow184x88;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    bluetoothOutgoingRTCM = false;
+                }
+            }
+
+            if (espNowIsPaired())
+            {
+                if (espNowIncomingRTCM == true) // Download : Columns 121 - 128
+                {
+                    prop.icon = DownloadArrow184x88;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    espNowIncomingRTCM = false;
+                }
+                if (espNowOutgoingRTCM == true) // Upload : Columns 132 - 139
+                {
+                    prop.icon = UploadArrow184x88;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    espNowOutgoingRTCM = false;
+                }
+            }
+
+            if (usbSerialIncomingRtcm)
+            {
+                // Download : Columns 121 - 128
+                prop.icon = DownloadArrow184x88;
+                prop.duty = 0b11111111;
+                iconList->push_back(prop);
+                usbSerialIncomingRtcm = false;
+            }
+
+            bool networkHasInternet = false;
+
+#ifdef COMPILE_ETHERNET
+            if (networkInterfaceHasInternet(NETWORK_ETHERNET))
+                networkHasInternet = true;
+#endif // COMPILE_ETHERNET
+
+#ifdef COMPILE_WIFI
+            if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
+                networkHasInternet = true;
+#endif // COMPILE_WIFI
+
+#ifdef COMPILE_CELLULAR
+            if (networkInterfaceHasInternet(NETWORK_CELLULAR))
+                networkHasInternet = true;
+#endif // COMPILE_CELLULAR
+
+            if (networkHasInternet)
+            {
+                if (netIncomingRTCM == true) // Download : Columns 121 - 128
+                {
+                    prop.icon = DownloadArrow184x88;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    netIncomingRTCM = false;
+                }
+                if (mqttClientDataReceived == true) // Download : Columns 121 - 128
+                {
+                    prop.icon = DownloadArrow184x88;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    mqttClientDataReceived = false;
+                }
+                if (netOutgoingRTCM == true) // Upload : Columns 132 - 139
+                {
+                    prop.icon = UploadArrow184x88;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    netOutgoingRTCM = false;
+                }
+            }
+
+            switch (systemState) // Dynamic Model / Base : Columns 143 - 157
+            {
+            case (STATE_ROVER_NO_FIX):
+            case (STATE_ROVER_FIX):
+            case (STATE_ROVER_RTK_FLOAT):
+            case (STATE_ROVER_RTK_FIX):
+                paintDynamicModel(iconList);
+                break;
+            case (STATE_BASE_TEMP_SETTLE):
+            case (STATE_BASE_TEMP_SURVEY_STARTED): {
+                prop.duty = 0b11111111;
+                prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
+                iconList->push_back(prop);
+            }
+            break;
+            case (STATE_BASE_TEMP_TRANSMITTING): {
+                prop.duty = 0b11111111;
+                prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
+                iconList->push_back(prop);
+            }
+            break;
+            case (STATE_BASE_FIXED_TRANSMITTING): {
+                prop.duty = 0b11111111;
+                prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
+                iconList->push_back(prop);
+            }
+            break;
+            default:
+                break;
+            }
+
+            // On 184x88: put the corrections source icon on the bottom, right of the IP address
+            static bool correctionsIconPosCalculated = false;
+            const uint8_t correctionsIconXPos = 155;
+            static uint8_t correctionsIconYPos = 88;
+            // Calculate the highest (lowest!) Y position for the corrections icon
+            // Do it only once...
+            if (!correctionsIconPosCalculated)
+            {
+                for (int i = 0; i < CORR_NUM; i++)
+                    if ((88 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height)) <
+                        correctionsIconYPos)
+                        correctionsIconYPos =
+                            88 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height);
+                correctionsIconPosCalculated = true;
+            }
+
+            if (inRoverMode() == true)
+            {
+                CORRECTION_ID_T correctionSource = correctionGetSource();
+                if (correctionSource < CORR_NUM)
+                {
+                    prop.duty = 0b11111111;
+                    prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
+                    prop.icon.width = correctionIconAttributes[correctionSource].width;
+                    prop.icon.height = correctionIconAttributes[correctionSource].height;
+                    prop.icon.xPos = correctionsIconXPos + correctionIconAttributes[correctionSource].xOffset;
+                    prop.icon.yPos = correctionsIconYPos + correctionIconAttributes[correctionSource].yOffset;
+                    iconList->push_back(prop);
+                }
+            }
+        }
     }
 }
 
@@ -1514,7 +1777,7 @@ void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
 
 // Bluetooth and ESP Now icons off. WiFi in middle.
 // Blink while no clients are connected
-// This is used on both 64x48 and 128x64 displays
+// This is used on all displays
 void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
 {
     if (online.display == true)
@@ -1526,6 +1789,9 @@ void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
         icon.icon.xPos = (theDisplay->getWidth() / 2) - (icon.icon.width / 2);
         icon.icon.yPos = 0;
 
+        if (present.display_type == DISPLAY_184x88)
+            icon.duty = 0b11111111;
+        else
 #ifdef COMPILE_WIFI
         if (networkInterfaceHasInternet(NETWORK_WIFI_STATION) || wifiSoftApConnected == true)
             icon.duty = 0b11111111;
@@ -1632,7 +1898,7 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
 // Display horizontal accuracy
 void paintHorizontalAccuracy(displayCoords textCoords)
 {
-    theDisplay->setFont(QW_FONT_8X16);                 // Set font to type 1: 8x16
+    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);                 // Set font to type 1: 8x16
     theDisplay->setCursor(textCoords.x, textCoords.y); // x, y
     theDisplay->print(":");
 
@@ -1687,7 +1953,7 @@ void paintClock(std::vector<iconPropertyBlinking> *iconList, bool blinking)
 // Display clock accuracy
 void paintClockAccuracy(displayCoords textCoords)
 {
-    theDisplay->setFont(QW_FONT_8X16);                 // Set font to type 1: 8x16
+    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);                 // Set font to type 1: 8x16
     theDisplay->setCursor(textCoords.x, textCoords.y); // x, y
     theDisplay->print(":");
 
@@ -1914,13 +2180,31 @@ void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
 
 void displayBaseSiv(std::vector<iconPropertyBlinking> *iconList)
 {
-    // Display SIV during Base - but only on 128x64 displays. 64x48 has no room.
+    // Display SIV during Base - but only on 128x64 / 184x88 displays. 64x48 has no room.
     // No support for short / open.
-    if (present.display_type == DISPLAY_128x64)
+    if ((present.display_type == DISPLAY_128x64) || (present.display_type == DISPLAY_184x88))
     {
         displayCoords textCoords = paintSIVIcon(iconList, &BaseSIVIconProperties, 0b11111111);
         paintSIVText(textCoords);
     }
+}
+
+void displayTiltIcon(std::vector<iconPropertyBlinking> *iconList)
+{
+#ifdef COMPILE_IM19_IMU
+    // Display tilt icon - but only on 128x64 / 184x88 displays. 64x48 has no room.
+    if ((present.display_type == DISPLAY_128x64) || (present.display_type == DISPLAY_184x88))
+    {
+        if ((present.imu_im19 == true) && (settings.enableTiltCompensation == true) && (tiltState == TILT_CORRECTING))
+        {
+            const iconProperties *icon = &TiltIconProperties;
+            iconPropertyBlinking prop;
+            prop.icon = icon->iconDisplay[present.display_type];
+            prop.duty = 0b11111111;
+            iconList->push_back(prop);
+        }
+    }
+#endif
 }
 
 void displayHorizontalAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconProperties *icon, uint8_t duty)
@@ -2047,7 +2331,7 @@ void nudgeAndPrintSIV(displayCoords textCoords, uint8_t siv)
 
 void paintSIVText(displayCoords textCoords)
 {
-    theDisplay->setFont(QW_FONT_8X16);                 // Set font to type 1: 8x16
+    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);                 // Set font to type 1: 8x16
     theDisplay->setCursor(textCoords.x, textCoords.y); // x, y
 
     uint8_t siv = gnss->getSatellitesInView();
@@ -2147,12 +2431,12 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
     uint8_t xPos = CrossHairProperties.iconDisplay[present.display_type].xPos;
     uint8_t yPos = CrossHairProperties.iconDisplay[present.display_type].yPos;
 
-    theDisplay->setFont(QW_FONT_5X7);
+    theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7);
     theDisplay->setCursor(xPos, yPos + 5); // x, y
     theDisplay->print("Mean:");
 
     theDisplay->setCursor(xPos + 29, yPos + 2); // x, y
-    theDisplay->setFont(QW_FONT_8X16);
+    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
     if (gnss->getSurveyInMeanAccuracy() < 10.0) // Error check
         theDisplay->print(gnss->getSurveyInMeanAccuracy(), 2);
     else
@@ -2164,7 +2448,7 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
     if (gnss->supportsAntennaShortOpen() == false)
     {
         theDisplay->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
-        theDisplay->setFont(QW_FONT_5X7);
+        theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7);
         theDisplay->print("Time:");
     }
     else
@@ -2180,13 +2464,13 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
         else
         {
             theDisplay->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
-            theDisplay->setFont(QW_FONT_5X7);
+            theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7);
             theDisplay->print("Time:");
         }
     }
 
     theDisplay->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]) + 30, yPos + 1); // x, y
-    theDisplay->setFont(QW_FONT_8X16);
+    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
     if (gnss->getSurveyInObservationTime() < 1000) // Error check
         theDisplay->print(gnss->getSurveyInObservationTime());
     else
@@ -2220,11 +2504,11 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
         yPos = yPos - 1; // Move text up by 1 pixel on 64x48. Note: this is brittle.
 
     if (settings.baseCasterOverride == true)
-        printTextAt("BaseCast", xPos + 4, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
+        printTextAt("BaseCast", xPos + 4, yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1); // text, y, font type, kerning
     else if (casting)
-        printTextAt("Casting", xPos + 4, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
+        printTextAt("Casting", xPos + 4, yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1); // text, y, font type, kerning
     else
-        printTextAt("Xmitting", xPos, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
+        printTextAt("Xmitting", xPos, yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1); // text, y, font type, kerning
 
     xPos = SIVIconProperties.iconDisplay[present.display_type].xPos;
     yPos = SIVIconProperties.iconDisplay[present.display_type].yPos;
@@ -2232,7 +2516,7 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
     if (gnss->supportsAntennaShortOpen() == false)
     {
         theDisplay->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
-        theDisplay->setFont(QW_FONT_5X7);
+        theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7);
         theDisplay->print("RTCM:");
     }
     else
@@ -2248,7 +2532,7 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
         else
         {
             theDisplay->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
-            theDisplay->setFont(QW_FONT_5X7);
+            theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7);
             theDisplay->print("RTCM:");
         }
     }
@@ -2260,7 +2544,7 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
         theDisplay->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]) + 28,
                         yPos + 1); // x, y - Push towards colon to make room for log icon
 
-    theDisplay->setFont(QW_FONT_8X16);  // Set font to type 1: 8x16
+    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);  // Set font to type 1: 8x16
     theDisplay->print(rtcmPacketsSent); // rtcmPacketsSent is controlled in processRTCM()
 
     paintResets();
@@ -2271,12 +2555,12 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
 void paintConnectingToNtripCaster()
 {
     int yPos = 18;
-    printTextCenter("Caster", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+    printTextCenter("Caster", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
     int textX = 3;
     int textY = 33;
     int textKerning = 6;
-    theDisplay->setFont(QW_FONT_8X16);
+    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
 
     printTextwithKerning("Connecting", textX, textY, textKerning);
 }
@@ -2292,7 +2576,7 @@ void paintIPAddress()
              "0.0.0.0");
 #endif // COMPILE_ETHERNET
 
-    theDisplay->setFont(QW_FONT_5X7); // Set font to smallest
+    theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7); // Set font to smallest
     theDisplay->setCursor(0, 3);
 
     // If we can print the full IP address without shuttling
@@ -2348,14 +2632,51 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
             {
                 snprintf(myAddress, sizeof(myAddress), "%s", ipAddress.toString().c_str());
 
-                theDisplay->setFont(QW_FONT_5X7); // Set font to smallest
+                theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7); // Set font to smallest
                 theDisplay->setCursor(0, 55);
+                theDisplay->print(myAddress);
+            }
+        }
+    }
+    // Max width: 15*6 = 90 pixels (6 pixels per character, nnn.nnn.nnn.nnn)
+    else if (present.display_type == DISPLAY_184x88)
+    {
+        char myAddress[16];
+
+        if (networkHasInternet() || wifiSoftApRunning)
+        {
+            // Reduce calls to networkGetIpAddress
+            priority = networkGetPriority();
+            if (priority != networkPriorityForDisplay)
+            {
+                networkPriorityForDisplay = priority;
+                ipAddress = networkGetIpAddress();
+            }
+
+            // Display the IP address when it is available
+            if (ipAddress != IPAddress((uint32_t)0))
+            {
+                snprintf(myAddress, sizeof(myAddress), "%s", ipAddress.toString().c_str());
+
+                theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10x20);
+                theDisplay->setCursor(0, 68);
                 theDisplay->print(myAddress);
             }
         }
     }
 }
 
+void paintMACAddress6digit(uint8_t xPos, uint8_t yPos) // 184x88 e-paper only
+{
+    char macAddress[7];
+    const uint8_t *rtkMacAddress = networkGetMacAddress();
+
+    // Print six characters of MAC
+    snprintf(macAddress, sizeof(macAddress), "%02X%02X%02X", rtkMacAddress[3], rtkMacAddress[4], rtkMacAddress[5]);
+    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10x20);
+    theDisplay->setCursor(xPos, yPos);
+    theDisplay->print(macAddress);
+}
 void paintMACAddress4digit(uint8_t xPos, uint8_t yPos)
 {
     char macAddress[5];
@@ -2363,7 +2684,7 @@ void paintMACAddress4digit(uint8_t xPos, uint8_t yPos)
 
     // Print four characters of MAC
     snprintf(macAddress, sizeof(macAddress), "%02X%02X", rtkMacAddress[4], rtkMacAddress[5]);
-    theDisplay->setFont(QW_FONT_5X7); // Set font to smallest
+    theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7); // Set font to smallest
     theDisplay->setCursor(xPos, yPos);
     theDisplay->print(macAddress);
 }
@@ -2374,7 +2695,7 @@ void paintMACAddress2digit(uint8_t xPos, uint8_t yPos)
 
     // Print only last two digits of MAC
     snprintf(macAddress, sizeof(macAddress), "%02X", rtkMacAddress[5]);
-    theDisplay->setFont(QW_FONT_5X7); // Set font to smallest
+    theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7); // Set font to smallest
     theDisplay->setCursor(xPos, yPos);
     theDisplay->print(macAddress);
 }
@@ -2389,9 +2710,9 @@ void displayBaseStart(uint16_t displayTime)
         uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight + 1;
 
         if (settings.baseCasterOverride == true)
-            printTextCenter("BaseCast", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+            printTextCenter("BaseCast", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         else
-            printTextCenter("Base", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+            printTextCenter("Base", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         theDisplay->display();
 
@@ -2487,8 +2808,8 @@ void displayRoverStart(uint16_t displayTime)
         uint8_t fontHeight = 15;
         uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
 
-        printTextCenter("Rover", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, 1, false);
+        printTextCenter("Rover", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);
 
         theDisplay->display();
 
@@ -2505,11 +2826,11 @@ void displayNoRingBuffer(uint16_t displayTime)
         uint8_t fontHeight = 8;
         uint8_t yPos = theDisplay->getHeight() / 3 - fontHeight;
 
-        printTextCenter("Fix GNSS", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Fix GNSS", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
-        printTextCenter("Handler", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Handler", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
-        printTextCenter("Buffer Sz", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Buffer Sz", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         theDisplay->display();
 
@@ -2526,8 +2847,8 @@ void displayRoverSuccess(uint16_t displayTime)
         uint8_t fontHeight = 15;
         uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
 
-        printTextCenter("Rover", yPos, QW_FONT_8X16, 1, false);                // text, y, font type, kerning, inverted
-        printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Rover", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);                // text, y, font type, kerning, inverted
+        printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         theDisplay->display();
 
@@ -2544,8 +2865,8 @@ void displayRoverFail(uint16_t displayTime)
         uint8_t fontHeight = 15;
         uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
 
-        printTextCenter("Rover", yPos, QW_FONT_8X16, 1, false);               // text, y, font type, kerning, inverted
-        printTextCenter("Failed", yPos + fontHeight, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Rover", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);               // text, y, font type, kerning, inverted
+        printTextCenter("Failed", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         theDisplay->display();
 
@@ -2580,8 +2901,8 @@ void displaySurveyStart(uint16_t displayTime)
         uint8_t fontHeight = 15;
         uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
 
-        printTextCenter("Survey", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, 1, false);
+        printTextCenter("Survey", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);
 
         theDisplay->display();
 
@@ -2598,8 +2919,8 @@ void displaySurveyStarted(uint16_t displayTime)
         uint8_t fontHeight = 15;
         uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
 
-        printTextCenter("Survey", yPos, QW_FONT_8X16, 1, false);               // text, y, font type, kerning, inverted
-        printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Survey", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);               // text, y, font type, kerning, inverted
+        printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         theDisplay->display();
 
@@ -2617,8 +2938,8 @@ void displaySDFail(uint16_t displayTime)
         uint8_t fontHeight = 15;
         uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
 
-        printTextCenter("Format", yPos, QW_FONT_8X16, 1, false);               // text, y, font type, kerning, inverted
-        printTextCenter("SD Card", yPos + fontHeight, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Format", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);               // text, y, font type, kerning, inverted
+        printTextCenter("SD Card", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         theDisplay->display();
 
@@ -2632,6 +2953,15 @@ void displayWiFiFullIcon(std::vector<iconPropertyBlinking> *iconList, iconProper
 {
     prop.duty = dutyCycle;
     prop.icon = *wifiIconTable[position][3];
+    iconList->push_back(prop);
+}
+
+// Display the not connected WiFi icon
+void displayWiFiNotConnectedIcon(std::vector<iconPropertyBlinking> *iconList, iconPropertyBlinking prop, uint8_t position,
+                                 uint8_t dutyCycle)
+{
+    prop.duty = dutyCycle;
+    prop.icon = *wifiIconTable[position][4];
     iconList->push_back(prop);
 }
 
@@ -2685,15 +3015,15 @@ void displayFirmwareUpdateProgress(int percentComplete)
         int yPos = 3;
         int fontHeight = 8;
 
-        printTextCenter("Firmware", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Firmware", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         yPos = yPos + fontHeight + 1;
-        printTextCenter("Update", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Update", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         yPos = yPos + fontHeight + 3;
         char temp[50];
         snprintf(temp, sizeof(temp), "%d%%", percentComplete);
-        printTextCenter(temp, yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter(temp, yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         theDisplay->display(); // Push internal buffer to display
     }
@@ -2712,7 +3042,7 @@ void displayHalt()
         theDisplay->erase(); // Clear the display's internal buffer
         int yPos = (theDisplay->getHeight() - 16) / 2;
         QwiicFont *font = (theDisplay->getWidth() > 64) ? (QwiicFont *)&QW_FONT_31X48 : (QwiicFont *)&QW_FONT_8X16;
-        printTextCenter("Halt", yPos, *font, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Halt", yPos, *font, QW_EP_FONT_31X48, 1, false); // text, y, font type, kerning, inverted
         theDisplay->display();                                // Push internal buffer to display
     }
 }
@@ -2800,10 +3130,10 @@ void paintDisplaySetup()
                     char miniProfileName[nameWidth] = {0};
                     snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", it->newProfile,
                              it->name); // Prefix with index #
-                    printTextCenter(miniProfileName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                    printTextCenter(miniProfileName, 12 * printedButtons, QW_FONT_8X16, QW_EP_FONT_8X16, 1, printedButtons == 0);
                 }
                 else
-                    printTextCenter(it->name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                    printTextCenter(it->name, 12 * printedButtons, QW_FONT_8X16, QW_EP_FONT_8X16, 1, printedButtons == 0);
                 printedButtons++;
             }
         }
@@ -2821,7 +3151,7 @@ void paintDisplaySetup()
         {
             if (printedButtons < maxButtons) // Do we have room to display it?
             {
-                printTextCenter(it->name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                printTextCenter(it->name, 12 * printedButtons, QW_FONT_8X16, QW_EP_FONT_8X16, 1, printedButtons == 0);
                 printedButtons++;
             }
 
@@ -2834,11 +3164,11 @@ void paintDisplaySetup()
 // Given text, and location, print text center of the screen.
 // In a perfect world, this would work correctly with all fonts.
 // But, in reality, it is hardwired for 5X7 and 8X16...
-void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, uint8_t kerning,
-                     bool highlight) // text, y, font type, kearning, inverted
+void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, QwiicEpFont &fontEpType,
+                     uint8_t kerning, bool highlight) // text, y, font type, kearning, inverted
 {
-    theDisplay->setFont(fontType);
-    theDisplay->setDrawMode(grROPXOR);
+    theDisplay->setFont(fontType, fontEpType);
+    theDisplay->setDrawMode(grROPXOR, grEpROPXOR);
 
     uint8_t fontWidth = fontType.width;
     if (fontWidth == 8)
@@ -2889,11 +3219,11 @@ void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, uint8_
 }
 
 // Given text, and location, print text to the screen
-void printTextAt(const char *text, uint8_t xPos, uint8_t yPos, QwiicFont &fontType,
+void printTextAt(const char *text, uint8_t xPos, uint8_t yPos, QwiicFont &fontType, QwiicEpFont &fontEpType,
                  uint8_t kerning) // text, x, y, font type, kearning, inverted
 {
-    theDisplay->setFont(fontType);
-    theDisplay->setDrawMode(grROPXOR);
+    theDisplay->setFont(fontType, fontEpType);
+    theDisplay->setDrawMode(grROPXOR, grEpROPXOR);
 
     uint8_t fontWidth = fontType.width;
     if (fontWidth == 8)
@@ -2938,7 +3268,7 @@ void displayMessage(const char *message, uint16_t displayTime)
         token = strtok_r(temp, " ", &preservedPointer);
         while (token != nullptr)
         {
-            printTextCenter(token, yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+            printTextCenter(token, yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
             token = strtok_r(nullptr, " ", &preservedPointer);
             yPos += fontHeight;
         }
@@ -2955,7 +3285,7 @@ void paintResets()
     {
         if (present.display_type == DISPLAY_64x48)
         {
-            theDisplay->setFont(QW_FONT_5X7);            // Small font
+            theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7);            // Small font
             theDisplay->setCursor(16 + (8 * 3) + 7, 38); // x, y
 
             if (settings.enablePrintBufferOverrun == false)
@@ -2965,7 +3295,7 @@ void paintResets()
         }
         else // if (present.display_type == DISPLAY_128x64)
         {
-            theDisplay->setFont(QW_FONT_5X7);                 // Small font
+            theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7);                 // Small font
             theDisplay->setCursor(0, theDisplay->getHeight() - 10); // x, y
 
             const int bufSize = 20;
@@ -3007,7 +3337,7 @@ void paintKeyDaysRemaining(int daysRemaining, uint16_t displayTime)
 
         int rightSideStart = 24; // Force the small text to rightside of screen
 
-        theDisplay->setFont(QW_FONT_LARGENUM);
+        theDisplay->setFont(QW_FONT_LARGENUM, QW_EP_FONT_LARGENUM);
 
         String days = String(daysRemaining);
         int dayTextWidth = theDisplay->getStringWidth(days);
@@ -3017,7 +3347,7 @@ void paintKeyDaysRemaining(int daysRemaining, uint16_t displayTime)
         theDisplay->setCursor(largeTextX, 0);
         theDisplay->print(daysRemaining);
 
-        theDisplay->setFont(QW_FONT_5X7);
+        theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7);
 
         int x = ((theDisplay->getWidth() - rightSideStart) / 2) + rightSideStart; // Center point for x coord
         int y = 0;
@@ -3065,21 +3395,21 @@ void paintKeyUpdateFail(uint16_t displayTime)
     {
         theDisplay->erase();
 
-        theDisplay->setFont(QW_FONT_8X16);
+        theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
 
         int y = 0;
         int fontHeight = 13;
 
-        printTextCenter("PP", y, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("PP", y, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         y += fontHeight;
-        printTextCenter("Update", y, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Update", y, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         y += fontHeight;
-        printTextCenter("Failed", y, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Failed", y, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         y += fontHeight + 1;
-        printTextCenter("No Network", y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("No Network", y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         theDisplay->display();
 
@@ -3103,16 +3433,16 @@ void paintNtripWiFiFail(uint16_t displayTime, bool Client)
 
         const char *string = Client ? "Client" : "Server";
 
-        printTextCenter("NTRIP", y, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("NTRIP", y, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         y += fontHeight;
-        printTextCenter(string, y, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter(string, y, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         y += fontHeight;
-        printTextCenter("Failed", y, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Failed", y, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         y += fontHeight + 1;
-        printTextCenter("No WiFi", y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("No WiFi", y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         theDisplay->display();
 
@@ -3165,15 +3495,15 @@ void paintKeyProvisionFail(uint16_t displayTime)
     {
         theDisplay->erase();
 
-        theDisplay->setFont(QW_FONT_5X7);
+        theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7);
 
         int y = 0;
         int fontHeight = 8;
 
-        printTextCenter("Failed", y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Failed", y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         y += fontHeight;
-        printTextCenter("ZTP ID:", y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("ZTP ID:", y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         // The device ID is 14 characters long so we have to split it into three lines
         char hardwareID[15];
@@ -3181,15 +3511,15 @@ void paintKeyProvisionFail(uint16_t displayTime)
 
         snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X", rtkMacAddress[0], rtkMacAddress[1], rtkMacAddress[2]);
         y += fontHeight;
-        printTextCenter(hardwareID, y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter(hardwareID, y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X", rtkMacAddress[3], rtkMacAddress[4], rtkMacAddress[5]);
         y += fontHeight;
-        printTextCenter(hardwareID, y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter(hardwareID, y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         snprintf(hardwareID, sizeof(hardwareID), "%02X", productVariant);
         y += fontHeight;
-        printTextCenter(hardwareID, y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter(hardwareID, y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         theDisplay->display();
 
@@ -3221,7 +3551,7 @@ void displayNtpStart(uint16_t displayTime)
         uint8_t fontHeight = 15;
         uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
 
-        printTextCenter("NTP", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("NTP", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         theDisplay->display();
 
@@ -3238,8 +3568,8 @@ void displayNtpStarted(uint16_t displayTime)
         uint8_t fontHeight = 15;
         uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
 
-        printTextCenter("NTP", yPos, QW_FONT_8X16, 1, false);                  // text, y, font type, kerning, inverted
-        printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("NTP", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);                  // text, y, font type, kerning, inverted
+        printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         theDisplay->display();
 
@@ -3256,8 +3586,8 @@ void displayNtpNotReady(uint16_t displayTime)
         uint8_t fontHeight = 8;
         uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
 
-        printTextCenter("Ethernet", yPos, QW_FONT_5X7, 1, false);               // text, y, font type, kerning, inverted
-        printTextCenter("Not Ready", yPos + fontHeight, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Ethernet", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);               // text, y, font type, kerning, inverted
+        printTextCenter("Not Ready", yPos + fontHeight, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         theDisplay->display();
 
@@ -3274,8 +3604,8 @@ void displayNTPFail(uint16_t displayTime)
         uint8_t fontHeight = 8;
         uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
 
-        printTextCenter("NTP", yPos, QW_FONT_5X7, 1, false);                 // text, y, font type, kerning, inverted
-        printTextCenter("Failed", yPos + fontHeight, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("NTP", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);                 // text, y, font type, kerning, inverted
+        printTextCenter("Failed", yPos + fontHeight, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         theDisplay->display();
 
@@ -3385,19 +3715,19 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
     // Display the SSID header
     if (displaySsid)
     {
-        printTextCenter("SSID:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("SSID:", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
         yPos = yPos + fontHeight + 1;
     }
 
     // Display the SSID
-    printTextCenter(mySSID, yPos, QW_FONT_5X7, 1, false);
+    printTextCenter(mySSID, yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
     yPos = yPos + fontHeight + 3;
 
     // Display the IP header
-    printTextCenter("IP:", yPos, QW_FONT_5X7, 1, false);
+    printTextCenter("IP:", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
     yPos = yPos + fontHeight + 1;
 
-    printTextCenter(myIP, yPos, QW_FONT_5X7, 1, false);
+    printTextCenter(myIP, yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
 }
 
 // Show GNSS update - button exit
@@ -3424,13 +3754,13 @@ void paintGenericUpdate(const char *device, const char *update)
         theDisplay->erase(); // Clear the display's internal buffer
         int yPos = (theDisplay->getHeight() - 38) / 2;
         uint8_t fontHeight = 8;
-        printTextCenter(device, yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter(device, yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
         yPos = yPos + fontHeight + 1;
-        printTextCenter(update, yPos, QW_FONT_5X7, 1, false);
+        printTextCenter(update, yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
         yPos = yPos + fontHeight + 3;
-        printTextCenter("Button", yPos, QW_FONT_5X7, 1, true); // text, y, font type, kerning, inverted
+        printTextCenter("Button", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, true); // text, y, font type, kerning, inverted
         yPos = yPos + fontHeight + 1;
-        printTextCenter("To Exit", yPos, QW_FONT_5X7, 1, true);
+        printTextCenter("To Exit", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, true);
         theDisplay->display(); // Push internal buffer to display
     }
 }
