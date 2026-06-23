@@ -594,11 +594,11 @@ const uint8_t Antenna_Open[] = {0x00, 0x00, 0x00, 0x60, 0x70, 0x1F, 0x0F, 0xC0, 
         0x40|      *        |
         0x80|       *       |
         0x01|        *      |
-        0x02|       * *     |
-        0x04|    **    *    |
-        0x08|   *       *   |
-        0x10|   *        *  |
-        0x20|  *          * |
+        0x02|        **     |
+        0x04|      **  *    |
+        0x08|     *     *   |
+        0x10|     *      *  |
+        0x20|    *        * |
         0x40|***************|
             '---------------'
 */
@@ -606,7 +606,7 @@ const uint8_t Antenna_Open[] = {0x00, 0x00, 0x00, 0x60, 0x70, 0x1F, 0x0F, 0xC0, 
 const int Tilt_Height = 15;
 const int Tilt_Width = 15;
 const uint8_t TiltIcon[] = {0x38, 0x3C, 0x1E, 0x0F, 0x17, 0x23, 0x40, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x07, 0x08, 0x10, 0x10, 0x10, 0x7F, 0x10, 0x10, 0x10, 0x08, 0x07, 0x00, 0x00};
+                            0x40, 0x40, 0x40, 0x40, 0x60, 0x58, 0x44, 0x44, 0x43, 0x42, 0x44, 0x48, 0x50, 0x60, 0x40};
 
 /*
     BaseTemporary [14, 12]
@@ -2139,6 +2139,7 @@ const uint8_t TiltIconYPos128x64 = 26;
 const uint8_t TiltIconXPos184x88 = 169;
 const uint8_t TiltIconYPos184x88 = 34;
 
+// 128x64 and 184x88 only. 64x48 is just a dummy...
 const iconProperties TiltIconProperties = {{{ &TiltIcon, Tilt_Width, Tilt_Height, TiltIconXPos128x64, TiltIconYPos128x64 },
                                             { &TiltIcon, Tilt_Width, Tilt_Height, TiltIconXPos128x64, TiltIconYPos128x64 },
                                             { &TiltIcon, Tilt_Width, Tilt_Height, TiltIconXPos184x88, TiltIconYPos184x88 }}};
