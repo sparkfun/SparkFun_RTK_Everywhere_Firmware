@@ -393,8 +393,7 @@ void tiltStop()
         SerialForTilt = nullptr;
     }
 
-    if (tiltState == TILT_CORRECTING)
-        beepDurationMs(1000); // Indicate we are going offline
+    beepDurationMs(1000); // Indicate we are going offline
 
     tiltState = TILT_OFFLINE;
 }
