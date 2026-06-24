@@ -219,3 +219,19 @@ bool configureUart2(HardwareSerial ** hwSerialPort)
     *hwSerialPort = serialPort;
     return true;
 }
+
+//----------------------------------------
+// Count the application partitions
+//----------------------------------------
+int countAppPartitions()
+{
+    // Count app partitions
+    int appPartitions = 0;
+    esp_partition_iterator_t it = esp_partition_find(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, nullptr);
+    while (it != nullptr)
+    {
+        appPartitions++;
+        it = esp_partition_next(it);
+    }
+    return appPartitions;
+}
