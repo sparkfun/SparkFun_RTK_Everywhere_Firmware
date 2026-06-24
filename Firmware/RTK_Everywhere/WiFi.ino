@@ -11,7 +11,6 @@ Wifi.ino
 //****************************************
 
 #define WIFI_DEFAULT_CHANNEL 1
-#define WIFI_IP_ADDRESS_TIMEOUT_MSEC (15 * MILLISECONDS_IN_A_SECOND)
 #define WIFI_CONNECTION_STABLE_MSEC (15 * MILLISECONDS_IN_A_MINUTE)
 
 static const char *wifiAuthorizationName[] = {
