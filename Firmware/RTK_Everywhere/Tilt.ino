@@ -316,6 +316,14 @@ void beginTilt()
 
     bool result = true;
 
+    result &= tiltSensor->getAppVersion(imuAppVersionInt);
+    if (settings.enableImuDebug == true)
+    {
+        systemPrintf("IM19 App Version: %d\r\n", imuAppVersionInt);
+        tiltSensor->getVersion(imuFirmwareVersion, sizeof(imuFirmwareVersion));
+        systemPrintf("IM19 Version: %s\r\n", imuFirmwareVersion);
+    }
+
     // The filter has a set of default parameters, which can be loaded when setting an error.
     result &= tiltSensor->sendCommand("LOAD_DEFAULT");
 
@@ -325,13 +333,20 @@ void beginTilt()
     // Use serial port 1 as the main output with combined navigation data output
     result &= tiltSensor->sendCommand("NAVI_OUTPUT=UART1,ON");
 
+    // The following commands take time to output their full response. Delay to allow the serial to arrive, and then be
+    // flushed by the next sendCommand().
+
     // If defined, set the IMU installation angle - before LEVER_ARM2
     // "the AT+INSTALL_ANGLE command must be sent firstly"
     if (strlen(variantHousingProperties->installAngle) > 0)
         result &= tiltSensor->sendCommand(variantHousingProperties->installAngle);
 
+    delay(25);
+
     // Set the LEVER_ARM(2) distance of the antenna ARP from the IMU
     result &= tiltSensor->sendCommand(variantHousingProperties->leverArm);
+
+    delay(25);
 
     // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
     // POC 19.25mm = 1915.7mm
@@ -344,6 +359,8 @@ void beginTilt()
         systemPrintf("Setting club vector to: %s\r\n", clubVector);
 
     result &= tiltSensor->sendCommand(clubVector);
+
+    delay(25);
 
     // Configure interface type
     result &= tiltSensor->sendCommand(variantHousingProperties->gnssCard);
@@ -358,8 +375,14 @@ void beginTilt()
     // result &= tiltSensor->sendCommand("MEMS_OUTPUT=UART1,ON"); //Stock firmware enables MEMS
     result &= tiltSensor->sendCommand("MEMS_OUTPUT=UART1,OFF");
 
-    // Unknown new command for v2
-    result &= tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); // From stock firmware
+    // The 'CORRECT_HOLDER' command is not supported on app versions 11.1 and later.
+    // The command *is* supported on older 6.1 firmware. The command is not documented in the IM19 datasheet, but was
+    // found in the Torch v2 example firmware.
+    if (imuAppVersionInt == 610)
+    {
+        result &=
+            tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); // Unknown new command found in Torch v2 example firmware
+    }
 
     // Trigger IMU on PPS from GNSS
     result &= tiltSensor->sendCommand("SET_PPS_EDGE=RISING");
