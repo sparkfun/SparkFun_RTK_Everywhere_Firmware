@@ -6,6 +6,8 @@ Work_Arounds.ino
 
 bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC;
 
+bool wifiStationSsidSet;
+
 //----------------------------------------
 // Blink the bluetooth LED
 //----------------------------------------
@@ -323,6 +325,15 @@ void serialInputClear()
 {
     while (Serial.available())
         Serial.read();
+}
+
+//----------------------------------------
+// Determine if at least one set of remote access point credentials
+// (SSID, password) are available
+//----------------------------------------
+bool wifiStationIsSsidSet()
+{
+    return wifiStationSsidSet;
 }
 
 //----------------------------------------

@@ -622,7 +622,7 @@ void deviceFirmwareInit(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             break;
 
         // Determine if the network is online
-        ctx->_networkConfigured = (present.ethernet_ws5500 || wifiStationSsidSet);
+        ctx->_networkConfigured = (present.ethernet_ws5500 || wifiStationIsSsidSet());
         if ((present.microSd == false) && (ctx->_networkConfigured == false))
         {
             systemPrintf("Network not configured!\r\n");

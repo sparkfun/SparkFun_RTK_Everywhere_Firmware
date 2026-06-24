@@ -871,6 +871,14 @@ const char *wifiStationGetStateName(uint8_t state)
 }
 
 //*********************************************************************
+// Determine if at least one set of remote access point credentials
+// (SSID, password) are available
+bool wifiStationIsSsidSet()
+{
+    return wifiStationSsidSet;
+}
+
+//*********************************************************************
 // Stop the WiFi station
 // Inputs:
 //   fileName: Name of file calling the enable routine
