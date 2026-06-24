@@ -19,7 +19,7 @@ Device_Update.ino
 
 #include "settings.h"
 #include "Work_Arounds.h"
-#include "secrets.h"
+#include "Secrets.h"
 
 //----------------------------------------
 // Hardware support
