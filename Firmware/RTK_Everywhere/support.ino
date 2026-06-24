@@ -1345,3 +1345,12 @@ int countAppPartitions()
     }
     return appPartitions;
 }
+
+//----------------------------------------
+// Discard any input data
+//----------------------------------------
+void serialInputClear()
+{
+    while (Serial.available())
+        Serial.read();
+}

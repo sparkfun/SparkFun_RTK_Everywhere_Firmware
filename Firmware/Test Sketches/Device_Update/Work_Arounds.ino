@@ -319,15 +319,6 @@ void rtkValidateHeap(const char *string)
 }
 
 //----------------------------------------
-// Discard any input data
-//----------------------------------------
-void serialInputClear()
-{
-    while (Serial.available())
-        Serial.read();
-}
-
-//----------------------------------------
 // Determine if at least one set of remote access point credentials
 // (SSID, password) are available
 //----------------------------------------
