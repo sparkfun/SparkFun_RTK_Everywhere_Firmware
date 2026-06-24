@@ -1980,6 +1980,7 @@ struct struct_online
     bool udpServer = false;
     bool webServer = false;
     bool authenticationCoPro = false; // MFi authentication
+    bool imu_im19 = false;
 } online;
 
 typedef uint8_t NetIndex_t;     // Index into the networkInterfaceTable

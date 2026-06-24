@@ -1687,6 +1687,9 @@ void menuInstrument()
         systemPrintln();
         systemPrintln("Menu: Instrument Setup");
 
+        if(online.imu_im19 == true)
+            systemPrintf("IM19 Version: %s\r\n", imuFirmwareVersion);
+
         // Print the combined APC
         systemPrintf("Combined Height of Instrument: %0.3fm\r\n",
                      ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0));

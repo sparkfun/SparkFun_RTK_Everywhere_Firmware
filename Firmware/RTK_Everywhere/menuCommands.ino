@@ -1476,6 +1476,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "rtkFirmwareVersion", (char *)printRtkFirmwareVersion());
     stringRecord(newSettings, "gnssFirmwareVersion", (char *)printGnssModuleInfo());
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
+    stringRecord(newSettings, "imuFirmwareVersion", (char *)imuFirmwareVersion);
 
     char apDeviceBTID[30];
     snprintf(apDeviceBTID, sizeof(apDeviceBTID), "Device Bluetooth ID: %s", serialNumber);

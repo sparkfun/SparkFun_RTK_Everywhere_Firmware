@@ -622,7 +622,6 @@ function parseIncoming(msg) {
         }
         else if (id.includes("rtkFirmwareVersion")) {
             ge("rtkFirmwareVersion").innerHTML = val;
-            ge("rtkFirmwareVersionUpgrade").innerHTML = val;
         }
         else if (id.includes("confirmReset")) {
             resetComplete();
@@ -879,6 +878,14 @@ function parseIncoming(msg) {
                 ge("shutdownNoChargeTimeoutMinutesCheckbox").checked = false;
                 hide("shutdownNoChargeTimeoutMinutesDetails");
             }
+        }
+        else if (id.includes("imuFirmwareVersion")) {
+            ge("imuFirmwareVersion").innerHTML = val;
+            show("imuFirmwareVersionPresent");
+        }
+        else if (id.includes("loraFirmwareVersion")) {
+            ge("loraFirmwareVersion").innerHTML = val;
+            show("loraFirmwareVersionPresent");
         }
 
         //Convert incoming mm to local meters

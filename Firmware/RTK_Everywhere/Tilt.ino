@@ -68,7 +68,10 @@ void tiltUpdate()
 
     case TILT_DISABLED:
         if (settings.enableTiltCompensation == true && tiltFailedBegin == false)
+        {
             tiltState = TILT_OFFLINE;
+            online.imu_im19 = false;
+        }
         break;
 
     case TILT_OFFLINE: {
@@ -86,6 +89,7 @@ void tiltUpdate()
             systemPrintln("Tilt sensor failed to configure after multiple attempts.");
             tiltFailedBegin = true;
             tiltState = TILT_DISABLED;
+            online.imu_im19 = false;
         }
     }
     break;
@@ -190,7 +194,8 @@ void tiltUpdate()
         break;
 
     case TILT_REQUEST_STOP:
-        tiltStop(); // Changes state to TILT_OFFILINE
+        tiltStop(); // Changes state to TILT_OFFLINE
+
         break;
     }
 }
@@ -317,10 +322,11 @@ void beginTilt()
     bool result = true;
 
     result &= tiltSensor->getAppVersion(imuAppVersionInt);
+    result &= tiltSensor->getVersion(imuFirmwareVersion, sizeof(imuFirmwareVersion));
+
     if (settings.enableImuDebug == true)
     {
         systemPrintf("IM19 App Version: %d\r\n", imuAppVersionInt);
-        tiltSensor->getVersion(imuFirmwareVersion, sizeof(imuFirmwareVersion));
         systemPrintf("IM19 Version: %s\r\n", imuFirmwareVersion);
     }
 
@@ -399,6 +405,7 @@ void beginTilt()
         {
             systemPrintln("Tilt sensor configuration complete");
             tiltState = TILT_STARTED;
+            online.imu_im19 = true;
             return; // Success
         }
     }
@@ -431,6 +438,7 @@ void tiltStop()
         beepDurationMs(1000); // Indicate we are going offline
 
     tiltState = TILT_OFFLINE;
+    online.imu_im19 = false;
 }
 
 // Called by other tasks. Prevents stopping serial port while within a library transaction.

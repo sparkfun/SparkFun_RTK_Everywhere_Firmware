@@ -114,8 +114,6 @@
 
             <div align="center" class="small left">
                 Model: <span id="platformPrefix" style="display:inline;">Loading</span><br>
-                RTK Everywhere Firmware: <span id="rtkFirmwareVersion" style="display:inline;">v0.0</span><br>
-                <span id="gnssFirmwareVersion" style="display:inline;">GNSS Firmware: v0.0</span><br>
                 <span id="deviceBTID" style="display:inline;">Bluetooth ID: 0000</span><br>
                 <span id="coordinatesLLH" style="display:inline;">LLh:
                     <span id="geodeticLat" style="display:inline;">40.09029479</span>,
@@ -454,7 +452,8 @@
 
                         <div class="form-group row" id="lg290pRtkDifferentialAgeConfig">
                             <div class="form-group row">
-                                <label for="lg290pRtkDifferentialAge" class="col-sm-4 col-6 col-form-label">RTK Differential Age:
+                                <label for="lg290pRtkDifferentialAge" class="col-sm-4 col-6 col-form-label">RTK
+                                    Differential Age:
                                     <span class="tt" data-bs-placement="right"
                                         title="Max differential age of RTK fix. Default: 120">
                                         <span class="icon-info-circle text-primary ms-2"></span>
@@ -470,7 +469,8 @@
                         <div class="form-group row" id="lg290pRtkDifferentialSourceTypeConfig">
                             <div id="lg290pRtkDifferentialSourceTypeDropdown" class="mb-2">
                                 <label for="lg290pRtkDifferentialSourceType">RTK Differential Source Type: </label>
-                                <select name="lg290pRtkDifferentialSourceType" id="lg290pRtkDifferentialSourceType" class="form-dropdown">
+                                <select name="lg290pRtkDifferentialSourceType" id="lg290pRtkDifferentialSourceType"
+                                    class="form-dropdown">
                                     <option value="0">Auto</option>
                                     <option value="1">Normal</option>
                                     <option value="2">Wide Lane</option>
@@ -2002,8 +2002,14 @@
             <div class="card card-body">
 
                 <div id="uploadNewFirmwareDiv" class="mb-2">
-                    <label class="form-check-label">System Firmware:</label>
-                    <span id="rtkFirmwareVersionUpgrade" style="display:inline;">v0.0</span>
+                    System Firmware: <span id="rtkFirmwareVersion" style="display:inline;">v0.0</span><br>
+                    <span id="gnssFirmwareVersion" style="display:inline;">GNSS Firmware: v0.0</span><br>
+                    <div id="imuFirmwareVersionPresent" class="collapse mb-2" style="display:none">
+                        IMU Firmware: <span id="imuFirmwareVersion" style="display:inline;">v0.0</span><br>
+                    </div>
+                    <div id="loraFirmwareVersionPresent" class="collapse mb-2" style="display:none">
+                        LoRa Firmware: <span id="loraFirmwareVersion" style="display:inline;">v0.0</span><br>
+                    </div>
                 </div>
 
                 <div>
