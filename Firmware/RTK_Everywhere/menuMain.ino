@@ -430,9 +430,12 @@ void menuRadio()
         systemPrintln();
         systemPrintln("Menu: Radios");
 
+        if (present.radio_lora == true)
+            systemPrintf("LoRa firmware version: %s\r\n", loraFirmwareVersion);
+
 #ifndef COMPILE_ESPNOW
         systemPrintln("1) **ESP-NOW Not Compiled**");
-#else  // COMPILE_ESPNOW
+#else // COMPILE_ESPNOW
         if (settings.enableEspNow == false)
             systemPrintln("1) ESP-NOW Radio: Disabled");
 
@@ -502,7 +505,7 @@ void menuRadio()
                 systemPrintf("11) LoRa Coordination Frequency: %0.3f\r\n", settings.loraCoordinationFrequency);
                 systemPrintf("12) LoRa Transmit Gain: %ddB\r\n", settings.loraTransmitGain_dB);
                 systemPrintf("13) LoRa Save Settings to Flash: %s\r\n",
-                              settings.loraSaveSettingsToFlash ? "Enabled" : "Disabled");
+                             settings.loraSaveSettingsToFlash ? "Enabled" : "Disabled");
                 if (present.loraDedicatedUart == false)
                     systemPrintf("14) Seconds without user serial that must elapse before LoRa radio goes "
                                  "into dedicated listening mode: %d\r\n",
@@ -637,7 +640,7 @@ void menuRadio()
         {
             settings.enableLora ^= 1;
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // We may need to enable / disable NMEA
-            gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS); // We may need to enable RTCM input
+            gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS);   // We may need to enable RTCM input
         }
         else if (present.radio_lora == true && settings.enableLora == true && incoming == 11)
         {
@@ -646,13 +649,12 @@ void menuRadio()
         }
         else if (present.radio_lora == true && settings.enableLora == true && incoming == 12)
         {
-            getNewSetting("Enter the transmit gain in dB",
-                          0, 13, &settings.loraTransmitGain_dB);
+            getNewSetting("Enter the transmit gain in dB", 0, 13, &settings.loraTransmitGain_dB);
         }
         else if (present.radio_lora == true && settings.enableLora == true && incoming == 13)
             settings.loraSaveSettingsToFlash ^= 1;
-        else if (present.radio_lora == true && settings.enableLora == true
-                 && present.loraDedicatedUart == false && incoming == 14)
+        else if (present.radio_lora == true && settings.enableLora == true && present.loraDedicatedUart == false &&
+                 incoming == 14)
         {
             getNewSetting("Enter the number of seconds without user serial that must elapse before LoRa radio goes "
                           "into dedicated listening mode",
@@ -662,8 +664,7 @@ void menuRadio()
         // Set the default WiFi channel
         else if (incoming == 20)
         {
-            if (getNewSetting("Enter the default WiFi channel", 1, 14,
-                              &settings.wifiChannel) == INPUT_RESPONSE_VALID)
+            if (getNewSetting("Enter the default WiFi channel", 1, 14, &settings.wifiChannel) == INPUT_RESPONSE_VALID)
             {
                 if (settings.wifiChannel == wifiChannel)
                     systemPrintf("WiFi is already on channel %d.", settings.wifiChannel);

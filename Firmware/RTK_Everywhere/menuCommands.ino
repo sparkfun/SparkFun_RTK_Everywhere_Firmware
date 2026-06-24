@@ -1476,7 +1476,10 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "rtkFirmwareVersion", (char *)printRtkFirmwareVersion());
     stringRecord(newSettings, "gnssFirmwareVersion", (char *)printGnssModuleInfo());
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
-    stringRecord(newSettings, "imuFirmwareVersion", (char *)imuFirmwareVersion);
+    if (strlen(imuFirmwareVersion) < 3)
+        stringRecord(newSettings, "imuFirmwareVersion", (char *)imuFirmwareVersion);
+    if (strlen(loraFirmwareVersion) < 3)
+        stringRecord(newSettings, "loraFirmwareVersion", (char *)loraFirmwareVersion);
 
     char apDeviceBTID[30];
     snprintf(apDeviceBTID, sizeof(apDeviceBTID), "Device Bluetooth ID: %s", serialNumber);
@@ -1828,8 +1831,8 @@ void createSettingsString(char *newSettings)
     // char apDaysRemaining[20];
     // if (strlen(settings.pointPerfectCurrentKey) > 0)
     // {
-    //     int daysRemaining = daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-    //     snprintf(apDaysRemaining, sizeof(apDaysRemaining), "%d", daysRemaining);
+    //     int daysRemaining = daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration +
+    //     1); snprintf(apDaysRemaining, sizeof(apDaysRemaining), "%d", daysRemaining);
     // }
     // else
     //     snprintf(apDaysRemaining, sizeof(apDaysRemaining), "No Keys");
@@ -2888,17 +2891,15 @@ bool settingAvailableOnPlatform(int i)
                 break;
             if ((rtkSettingsEntries[i].platFacetFP == L29) && (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P))
                 break;
-            if ((rtkSettingsEntries[i].platFacetFP == MX5) && (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5))
+            if ((rtkSettingsEntries[i].platFacetFP == MX5) &&
+                (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5))
                 break;
-            if ((rtkSettingsEntries[i].platFacetFP == ZED)
-                && ((settings.detectedGnssReceiver == GNSS_RECEIVER_F9P)
-                    || (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P)))
+            if ((rtkSettingsEntries[i].platFacetFP == ZED) && ((settings.detectedGnssReceiver == GNSS_RECEIVER_F9P) ||
+                                                               (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P)))
                 break;
-            if ((rtkSettingsEntries[i].platFacetFP == ZF9)
-                && (settings.detectedGnssReceiver == GNSS_RECEIVER_F9P))
+            if ((rtkSettingsEntries[i].platFacetFP == ZF9) && (settings.detectedGnssReceiver == GNSS_RECEIVER_F9P))
                 break;
-            if ((rtkSettingsEntries[i].platFacetFP == ZX2)
-                && (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P))
+            if ((rtkSettingsEntries[i].platFacetFP == ZX2) && (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P))
                 break;
             if (rtkSettingsEntries[i].platFacetFP == HAS)
             {
@@ -3236,7 +3237,8 @@ void printAvailableSettings()
 
             // Convert int to string
             char batteryChargingPercentStr[3] = {0}; // 45
-            snprintf(batteryChargingPercentStr, sizeof(batteryChargingPercentStr), "%0.0f", batteryChargingPercentPerHour);
+            snprintf(batteryChargingPercentStr, sizeof(batteryChargingPercentStr), "%0.0f",
+                     batteryChargingPercentPerHour);
 
             // Create the settingType based on the length of the firmware version
             char settingType[100];
