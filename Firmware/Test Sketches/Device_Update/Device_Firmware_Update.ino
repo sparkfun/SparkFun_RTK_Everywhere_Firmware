@@ -4,6 +4,8 @@ Device_Firmware_Update.ino
   Generic support routines to program firmware devices
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+#ifdef  COMPILE_MENU_FIRMWARE
+
 //----------------------------------------
 // Constants
 //----------------------------------------
@@ -42,8 +44,6 @@ const int dfuStateNameCount = sizeof(dfuStateName) / sizeof(dfuStateName[0]);
 #define DFU_USER_INPUT_TIMEOUT          -3
 #define DFU_USER_INPUT_OVERFLOWS_BUFFER -4
 #define DFU_USER_INPUT_NOT_A_NUMBER     -5
-
-#ifdef COMPILE_MENU_FIRMWARE
 
 const char * dfuEqualSigns = "==================================================";
 
@@ -1302,8 +1302,9 @@ void deviceFirmwareTimerStart(DEVICE_FIRMWARE_CTX * ctx)
 //----------------------------------------
 // Perform the device firmware update
 //----------------------------------------
-bool deviceFirmwareUpdate(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+bool deviceFirmwareUpdate(uint32_t currentMsec)
 {
+    DEVICE_FIRMWARE_CTX * ctx;
     bool running;
     const char * stateName;
 
@@ -1311,7 +1312,8 @@ bool deviceFirmwareUpdate(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     {
         running = false;
 
-        // Get the context value
+        // Get the context instance
+        ctx = dfuContext;
         if (ctx == nullptr)
             break;
 
@@ -1364,36 +1366,52 @@ bool deviceFirmwareUpdate(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 //----------------------------------------
 // State machine to perform the device firmware update
 //----------------------------------------
-void deviceFirmwareUpdateBegin(bool doAll)
+bool deviceFirmwareUpdateBegin(bool doAll)
 {
     DEVICE_FIRMWARE_CTX * ctx;
     uint32_t currentMsec;
     size_t length;
+    bool running;
 
-    // Verify the state table
-    deviceFirmwareVerifyTables();
-
-    // Allocate the device context structure
-    length = sizeof(*ctx);
-    if (settings.debugFirmwareUpdate)
-        systemPrintf("Allocating %d bytes for device firmware update context\r\n", length);
-    ctx = (DEVICE_FIRMWARE_CTX *)rtkMalloc(length, "Device firmware context");
-    if (ctx == nullptr)
+    do
     {
-        systemPrintf("ERROR: Failed to allocate the device firmware context of %d bytes\r\n", length);
-        reportHeapNow(true);
-        return;
-    }
+        running = false;
 
-    // Initialize the context
-    memset(ctx, 0, length);
-    ctx->_doAll = doAll;
-    if (doAll)
-        ctx->_outputDeviceType = DFU_ODT_DEVICE;
+        // Verify the state table
+        deviceFirmwareVerifyTables();
 
-    // Set the initial state
-    deviceFirmwareStateSet(ctx, DFUS_INIT);
-    dfuContext = ctx;
+        // Only call this routine when device firmware update is not running
+        if (dfuContext)
+        {
+            reportFatalError("ERROR: Device firmware update is already running!");
+            break;
+        }
+
+        // Allocate the device context structure
+        length = sizeof(*ctx);
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("Allocating %d bytes for device firmware update context\r\n", length);
+        ctx = (DEVICE_FIRMWARE_CTX *)rtkMalloc(length, "Device firmware context");
+        if (ctx == nullptr)
+        {
+            systemPrintf("ERROR: Failed to allocate the device firmware context of %d bytes\r\n", length);
+            reportHeapNow(true);
+            break;
+        }
+
+        // Initialize the context
+        memset(ctx, 0, length);
+        ctx->_doAll = doAll;
+        if (doAll)
+            ctx->_outputDeviceType = DFU_ODT_DEVICE;
+
+        // Set the initial state
+        deviceFirmwareStateSet(ctx, DFUS_INIT);
+        dfuContext = ctx;
+
+        running = deviceFirmwareUpdate(millis());
+    } while (0);
+    return running;
 }
 
 //----------------------------------------

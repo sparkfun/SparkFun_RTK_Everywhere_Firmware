@@ -156,12 +156,11 @@ void setup()
 //----------------------------------------
 void loop()
 {
-    DEVICE_FIRMWARE_CTX * ctx;
     uint8_t incoming;
     static bool menuDisplayed;
+    static bool deviceUpdateRunning;
 
-    ctx = dfuContext;
-    if (ctx == nullptr)
+    if (deviceUpdateRunning == false)
     {
         // Display the menu
         if (menuDisplayed == false)
@@ -192,7 +191,7 @@ void loop()
             if ((incoming == 'd') || (incoming == 'p'))
             {
                 inMainMenu = false;
-                deviceFirmwareUpdateBegin(incoming == 'p');
+                deviceUpdateRunning = deviceFirmwareUpdateBegin(incoming == 'p');
             }
             else if (incoming == 't')
             {
@@ -208,11 +207,14 @@ void loop()
     }
 
     // Perform the device firmware update
-    if (ctx)
+    if (deviceUpdateRunning)
     {
         // Perform the firmware update
-        if (deviceFirmwareUpdate(ctx, millis()) == false)
+        if (deviceFirmwareUpdate(millis()) == false)
+        {
             // Done doing firmware updates, display the menu again
             menuDisplayed = false;
+            deviceUpdateRunning = false;
+        }
     }
 }
