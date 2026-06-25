@@ -12,7 +12,7 @@ bool esp32AreFirmwareWritesSupported()
     DEVICE_FIRMWARE_CTX * ctx;
 
     // We can do OTA if there are two APP partitions
-    ctx = deviceFirmwareContext;
+    ctx = dfuContext;
     return ((ctx->_outputDeviceType == ODT_DEVICE)
         && (strcmp("ESP32", ctx->_deviceInfo->_deviceName) == 0)
         && (countAppPartitions() >= 2));

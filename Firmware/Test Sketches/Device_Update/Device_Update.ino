@@ -138,8 +138,6 @@ const DEVICE_FIRMWARE_INFO deviceFirmwareInfo[] =
 };
 const int deviceFirmwareInfoCount = sizeof(deviceFirmwareInfo) / sizeof(deviceFirmwareInfo[0]);
 
-DEVICE_FIRMWARE_CTX * deviceFirmwareContext;
-
 //----------------------------------------
 // Statically allocated buffers
 //----------------------------------------
@@ -196,7 +194,7 @@ void loop()
     uint8_t incoming;
     static bool menuDisplayed;
 
-    ctx = deviceFirmwareContext;
+    ctx = dfuContext;
     if (ctx == nullptr)
     {
         // Display the menu

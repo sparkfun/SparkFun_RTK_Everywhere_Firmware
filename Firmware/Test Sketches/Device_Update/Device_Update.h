@@ -119,4 +119,9 @@ typedef struct _DEVICE_FIRMWARE_CTX
     bool _reboot;                       // Reboot after firmware update
 } DEVICE_FIRMWARE_CTX;
 
+//----------------------------------------
+// Declare the global device firmware update context
+//----------------------------------------
+DEVICE_FIRMWARE_CTX * dfuContext;
+
 #endif  // __DEVICE_UPDATE_H__

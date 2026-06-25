@@ -248,7 +248,7 @@ void deviceFirmwareCleanup(DEVICE_FIRMWARE_CTX * ctx)
 
     // Done with the context
     rtkFree(ctx, "Device firmware context");
-    deviceFirmwareContext = nullptr;
+    dfuContext = nullptr;
     inMainMenu = false;
 }
 
@@ -559,7 +559,7 @@ int deviceFirmwareGetUserInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     int value;
 
     // Handle the menu timeout
-    ctx = deviceFirmwareContext;
+    ctx = dfuContext;
     if ((currentMsec - ctx->_timerMsec) >= (menuTimeout * MILLISECONDS_IN_A_SECOND))
     {
         systemPrintf("\r\nUser input timeout\r\n");
@@ -1479,7 +1479,7 @@ void deviceFirmwareUpdateBegin(bool doAll)
 
     // Set the initial state
     deviceFirmwareStateSet(ctx, DFUS_INIT);
-    deviceFirmwareContext = ctx;
+    dfuContext = ctx;
 }
 
 //----------------------------------------
