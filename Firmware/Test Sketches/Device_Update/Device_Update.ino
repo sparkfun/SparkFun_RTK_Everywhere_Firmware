@@ -158,6 +158,7 @@ void loop()
 {
     uint8_t incoming;
     static bool menuDisplayed;
+    static bool debugVerbose;
     static bool deviceUpdateRunning;
 
     if (deviceUpdateRunning == false)
@@ -191,12 +192,16 @@ void loop()
             if ((incoming == 'd') || (incoming == 'p'))
             {
                 inMainMenu = false;
-                deviceUpdateRunning = deviceFirmwareUpdateBegin(incoming == 'p');
+                deviceUpdateRunning = deviceFirmwareUpdateBegin(incoming == 'p', debugVerbose);
             }
             else if (incoming == 't')
             {
                 settings.debugFirmwareUpdate ^= 1;
                 menuDisplayed = false;
+            }
+            else if (incoming == 'v')
+            {
+                debugVerbose ^= 1;
             }
             else
             {
@@ -210,6 +215,7 @@ void loop()
     if (deviceUpdateRunning)
     {
         // Perform the firmware update
+        networkUpdate();
         if (deviceFirmwareUpdate(millis()) == false)
         {
             // Done doing firmware updates, display the menu again

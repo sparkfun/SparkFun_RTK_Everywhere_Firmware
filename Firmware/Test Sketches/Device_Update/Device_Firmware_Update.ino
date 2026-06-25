@@ -158,9 +158,14 @@ void deviceFirmwareCleanup(DEVICE_FIRMWARE_CTX * ctx)
 
     // Done with the network
     if (ctx->_networkConfigured)
+    {
+        systemPrintf("Removing NETCONSUMER_DEVICE_OTA\r\n");
         networkConsumerRemove(NETCONSUMER_DEVICE_OTA, NETWORK_ANY, __FILE__, __LINE__);
+    }
 
     // Done with the context
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Freeing device firmware update context, %d bytes\r\n", sizeof(*ctx));
     rtkFree(ctx, "Device firmware context");
     dfuContext = nullptr;
     inMainMenu = false;
@@ -1320,10 +1325,6 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         // Blink the LED
         deviceFirmwareLedBlink(ctx, currentMsec);
 
-        // Keep the network running
-        if (ctx->_networkConfigured)
-            networkUpdate();
-
         // Perform the firmware update
         switch (ctx->_state)
         {
@@ -1355,6 +1356,7 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
             stateName = deviceFirmwareStateGetName(ctx->_state);
             systemPrintf("Device firmware update state: %d (%s)\r\n", ctx->_state, stateName);
             reportFatalError("Device firmware update state not implemented!");
+            deviceFirmwareStateSet(ctx, DFUS_DONE);
             break;
         }
     } while (0);
@@ -1364,7 +1366,7 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
 //----------------------------------------
 // State machine to perform the device firmware update
 //----------------------------------------
-bool deviceFirmwareUpdateBegin(bool doAll)
+bool deviceFirmwareUpdateBegin(bool doAll, bool debugVerbose)
 {
     DEVICE_FIRMWARE_CTX * ctx;
     uint32_t currentMsec;
@@ -1400,8 +1402,12 @@ bool deviceFirmwareUpdateBegin(bool doAll)
         // Initialize the context
         memset(ctx, 0, length);
         ctx->_doAll = doAll;
+        ctx->_debugVerbose = debugVerbose;
         if (doAll)
+        {
             ctx->_outputDeviceType = DFU_ODT_DEVICE;
+            ctx->_reboot = true;
+        }
 
         // Set the initial state
         deviceFirmwareStateSet(ctx, DFUS_INIT);
