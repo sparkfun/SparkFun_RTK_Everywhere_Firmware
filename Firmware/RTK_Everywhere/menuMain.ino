@@ -104,8 +104,7 @@ void menuMain()
 
         systemPrintln("s) Configure System");
 
-        if (present.imu_im19)
-            systemPrintln("t) Configure Instrument Setup");
+        systemPrintln("t) Configure Instrument Setup");
 
         systemPrintln("u) Configure User Profiles");
 
@@ -148,7 +147,7 @@ void menuMain()
             menuRadio();
         else if (incoming == 's')
             menuSystem();
-        else if ((incoming == 't') && present.imu_im19)
+        else if (incoming == 't')
             menuInstrument();
         else if ((incoming == 'b') && (btPrintEcho == true || tcpServerInRemoteConfig() == true))
         {

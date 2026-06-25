@@ -1662,12 +1662,6 @@ void menuPeriodicPrint()
 // Get the parameters for the antenna height, reference point, and tilt compensation
 void menuInstrument()
 {
-    if (present.imu_im19 == false)
-    {
-        clearBuffer(); // Empty buffer of any newline chars
-        return;
-    }
-
     while (1)
     {
         systemPrintln();
