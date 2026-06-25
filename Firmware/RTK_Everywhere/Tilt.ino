@@ -326,7 +326,6 @@ void beginTilt()
     result &= tiltSensor->getAppVersion(imuAppVersionInt);
     result &= tiltSensor->getVersion(imuFirmwareVersion, sizeof(imuFirmwareVersion));
 
-    systemPrintf("IM19 Version: %d\r\n", imuAppVersionInt);
     if (settings.enableImuDebug == true)
         systemPrintf("IM19 Full Version: %s\r\n", imuFirmwareVersion);
 
@@ -403,6 +402,7 @@ void beginTilt()
     {
         if (tiltSensor->saveConfiguration() == true)
         {
+            systemPrintf("IM19 firmware: %d\r\n", imuAppVersionInt);
             systemPrintln("Tilt sensor configuration complete");
             online.imu_im19 = true;
             return; // Success

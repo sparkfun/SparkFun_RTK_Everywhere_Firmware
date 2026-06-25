@@ -1002,7 +1002,7 @@ bool loraEnterCommandMode()
     char response[responseLen];
     int responseSpot = 0;
 
-    loraReset(); // Needed for Torch.
+    loraReset(); // Needed for Torch
 
     systemFlush(); // Torch: Complete any local prints before switching the UART to LoRa
 
@@ -1162,7 +1162,7 @@ void loraGetVersion()
 
     if (loraEnterCommandMode() == true)
     {
-        systemPrintf("LoRa firmware version: %s\r\n", loraFirmwareVersion);
+        systemPrintf("LoRa firmware: %s\r\n", loraFirmwareVersion);
 
         if (settings.debugLora == true)
         {

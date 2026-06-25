@@ -433,9 +433,9 @@ void menuRadio()
         if (present.radio_lora == true)
         {
             if (strlen(loraFirmwareVersion) == 0)
-                systemPrintln("LoRa firmware version: Unknown");
+                systemPrintln("LoRa firmware: Unknown");
             else
-                systemPrintf("LoRa firmware version: %s\r\n", loraFirmwareVersion);
+                systemPrintf("LoRa firmware: %s\r\n", loraFirmwareVersion);
         }
 
 #ifndef COMPILE_ESPNOW
