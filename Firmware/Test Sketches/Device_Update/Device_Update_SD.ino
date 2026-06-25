@@ -38,7 +38,7 @@ void deviceUpdateSdGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
     do
     {
-        bufferData = &firmwareFileNamesSd;
+        bufferData = &dfuFirmwareFileNamesSd;
         bufferIndex = bufferGetIndex(bufferData);
 
         // Get the firmware file name attributes

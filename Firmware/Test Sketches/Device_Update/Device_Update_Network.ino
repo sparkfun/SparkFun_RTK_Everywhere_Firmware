@@ -94,7 +94,7 @@ void deviceFirmwareNetworkFileListGetFileName(DEVICE_FIRMWARE_CTX * ctx, uint32_
     do
     {
         // Get the delimiters
-        bufferData = &firmwareFileNamesNet;
+        bufferData = &dfuFirmwareFileNamesNet;
         bufferIndex = bufferGetIndex(bufferData);
         dirSuffix = ctx->_deviceInfo->_dirSuffix;
         filePrefix = ctx->_deviceInfo->_entryPrefix;
@@ -237,7 +237,7 @@ void deviceFirmwareNetworkFileListHtmlRequest(DEVICE_FIRMWARE_CTX * ctx,
         ctx->_networkClient = ctx->_https->getStreamPtr();
 
         // Temporarily use the network name buffer
-        bufferData = &firmwareFileNamesNet;
+        bufferData = &dfuFirmwareFileNamesNet;
         ctx->_buffer = bufferData->_address;
         ctx->_bufferLength = bufferData->_length;
         ctx->_validDataBytes = 0;

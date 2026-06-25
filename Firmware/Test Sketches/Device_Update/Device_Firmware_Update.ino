@@ -170,23 +170,23 @@ void deviceFirmwareActionMenu(DEVICE_FIRMWARE_CTX * ctx)
 bool deviceFirmwareBufferAllocate(DEVICE_FIRMWARE_CTX * ctx)
 {
     // Determine which buffers need to be dynamically allocated
-    ctx->_dynamicAllocationFd = bufferDynamicallyAllocate(&firmwareData);
+    ctx->_dynamicAllocationFd = bufferDynamicallyAllocate(&dfuFirmwareData);
     deviceFirmwareBufferRestore(ctx, nullptr);
-    ctx->_dynamicAllocationNet = bufferDynamicallyAllocate(&firmwareFileNamesNet);
+    ctx->_dynamicAllocationNet = bufferDynamicallyAllocate(&dfuFirmwareFileNamesNet);
     if (ctx->_doAll == false)
     {
-        ctx->_dynamicAllocationNvm = bufferDynamicallyAllocate(&firmwareFileNamesNvm);
+        ctx->_dynamicAllocationNvm = bufferDynamicallyAllocate(&dfuFirmwareFileNamesNvm);
         ctx->_dynamicAllocationSd = false;
         if (present.microSd)
-            ctx->_dynamicAllocationSd = bufferDynamicallyAllocate(&firmwareFileNamesSd);
+            ctx->_dynamicAllocationSd = bufferDynamicallyAllocate(&dfuFirmwareFileNamesSd);
     }
 
     // Return buffer allocation status
-    return (firmwareData._address && firmwareFileNamesNet._address
+    return (dfuFirmwareData._address && dfuFirmwareFileNamesNet._address
         && ((ctx->_doAll == true)
-            || (firmwareFileNamesNvm._address
+            || (dfuFirmwareFileNamesNvm._address
                 && ((present.microSd == false)
-                    || firmwareFileNamesSd._address))));
+                    || dfuFirmwareFileNamesSd._address))));
 }
 
 //----------------------------------------
@@ -195,18 +195,18 @@ bool deviceFirmwareBufferAllocate(DEVICE_FIRMWARE_CTX * ctx)
 void deviceFirmwareBufferFree(DEVICE_FIRMWARE_CTX * ctx)
 {
     // Release any buffers
-    bufferFree(&firmwareData);
+    bufferFree(&dfuFirmwareData);
     ctx->_dynamicAllocationFd = false;
 
-    bufferFree(&firmwareFileNamesNet);
+    bufferFree(&dfuFirmwareFileNamesNet);
     ctx->_dynamicAllocationNet = false;
 
     if (ctx->_doAll == false)
     {
-        bufferFree(&firmwareFileNamesNvm);
+        bufferFree(&dfuFirmwareFileNamesNvm);
         ctx->_dynamicAllocationNvm = false;
 
-        bufferFree(&firmwareFileNamesSd);
+        bufferFree(&dfuFirmwareFileNamesSd);
         ctx->_dynamicAllocationSd = false;
     }
 }
@@ -222,10 +222,10 @@ void deviceFirmwareBufferRestore(DEVICE_FIRMWARE_CTX * ctx,
         bufferData->_offset = ctx->_validDataBytes;
 
     // Restore the context to point at the data buffer
-    if (firmwareData._address)
+    if (dfuFirmwareData._address)
     {
-        ctx->_buffer = firmwareData._address;
-        ctx->_bufferLength = firmwareData._length;
+        ctx->_buffer = dfuFirmwareData._address;
+        ctx->_bufferLength = dfuFirmwareData._length;
     }
     else
     {
@@ -472,17 +472,17 @@ void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx)
 
         // Display the files
         offset = 0;
-        deviceFirmwareFileList(bufferGetIndex(&firmwareFileNamesNet),
+        deviceFirmwareFileList(bufferGetIndex(&dfuFirmwareFileNamesNet),
                                ctx->_fileCountNet,
                                "NET:/",
                                offset);
         offset += ctx->_fileCountNet;
-        deviceFirmwareFileList(bufferGetIndex(&firmwareFileNamesNvm),
+        deviceFirmwareFileList(bufferGetIndex(&dfuFirmwareFileNamesNvm),
                                ctx->_fileCountNvm,
                                "NVM:/",
                                offset);
         offset += ctx->_fileCountNvm;
-        deviceFirmwareFileList(bufferGetIndex(&firmwareFileNamesSd),
+        deviceFirmwareFileList(bufferGetIndex(&dfuFirmwareFileNamesSd),
                                ctx->_fileCountSd,
                                "SD:/",
                                offset);
@@ -668,11 +668,11 @@ void deviceFirmwareNextDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     }
 
     // Free the buffers
-    bufferNameSortFree(bufferGetIndex(&firmwareFileNamesNet));
+    bufferNameSortFree(bufferGetIndex(&dfuFirmwareFileNamesNet));
     if (ctx->_doAll == false)
     {
-        bufferNameSortFree(bufferGetIndex(&firmwareFileNamesNvm));
-        bufferNameSortFree(bufferGetIndex(&firmwareFileNamesSd));
+        bufferNameSortFree(bufferGetIndex(&dfuFirmwareFileNamesNvm));
+        bufferNameSortFree(bufferGetIndex(&dfuFirmwareFileNamesSd));
     }
     deviceFirmwareBufferFree(ctx);
 
@@ -1294,7 +1294,7 @@ void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     if (fileNumber < ctx->_fileCountNet)
     {
         ctx->_inputDeviceType = DFU_IDT_NETWORK;
-        bufferData = &firmwareFileNamesNet;
+        bufferData = &dfuFirmwareFileNamesNet;
     }
     else
     {
@@ -1302,13 +1302,13 @@ void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         if (fileNumber < ctx->_fileCountNvm)
         {
             ctx->_inputDeviceType = DFU_IDT_NVM;
-            bufferData = &firmwareFileNamesNvm;
+            bufferData = &dfuFirmwareFileNamesNvm;
         }
         else
         {
             fileNumber -= ctx->_fileCountNvm;
             ctx->_inputDeviceType = DFU_IDT_SD;
-            bufferData = &firmwareFileNamesSd;
+            bufferData = &dfuFirmwareFileNamesSd;
         }
     }
 

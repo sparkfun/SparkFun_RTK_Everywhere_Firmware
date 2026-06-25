@@ -39,7 +39,7 @@ void deviceUpdateNvmGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
     do
     {
-        bufferData = &firmwareFileNamesNvm;
+        bufferData = &dfuFirmwareFileNamesNvm;
         bufferIndex = bufferGetIndex(bufferData);
 
         // Start at the beginning of the directory
