@@ -1476,9 +1476,9 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "rtkFirmwareVersion", (char *)printRtkFirmwareVersion());
     stringRecord(newSettings, "gnssFirmwareVersion", (char *)printGnssModuleInfo());
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
-    if (strlen(imuFirmwareVersion) < 3)
+    if (strlen(imuFirmwareVersion) > 3)
         stringRecord(newSettings, "imuFirmwareVersion", (char *)imuFirmwareVersion);
-    if (strlen(loraFirmwareVersion) < 3)
+    if (strlen(loraFirmwareVersion) > 3)
         stringRecord(newSettings, "loraFirmwareVersion", (char *)loraFirmwareVersion);
 
     char apDeviceBTID[30];
