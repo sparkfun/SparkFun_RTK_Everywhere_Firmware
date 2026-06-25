@@ -902,12 +902,9 @@ function parseIncoming(msg) {
             }
         }
 
-        // Tilt setting is always sent across, even on non-tilt enabled units. Hide section based on model variant.
-        else if (id.includes("enableTiltCompensation")) {
-            if (platformPrefix == "Torch" || platformPrefix == "FPLT" || platformPrefix == "FPXT" || platformPrefix == "FPMT")
-                show("tiltConfig");
-            else
-                hide("tiltConfig");
+        // enableTiltCompensation setting is sent across for all FP models, even on non-tilt enabled units. Show section if special setting is present.
+        else if (id.includes("hasTilt")) {
+            show("tiltConfig");
         }
 
         //Check boxes / radio buttons

@@ -1481,6 +1481,11 @@ void createSettingsString(char *newSettings)
     if (strlen(loraFirmwareVersion) > 3)
         stringRecord(newSettings, "loraFirmwareVersion", (char *)loraFirmwareVersion);
 
+    // Pass extra setting so that web config can show/hide tilt enable check box
+    // We can't depend on enableTiltCompensation setting because all FP platforms transmit it.
+    if (present.imu_im19 == true)
+        stringRecord(newSettings, "hasTilt", "1");
+
     char apDeviceBTID[30];
     snprintf(apDeviceBTID, sizeof(apDeviceBTID), "Device Bluetooth ID: %s", serialNumber);
     stringRecord(newSettings, "deviceBTID", apDeviceBTID);
