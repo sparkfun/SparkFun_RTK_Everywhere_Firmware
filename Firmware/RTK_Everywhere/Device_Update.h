@@ -264,4 +264,24 @@ const DFU_BUFFER_INFO dfuBufferInfo[] =
 };
 const int dfuBufferInfoCount = sizeof(dfuBufferInfo) / sizeof(dfuBufferInfo[0]);
 
+//----------------------------------------
+// Declare the device support routines
+//----------------------------------------
+
+// Get firmware version
+String dfuEsp32FirmwareVersion();
+
+//----------------------------------------
+// Describe the devices that support firmware update
+//----------------------------------------
+
+// Note: Use the JSON based OTA to get a new ESP32 image when the
+// parsing fails due to website changes on the servers below!
+const DEVICE_FIRMWARE_INFO deviceFirmwareInfo[] =
+{//  Name           present                 Directory                   NameData        Extension  Firmware version             Reset               Open                Write               Close           CRC     useNvm  Context Bytes           Buffer Bytes        Max Write Bytes                 Server     Branch      dPrefix1     dPrefix2  dirEnd      nPrefix  nameEnd     Raw Branch
+    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", dfuEsp32FirmwareVersion,     nullptr,            nullptr,            nullptr,            nullptr,        false,  false,  0,                      0,                  0,                              dfuGithub, nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
+    // ESP32 must be the first entry in the list, p command does list in reverse
+};
+const int deviceFirmwareInfoCount = sizeof(deviceFirmwareInfo) / sizeof(deviceFirmwareInfo[0]);
+
 #endif  // __DEVICE_UPDATE_H__
