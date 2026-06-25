@@ -710,6 +710,7 @@ enum
     NETCONSUMER_TCP_SERVER,
     NETCONSUMER_UDP_SERVER,
     NETCONSUMER_WEB_CONFIG,
+    NETCONSUMER_DEVICE_OTA,
     // Add new consumers just before this line
     // Also add them to the networkConsumerTable
     NETCONSUMER_MAX
