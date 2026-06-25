@@ -83,20 +83,6 @@ String tiltFirmwareVersion;    // First IM19 version message
 // Device firmware descriptions
 //----------------------------------------
 
-const char * dashes = "--------------------------------------------------------------------------------";
-
-const char * pfdGithub = "https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries";
-const char * pfdRawHead = "/raw/refs/heads/main";
-const char * pfdTree = "},\"tree";
-const char * pfdFileTree = ":{\"fileTree\":{\"";
-const char * pfdItems = "\":{\"items\":[";
-const char * pfdListEnd = "]";
-const char * pfdName = "\"name\":\"";
-const char * pfdNameEnd = "\"";
-
- // File that will be loaded at startup regardless of user input
-const char *forceFirmwareFileName = "RTK_Everywhere_Firmware_Force.bin";
-
 // IM19 declarations
 #ifdef  COMPILE_IM19_IMU
 #define IM19_MAX_PAYLOAD_SIZE           256
@@ -123,17 +109,17 @@ const size_t tiltSaveDataLength = 1 * 1024 * 1024;
 // parsing fails due to website changes on the servers below!
 const DEVICE_FIRMWARE_INFO deviceFirmwareInfo[] =
 {//  Name           present                 Directory                   NameData        Extension  Firmware version         Reset               Open                Write               Close           CRC     useNvm  Context Bytes       Buffer Bytes    Max Write Bytes             Server     Branch      dPrefix1     dPrefix2  dirEnd      nPrefix  nameEnd     Raw Branch
-    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", esp32FirmwareVersion,    nullptr,            esp32Open,          esp32Write,         esp32Close,     false,  false,  0,                  0,              0,                          pfdGithub, nullptr,    pfdTree,     pfdItems, pfdListEnd, pfdName, pfdNameEnd, pfdRawHead},
+    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", esp32FirmwareVersion,    nullptr,            esp32Open,          esp32Write,         esp32Close,     false,  false,  0,                  0,              0,                          dfuGithub, nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
     // ESP32 must be the first entry in the list, p command does list in reverse
 
     // GNSS devices
 #ifdef  COMPILE_LG290P
-    {"LG290P",      &present.gnss_lg290p,   "/gnss/lg290p",             "LG290P",          ".pkg", gnssGetFirmwareVersion,  lg290pReset,        lg290pOpen,         lg290pWrite,        lg290pClose,    true,   false,  0,                  LG290P_BYTES,   LG290P_MAX_PAYLOAD_SIZE,    pfdGithub, pfdRawHead, pfdFileTree, pfdItems, pfdListEnd, pfdName, pfdNameEnd, pfdRawHead},
+    {"LG290P",      &present.gnss_lg290p,   "/gnss/lg290p",             "LG290P",          ".pkg", gnssGetFirmwareVersion,  lg290pReset,        lg290pOpen,         lg290pWrite,        lg290pClose,    true,   false,  0,                  LG290P_BYTES,   LG290P_MAX_PAYLOAD_SIZE,    dfuGithub, dfuRawHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
 #endif  // COMPILE_LG290P
 
     // Tilt sensors
 #ifdef  COMPILE_IM19_IMU
-    {"IM19",        &present.imu_im19,      "/imu/im19",                "_VH2_B",          ".enc", tiltGetFirmwareVersion,  im19Reset,          im19Open,           im19Write,          im19Close,      false,  true,   sizeof(IM19_CTX),   IM19_BYTES,     IM19_MAX_PAYLOAD_SIZE,      pfdGithub, pfdRawHead, pfdFileTree, pfdItems, pfdListEnd, pfdName, pfdNameEnd, pfdRawHead},
+    {"IM19",        &present.imu_im19,      "/imu/im19",                "_VH2_B",          ".enc", tiltGetFirmwareVersion,  im19Reset,          im19Open,           im19Write,          im19Close,      false,  true,   sizeof(IM19_CTX),   IM19_BYTES,     IM19_MAX_PAYLOAD_SIZE,      dfuGithub, dfuRawHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
 #endif  // COMPILE_IM19_IMU
 };
 const int deviceFirmwareInfoCount = sizeof(deviceFirmwareInfo) / sizeof(deviceFirmwareInfo[0]);

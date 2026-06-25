@@ -660,8 +660,6 @@ unsigned long minSplashFor = 100; // Display SparkFun Logo for at least 1/10 of 
 int binCount;
 const int maxBinFiles = 10;
 char binFileNames[maxBinFiles][50];
-const char *forceFirmwareFileName =
-    "RTK_Everywhere_Firmware_Force.bin"; // File that will be loaded at startup regardless of user input
 int binBytesLastUpdate;                  // Allows websocket notification to be sent every 100k bytes
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

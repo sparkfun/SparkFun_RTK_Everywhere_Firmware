@@ -227,4 +227,21 @@ typedef struct _DEVICE_FIRMWARE_INFO
     const char * _rawBranch;    // Firmware raw tree branch
 } DEVICE_FIRMWARE_INFO;
 
+//----------------------------------------
+// Device firmware update descriptions
+//----------------------------------------
+
+// File that is loaded from SD card at startup regardless of user input
+const char * forceFirmwareFileName = "RTK_Everywhere_Firmware_Force.bin";
+
+// GitHub web-page parsing for file lists
+const char * dfuGithub = "https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries";
+const char * dfuRawHead = "/raw/refs/heads/main";
+const char * dfuTree = "},\"tree";
+const char * dfuFileTree = ":{\"fileTree\":{\"";
+const char * dfuItems = "\":{\"items\":[";
+const char * dfuListEnd = "]";
+const char * dfuName = "\"name\":\"";
+const char * dfuNameEnd = "\"";
+
 #endif  // __DEVICE_UPDATE_H__
