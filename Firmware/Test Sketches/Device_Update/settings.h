@@ -91,26 +91,16 @@ struct struct_online
     bool microSD = false;
 } online;
 
-typedef bool (* DEVICE_RESET)(struct _DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
-
 bool im19Reset(struct _DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
 bool lg290pReset(struct _DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
-
-typedef String (* GET_FIRMWARE_VERSION)();
 
 String esp32FirmwareVersion();
 String gnssGetFirmwareVersion();
 String tiltGetFirmwareVersion();
 
-typedef bool (* DEVICE_OPEN)(struct _DEVICE_FIRMWARE_CTX * ctx);
-
 bool esp32Open(struct _DEVICE_FIRMWARE_CTX * ctx);
 bool im19Open(struct _DEVICE_FIRMWARE_CTX * ctx);
 bool lg290pOpen(struct _DEVICE_FIRMWARE_CTX * ctx);
-
-typedef ssize_t (* DEVICE_WRITE)(struct _DEVICE_FIRMWARE_CTX * ctx,
-                                 uint8_t * buffer,
-                                 size_t bytesToWrite);
 
 ssize_t esp32Write(struct _DEVICE_FIRMWARE_CTX * ctx,
                    uint8_t * buffer,
@@ -122,44 +112,8 @@ ssize_t lg290pWrite(struct _DEVICE_FIRMWARE_CTX * ctx,
                     uint8_t * buffer,
                     size_t bytesToWrite);
 
-typedef void (* DEVICE_CLOSE)(struct _DEVICE_FIRMWARE_CTX * ctx);
-
 void esp32Close(struct _DEVICE_FIRMWARE_CTX * ctx);
 void im19Close(struct _DEVICE_FIRMWARE_CTX * ctx);
 void lg290pClose(struct _DEVICE_FIRMWARE_CTX * ctx);
-
-typedef struct _DEVICE_FIRMWARE_INFO
-{
-    // The following fields should be unique to each device
-    const char * _deviceName;   // Name of this device
-    bool * _present;            // Load firmware if (_present == nullptr) or (*_present == true)
-    const char * _directory;    // Firmware directory
-    const char * _nameData;     // Data in file name, may be nullptr
-    const char * _extension;    // Data in file name (extension), may be nullptr
-    GET_FIRMWARE_VERSION _version;  // Firmware version display routine
-    DEVICE_RESET _reset;        // Reset the device before loading firmware
-    DEVICE_OPEN _open;          // Prepare for firmware updates
-    DEVICE_WRITE _write;        // Perform the firmware writes
-    DEVICE_CLOSE _close;        // Perform firmware write cleanup
-    bool _crcNeeded;            // Is file CRC needed to do firmware update
-    bool _useNvm;               // Allow copy to NVM
-    size_t _devContextBytes;    // Size of device specific context buffer
-    size_t _writeBufferBytes;   // Number of bytes needed for the write buffer
-    size_t _maxWriteBytes;      // Maximum write packet size
-
-    // The following fields are used to parse the web page to locate the
-    // file name and to build the HTTP link to access the file.
-    //
-    // Note: Use the JSON based OTA to get a new ESP32 image when the
-    // parsing fails due to website changes on the servers below!
-    const char * _server;       // Firmware server
-    const char * _branch;       // Firmware branch
-    const char * _dirPrefix;    // Data before directory listing, may be nullptr
-    const char * _dirPrefix2;   // Data before directory listing, may be nullptr
-    const char * _dirSuffix;    // Data after directory listing
-    const char * _entryPrefix;  // Data before file name, may be nullptr
-    const char * _entrySuffix;  // Data after file name
-    const char * _rawBranch;    // Firmware raw tree branch
-} DEVICE_FIRMWARE_INFO;
 
 #endif  // __SETTINGS_H__
