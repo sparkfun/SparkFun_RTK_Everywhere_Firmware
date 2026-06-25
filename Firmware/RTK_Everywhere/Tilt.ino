@@ -39,7 +39,8 @@ Tilt.ino
 
 typedef enum
 {
-    TILT_DISABLED = 0,
+    TILT_NOT_PRESENT = 0,
+    TILT_DISABLED,
     TILT_OFFLINE,
     TILT_STARTED,
     TILT_INITIALIZED,
@@ -51,12 +52,10 @@ TiltState tiltState = TILT_DISABLED;
 // Tilt compensation sensor state machine
 void tiltUpdate()
 {
-    if (present.imu_im19 == false)
-        return;
-
+    // If the user has disabled the device, shut it down
     if (settings.enableTiltCompensation == false && tiltState != TILT_DISABLED)
     {
-        tiltStop(); // If the user has disabled the device, shut it down
+        tiltStop(); // Stop serial inteface. Mark IMU offline.
         tiltState = TILT_DISABLED;
     }
 
@@ -66,33 +65,36 @@ void tiltUpdate()
         systemPrintf("Unknown tiltState: %d\r\n", tiltState);
         break;
 
+    case TILT_NOT_PRESENT:
+        if (present.imu_im19 == true)
+        {
+            // Try multiple times to configure IM19
+            uint8_t maxTries = 3;
+            for (int x = 0; x < maxTries; x++)
+            {
+                beginTilt(); // Start serial interface, get version, configure IM19
+                if (online.imu_im19 == true)
+                    break;
+            }
+
+            if (online.imu_im19 == true)
+                tiltState = TILT_STARTED;
+            else
+            {
+                systemPrintln("Tilt sensor failed to configure after multiple attempts.");
+                tiltFailedBegin = true;
+                tiltState = TILT_DISABLED;
+            }
+        }
+
+        break;
+
     case TILT_DISABLED:
         if (settings.enableTiltCompensation == true && tiltFailedBegin == false)
         {
-            tiltState = TILT_OFFLINE;
-            online.imu_im19 = false;
+            tiltState = TILT_NOT_PRESENT; // Begin the machine again
         }
         break;
-
-    case TILT_OFFLINE: {
-        // Try multiple times to configure IM19
-        uint8_t maxTries = 3;
-        for (int x = 0; x < maxTries; x++)
-        {
-            beginTilt(); // Start IMU
-            if (tiltState == TILT_STARTED)
-                break;
-        }
-
-        if (tiltState != TILT_STARTED) // If we failed to begin, disable future attempts
-        {
-            systemPrintln("Tilt sensor failed to configure after multiple attempts.");
-            tiltFailedBegin = true;
-            tiltState = TILT_DISABLED;
-            online.imu_im19 = false;
-        }
-    }
-    break;
 
     case TILT_STARTED:
         // RTK Fix required for isInitialized so don't check tilt until we have RTK Fix.
@@ -194,8 +196,8 @@ void tiltUpdate()
         break;
 
     case TILT_REQUEST_STOP:
-        tiltStop(); // Changes state to TILT_OFFLINE
-
+        tiltStop(); // Stop serial inteface. Mark IMU offline.
+        tiltState = TILT_DISABLED;
         break;
     }
 }
@@ -315,7 +317,7 @@ void beginTilt()
 
     if (tiltSensor->begin(*SerialForTilt) == false) // Give the serial port over to the library
     {
-        tiltStop(); // Free memory
+        tiltStop(); // Stop serial inteface. Mark IMU offline.
         return;
     }
 
@@ -324,11 +326,9 @@ void beginTilt()
     result &= tiltSensor->getAppVersion(imuAppVersionInt);
     result &= tiltSensor->getVersion(imuFirmwareVersion, sizeof(imuFirmwareVersion));
 
+    systemPrintf("IM19 Version: %d\r\n", imuAppVersionInt);
     if (settings.enableImuDebug == true)
-    {
-        systemPrintf("IM19 App Version: %d\r\n", imuAppVersionInt);
-        systemPrintf("IM19 Version: %s\r\n", imuFirmwareVersion);
-    }
+        systemPrintf("IM19 Full Version: %s\r\n", imuFirmwareVersion);
 
     // The filter has a set of default parameters, which can be loaded when setting an error.
     result &= tiltSensor->sendCommand("LOAD_DEFAULT");
@@ -382,9 +382,9 @@ void beginTilt()
     result &= tiltSensor->sendCommand("MEMS_OUTPUT=UART1,OFF");
 
     // The 'CORRECT_HOLDER' command is not supported on app versions 11.1 and later.
-    // The command *is* supported on older 6.1 firmware. The command is not documented in the IM19 datasheet, but was
+    // The command *is* supported on older 6.1 and 9.2 firmware. The command is not documented in the IM19 datasheet, but was
     // found in the Torch v2 example firmware.
-    if (imuAppVersionInt == 610)
+    if (imuAppVersionInt <= 920)
     {
         result &=
             tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); // Unknown new command found in Torch v2 example firmware
@@ -404,15 +404,15 @@ void beginTilt()
         if (tiltSensor->saveConfiguration() == true)
         {
             systemPrintln("Tilt sensor configuration complete");
-            tiltState = TILT_STARTED;
             online.imu_im19 = true;
             return; // Success
         }
     }
 
-    tiltStop(); // Free memory
+    tiltStop(); // Stop serial inteface. Mark IMU offline.
 }
 
+// Stops serial inteface. Marks tilt offline.
 void tiltStop()
 {
     // Gracefully stop the UART before freeing resources
@@ -437,7 +437,6 @@ void tiltStop()
     if (tiltState == TILT_CORRECTING)
         beepDurationMs(1000); // Indicate we are going offline
 
-    tiltState = TILT_OFFLINE;
     online.imu_im19 = false;
 }
 
