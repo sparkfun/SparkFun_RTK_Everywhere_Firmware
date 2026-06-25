@@ -289,6 +289,7 @@ int firmwareVersionMapMonthName(char *mmm)
 //----------------------------------------
 
 //----------------------------------------
+// Mount the SD card and then perform the firmware update
 //----------------------------------------
 void microSDMountThenUpdate(const char *firmwareFileName)
 {
