@@ -431,7 +431,12 @@ void menuRadio()
         systemPrintln("Menu: Radios");
 
         if (present.radio_lora == true)
-            systemPrintf("LoRa firmware version: %s\r\n", loraFirmwareVersion);
+        {
+            if (strlen(loraFirmwareVersion) == 0)
+                systemPrintln("LoRa firmware version: Unknown");
+            else
+                systemPrintf("LoRa firmware version: %s\r\n", loraFirmwareVersion);
+        }
 
 #ifndef COMPILE_ESPNOW
         systemPrintln("1) **ESP-NOW Not Compiled**");
@@ -490,17 +495,7 @@ void menuRadio()
             }
             else
             {
-                // Allow state machine to run to get version number
-                for (int x = 0; x < 4; x++)
-                    updateLora();
-
-                if (strlen(loraFirmwareVersion) < 3)
-                {
-                    strncpy(loraFirmwareVersion, "Unknown", sizeof(loraFirmwareVersion));
-                    systemPrintf("10) LoRa Radio: Enabled - Firmware Unknown\r\n");
-                }
-                else
-                    systemPrintf("10) LoRa Radio: Enabled - Firmware v%s\r\n", loraFirmwareVersion);
+                systemPrintln("10) LoRa Radio: Enabled\r\n");
 
                 systemPrintf("11) LoRa Coordination Frequency: %0.3f\r\n", settings.loraCoordinationFrequency);
                 systemPrintf("12) LoRa Transmit Gain: %ddB\r\n", settings.loraTransmitGain_dB);
