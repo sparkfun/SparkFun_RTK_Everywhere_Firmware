@@ -144,7 +144,7 @@ void deviceFirmwareActionMenu(DEVICE_FIRMWARE_CTX * ctx)
         systemPrintf("\r\nAction:\r\n");
 
         // Display the menu
-        if ((ctx->_inputDeviceType == IDT_NVM) || (ctx->_inputDeviceType == IDT_SD))
+        if ((ctx->_inputDeviceType == DFU_IDT_NVM) || (ctx->_inputDeviceType == DFU_IDT_SD))
             systemPrintf("d) Delete the file\r\n");
         if (ctx->_deviceInfo->_useNvm)
             systemPrintf("n) Copy file to NVM\r\n");
@@ -280,11 +280,11 @@ void deviceFirmwareClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 void deviceFirmwareCloseInput(DEVICE_FIRMWARE_CTX * ctx)
 {
     // Close the input file
-    if (ctx->_inputDeviceType == IDT_NETWORK)
+    if (ctx->_inputDeviceType == DFU_IDT_NETWORK)
         deviceFirmwareNetworkCleanup(ctx, nullptr);
-    else if (ctx->_inputDeviceType = IDT_NVM)
+    else if (ctx->_inputDeviceType = DFU_IDT_NVM)
         ctx->_nvmFile.close();
-    else if (ctx->_inputDeviceType == IDT_SD)
+    else if (ctx->_inputDeviceType == DFU_IDT_SD)
         ctx->_sdFile.close();
 
     // Display the statistics
@@ -298,7 +298,7 @@ void deviceFirmwareCloseInput(DEVICE_FIRMWARE_CTX * ctx)
 void deviceFirmwareCloseOutput(DEVICE_FIRMWARE_CTX * ctx)
 {
     // Close the output file
-    if (ctx->_outputDeviceType == ODT_DEVICE)
+    if (ctx->_outputDeviceType == DFU_ODT_DEVICE)
     {
         // Finish the firmware update
         if (ctx->_deviceInfo->_close)
@@ -312,9 +312,9 @@ void deviceFirmwareCloseOutput(DEVICE_FIRMWARE_CTX * ctx)
             systemPrintf("NOT IMPLEMENTED: %s firmware update close routine!\r\n",
                          ctx->_deviceInfo->_deviceName);
     }
-    else if (ctx->_outputDeviceType == ODT_NVM)
+    else if (ctx->_outputDeviceType == DFU_ODT_NVM)
         ctx->_nvmFile.close();
-    else if (ctx->_outputDeviceType == ODT_SD)
+    else if (ctx->_outputDeviceType == DFU_ODT_SD)
         ctx->_sdFile.close();
 }
 
@@ -342,7 +342,7 @@ void deviceFirmwareCrcOpen(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     // Give user a hint as to what is taking so long
     if (settings.debugFirmwareUpdate)
     {
-        if (ctx->_inputDeviceType == IDT_NETWORK)
+        if (ctx->_inputDeviceType == DFU_IDT_NETWORK)
             systemPrintf("Opening URL: %s\r\n", ctx->_url.c_str());
         else
             systemPrintf("Opening firmware file: %s\r\n", ctx->_fileName.c_str());
@@ -714,8 +714,8 @@ void deviceFirmwareOpenFirmwareFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentM
 bool deviceFirmwareOpenInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     // Verify that the output was specified
-    if (ctx->_outputDeviceType == ODT_NONE)
-        reportFatalError("Output device type is ODT_NONE!");
+    if (ctx->_outputDeviceType == DFU_ODT_NONE)
+        reportFatalError("Output device type is DFU_ODT_NONE!");
 
     ctx->_bytesRead = 0;
     ctx->_complete = false;
@@ -723,18 +723,18 @@ bool deviceFirmwareOpenInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
     // Network file read path
     //    _ctx->_http --> _ctx->_networkClient --> ctx->_buffer
-    if (ctx->_inputDeviceType == IDT_NETWORK)
+    if (ctx->_inputDeviceType == DFU_IDT_NETWORK)
         // Send HTTP GET request
         return deviceFirmwareOpenUrl(ctx, currentMsec);
 
     // NVM file read data path:
     //    _ctx->_nvmFile --> ctx->_buffer
-    if (ctx->_inputDeviceType == IDT_NVM)
+    if (ctx->_inputDeviceType == DFU_IDT_NVM)
         return deviceUpdateNvmOpen(ctx, false);
 
     // SD file read data path:
     //    _ctx->_sdFile --> ctx->_buffer
-    if (ctx->_inputDeviceType == IDT_SD)
+    if (ctx->_inputDeviceType == DFU_IDT_SD)
         return deviceUpdateSdOpen(ctx, false);
 
     // Testing case
@@ -756,7 +756,7 @@ void deviceFirmwareOpenOutput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
         // Network write data path
         //    ctx->_buffer --> ctx->_writeBuffer --> device
-        if (ctx->_outputDeviceType == ODT_DEVICE)
+        if (ctx->_outputDeviceType == DFU_ODT_DEVICE)
         {
             systemPrintf("Updating %s firmware\r\n", ctx->_deviceInfo->_deviceName);
 
@@ -783,7 +783,7 @@ void deviceFirmwareOpenOutput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
         // NVM write data path
         //    ctx->_buffer --> ctx->_nvmFile --> NVM
-        if (ctx->_outputDeviceType == ODT_NVM)
+        if (ctx->_outputDeviceType == DFU_ODT_NVM)
         {
             result = deviceUpdateNvmOpen(ctx, true);
             break;
@@ -791,7 +791,7 @@ void deviceFirmwareOpenOutput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
         // SD card write data path
         //    ctx->_buffer --> ctx->_sdFile --> SD card
-        if (ctx->_outputDeviceType == ODT_SD)
+        if (ctx->_outputDeviceType == DFU_ODT_SD)
         {
             result = deviceUpdateSdOpen(ctx, true);
             break;
@@ -904,9 +904,9 @@ bool deviceFirmwareRead(DEVICE_FIRMWARE_CTX * ctx,
 
         // Read firmware data from the input device
         ctx->_data = &ctx->_buffer[ctx->_validDataBytes];
-        if (ctx->_inputDeviceType == IDT_NETWORK)
+        if (ctx->_inputDeviceType == DFU_IDT_NETWORK)
             bytesRead = deviceUpdateNetworkRead(ctx, ctx->_data, length);
-        else if (ctx->_inputDeviceType == IDT_NVM)
+        else if (ctx->_inputDeviceType == DFU_IDT_NVM)
             bytesRead = deviceUpdateNvmRead(ctx, ctx->_data, length);
         else
             bytesRead = deviceUpdateSdRead(ctx, ctx->_data, length);
@@ -938,7 +938,7 @@ bool deviceFirmwareRead(DEVICE_FIRMWARE_CTX * ctx,
     if ((ctx->_validDataBytes == ctx->_bufferLength)
         || (ctx->_validDataBytes == (ctx->_fileBytes - ctx->_bytesRead))
         || (ctx->_bytesRead == ctx->_fileBytes)
-        || ((ctx->_outputDeviceType == ODT_DEVICE)
+        || ((ctx->_outputDeviceType == DFU_ODT_DEVICE)
             && (ctx->_validDataBytes >= ctx->_bytesMax)))
     {
         return true;
@@ -1009,15 +1009,15 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     do
     {
         // Verify that the input was specified
-        if (ctx->_inputDeviceType == IDT_NONE)
-            reportFatalError("Input device type is ODT_NONE!");
+        if (ctx->_inputDeviceType == DFU_IDT_NONE)
+            reportFatalError("Input device type is DFU_ODT_NONE!");
 
         // Are all the devices being updated?
         deviceInfo = ctx->_deviceInfo;
         if (ctx->_doAll)
         {
             // Performing the firmware update
-            ctx->_outputDeviceType = ODT_DEVICE;
+            ctx->_outputDeviceType = DFU_ODT_DEVICE;
             deviceFirmwareStateSet(ctx, ctx->_deviceInfo->_crcNeeded
                                         ? DFUS_CRC_OPEN_INPUT
                                         : DFUS_DEVICE_OPEN_INPUT);
@@ -1042,22 +1042,22 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
         // Initiate the action
         if ((action == 'd')
-            && ((ctx->_inputDeviceType == IDT_NVM)
-                || (ctx->_inputDeviceType == IDT_SD)))
+            && ((ctx->_inputDeviceType == DFU_IDT_NVM)
+                || (ctx->_inputDeviceType == DFU_IDT_SD)))
         {
             // Display the menu choice
             if (settings.debugFirmwareUpdate)
                 systemPrintf("\r\nDelete the firmware file\r\n");
 
             // Delete the file
-            if (ctx->_inputDeviceType == IDT_NVM)
+            if (ctx->_inputDeviceType == DFU_IDT_NVM)
                 deviceUpdateNvmDelete(ctx->_fileName.c_str());
             else
                 deviceUpdateSdDelete(ctx->_fileName.c_str());
 
             // Display the file list again
-            ctx->_inputDeviceType = IDT_NONE;
-            ctx->_outputDeviceType = ODT_NONE;
+            ctx->_inputDeviceType = DFU_IDT_NONE;
+            ctx->_outputDeviceType = DFU_ODT_NONE;
             deviceFirmwareStateSet(ctx, ctx->_networkConfigured ? DFUS_GET_NETWORK_FILES
                                                                 : DFUS_GET_NVM_FILE_LIST);
         }
@@ -1068,7 +1068,7 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                 systemPrintf("\r\nCopy firmware file to NVM\r\n");
 
             // Start the file copy
-            ctx->_outputDeviceType = ODT_NVM;
+            ctx->_outputDeviceType = DFU_ODT_NVM;
             deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_INPUT);
         }
         else if ((action == 's') && present.microSd)
@@ -1078,7 +1078,7 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                 systemPrintf("\r\nCopy firmware file to SD card\r\n");
 
             // Start the file copy
-            ctx->_outputDeviceType = ODT_SD;
+            ctx->_outputDeviceType = DFU_ODT_SD;
             deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_INPUT);
         }
         else if (action == 'u')
@@ -1088,7 +1088,7 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                 systemPrintf("\r\nUpdate %s firmware\r\n", ctx->_deviceInfo->_deviceName);
 
             // Start the programming process
-            ctx->_outputDeviceType = ODT_DEVICE;
+            ctx->_outputDeviceType = DFU_ODT_DEVICE;
             deviceFirmwareStateSet(ctx, ctx->_deviceInfo->_crcNeeded
                                         ? DFUS_CRC_OPEN_INPUT
                                         : DFUS_DEVICE_OPEN_INPUT);
@@ -1234,7 +1234,7 @@ void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             if (ctx->_fileCountNet)
             {
                 // Yes, use the most recent network firmware file
-                ctx->_inputDeviceType = IDT_NETWORK;
+                ctx->_inputDeviceType = DFU_IDT_NETWORK;
                 fileNumber = 0;
                 break;
             }
@@ -1293,7 +1293,7 @@ void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     // Determine the type of input and the file name array and index
     if (fileNumber < ctx->_fileCountNet)
     {
-        ctx->_inputDeviceType = IDT_NETWORK;
+        ctx->_inputDeviceType = DFU_IDT_NETWORK;
         bufferData = &firmwareFileNamesNet;
     }
     else
@@ -1301,13 +1301,13 @@ void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         fileNumber -= ctx->_fileCountNet;
         if (fileNumber < ctx->_fileCountNvm)
         {
-            ctx->_inputDeviceType = IDT_NVM;
+            ctx->_inputDeviceType = DFU_IDT_NVM;
             bufferData = &firmwareFileNamesNvm;
         }
         else
         {
             fileNumber -= ctx->_fileCountNvm;
-            ctx->_inputDeviceType = IDT_SD;
+            ctx->_inputDeviceType = DFU_IDT_SD;
             bufferData = &firmwareFileNamesSd;
         }
     }
@@ -1475,7 +1475,7 @@ void deviceFirmwareUpdateBegin(bool doAll)
     memset(ctx, 0, length);
     ctx->_doAll = doAll;
     if (doAll)
-        ctx->_outputDeviceType = ODT_DEVICE;
+        ctx->_outputDeviceType = DFU_ODT_DEVICE;
 
     // Set the initial state
     deviceFirmwareStateSet(ctx, DFUS_INIT);
@@ -1552,15 +1552,15 @@ void deviceFirmwareWrite(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         bytesWritten = ctx->_bytesMax;
 
         // Write the data to the device
-        if (ctx->_outputDeviceType == ODT_DEVICE)
+        if (ctx->_outputDeviceType == DFU_ODT_DEVICE)
         {
             bytesWritten = write(ctx, ctx->_data, bytesToWrite);
             if (bytesWritten > bytesToWrite)
                 bytesWritten = bytesToWrite;
         }
-        else if (ctx->_outputDeviceType == ODT_NVM)
+        else if (ctx->_outputDeviceType == DFU_ODT_NVM)
             bytesWritten = deviceUpdateNvmWrite(ctx, ctx->_data, bytesToWrite);
-        else if (ctx->_outputDeviceType == ODT_SD)
+        else if (ctx->_outputDeviceType == DFU_ODT_SD)
             bytesWritten = deviceUpdateSdWrite(ctx, ctx->_data, bytesToWrite);
         if (bytesWritten >= 0)
         {

@@ -13,7 +13,7 @@ bool esp32AreFirmwareWritesSupported()
 
     // We can do OTA if there are two APP partitions
     ctx = dfuContext;
-    return ((ctx->_outputDeviceType == ODT_DEVICE)
+    return ((ctx->_outputDeviceType == DFU_ODT_DEVICE)
         && (strcmp("ESP32", ctx->_deviceInfo->_deviceName) == 0)
         && (countAppPartitions() >= 2));
 }
@@ -34,7 +34,7 @@ void esp32Close(DEVICE_FIRMWARE_CTX * ctx)
 
             systemPrintln("Firmware updated successfully.");
 
-            if ((ctx->_inputDeviceType == IDT_SD) && ctx->_complete)
+            if ((ctx->_inputDeviceType == DFU_IDT_SD) && ctx->_complete)
             {
                 // If forced firmware is detected, do a full reset of config as well
                 if (strcmp(forceFirmwareFileName, ctx->_fileName.c_str()) == 0)

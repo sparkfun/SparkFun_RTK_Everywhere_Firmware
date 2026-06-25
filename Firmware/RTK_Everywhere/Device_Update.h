@@ -156,4 +156,27 @@ enum _DEVICE_FIRMWARE_UPDATE_STATE
     DFUS_MAX
 };
 
+//----------------------------------------
+// Input device containing the firmware file
+//----------------------------------------
+enum DFU_INPUT_DEVICE_TYPE
+{
+    DFU_IDT_NONE = 0,
+    DFU_IDT_NETWORK,
+    DFU_IDT_NVM,
+    DFU_IDT_SD,
+};
+
+//----------------------------------------
+// Output device to which the firmware file will be copied
+//----------------------------------------
+enum DFU_OUTPUT_DEVICE_TYPE
+{
+    DFU_ODT_NONE = 0,
+    DFU_ODT_TEST,
+    DFU_ODT_DEVICE,
+    DFU_ODT_NVM,
+    DFU_ODT_SD,
+};
+
 #endif  // __DEVICE_UPDATE_H__

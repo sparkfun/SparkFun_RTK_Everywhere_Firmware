@@ -91,23 +91,6 @@ struct struct_online
     bool microSD = false;
 } online;
 
-enum INPUT_DEVICE_TYPE
-{
-    IDT_NONE = 0,
-    IDT_NETWORK,
-    IDT_NVM,
-    IDT_SD,
-};
-
-enum OUTPUT_DEVICE_TYPE
-{
-    ODT_NONE = 0,
-    ODT_TEST,
-    ODT_DEVICE,
-    ODT_NVM,
-    ODT_SD,
-};
-
 typedef bool (* DEVICE_RESET)(struct _DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
 
 bool im19Reset(struct _DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
