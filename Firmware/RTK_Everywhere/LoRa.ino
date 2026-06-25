@@ -77,7 +77,7 @@ const unsigned long LORA_CMD_SAVE_TIMEOUT_MS = 200;
 enum LoraState
 {
     LORA_NOT_PRESENT = 0,      // Start. If present, power on, start serial interface, and check version.
-    LORA_OFF,                  // Radio is powered off, but serial interface remains.
+    LORA_DISABLED,             // Radio is powered off, but serial interface remains.
     LORA_IDLE,                 // Radio is ready, now determine if we are TXing or RXing
     LORA_TX_SETTLING,          // Do not transmit while surveying in to avoid RF cross-talk
     LORA_TX,                   // Send RTCM over LoRa when it's received from the GNSS (share UART0 with prints)
@@ -103,7 +103,7 @@ void updateLora()
     if (settings.enableLora == false && (loraState >= LORA_IDLE && loraState < LORA_STATE_MAX))
     {
         loraPowerOff(); // Leave serial inteface in place
-        loraState = LORA_OFF;
+        loraState = LORA_DISABLED;
     }
 
     switch (loraState)
@@ -122,14 +122,14 @@ void updateLora()
             if (settings.enableLora == false)
             {
                 loraPowerOff(); // Power off system. Leave serial inteface in place
-                loraState = LORA_OFF;
+                loraState = LORA_DISABLED;
             }
             else
                 loraState = LORA_IDLE;
         }
         break;
 
-    case (LORA_OFF):
+    case (LORA_DISABLED):
         if (settings.enableLora == true)
         {
             loraPowerOn();
@@ -421,7 +421,7 @@ void beginLora()
         }
 
         // Store firmware version in char array
-        loraGetVersion(); // calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
+        loraGetVersion(); // Calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     }
 }
 
@@ -556,9 +556,8 @@ void loraReset()
     if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
     {
         digitalWrite(pin_loraRadio_reset, LOW); // Reset STM32/radio
-        delay(15);
+        delay(50);
         digitalWrite(pin_loraRadio_reset, HIGH); // Run STM32/radio
-        delay(15);
     }
     else if (productVariant == RTK_FACET_FP)
     {
@@ -1003,9 +1002,11 @@ bool loraEnterCommandMode()
     char response[responseLen];
     int responseSpot = 0;
 
+    loraReset(); // Needed for Torch.
+
     systemFlush(); // Torch: Complete any local prints before switching the UART to LoRa
 
-    muxSelectLoRaCommunication(); // Connect the LoRa radio to ESP32 UART0 (shared with USB)
+    muxSelectLoRaCommunication(); // Torch: Disconnect USB, connect the LoRa radio to ESP32 UART0.
     startLoRaConfigureCommunicationOnFacet();
 
     delay(100); // Wait for incoming serial to complete
@@ -1239,6 +1240,7 @@ void loraRxDirectConnect()
     ESP.restart();
 }
 
+// Used for RX link testing.
 void loraRxDirectConnectTorch()
 {
     // Torch:
@@ -1262,9 +1264,8 @@ void loraRxDirectConnectTorch()
     loraExitBootloader(); // Disables BOOT pin, then resets the STM32
 
     // Store firmware version in char array
-    // loraGetVersion() calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = true;
-    loraGetVersion();
+    loraGetVersion(); // Calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = false;
 
     loraSetupAlternateDataPort(false); // RX Mode using alternate data port (UART1)
@@ -1292,6 +1293,7 @@ void loraRxDirectConnectTorch()
     }
 }
 
+// Used for RX link testing.
 void loraRxDirectConnectFacetFP()
 {
     // Facet FP:
@@ -1316,9 +1318,8 @@ void loraRxDirectConnectFacetFP()
     loraExitBootloader(); // Disables BOOT pin, then resets the STM32
 
     // Store firmware version in char array
-    // loraGetVersion() calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = true;
-    loraGetVersion();
+    loraGetVersion(); // Calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = false;
 
     loraSetupAlternateDataPort(false); // RX Mode using alternate data port (UART2)
@@ -1397,6 +1398,7 @@ void loraTxDirectConnect()
     ESP.restart();
 }
 
+// Used for link testing.
 void loraTxDirectConnectTorch()
 {
     // Torch:
@@ -1420,9 +1422,8 @@ void loraTxDirectConnectTorch()
     loraExitBootloader(); // Disables BOOT pin, then resets the STM32
 
     // Store firmware version in char array
-    // loraGetVersion() calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = true;
-    loraGetVersion();
+    loraGetVersion(); // Calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = false;
 
     loraSetupAlternateDataPort(true); // TX Mode using alternate data port (UART1)
@@ -1493,9 +1494,8 @@ void loraTxDirectConnectFacetFP()
     loraExitBootloader(); // Disables BOOT pin, then resets the STM32
 
     // Store firmware version in char array
-    // loraGetVersion() calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = true;
-    loraGetVersion();
+    loraGetVersion(); // Calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = false;
 
     loraSetupAlternateDataPort(true); // TX Mode using alternate data port (UART1)
