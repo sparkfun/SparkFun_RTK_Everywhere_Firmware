@@ -91,16 +91,6 @@ struct struct_online
     bool microSD = false;
 } online;
 
-// Describe the volatile buffer description
-typedef struct _BUFFER_DATA
-{
-    uint8_t * _address;
-    size_t _length;
-    size_t _offset;
-    char ** _nameArray;
-    int * _sortArray;
-} BUFFER_DATA;
-
 enum INPUT_DEVICE_TYPE
 {
     IDT_NONE = 0,
@@ -117,15 +107,6 @@ enum OUTPUT_DEVICE_TYPE
     ODT_NVM,
     ODT_SD,
 };
-
-// Allocate and forget buffer descriptions used during early initialization
-typedef struct _BUFFER_INFO
-{
-    bool * _present;        // nullptr or *_present = true, allocate buffer
-    size_t _sizeInBytes;    // Initial buffer size
-    BUFFER_DATA * _bufferData;
-    const char * _description;  // Text for rtkMalloc
-} BUFFER_INFO;
 
 typedef bool (* DEVICE_RESET)(struct _DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
 

@@ -18,6 +18,7 @@ Device_Update.ino
 #include <Wire.h> //Built-in
 
 #include "settings.h"
+#include "Device_Update.h"
 #include "Work_Arounds.h"
 #include "Secrets.h"
 
@@ -143,21 +144,21 @@ DEVICE_FIRMWARE_CTX * deviceFirmwareContext;
 // Statically allocated buffers
 //----------------------------------------
 
-BUFFER_DATA firmwareData;
-BUFFER_DATA firmwareFileNamesNet;
-BUFFER_DATA firmwareFileNamesNvm;
-BUFFER_DATA firmwareFileNamesSd;
+DFU_BUFFER_DATA firmwareData;
+DFU_BUFFER_DATA firmwareFileNamesNet;
+DFU_BUFFER_DATA firmwareFileNamesNvm;
+DFU_BUFFER_DATA firmwareFileNamesSd;
 
 // Allocate buffer when (_present == nullptr) or (*_present == true)
 // Delayed allocations must be detected by code using the buffer
-const BUFFER_INFO bufferInfo[] =
+const DFU_BUFFER_INFO dfuBufferInfo[] =
 { // _present           _sizeInBytes    _address                _description
     {nullptr,            16 * 1024,     &firmwareData,          "Firmware download area"},
     {nullptr,             4 * 1024,     &firmwareFileNamesNet,  "Firmware network file names"},
     {nullptr,             4 * 1024,     &firmwareFileNamesNvm,  "Firmware NVM file names"},
     {&present.microSd,    4 * 1024,     &firmwareFileNamesSd,   "Firmware SD card file names"},
 };
-const int bufferInfoCount = sizeof(bufferInfo) / sizeof(bufferInfo[0]);
+const int dfuBufferInfoCount = sizeof(dfuBufferInfo) / sizeof(dfuBufferInfo[0]);
 
 //----------------------------------------
 // Test sketch entry point

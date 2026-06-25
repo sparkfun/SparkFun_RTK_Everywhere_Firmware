@@ -29,7 +29,7 @@ void deviceUpdateSdDelete(const char * fileName)
 void deviceUpdateSdGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     int bufferIndex;
-    BUFFER_DATA * bufferData;
+    DFU_BUFFER_DATA * bufferData;
     SdFile dir;
     const char * extension;
     SdFile file;

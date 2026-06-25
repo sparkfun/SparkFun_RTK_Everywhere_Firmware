@@ -215,7 +215,7 @@ void deviceFirmwareBufferFree(DEVICE_FIRMWARE_CTX * ctx)
 // Restore the data buffer
 //----------------------------------------
 void deviceFirmwareBufferRestore(DEVICE_FIRMWARE_CTX * ctx,
-                                 BUFFER_DATA * bufferData)
+                                 DFU_BUFFER_DATA * bufferData)
 {
     // Update the offset value
     if (bufferData)
@@ -448,7 +448,7 @@ void deviceFirmwareFileList(int bufferIndex,
                             const char * prefix,
                             int offset)
 {
-    BUFFER_DATA * bufferData = bufferInfo[bufferIndex]._bufferData;
+    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
     char ** nameArray = bufferData->_nameArray;
     int * sortArray = bufferData->_sortArray;
 
@@ -507,7 +507,7 @@ void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx)
 //----------------------------------------
 void deviceFirmwareFileSort(int bufferIndex, int fileCount)
 {
-    BUFFER_DATA * bufferData = bufferInfo[bufferIndex]._bufferData;
+    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
     char ** nameArray = bufferData->_nameArray;
     int * sortArray = bufferData->_sortArray;
 
@@ -998,7 +998,7 @@ void deviceFirmwareReset(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     int action;
-    BUFFER_DATA * bufferData;
+    DFU_BUFFER_DATA * bufferData;
     int bufferIndex;
     const DEVICE_FIRMWARE_INFO * deviceInfo;
     int fileNumber;
@@ -1138,8 +1138,8 @@ void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                 if ((ctx->_deviceInfo->_present == nullptr)
                     || (*ctx->_deviceInfo->_present))
                 {
-                    if ((bufferInfo[0]._bufferData == nullptr)
-                        || (bufferInfo[0]._bufferData->_address == nullptr))
+                    if ((dfuBufferInfo[0]._bufferData == nullptr)
+                        || (dfuBufferInfo[0]._bufferData->_address == nullptr))
                     {
                         // Allocate the buffers
                         if (deviceFirmwareBufferAllocate(ctx) == false)
@@ -1216,7 +1216,7 @@ nextDevice:
 //----------------------------------------
 void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
-    BUFFER_DATA * bufferData;
+    DFU_BUFFER_DATA * bufferData;
     int bufferIndex;
     const DEVICE_FIRMWARE_INFO * deviceInfo;
     int fileNumber;

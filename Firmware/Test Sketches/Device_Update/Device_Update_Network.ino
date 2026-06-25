@@ -8,7 +8,7 @@ Device_Update_Network.ino
 // Done with the network link
 //----------------------------------------
 void deviceFirmwareNetworkCleanup(DEVICE_FIRMWARE_CTX *ctx,
-                                  BUFFER_DATA * bufferData)
+                                  DFU_BUFFER_DATA * bufferData)
 {
     // Restore access to the data buffer
     deviceFirmwareBufferRestore(ctx, bufferData);
@@ -81,7 +81,7 @@ void deviceFirmwareNetworkFileListBuildUrl(DEVICE_FIRMWARE_CTX * ctx)
 //----------------------------------------
 void deviceFirmwareNetworkFileListGetFileName(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
-    BUFFER_DATA * bufferData;
+    DFU_BUFFER_DATA * bufferData;
     int bufferIndex;
     const char * dirSuffix;
     const char * extension;
@@ -192,7 +192,7 @@ void deviceFirmwareNetworkFileListGetFileName(DEVICE_FIRMWARE_CTX * ctx, uint32_
 void deviceFirmwareNetworkFileListHtmlRequest(DEVICE_FIRMWARE_CTX * ctx,
                                               uint32_t currentMsec)
 {
-    BUFFER_DATA * bufferData;
+    DFU_BUFFER_DATA * bufferData;
     const char * dirPrefix;
     const char * dirSuffix;
     const char * filePrefix;

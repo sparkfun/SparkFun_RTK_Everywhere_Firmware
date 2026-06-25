@@ -29,7 +29,7 @@ void deviceUpdateNvmDelete(const char * fileName)
 void deviceUpdateNvmGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     int bufferIndex;
-    BUFFER_DATA * bufferData;
+    DFU_BUFFER_DATA * bufferData;
     bool directory;
     const char * extension;
     File file;
