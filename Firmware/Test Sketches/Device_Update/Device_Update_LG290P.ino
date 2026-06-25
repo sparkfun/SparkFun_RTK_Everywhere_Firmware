@@ -371,7 +371,7 @@ void lg290pInsertCrc(uint32_t crcInitial,
     uint32_t crc;
 
     // Compute the CRC over the specified bytes
-    crc = computeCrc32(crcInitial, start, bytes);
+    crc = crc32Compute(crcInitial, start, bytes);
 
     // Insert the CRC as a big endian value
     crcLocation[0] = (uint8_t)(crc >> 24);
