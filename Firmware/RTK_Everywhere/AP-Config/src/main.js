@@ -95,7 +95,6 @@ var divTables = {
     constellationSbas: ["constellation_SBAS"],
     constellationNavic: ["constellation_NavIC"],
     constellationGlonass: ["constellation_GLONASS"],
-    tiltConfig: ["enableTiltCompensation"],
     loraConfig: ["enableLora"],
     loraSerialInteractionTimeoutConfig: ["loraSerialInteractionTimeout"],
     lg290pRtkDifferentialAgeConfig: ["lg290pRtkDifferentialAge"],
@@ -901,6 +900,14 @@ function parseIncoming(msg) {
             else {
                 ge(id).checked = true;
             }
+        }
+
+        // Tilt setting is always sent across, even on non-tilt enabled units. Hide section based on model variant.
+        else if (id.includes("enableTiltCompensation")) {
+            if (platformPrefix == "Torch" || platformPrefix == "FPLT" || platformPrefix == "FPXT" || platformPrefix == "FPMT")
+                show("tiltConfig");
+            else
+                hide("tiltConfig");
         }
 
         //Check boxes / radio buttons
