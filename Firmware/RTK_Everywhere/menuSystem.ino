@@ -16,20 +16,6 @@ void menuSystem()
 
         printTimeStamp(true);
 
-        systemPrint("GNSS: ");
-        if (online.gnss == true)
-        {
-            systemPrint("Online - ");
-
-            gnss->printModuleInfo();
-
-            systemPrintf("Module ID: %s\r\n", gnss->getId());
-
-            printCurrentConditions();
-        }
-        else
-            systemPrintln("Offline");
-
         if (present.display_type < DISPLAY_MAX_NONE)
         {
             systemPrint("Display: ");
@@ -1688,7 +1674,7 @@ void menuInstrument()
         systemPrintln("Menu: Instrument Setup");
 
         if(online.imu_im19 == true)
-            systemPrintf("IM19 Version: %s\r\n", imuFirmwareVersion);
+            systemPrintf("IM19 Version: %d\r\n", imuAppVersionInt);
 
         // Print the combined APC
         systemPrintf("Combined Height of Instrument: %0.3fm\r\n",

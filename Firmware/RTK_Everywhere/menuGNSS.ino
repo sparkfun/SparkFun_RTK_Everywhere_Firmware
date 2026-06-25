@@ -13,6 +13,16 @@ void menuGNSS()
         systemPrintln();
         systemPrintln("Menu: GNSS Receiver");
 
+        systemPrint("GNSS Version: ");
+        if (online.gnss == true)
+        {
+            gnss->printModuleInfo();
+
+            systemPrintf("Module ID: %s\r\n", gnss->getId());
+        }
+        else
+            systemPrintln("Offline");
+
         if (!present.gnss_mosaicX5)
         {
             systemPrint("1) Set measurement rate in Hz: ");
@@ -80,8 +90,8 @@ void menuGNSS()
                 }
                 systemPrintln();
             }
-            
-            //No Escooter, or Rail on standard X20P
+
+            // No Escooter, or Rail on standard X20P
             else if (present.gnss_zedx20p)
             {
                 switch (settings.dynamicModel)
