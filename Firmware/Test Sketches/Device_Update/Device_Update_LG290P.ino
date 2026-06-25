@@ -9,7 +9,7 @@ Device_Update_LG290P.ino
 //----------------------------------------
 // Send a sync command
 //----------------------------------------
-bool lg290pBootloaderSync()
+bool dfuLg290pBootloaderSync()
 {
     uint32_t currentMsec;
     uint8_t data;
@@ -94,16 +94,16 @@ bool lg290pBootloaderSync()
 //----------------------------------------
 // Perform the cleanup after the firmware download
 //----------------------------------------
-void lg290pClose(DEVICE_FIRMWARE_CTX * ctx)
+void dfuLg290pClose(DEVICE_FIRMWARE_CTX * ctx)
 {
-    lg290pCmdReset();
+    dfuLg290pCmdReset();
     delay(1 * MILLISECONDS_IN_A_SECOND);
 }
 
 //----------------------------------------
 // Send the firmware erase command to the LG290P
 //----------------------------------------
-bool lg290pCmdErase()
+bool dfuLg290pCmdErase()
 {
     uint8_t command[10];
     int retryCount;
@@ -117,7 +117,7 @@ bool lg290pCmdErase()
     command[9] = 0x55;      // Tail
 
     // Compute the CRC
-    lg290pInsertCrc(0, &command[1], 4, &command[5]);
+    dfuLg290pInsertCrc(0, &command[1], 4, &command[5]);
 
     // Retry the command if necesary
     retryCount = 0;
@@ -126,7 +126,7 @@ bool lg290pCmdErase()
         // Send the command to the LG290P
         if ((serialGNSS->write(command, sizeof(command)) == sizeof(command))
             // Verify the response
-            && (lg290pCmdResponse(command) == 0))
+            && (dfuLg290pCmdResponse(command) == 0))
         {
             if (settings.debugFirmwareUpdate)
                 systemPrintf("Successfully erased the LG290P firmware\r\n");
@@ -139,7 +139,7 @@ bool lg290pCmdErase()
 //----------------------------------------
 // Send the firmware infomation command to the LG290P
 //----------------------------------------
-bool lg290pCmdFirmwareInfo(ssize_t firmwareBytes, uint32_t firmwareCrc)
+bool dfuLg290pCmdFirmwareInfo(ssize_t firmwareBytes, uint32_t firmwareCrc)
 {
     uint8_t command[26];
     uint32_t crc32;
@@ -169,18 +169,18 @@ bool lg290pCmdFirmwareInfo(ssize_t firmwareBytes, uint32_t firmwareCrc)
     command[25] = 0x55; // Tail
 
     // Compute the CRC
-    lg290pInsertCrc(0, &command[1], 20, &command[21]);
+    dfuLg290pInsertCrc(0, &command[1], 20, &command[21]);
 
     // Send the command to the LG290P
     return ((serialGNSS->write(command, sizeof(command)) == sizeof(command))
             // Verify the response
-            && (lg290pCmdResponse(command) == 0));
+            && (dfuLg290pCmdResponse(command) == 0));
 }
 
 //----------------------------------------
 // Send the firmware reset command to the LG290P
 //----------------------------------------
-bool lg290pCmdReset()
+bool dfuLg290pCmdReset()
 {
     uint8_t command[10];
 
@@ -193,12 +193,12 @@ bool lg290pCmdReset()
     command[9] = 0x55;      // Tail
 
     // Compute the CRC
-    lg290pInsertCrc(0, &command[1], 4, &command[5]);
+    dfuLg290pInsertCrc(0, &command[1], 4, &command[5]);
 
     // Send the command to the LG290P
     return ((serialGNSS->write(command, sizeof(command)) == sizeof(command))
             // Verify the response
-            && (lg290pCmdResponse(command) == 0));
+            && (dfuLg290pCmdResponse(command) == 0));
 }
 
 //----------------------------------------
@@ -214,7 +214,7 @@ bool lg290pCmdReset()
 //      0x0020 Firmware area erase error
 //      0x0021 Firmware write Flash error
 //----------------------------------------
-int32_t lg290pCmdResponse(uint8_t * command)
+int32_t dfuLg290pCmdResponse(uint8_t * command)
 {
     uint8_t data;
     size_t offset;
@@ -308,10 +308,10 @@ int32_t lg290pCmdResponse(uint8_t * command)
 //----------------------------------------
 // Send a firmware packet to the LG290P
 //----------------------------------------
-uint32_t lg290pCmdWritePacket(uint8_t * command,
-                              uint8_t * firmware,
-                              uint32_t firmwareBytes,
-                              uint32_t packetNumber)
+uint32_t dfuLg290pCmdWritePacket(uint8_t * command,
+                                 uint8_t * firmware,
+                                 uint32_t firmwareBytes,
+                                 uint32_t packetNumber)
 {
     size_t commandLength;
     size_t payloadBytes;
@@ -335,17 +335,18 @@ uint32_t lg290pCmdWritePacket(uint8_t * command,
 
     // Verify the packet length
     commandLength = 1 + 1 + 1 + 2 + payloadBytes + 4 + 1;
-    if (commandLength > LG290P_BYTES)
+    if (commandLength > DFU_LG290P_BYTES)
     {
-        systemPrintf("LG290P_BYTES: %d must be >= commandLength: %d\r\n", LG290P_BYTES, commandLength);
+        systemPrintf("DFU_LG290P_BYTES: %d must be >= commandLength: %d\r\n",
+                     DFU_LG290P_BYTES, commandLength);
         reportFatalError("Fix LG290P_BYTES!");
     }
 
     // Compute the CRC
-    lg290pInsertCrc(0,
-                    &command[1],
-                    commandLength - 1 - 4 - 1,
-                    &command[commandLength - 4 - 1]);
+    dfuLg290pInsertCrc(0,
+                       &command[1],
+                       commandLength - 1 - 4 - 1,
+                       &command[commandLength - 4 - 1]);
 
     // Retry the command if necesary
     retryCount = 0;
@@ -354,7 +355,7 @@ uint32_t lg290pCmdWritePacket(uint8_t * command,
         // Send the command to the LG290P
         if ((serialGNSS->write(command, commandLength) == commandLength)
             // Verify the response
-            && (lg290pCmdResponse(command) == 0))
+            && (dfuLg290pCmdResponse(command) == 0))
             return firmwareBytes;
     } while (retryCount++ < 3);
     return -1;
@@ -363,10 +364,10 @@ uint32_t lg290pCmdWritePacket(uint8_t * command,
 //----------------------------------------
 // Compute and insert the CRC
 //----------------------------------------
-void lg290pInsertCrc(uint32_t crcInitial,
-                     uint8_t * start,
-                     size_t bytes,
-                     uint8_t * crcLocation)
+void dfuLg290pInsertCrc(uint32_t crcInitial,
+                        uint8_t * start,
+                        size_t bytes,
+                        uint8_t * crcLocation)
 {
     uint32_t crc;
 
@@ -383,21 +384,24 @@ void lg290pInsertCrc(uint32_t crcInitial,
 //----------------------------------------
 // LG290P firmware open
 //----------------------------------------
-bool lg290pOpen(DEVICE_FIRMWARE_CTX * ctx)
+bool dfuLg290pOpen(DEVICE_FIRMWARE_CTX * ctx)
 {
     // Erase the previous firmware
-    return lg290pCmdErase() && lg290pCmdFirmwareInfo(ctx->_fileBytes, ctx->_crc);
+    return dfuLg290pCmdErase() && dfuLg290pCmdFirmwareInfo(ctx->_fileBytes, ctx->_crc);
 }
 
 //----------------------------------------
 // Reset the LG290P
 //----------------------------------------
-bool lg290pReset(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+bool dfuLg290pReset(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
-    return lg290pReset();
+    return dfuLg290pReset();
 }
 
-bool lg290pReset()
+//----------------------------------------
+// Reset the LG290P
+//----------------------------------------
+bool dfuLg290pReset()
 {
     // Prevent garbage caused during LG290P reset
     if (serialGNSS)
@@ -416,15 +420,15 @@ bool lg290pReset()
                       pin_GnssUart_TX);
 
     // Attempt to synchronize with the LG290P bootloader
-    return lg290pBootloaderSync();
+    return dfuLg290pBootloaderSync();
 }
 
 //----------------------------------------
 // LG290P firmware write
 //----------------------------------------
-ssize_t lg290pWrite(DEVICE_FIRMWARE_CTX * ctx,
-                    uint8_t * buffer,
-                    size_t bytesToWrite)
+ssize_t dfuLg290pWrite(DEVICE_FIRMWARE_CTX * ctx,
+                       uint8_t * buffer,
+                       size_t bytesToWrite)
 {
     size_t commandLength;
     size_t payloadBytes;
@@ -450,10 +454,10 @@ ssize_t lg290pWrite(DEVICE_FIRMWARE_CTX * ctx,
 
     // Compute the CRC
     commandLength = 1 + 1 + 1 + 2 + payloadBytes + 4 + 1;
-    lg290pInsertCrc(0,
-                    &writeBuffer[1],
-                    commandLength - 1 - 4 - 1,
-                    &writeBuffer[commandLength - 4 - 1]);
+    dfuLg290pInsertCrc(0,
+                       &writeBuffer[1],
+                       commandLength - 1 - 4 - 1,
+                       &writeBuffer[commandLength - 4 - 1]);
 
     // Retry the command if necesary
     retryCount = 0;
@@ -462,7 +466,7 @@ ssize_t lg290pWrite(DEVICE_FIRMWARE_CTX * ctx,
         // Send the command to the LG290P
         if ((serialGNSS->write(writeBuffer, commandLength) == commandLength)
             // Verify the response
-            && (lg290pCmdResponse(writeBuffer) == 0))
+            && (dfuLg290pCmdResponse(writeBuffer) == 0))
         {
             // Account for this packet
             ctx->_packetNumber += 1;

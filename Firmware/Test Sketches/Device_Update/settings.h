@@ -91,29 +91,29 @@ struct struct_online
     bool microSD = false;
 } online;
 
-bool im19Reset(struct _DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
-bool lg290pReset(struct _DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
+bool dfuIm19Reset(struct _DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
+bool dfuLg290pReset(struct _DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
 
-String esp32FirmwareVersion();
-String gnssGetFirmwareVersion();
+String dfuEsp32FirmwareVersion();
+String dfuGnssGetFirmwareVersion();
 String tiltGetFirmwareVersion();
 
-bool esp32Open(struct _DEVICE_FIRMWARE_CTX * ctx);
-bool im19Open(struct _DEVICE_FIRMWARE_CTX * ctx);
-bool lg290pOpen(struct _DEVICE_FIRMWARE_CTX * ctx);
+bool dfuEsp32Open(struct _DEVICE_FIRMWARE_CTX * ctx);
+bool dfuIm19Open(struct _DEVICE_FIRMWARE_CTX * ctx);
+bool dfuLg290pOpen(struct _DEVICE_FIRMWARE_CTX * ctx);
 
-ssize_t esp32Write(struct _DEVICE_FIRMWARE_CTX * ctx,
-                   uint8_t * buffer,
-                   size_t bytesToWrite);
-ssize_t im19Write(struct _DEVICE_FIRMWARE_CTX * ctx,
-                  uint8_t * buffer,
-                  size_t bytesToWrite);
-ssize_t lg290pWrite(struct _DEVICE_FIRMWARE_CTX * ctx,
-                    uint8_t * buffer,
-                    size_t bytesToWrite);
+ssize_t dfuEsp32Write(struct _DEVICE_FIRMWARE_CTX * ctx,
+                      uint8_t * buffer,
+                      size_t bytesToWrite);
+ssize_t dfuIm19Write(struct _DEVICE_FIRMWARE_CTX * ctx,
+                     uint8_t * buffer,
+                     size_t bytesToWrite);
+ssize_t dfuLg290pWrite(struct _DEVICE_FIRMWARE_CTX * ctx,
+                       uint8_t * buffer,
+                       size_t bytesToWrite);
 
-void esp32Close(struct _DEVICE_FIRMWARE_CTX * ctx);
-void im19Close(struct _DEVICE_FIRMWARE_CTX * ctx);
-void lg290pClose(struct _DEVICE_FIRMWARE_CTX * ctx);
+void dfuEsp32Close(struct _DEVICE_FIRMWARE_CTX * ctx);
+void dfuIm19Close(struct _DEVICE_FIRMWARE_CTX * ctx);
+void dfuLg290pClose(struct _DEVICE_FIRMWARE_CTX * ctx);
 
 #endif  // __SETTINGS_H__

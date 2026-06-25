@@ -141,11 +141,11 @@ void beginBoard()
 
         pin_GnssUart_RX = 21;
         pin_GnssUart_TX = 22;
-        gnssUartInit(1);
+        dfuGnssUartInit(1);
 //        gnss = (GNSS *)new GNSS_LG290P();
 
         // Tell LG290P to boot
-        lg290pReset();
+        dfuLg290pReset();
 
 /*
         // Initialize the microSD card

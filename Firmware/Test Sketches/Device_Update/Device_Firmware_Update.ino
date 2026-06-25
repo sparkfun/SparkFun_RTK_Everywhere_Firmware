@@ -8,7 +8,7 @@ Device_Firmware_Update.ino
 // Constants
 //----------------------------------------
 
-const char * deviceFirmwareStateName[] =
+const char * dfuStateName[] =
 {
     "DFUS_DONE",
     "DFUS_INIT",
@@ -34,19 +34,18 @@ const char * deviceFirmwareStateName[] =
     "DFUS_NEXT_DEVICE",
     "DFUS_REBOOT",
 };
-const int deviceFirmwareStateNameCount = sizeof(deviceFirmwareStateName)
-                                       / sizeof(deviceFirmwareStateName[0]);
+const int dfuStateNameCount = sizeof(dfuStateName) / sizeof(dfuStateName[0]);
 
-#define USER_INPUT_STRING           0
-#define USER_INPUT_NOT_DONE         -1
-#define USER_INPUT_EXIT             -2
-#define USER_INPUT_TIMEOUT          -3
-#define USER_INPUT_OVERFLOWS_BUFFER -4
-#define USER_INPUT_NOT_A_NUMBER     -5
+#define DFU_USER_INPUT_STRING           0
+#define DFU_USER_INPUT_NOT_DONE         -1
+#define DFU_USER_INPUT_EXIT             -2
+#define DFU_USER_INPUT_TIMEOUT          -3
+#define DFU_USER_INPUT_OVERFLOWS_BUFFER -4
+#define DFU_USER_INPUT_NOT_A_NUMBER     -5
 
 #ifdef COMPILE_MENU_FIRMWARE
 
-const char * equalSigns = "==================================================";
+const char * dfuEqualSigns = "==================================================";
 
 //----------------------------------------
 // Display the action menu
@@ -196,7 +195,7 @@ void deviceFirmwareCloseInput(DEVICE_FIRMWARE_CTX * ctx)
 {
     // Close the input file
     if (ctx->_inputDeviceType == DFU_IDT_NETWORK)
-        deviceFirmwareNetworkCleanup(ctx, nullptr);
+        dfuNetworkCleanup(ctx, nullptr);
     else if (ctx->_inputDeviceType = DFU_IDT_NVM)
         ctx->_nvmFile.close();
     else if (ctx->_inputDeviceType == DFU_IDT_SD)
@@ -448,7 +447,7 @@ int deviceFirmwareGetNumber(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
     // Get the user input
     value = deviceFirmwareGetUserInput(ctx, currentMsec);
-    if (value == USER_INPUT_STRING)
+    if (value == DFU_USER_INPUT_STRING)
     {
         // Determine if a number was input
         if ((sscanf((char *)ctx->_buffer, "0x%x", &value) == 1)
@@ -459,7 +458,7 @@ int deviceFirmwareGetNumber(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         }
 
         // Return the input error
-        value = USER_INPUT_NOT_A_NUMBER;
+        value = DFU_USER_INPUT_NOT_A_NUMBER;
     }
 
     return value;
@@ -479,7 +478,7 @@ int deviceFirmwareGetUserInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     {
         systemPrintf("\r\nUser input timeout\r\n");
         deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
-        return USER_INPUT_TIMEOUT;
+        return DFU_USER_INPUT_TIMEOUT;
     }
 
     // Get the user selection
@@ -492,7 +491,7 @@ int deviceFirmwareGetUserInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         if ((incoming == '\r') || (incoming == '\n'))
         {
             systemPrintln();
-            return USER_INPUT_STRING;
+            return DFU_USER_INPUT_STRING;
         }
 
         // Echo the input
@@ -503,7 +502,7 @@ int deviceFirmwareGetUserInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         {
             systemPrintln();
             deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
-            return USER_INPUT_EXIT;
+            return DFU_USER_INPUT_EXIT;
         }
 
         // Save the input
@@ -515,10 +514,10 @@ int deviceFirmwareGetUserInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         {
             systemPrintf("\r\nBuffer overflow\r\n");
             deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
-            return USER_INPUT_OVERFLOWS_BUFFER;
+            return DFU_USER_INPUT_OVERFLOWS_BUFFER;
         }
     }
-    return USER_INPUT_NOT_DONE;
+    return DFU_USER_INPUT_NOT_DONE;
 }
 
 //----------------------------------------
@@ -645,12 +644,12 @@ bool deviceFirmwareOpenInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     // NVM file read data path:
     //    _ctx->_nvmFile --> ctx->_buffer
     if (ctx->_inputDeviceType == DFU_IDT_NVM)
-        return deviceUpdateNvmOpen(ctx, false);
+        return dfuNvmOpen(ctx, false);
 
     // SD file read data path:
     //    _ctx->_sdFile --> ctx->_buffer
     if (ctx->_inputDeviceType == DFU_IDT_SD)
-        return deviceUpdateSdOpen(ctx, false);
+        return dfuSdOpen(ctx, false);
 
     // Testing case
     return true;
@@ -700,7 +699,7 @@ void deviceFirmwareOpenOutput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         //    ctx->_buffer --> ctx->_nvmFile --> NVM
         if (ctx->_outputDeviceType == DFU_ODT_NVM)
         {
-            result = deviceUpdateNvmOpen(ctx, true);
+            result = dfuNvmOpen(ctx, true);
             break;
         }
 
@@ -708,7 +707,7 @@ void deviceFirmwareOpenOutput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         //    ctx->_buffer --> ctx->_sdFile --> SD card
         if (ctx->_outputDeviceType == DFU_ODT_SD)
         {
-            result = deviceUpdateSdOpen(ctx, true);
+            result = dfuSdOpen(ctx, true);
             break;
         }
 
@@ -820,11 +819,11 @@ bool deviceFirmwareRead(DEVICE_FIRMWARE_CTX * ctx,
         // Read firmware data from the input device
         ctx->_data = &ctx->_buffer[ctx->_validDataBytes];
         if (ctx->_inputDeviceType == DFU_IDT_NETWORK)
-            bytesRead = deviceUpdateNetworkRead(ctx, ctx->_data, length);
+            bytesRead = dfuNetworkRead(ctx, ctx->_data, length);
         else if (ctx->_inputDeviceType == DFU_IDT_NVM)
-            bytesRead = deviceUpdateNvmRead(ctx, ctx->_data, length);
+            bytesRead = dfuNvmRead(ctx, ctx->_data, length);
         else
-            bytesRead = deviceUpdateSdRead(ctx, ctx->_data, length);
+            bytesRead = dfuSdRead(ctx, ctx->_data, length);
 
         // Check for read error
         if (bytesRead < 0)
@@ -966,9 +965,9 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
             // Delete the file
             if (ctx->_inputDeviceType == DFU_IDT_NVM)
-                deviceUpdateNvmDelete(ctx->_fileName.c_str());
+                dfuNvmDelete(ctx->_fileName.c_str());
             else
-                deviceUpdateSdDelete(ctx->_fileName.c_str());
+                dfuSdDelete(ctx->_fileName.c_str());
 
             // Display the file list again
             ctx->_inputDeviceType = DFU_IDT_NONE;
@@ -1040,11 +1039,11 @@ void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                 if (ctx->_deviceInfo == &deviceFirmwareInfo[0])
                 {
                     if (ctx->_reboot)
-                        esp32Reboot();
+                        dfuEsp32Reboot();
 
-                    systemPrintf("%s\r\n", equalSigns);
+                    systemPrintf("%s\r\n", dfuEqualSigns);
                     systemPrintf("HALTED: Firmware update failed!\r\n");
-                    systemPrintf("%s\r\n", equalSigns);
+                    systemPrintf("%s\r\n", dfuEqualSigns);
                     reportFatalError("Firmware update failed!");
                 }
 
@@ -1070,7 +1069,7 @@ void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
         // Handle the menu timeout
         incoming = deviceFirmwareGetNumber(ctx, currentMsec);
-        if (incoming == USER_INPUT_NOT_A_NUMBER)
+        if (incoming == DFU_USER_INPUT_NOT_A_NUMBER)
         {
             systemPrintf("Invalid selection\r\n");
 
@@ -1178,7 +1177,7 @@ void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             //      |
             //      V
 
-        case USER_INPUT_NOT_A_NUMBER:
+        case DFU_USER_INPUT_NOT_A_NUMBER:
             // Stop timing out the user input
             ctx->_timerMsec = 0;
 
@@ -1186,16 +1185,16 @@ void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             deviceFirmwareFileListMenu(ctx);
             return;
 
-        case USER_INPUT_NOT_DONE:
+        case DFU_USER_INPUT_NOT_DONE:
             // Continue putting together the input string
             return;
 
-        case USER_INPUT_OVERFLOWS_BUFFER:
+        case DFU_USER_INPUT_OVERFLOWS_BUFFER:
             systemPrintf("ERROR: Input buffer overflow\r\n");
             deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
             return;
 
-        case USER_INPUT_TIMEOUT:
+        case DFU_USER_INPUT_TIMEOUT:
             systemPrintf("ERROR: User input timeout\r\n");
             deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
             return;
@@ -1262,8 +1261,8 @@ void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 //----------------------------------------
 const char * deviceFirmwareStateGetName(int state)
 {
-    if ((state >= 0) && (state < deviceFirmwareStateNameCount))
-        return deviceFirmwareStateName[state];
+    if ((state >= 0) && (state < dfuStateNameCount))
+        return dfuStateName[state];
     else
         return "Unknown";
 }
@@ -1331,11 +1330,11 @@ bool deviceFirmwareUpdate(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         case DFUS_INIT: deviceFirmwareInit(ctx, currentMsec); break;
         case DFUS_WAIT_NETWORK: deviceFirmwareWaitForNetwork(ctx, currentMsec); break;
         case DFUS_GET_DEVICE: deviceFirmwareSelectDevice(ctx, currentMsec); break;
-        case DFUS_GET_NETWORK_FILES: deviceFirmwareNetworkFileListBuildUrl(ctx); break;
-        case DFUS_GET_HTTP_FILE_LIST_REQ: deviceFirmwareNetworkFileListHtmlRequest(ctx, currentMsec); break;
-        case DFUS_GET_NETWORK_FILE_LIST: deviceFirmwareNetworkFileListGetFileName(ctx, currentMsec); break;
-        case DFUS_GET_NVM_FILE_LIST: deviceUpdateNvmGetFiles(ctx, currentMsec); break;
-        case DFUS_GET_SD_FILE_LIST: deviceUpdateSdGetFiles(ctx, currentMsec); break;
+        case DFUS_GET_NETWORK_FILES: dfuNetworkFileListBuildUrl(ctx); break;
+        case DFUS_GET_HTTP_FILE_LIST_REQ: dfuNetworkFileListHtmlRequest(ctx, currentMsec); break;
+        case DFUS_GET_NETWORK_FILE_LIST: dfuNetworkFileListGetFileName(ctx, currentMsec); break;
+        case DFUS_GET_NVM_FILE_LIST: dfuNvmGetFiles(ctx, currentMsec); break;
+        case DFUS_GET_SD_FILE_LIST: dfuSdGetFiles(ctx, currentMsec); break;
         case DFUS_SELECT_FILE: deviceFirmwareSelectFile(ctx, currentMsec); break;
         case DFUS_SELECT_ACTION: deviceFirmwareSelectAction(ctx, currentMsec); break;
         case DFUS_CRC_OPEN_INPUT: deviceFirmwareCrcOpen(ctx, currentMsec); break;
@@ -1349,7 +1348,7 @@ bool deviceFirmwareUpdate(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         case DFUS_READ_FIRMWARE_DATA: deviceFirmwareReadFirmwareData(ctx, currentMsec); break;
         case DFUS_DEVICE_CLOSE: deviceFirmwareClose(ctx, currentMsec); break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
-        case DFUS_REBOOT: esp32Reboot(); break;
+        case DFUS_REBOOT: dfuEsp32Reboot(); break;
         case DFUS_DONE: deviceFirmwareCleanup(ctx); running = false; break;
 
         default:
@@ -1402,8 +1401,8 @@ void deviceFirmwareUpdateBegin(bool doAll)
 //----------------------------------------
 void deviceFirmwareVerifyTables()
 {
-    if (DFUS_MAX != deviceFirmwareStateNameCount)
-        reportFatalError("Fix _DEVICE_FIRMWARE_UPDATE_STATE and deviceFirmwareStateName!");
+    if (DFUS_MAX != dfuStateNameCount)
+        reportFatalError("Fix _DEVICE_FIRMWARE_UPDATE_STATE and dfuStateName!");
 }
 
 //----------------------------------------
@@ -1474,9 +1473,9 @@ void deviceFirmwareWrite(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                 bytesWritten = bytesToWrite;
         }
         else if (ctx->_outputDeviceType == DFU_ODT_NVM)
-            bytesWritten = deviceUpdateNvmWrite(ctx, ctx->_data, bytesToWrite);
+            bytesWritten = dfuNvmWrite(ctx, ctx->_data, bytesToWrite);
         else if (ctx->_outputDeviceType == DFU_ODT_SD)
-            bytesWritten = deviceUpdateSdWrite(ctx, ctx->_data, bytesToWrite);
+            bytesWritten = dfuSdWrite(ctx, ctx->_data, bytesToWrite);
         if (bytesWritten >= 0)
         {
             // Account for the data written
@@ -1495,7 +1494,7 @@ void deviceFirmwareWrite(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         ctx->_percentage = percentage;
         displayFirmwareUpdateProgress(percentage);
         systemPrintf("\r[%s %d%%",
-                     &equalSigns[strlen(equalSigns) - (percentage >> 1)],
+                     &dfuEqualSigns[strlen(dfuEqualSigns) - (percentage >> 1)],
                      percentage);
         if (settings.debugFirmwareUpdate)
             systemPrintln();

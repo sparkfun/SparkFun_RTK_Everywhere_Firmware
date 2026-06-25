@@ -7,8 +7,8 @@ Device_Update_Network.ino
 //----------------------------------------
 // Done with the network link
 //----------------------------------------
-void deviceFirmwareNetworkCleanup(DEVICE_FIRMWARE_CTX *ctx,
-                                  DFU_BUFFER_DATA * bufferData)
+void dfuNetworkCleanup(DEVICE_FIRMWARE_CTX *ctx,
+                       DFU_BUFFER_DATA * bufferData)
 {
     // Restore access to the data buffer
     deviceFirmwareBufferRestore(ctx, bufferData);
@@ -56,7 +56,7 @@ void deviceFirmwareNetworkCleanup(DEVICE_FIRMWARE_CTX *ctx,
 //----------------------------------------
 // Request the web page containing the file specifications
 //----------------------------------------
-void deviceFirmwareNetworkFileListBuildUrl(DEVICE_FIRMWARE_CTX * ctx)
+void dfuNetworkFileListBuildUrl(DEVICE_FIRMWARE_CTX * ctx)
 {
     const DEVICE_FIRMWARE_INFO * deviceInfo;
 
@@ -79,7 +79,7 @@ void deviceFirmwareNetworkFileListBuildUrl(DEVICE_FIRMWARE_CTX * ctx)
 //----------------------------------------
 // Get the next network file name
 //----------------------------------------
-void deviceFirmwareNetworkFileListGetFileName(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+void dfuNetworkFileListGetFileName(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     DFU_BUFFER_DATA * bufferData;
     int bufferIndex;
@@ -156,7 +156,7 @@ void deviceFirmwareNetworkFileListGetFileName(DEVICE_FIRMWARE_CTX * ctx, uint32_
     } while (0);
 
     // Restore access to the data buffer
-    deviceFirmwareNetworkCleanup(ctx, bufferData);
+    dfuNetworkCleanup(ctx, bufferData);
 
     // Sort the file list
     if (ctx->_fileCountNet > 0)
@@ -189,8 +189,8 @@ void deviceFirmwareNetworkFileListGetFileName(DEVICE_FIRMWARE_CTX * ctx, uint32_
 //----------------------------------------
 // Request the web page containing the file specifications
 //----------------------------------------
-void deviceFirmwareNetworkFileListHtmlRequest(DEVICE_FIRMWARE_CTX * ctx,
-                                              uint32_t currentMsec)
+void dfuNetworkFileListHtmlRequest(DEVICE_FIRMWARE_CTX * ctx,
+                                   uint32_t currentMsec)
 {
     DFU_BUFFER_DATA * bufferData;
     const char * dirPrefix;
@@ -218,7 +218,7 @@ void deviceFirmwareNetworkFileListHtmlRequest(DEVICE_FIRMWARE_CTX * ctx,
                          ctx->_https->errorToString(httpResponseCode));
 
         // Done with the HTTP link
-        deviceFirmwareNetworkCleanup(ctx, nullptr);
+        dfuNetworkCleanup(ctx, nullptr);
 
         // Stop with known error or too many retries
         if ((httpResponseCode != -1) || (ctx->_attemptNumber++ >= 3))
@@ -251,7 +251,7 @@ void deviceFirmwareNetworkFileListHtmlRequest(DEVICE_FIRMWARE_CTX * ctx,
             || (fileListPrefix && (ctx->_networkClient->find(fileListPrefix) == false)))
         {
             systemPrintf("ERROR: Directory listing not found!\r\n");
-            deviceFirmwareNetworkCleanup(ctx, bufferData);
+            dfuNetworkCleanup(ctx, bufferData);
             deviceFirmwareStateSet(ctx, DFUS_GET_NVM_FILE_LIST);
         }
         else
@@ -263,7 +263,7 @@ void deviceFirmwareNetworkFileListHtmlRequest(DEVICE_FIRMWARE_CTX * ctx,
             else
             {
                 // Restore access to the data buffer
-                deviceFirmwareNetworkCleanup(ctx, bufferData);
+                dfuNetworkCleanup(ctx, bufferData);
 
                 // No files available
                 deviceFirmwareStateSet(ctx, DFUS_GET_NVM_FILE_LIST);
@@ -275,9 +275,9 @@ void deviceFirmwareNetworkFileListHtmlRequest(DEVICE_FIRMWARE_CTX * ctx,
 //----------------------------------------
 // Read firmware data from the web server
 //----------------------------------------
-ssize_t deviceUpdateNetworkRead(DEVICE_FIRMWARE_CTX * ctx,
-                                uint8_t * buffer,
-                                size_t bytesToRead)
+ssize_t dfuNetworkRead(DEVICE_FIRMWARE_CTX * ctx,
+                       uint8_t * buffer,
+                       size_t bytesToRead)
 {
     ssize_t bytesRead;
 

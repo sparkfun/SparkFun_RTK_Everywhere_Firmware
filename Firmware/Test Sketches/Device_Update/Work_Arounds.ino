@@ -163,6 +163,13 @@ const productProperties *getProductPropertiesFromVariant(ProductVariant variant)
 }
 
 //----------------------------------------
+// Perform a factory reset
+//----------------------------------------
+void gnssFactoryReset()
+{
+}
+
+//----------------------------------------
 // Add a network consumer
 //----------------------------------------
 void networkConsumerAdd(int consumer, int network, const char *fileName, uint32_t lineNumber)
@@ -250,7 +257,7 @@ void reportFatalError(const char *errorMsg)
     {
         // Allow carriage return to reset the system
         if (Serial.available() && (Serial.read() == '\r'))
-            esp32Reboot();
+            dfuEsp32Reboot();
 
         // Periodically display the halted message
         currentMsec = millis();

@@ -7,7 +7,7 @@ Device_Update_ESP32.ino
 //----------------------------------------
 // Determine if the ESP32 supports OTA
 //----------------------------------------
-bool esp32AreFirmwareWritesSupported()
+bool dfuEsp32AreFirmwareWritesSupported()
 {
     DEVICE_FIRMWARE_CTX * ctx;
 
@@ -21,7 +21,7 @@ bool esp32AreFirmwareWritesSupported()
 //----------------------------------------
 // ESP32 firmware close
 //----------------------------------------
-void esp32Close(DEVICE_FIRMWARE_CTX * ctx)
+void dfuEsp32Close(DEVICE_FIRMWARE_CTX * ctx)
 {
     if (Update.end(ctx->_complete))
     {
@@ -61,7 +61,7 @@ void esp32Close(DEVICE_FIRMWARE_CTX * ctx)
 //----------------------------------------
 // Get the current ESP32 firmware version
 //----------------------------------------
-String esp32FirmwareVersion()
+String dfuEsp32FirmwareVersion()
 {
     char version[128];
     firmwareVersionGet(version, sizeof(version), true);
@@ -71,7 +71,7 @@ String esp32FirmwareVersion()
 //----------------------------------------
 // ESP32 firmware open
 //----------------------------------------
-bool esp32Open(DEVICE_FIRMWARE_CTX * ctx)
+bool dfuEsp32Open(DEVICE_FIRMWARE_CTX * ctx)
 {
     return Update.begin(ctx->_fileBytes);
 }
@@ -79,7 +79,7 @@ bool esp32Open(DEVICE_FIRMWARE_CTX * ctx)
 //----------------------------------------
 // Reboot the ESP32
 //----------------------------------------
-void esp32Reboot()
+void dfuEsp32Reboot()
 {
     // Restart ESP32 to see changes
     systemPrintf("Rebooting. Goodbye!\r\n");
@@ -91,7 +91,7 @@ void esp32Reboot()
 //----------------------------------------
 // ESP32 firmware write
 //----------------------------------------
-ssize_t esp32Write(DEVICE_FIRMWARE_CTX * ctx,
+ssize_t dfuEsp32Write(DEVICE_FIRMWARE_CTX * ctx,
                    uint8_t * buffer,
                    size_t bytesToWrite)
 {

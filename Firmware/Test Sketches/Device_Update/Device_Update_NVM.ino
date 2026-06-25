@@ -7,7 +7,7 @@ Device_Update_NVM.ino
 //----------------------------------------
 // Close the NVM file
 //----------------------------------------
-bool deviceUpdateNvmClose(DEVICE_FIRMWARE_CTX * ctx)
+bool dfuNvmClose(DEVICE_FIRMWARE_CTX * ctx)
 {
     ctx->_nvmFile.close();
     return true;
@@ -16,7 +16,7 @@ bool deviceUpdateNvmClose(DEVICE_FIRMWARE_CTX * ctx)
 //----------------------------------------
 // Delete the NVM file
 //----------------------------------------
-void deviceUpdateNvmDelete(const char * fileName)
+void dfuNvmDelete(const char * fileName)
 {
     // Delete the file
     if (LittleFS.exists(fileName) && (LittleFS.remove(fileName) == false))
@@ -26,7 +26,7 @@ void deviceUpdateNvmDelete(const char * fileName)
 //----------------------------------------
 // Scan the NVM for matching firmware files
 //----------------------------------------
-void deviceUpdateNvmGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+void dfuNvmGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     int bufferIndex;
     DFU_BUFFER_DATA * bufferData;
@@ -134,7 +134,7 @@ void deviceUpdateNvmGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 //----------------------------------------
 // Open the NVM file
 //----------------------------------------
-bool deviceUpdateNvmOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
+bool dfuNvmOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
 {
     const char * operation;
 
@@ -164,9 +164,9 @@ bool deviceUpdateNvmOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
 //----------------------------------------
 // Read data from the NVM file
 //----------------------------------------
-ssize_t deviceUpdateNvmRead(DEVICE_FIRMWARE_CTX * ctx,
-                            uint8_t * buffer,
-                            size_t bytesToRead)
+ssize_t dfuNvmRead(DEVICE_FIRMWARE_CTX * ctx,
+                   uint8_t * buffer,
+                   size_t bytesToRead)
 {
     ssize_t bytesRead;
 
@@ -179,9 +179,9 @@ ssize_t deviceUpdateNvmRead(DEVICE_FIRMWARE_CTX * ctx,
 //----------------------------------------
 // Write firmware data to an NVM file
 //----------------------------------------
-ssize_t deviceUpdateNvmWrite(DEVICE_FIRMWARE_CTX * ctx,
-                             uint8_t * buffer,
-                             size_t bytesToWrite)
+ssize_t dfuNvmWrite(DEVICE_FIRMWARE_CTX * ctx,
+                    uint8_t * buffer,
+                    size_t bytesToWrite)
 {
     return ctx->_nvmFile.write(buffer, bytesToWrite);
 }
