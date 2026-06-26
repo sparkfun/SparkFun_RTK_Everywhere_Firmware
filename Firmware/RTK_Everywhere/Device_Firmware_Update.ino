@@ -1530,6 +1530,7 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_READ_FIRMWARE_DATA: deviceFirmwareReadFirmwareData(ctx, currentMsec); break;
         case DFUS_DEVICE_CLOSE: deviceFirmwareClose(ctx, currentMsec); break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
+        case DFUS_REBOOT: dfuEsp32Reboot(); break;
 
         case DFUS_DONE:
             deviceFirmwareBufferFree(ctx, true);
