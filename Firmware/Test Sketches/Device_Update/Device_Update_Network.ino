@@ -137,6 +137,10 @@ void dfuNetworkFileListGetFileName(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMs
         // Zero terminate the file name string
         ctx->_buffer[offset++] = 0;
 
+        // Display the file name
+        if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+            systemPrintf("File: NET:/%s\r\n", fileName);
+
         // Determine if this file should be in the list
         namePart = ctx->_deviceInfo->_nameData;
         extension = ctx->_deviceInfo->_extension;

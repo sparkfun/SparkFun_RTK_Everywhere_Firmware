@@ -411,23 +411,23 @@ void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx)
     if (ctx->_doAll == false)
     {
         inMainMenu = true;
-        systemPrintf("File List:\r\n");
+        systemPrintf("\r\nFile List:\r\n");
 
         // Display the files
         offset = 0;
         deviceFirmwareFileList(bufferGetIndex(&dfuFirmwareFileNamesNet),
                                ctx->_fileCountNet,
-                               "NET:/",
+                               deviceFirmwareGetDevicePrefix(DFU_IDT_NETWORK),
                                offset);
         offset += ctx->_fileCountNet;
         deviceFirmwareFileList(bufferGetIndex(&dfuFirmwareFileNamesNvm),
                                ctx->_fileCountNvm,
-                               "NVM:/",
+                               deviceFirmwareGetDevicePrefix(DFU_IDT_NVM),
                                offset);
         offset += ctx->_fileCountNvm;
         deviceFirmwareFileList(bufferGetIndex(&dfuFirmwareFileNamesSd),
                                ctx->_fileCountSd,
-                               "SD:/",
+                               deviceFirmwareGetDevicePrefix(DFU_IDT_SD),
                                offset);
 
         systemPrintf("x) Exit\r\n");
@@ -465,6 +465,20 @@ void deviceFirmwareFileSort(int bufferIndex, int fileCount)
                 sortArray[i] = sortArray[j];
                 sortArray[j] = temp;
             }
+}
+
+//----------------------------------------
+// Get the input device prefix
+//----------------------------------------
+const char * deviceFirmwareGetDevicePrefix(int inputDeviceType)
+{
+    if (inputDeviceType == DFU_IDT_NETWORK)
+        return "NET";
+    if (inputDeviceType == DFU_IDT_NVM)
+        return "NVM";
+    if (inputDeviceType == DFU_IDT_SD)
+        return "SD";
+    return "NONE";
 }
 
 //----------------------------------------

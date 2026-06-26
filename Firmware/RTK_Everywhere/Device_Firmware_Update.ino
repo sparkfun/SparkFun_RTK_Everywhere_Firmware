@@ -232,6 +232,104 @@ void deviceFirmwareDeviceListMenu(DEVICE_FIRMWARE_CTX * ctx)
 }
 
 //----------------------------------------
+// List the files
+//----------------------------------------
+void deviceFirmwareFileList(int bufferIndex,
+                            int fileCount,
+                            const char * prefix,
+                            int offset)
+{
+    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+    char ** nameArray = bufferData->_nameArray;
+    int * sortArray = bufferData->_sortArray;
+
+    // List the files
+    if (nameArray && sortArray)
+        for (int index = 0; index < fileCount; index++)
+            systemPrintf("%d) %s:/%s\r\n", offset + index, prefix, nameArray[sortArray[index]]);
+}
+
+//----------------------------------------
+// Display the file list menu
+//----------------------------------------
+void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx)
+{
+    int offset;
+
+    if (ctx->_doAll == false)
+    {
+        inMainMenu = true;
+        systemPrintf("\r\nFile List:\r\n");
+
+        // Display the files
+        offset = 0;
+        deviceFirmwareFileList(bufferGetIndex(&dfuFirmwareFileNamesNet),
+                               ctx->_fileCountNet,
+                               deviceFirmwareGetDevicePrefix(DFU_IDT_NETWORK),
+                               offset);
+        offset += ctx->_fileCountNet;
+        deviceFirmwareFileList(bufferGetIndex(&dfuFirmwareFileNamesNvm),
+                               ctx->_fileCountNvm,
+                               deviceFirmwareGetDevicePrefix(DFU_IDT_NVM),
+                               offset);
+        offset += ctx->_fileCountNvm;
+        deviceFirmwareFileList(bufferGetIndex(&dfuFirmwareFileNamesSd),
+                               ctx->_fileCountSd,
+                               deviceFirmwareGetDevicePrefix(DFU_IDT_SD),
+                               offset);
+
+        systemPrintf("x) Exit\r\n");
+
+        // Discard the input
+        serialInputClear();
+        ctx->_buffer[0] = 0;
+        ctx->_validDataBytes = 0;
+
+        // Output the prompt
+        systemPrintf("Select file: ");
+
+        // Start the menu timeout timer
+        deviceFirmwareTimerStart(ctx);
+    }
+}
+
+//----------------------------------------
+// Sort the list of firmware files
+//----------------------------------------
+void deviceFirmwareFileSort(int bufferIndex, int fileCount)
+{
+    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+    char ** nameArray = bufferData->_nameArray;
+    int * sortArray = bufferData->_sortArray;
+
+    // Bubble sort the file names newest to oldest
+    for (int i = 0; i < (fileCount - 1); i++)
+        for (int j = i + 1; j < fileCount; j++)
+            // Determine if the entries should be switched
+            if (strcmp(nameArray[sortArray[i]], nameArray[sortArray[j]]) < 0)
+            {
+                // Switch the entries
+                int temp = sortArray[i];
+                sortArray[i] = sortArray[j];
+                sortArray[j] = temp;
+            }
+}
+
+//----------------------------------------
+// Get the input device prefix
+//----------------------------------------
+const char * deviceFirmwareGetDevicePrefix(int inputDeviceType)
+{
+    if (inputDeviceType == DFU_IDT_NETWORK)
+        return "NET";
+    if (inputDeviceType == DFU_IDT_NVM)
+        return "NVM";
+    if (inputDeviceType == DFU_IDT_SD)
+        return "SD";
+    return "NONE";
+}
+
+//----------------------------------------
 // Get a number from the user
 //----------------------------------------
 int deviceFirmwareGetNumber(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
@@ -595,7 +693,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_GET_DEVICE: deviceFirmwareSelectDevice(ctx, currentMsec); break;
         case DFUS_GET_NETWORK_FILES: dfuNetworkFileListBuildUrl(ctx); break;
         case DFUS_GET_HTTP_FILE_LIST_REQ: dfuNetworkFileListHtmlRequest(ctx, currentMsec); break;
-        case DFUS_GET_NETWORK_FILE_LIST:
+        case DFUS_GET_NETWORK_FILE_LIST: dfuNetworkFileListGetFileName(ctx, currentMsec); break;
+        case DFUS_GET_NVM_FILE_LIST:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;

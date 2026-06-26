@@ -1357,6 +1357,42 @@ bool bufferDynamicallyAllocate(DFU_BUFFER_DATA * bufferData)
 }
 
 //----------------------------------------
+// Expand an existing buffer
+//----------------------------------------
+bool bufferExpand(int bufferIndex)
+{
+    // Locate the buffer data
+    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+    uint8_t * newBuffer;
+    size_t newLength;
+
+    // Determine the new buffer size
+    newLength = bufferData->_length + 2048;
+
+    // Allocate the new buffer
+    newBuffer = (uint8_t *)rtkMalloc(newLength, dfuBufferInfo[bufferIndex]._description);
+    if (newBuffer == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the new buffer of %d bytes!\r\n", newLength);
+        return false;
+    }
+
+    // Copy the existing file names into the new buffer
+    memcpy(newBuffer, bufferData->_address, bufferData->_offset);
+
+    // Free the old buffer
+    free((void *)bufferData->_address);
+
+    // Switch to using the new buffer
+    bufferData->_address = newBuffer;
+    bufferData->_length = newLength;
+
+    // Zero terminate any strings in the new buffer
+    memset(&newBuffer[bufferData->_offset], 0, bufferData->_length - bufferData->_offset);
+    return true;
+}
+
+//----------------------------------------
 // Free a dynamically allocated buffer
 //----------------------------------------
 void bufferFree(DFU_BUFFER_DATA * bufferData)
@@ -1418,6 +1454,48 @@ size_t bufferGetLength(DFU_BUFFER_DATA * bufferData)
 
     // Buffer not found
     return 0;
+}
+
+//----------------------------------------
+// Allocate the name and sort arrays, return true if successful
+//----------------------------------------
+bool bufferNameSortAllocate(int bufferIndex, int fileCount)
+{
+    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+    char * fileName;
+    size_t length;
+
+    // Allocate the sortArray
+    length = sizeof(*bufferData->_sortArray) * fileCount;
+    bufferData->_sortArray = (int *)rtkMalloc(length, "Sort Array");
+    if (bufferData->_sortArray == nullptr)
+        systemPrintf("ERROR: Failed to allocate sortArray, %d bytes!\r\n", length);
+    else
+    {
+        // Allocate the nameArray
+        length = sizeof(*bufferData->_nameArray) * fileCount;
+        bufferData->_nameArray = (char **)rtkMalloc(length, "Name Array");
+        if (bufferData->_nameArray == nullptr)
+        {
+            bufferNameSortFree(bufferIndex);
+            systemPrintf("ERROR: Failed to allocate nameArray, %d bytes!\r\n", length);
+        }
+        else
+        {
+            // Initialize the sortArray
+            for (int index = 0; index < fileCount; index++)
+                bufferData->_sortArray[index] = index;
+
+            // Initialize the nameArray
+            fileName = (char *)bufferData->_address;
+            for (int index = 0; index < fileCount; index++)
+            {
+                bufferData->_nameArray[index] = fileName;
+                fileName += strlen(fileName) + 1;
+            }
+        }
+    }
+    return (bufferData->_nameArray != nullptr);
 }
 
 //----------------------------------------

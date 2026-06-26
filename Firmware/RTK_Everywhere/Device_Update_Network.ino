@@ -77,6 +77,120 @@ void dfuNetworkFileListBuildUrl(DEVICE_FIRMWARE_CTX * ctx)
 }
 
 //----------------------------------------
+// Get the next network file name
+//----------------------------------------
+void dfuNetworkFileListGetFileName(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    DFU_BUFFER_DATA * bufferData;
+    int bufferIndex;
+    const char * dirSuffix;
+    const char * extension;
+    char * fileName;
+    const char * filePrefix;
+    const char * fileSuffix;
+    const char * namePart;
+    size_t offset;
+
+    do
+    {
+        // Get the delimiters
+        bufferData = &dfuFirmwareFileNamesNet;
+        bufferIndex = bufferGetIndex(bufferData);
+        dirSuffix = ctx->_deviceInfo->_dirSuffix;
+        filePrefix = ctx->_deviceInfo->_entryPrefix;
+        fileSuffix = ctx->_deviceInfo->_entrySuffix;
+
+        // Expand the buffer if necessary
+        bufferData->_offset = ctx->_validDataBytes;
+        if (bufferData->_length < (bufferData->_offset + 256))
+        {
+            if (bufferExpand(bufferIndex) == false)
+            {
+                // Expansion failed
+                systemPrintf("ERROR: Failed to expand the file name buffer!\r\n");
+
+                // There are some file names in the buffer but there
+                // may be more.  Display the ones that were found
+                // and skip the rest.
+                break;
+            }
+        }
+        ctx->_buffer = bufferData->_address;
+        ctx->_bufferLength = bufferData->_length;
+
+        // Read in the file name
+        offset = ctx->_validDataBytes;
+        fileName = (char *)&ctx->_buffer[offset];
+        while (ctx->_networkClient->available())
+        {
+            // Build up the file name one character at a time
+            ctx->_buffer[offset] = ctx->_networkClient->read();
+            if (ctx->_buffer[offset] == fileSuffix[0])
+                break;
+            offset += 1;
+        }
+
+        // Get more data if necessary
+        if (ctx->_buffer[offset] != fileSuffix[0])
+            return;
+
+        // Zero terminate the file name string
+        ctx->_buffer[offset++] = 0;
+
+        // Display the file name
+        if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+            systemPrintf("File: NET:/%s\r\n", fileName);
+
+        // Determine if this file should be in the list
+        namePart = ctx->_deviceInfo->_nameData;
+        extension = ctx->_deviceInfo->_extension;
+        if (((namePart == nullptr) || strstr(fileName, namePart))
+            && ((extension == nullptr) || strstr(fileName, extension)))
+        {
+            // Account for this file
+            ctx->_validDataBytes = offset;
+            ctx->_fileCountNet += 1;
+        }
+
+        // Locate the next file name
+        if (ctx->_networkClient->findUntil(filePrefix, dirSuffix))
+            return;
+
+        // End of file list
+    } while (0);
+
+    // Restore access to the data buffer
+    dfuNetworkCleanup(ctx, bufferData);
+
+    // Sort the file list
+    if (ctx->_fileCountNet > 0)
+    {
+        if (bufferNameSortAllocate(bufferIndex, ctx->_fileCountNet))
+        {
+            deviceFirmwareFileSort(bufferIndex, ctx->_fileCountNet);
+            ctx->_fileCount += ctx->_fileCountNet;
+        }
+        else
+            // Don't have space to sort and list the network files
+            ctx->_fileCountNet = 0;
+    }
+
+    // Get any local files
+    if (ctx->_doAll)
+        deviceFirmwareStateSet(ctx, DFUS_SELECT_FILE);
+    else if (ctx->_deviceInfo->_useNvm)
+        deviceFirmwareStateSet(ctx, DFUS_GET_NVM_FILE_LIST);
+    else if (present.microSd && online.microSD)
+        deviceFirmwareStateSet(ctx, DFUS_GET_SD_FILE_LIST);
+    else
+    {
+        // Start timing out the user input
+        deviceFirmwareStateSet(ctx, DFUS_SELECT_FILE);
+        deviceFirmwareFileListMenu(ctx);
+    }
+}
+
+//----------------------------------------
 // Request the web page containing the file specifications
 //----------------------------------------
 void dfuNetworkFileListHtmlRequest(DEVICE_FIRMWARE_CTX * ctx,
