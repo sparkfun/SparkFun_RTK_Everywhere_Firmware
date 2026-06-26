@@ -5,6 +5,15 @@ Device_Update_NVM.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
+// Close the NVM file
+//----------------------------------------
+bool dfuNvmClose(DEVICE_FIRMWARE_CTX * ctx)
+{
+    ctx->_nvmFile.close();
+    return true;
+}
+
+//----------------------------------------
 // Delete the NVM file
 //----------------------------------------
 void dfuNvmDelete(const char * fileName)

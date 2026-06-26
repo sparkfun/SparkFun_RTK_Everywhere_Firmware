@@ -210,6 +210,43 @@ void deviceFirmwareCleanup(DEVICE_FIRMWARE_CTX * ctx)
 }
 
 //----------------------------------------
+// Close the input file
+//----------------------------------------
+void deviceFirmwareCloseInput(DEVICE_FIRMWARE_CTX * ctx)
+{
+    // Close the input file
+    if (ctx->_inputDeviceType == DFU_IDT_NETWORK)
+        dfuNetworkCleanup(ctx, nullptr);
+    else if (ctx->_inputDeviceType = DFU_IDT_NVM)
+        ctx->_nvmFile.close();
+    else if (ctx->_inputDeviceType == DFU_IDT_SD)
+        ctx->_sdFile.close();
+
+    // Display the statistics
+    if (ctx->_complete)
+        deviceFirmwarePerformUpdate(ctx);
+}
+
+//----------------------------------------
+// Close the firmware file
+//----------------------------------------
+void deviceFirmwareCrcClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    deviceFirmwareCloseInput(ctx);
+    if (ctx->_bytesRead == ctx->_fileBytes)
+    {
+        // Display the statistics
+        deviceFirmwarePerformUpdate(ctx);
+        systemPrintf("CRC: 0x%08x\r\n", ctx->_crc);
+        ctx->_crcSave = ctx->_crc;
+        deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_INPUT);
+    }
+    else
+        deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+    ctx->_crc = 0;
+}
+
+//----------------------------------------
 // Open the firmware file and output device
 //----------------------------------------
 void deviceFirmwareCrcOpen(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
@@ -695,6 +732,28 @@ bool deviceFirmwareOpenUrl(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     // Get TCP stream
     ctx->_networkClient = ctx->_https->getStreamPtr();
     return true;
+}
+
+//----------------------------------------
+// Perform the firmware update
+//----------------------------------------
+void deviceFirmwarePerformUpdate(DEVICE_FIRMWARE_CTX * ctx)
+{
+    uint64_t bytesPerSecond;
+    uint32_t milliseconds;
+    uint32_t seconds;
+    uint32_t startMsec;
+
+    // Display the firmware transfer / update rate
+    milliseconds = millis() - ctx->_startMsec;
+    if (milliseconds == 0)
+        milliseconds = 1;
+    bytesPerSecond = (ctx->_fileBytes * 1000ULL) / (uint64_t)milliseconds;
+    seconds = milliseconds / MILLISECONDS_IN_A_SECOND;
+    milliseconds -= seconds * MILLISECONDS_IN_A_SECOND;
+    systemPrintf("%d firmware bytes in %d.%03d seconds, %d bytes/second\r\n",
+                 ctx->_fileBytes, seconds, milliseconds,
+                 (uint32_t)bytesPerSecond);
 }
 
 //----------------------------------------
@@ -1204,7 +1263,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_SELECT_ACTION: deviceFirmwareSelectAction(ctx, currentMsec); break;
         case DFUS_CRC_OPEN_INPUT: deviceFirmwareCrcOpen(ctx, currentMsec); break;
         case DFUS_CRC_READ_DATA: deviceFirmwareCrcReadData(ctx, currentMsec); break;
-        case DFUS_CRC_CLOSE:
+        case DFUS_CRC_CLOSE: deviceFirmwareCrcClose(ctx, currentMsec); break;
+        case DFUS_DEVICE_OPEN_INPUT:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;

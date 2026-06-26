@@ -285,10 +285,13 @@ void deviceFirmwareCrcClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     {
         // Display the statistics
         deviceFirmwarePerformUpdate(ctx);
+        systemPrintf("CRC: 0x%08x\r\n", ctx->_crc);
+        ctx->_crcSave = ctx->_crc;
         deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_INPUT);
     }
     else
         deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+    ctx->_crc = 0;
 }
 
 //----------------------------------------

@@ -5,6 +5,15 @@ Device_Update_SD.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
+// Close the SD file
+//----------------------------------------
+bool dfuSdClose(DEVICE_FIRMWARE_CTX * ctx)
+{
+    ctx->_sdFile.close();
+    return true;
+}
+
+//----------------------------------------
 // Delete the SD card file
 //----------------------------------------
 void dfuSdDelete(const char * fileName)
