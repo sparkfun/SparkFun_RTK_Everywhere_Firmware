@@ -290,12 +290,11 @@ void printTiltDebug()
     // if (naviStatus & (1 << 20)) //0x100000
     //     systemPrintln("Status: GNSS Connected"); //Module parses to RTK data "); // GnssConnect
     //     0x100000
-    if (naviStatus > 0x1FFFFF)
-    {
-        // Clear all lower/known bits
-        uint32_t bitsToShow = 0 ^ 0x1FFFFF;
-        systemPrintf("Status: Unknown status bits set: 0x%04X\r\n", naviStatus & bitsToShow);
-    }
+    // if (naviStatus > 0x1FFFFF)
+    // {
+    //     uint32_t bitsToShow = 0xFFFFFFFF ^ 0x1FFFFF; // Clear all lower/known bits
+    //     systemPrintf("Unknown tilt status bits set: 0x%04X\r\n", naviStatus & bitsToShow);
+    // }
 }
 
 // Start communication with the IM19 IMU
