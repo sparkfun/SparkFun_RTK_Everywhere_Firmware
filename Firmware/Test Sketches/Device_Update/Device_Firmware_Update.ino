@@ -63,7 +63,7 @@ void deviceFirmwareActionMenu(DEVICE_FIRMWARE_CTX * ctx)
         if (ctx->_deviceInfo->_useNvm)
             systemPrintf("n) Copy file to NVM\r\n");
         if (present.microSd)
-            systemPrintf("s) Copy filie to SD card\r\n");
+            systemPrintf("s) Copy file to SD card\r\n");
         systemPrintf("u) Update device firmware\r\n");
         systemPrintf("x) Exit\r\n");
 
@@ -604,6 +604,7 @@ void deviceFirmwareInit(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         }
 
         // Request the network
+        systemPrintf("Adding NETCONSUMER_DEVICE_OTA\r\n");
         networkConsumerAdd(NETCONSUMER_DEVICE_OTA, NETWORK_ANY, __FILE__, __LINE__);
         systemPrintf("Waiting for network\r\n");
         deviceFirmwareTimerStart(ctx);
@@ -1211,17 +1212,19 @@ void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         }
 
         // Get the file selection from user input
-
-        // Handle invalid input
         fileNumber = deviceFirmwareGetNumber(ctx, currentMsec);
+
+        // Done timing out the menu choice
+        if (fileNumber != DFU_USER_INPUT_NOT_DONE)
+            ctx->_timerMsec = 0;
+
+        // Process the user request
         switch (fileNumber)
         {
         default:
             if ((fileNumber >= 0) && (fileNumber < ctx->_fileCount))
             {
-                // Valid menu choice
-                // Reboot the system upon completion
-                ctx->_reboot = true;
+                // Valid menu choice, get the selected file
                 break;
             }
 
@@ -1230,9 +1233,6 @@ void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             //      V
 
         case DFU_USER_INPUT_NOT_A_NUMBER:
-            // Stop timing out the user input
-            ctx->_timerMsec = 0;
-
             systemPrintf("Invalid selection\r\n");
             deviceFirmwareFileListMenu(ctx);
             return;
@@ -1252,9 +1252,6 @@ void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             return;
         }
     } while (0);
-
-    // Stop timing out the user input
-    ctx->_timerMsec = 0;
 
     // Determine the type of input and the file name array and index
     if (fileNumber < ctx->_fileCountNet)
@@ -1299,7 +1296,9 @@ void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
     // Display the menu choice
     if (settings.debugFirmwareUpdate)
-        systemPrintf("Selected file; %s\r\n", ctx->_fileName.c_str());
+        systemPrintf("Selected file: %s:%s\r\n",
+                     deviceFirmwareGetDevicePrefix(ctx->_inputDeviceType),
+                     ctx->_fileName.c_str());
 
     // Determine what to do with this file
     deviceFirmwareStateSet(ctx, DFUS_SELECT_ACTION);

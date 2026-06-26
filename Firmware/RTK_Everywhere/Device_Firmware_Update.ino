@@ -48,6 +48,37 @@ const int dfuStateNameCount = sizeof(dfuStateName) / sizeof(dfuStateName[0]);
 const char * dfuEqualSigns = "==================================================";
 
 //----------------------------------------
+// Display the action menu
+//----------------------------------------
+void deviceFirmwareActionMenu(DEVICE_FIRMWARE_CTX * ctx)
+{
+    if (ctx->_doAll == false)
+    {
+        inMainMenu = true;
+        systemPrintf("\r\nAction:\r\n");
+
+        // Display the menu
+        if ((ctx->_inputDeviceType == DFU_IDT_NVM) || (ctx->_inputDeviceType == DFU_IDT_SD))
+            systemPrintf("d) Delete the file\r\n");
+        if (ctx->_deviceInfo->_useNvm)
+            systemPrintf("n) Copy file to NVM\r\n");
+        if (present.microSd)
+            systemPrintf("s) Copy file to SD card\r\n");
+        systemPrintf("u) Update device firmware\r\n");
+        systemPrintf("x) Exit\r\n");
+
+        // Discard the input
+        serialInputClear();
+
+        // Output the prompt
+        systemPrintf("Select an action: ");
+
+        // Start the menu timeout timer
+        deviceFirmwareTimerStart(ctx);
+    }
+}
+
+//----------------------------------------
 // Allocate the buffers
 //----------------------------------------
 bool deviceFirmwareBufferAllocate(DEVICE_FIRMWARE_CTX * ctx)
@@ -452,6 +483,7 @@ void deviceFirmwareInit(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         }
 
         // Request the network
+        systemPrintf("Adding NETCONSUMER_DEVICE_OTA\r\n");
         networkConsumerAdd(NETCONSUMER_DEVICE_OTA, NETWORK_ANY, __FILE__, __LINE__);
         systemPrintf("Waiting for network\r\n");
         deviceFirmwareTimerStart(ctx);
@@ -620,6 +652,135 @@ nextDevice:
 }
 
 //----------------------------------------
+// Determine which file was selected
+//----------------------------------------
+void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    DFU_BUFFER_DATA * bufferData;
+    int bufferIndex;
+    const DEVICE_FIRMWARE_INFO * deviceInfo;
+    int fileNumber;
+    const char **nameArray;
+    const int * sortArray;
+    String url;
+
+    do
+    {
+        // Are all the devices being updated?
+        deviceInfo = ctx->_deviceInfo;
+        if (ctx->_doAll)
+        {
+            // Yes, does this device have some firmware?
+            if (ctx->_fileCountNet)
+            {
+                // Yes, use the most recent network firmware file
+                ctx->_inputDeviceType = DFU_IDT_NETWORK;
+                fileNumber = 0;
+                break;
+            }
+
+            // Skip this device
+            deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+            break;
+        }
+
+        // Get the file selection from user input
+        fileNumber = deviceFirmwareGetNumber(ctx, currentMsec);
+
+        // Done timing out the menu choice
+        if (fileNumber != DFU_USER_INPUT_NOT_DONE)
+            ctx->_timerMsec = 0;
+
+        // Process the user request
+        switch (fileNumber)
+        {
+        default:
+            if ((fileNumber >= 0) && (fileNumber < ctx->_fileCount))
+            {
+                // Valid menu choice, get the selected file
+                break;
+            }
+
+            // Fall through
+            //      |
+            //      V
+
+        case DFU_USER_INPUT_NOT_A_NUMBER:
+            systemPrintf("Invalid selection\r\n");
+            deviceFirmwareFileListMenu(ctx);
+            return;
+
+        case DFU_USER_INPUT_NOT_DONE:
+            // Continue putting together the input string
+            return;
+
+        case DFU_USER_INPUT_OVERFLOWS_BUFFER:
+            systemPrintf("ERROR: Input buffer overflow\r\n");
+            deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+            return;
+
+        case DFU_USER_INPUT_TIMEOUT:
+            systemPrintf("ERROR: User input timeout\r\n");
+            deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+            return;
+        }
+    } while (0);
+
+    // Determine the type of input and the file name array and index
+    if (fileNumber < ctx->_fileCountNet)
+    {
+        ctx->_inputDeviceType = DFU_IDT_NETWORK;
+        bufferData = &dfuFirmwareFileNamesNet;
+    }
+    else
+    {
+        fileNumber -= ctx->_fileCountNet;
+        if (fileNumber < ctx->_fileCountNvm)
+        {
+            ctx->_inputDeviceType = DFU_IDT_NVM;
+            bufferData = &dfuFirmwareFileNamesNvm;
+        }
+        else
+        {
+            fileNumber -= ctx->_fileCountNvm;
+            ctx->_inputDeviceType = DFU_IDT_SD;
+            bufferData = &dfuFirmwareFileNamesSd;
+        }
+    }
+
+    // Get the array addresses
+    bufferIndex = bufferGetIndex(bufferData);
+    nameArray = (const char **)bufferData->_nameArray;
+    sortArray = bufferData->_sortArray;
+
+    // Build the file name
+    ctx->_fileName = "/";
+    ctx->_fileName += nameArray[sortArray[fileNumber]];
+
+    // Build the raw URL
+    url = deviceInfo->_server;
+    if (deviceInfo->_rawBranch)
+        url += deviceInfo->_rawBranch;
+    if (deviceInfo->_directory)
+        url += deviceInfo->_directory;
+    url += ctx->_fileName;
+    ctx->_url = url;
+    ctx->_validDataBytes = 0;
+
+    // Display the menu choice
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Selected file: %s:%s\r\n",
+                     deviceFirmwareGetDevicePrefix(ctx->_inputDeviceType),
+                     ctx->_fileName.c_str());
+
+    // Determine what to do with this file
+    deviceFirmwareStateSet(ctx, DFUS_SELECT_ACTION);
+
+    // Display the menu
+    deviceFirmwareActionMenu(ctx);
+}
+
+//----------------------------------------
 // Get the state name
 //----------------------------------------
 const char * deviceFirmwareStateGetName(int state)
@@ -696,7 +857,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_GET_NETWORK_FILE_LIST: dfuNetworkFileListGetFileName(ctx, currentMsec); break;
         case DFUS_GET_NVM_FILE_LIST: dfuNvmGetFiles(ctx, currentMsec); break;
         case DFUS_GET_SD_FILE_LIST: dfuSdGetFiles(ctx, currentMsec); break;
-        case DFUS_SELECT_FILE:
+        case DFUS_SELECT_FILE: deviceFirmwareSelectFile(ctx, currentMsec); break;
+        case DFUS_SELECT_ACTION:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
