@@ -20,7 +20,8 @@ bool bufferDynamicallyAllocate(DFU_BUFFER_DATA * bufferData)
         length = bufferGetLength(bufferData);
         bufferData->_address = (uint8_t *)rtkMalloc(length, description);
         if (bufferData->_address == nullptr)
-            systemPrintf("ERROR: Failed to allocate the '%s' buffer!\r\n", description);
+            systemPrintf("ERROR: Failed to allocate the '%s, %d bytes' buffer!\r\n",
+                         description, length);
         else
             bufferData->_length = length;
     }

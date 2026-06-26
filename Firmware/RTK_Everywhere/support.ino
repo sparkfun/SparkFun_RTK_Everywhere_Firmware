@@ -1331,6 +1331,147 @@ const char *printMinuteSecondFromMilliseconds(uint32_t msToConvert)
 }
 
 //----------------------------------------
+// Dynamically allocate a buffer
+//----------------------------------------
+bool bufferDynamicallyAllocate(DFU_BUFFER_DATA * bufferData)
+{
+    const char * description;
+    bool dynamicAllocation;
+    size_t length;
+
+    // Determine if the buffer needs to be dynamically allocated
+    dynamicAllocation = (bufferData->_address == nullptr);
+    if (dynamicAllocation)
+    {
+        // Attempt to allocate the buffer
+        description = bufferGetDescription(bufferData);
+        length = bufferGetLength(bufferData);
+        bufferData->_address = (uint8_t *)rtkMalloc(length, description);
+        if (bufferData->_address == nullptr)
+            systemPrintf("ERROR: Failed to allocate the '%s, %d bytes' buffer!\r\n",
+                         description, length);
+        else
+            bufferData->_length = length;
+    }
+    return dynamicAllocation;
+}
+
+//----------------------------------------
+// Free a dynamically allocated buffer
+//----------------------------------------
+void bufferFree(DFU_BUFFER_DATA * bufferData)
+{
+    const char * description;
+
+    // Free the buffer
+    if (bufferData->_address)
+    {
+        description = bufferGetDescription(bufferData);
+        rtkFree(bufferData->_address, description);
+        bufferData->_address = nullptr;
+    }
+}
+
+//----------------------------------------
+// Get the buffer description
+//----------------------------------------
+const char * bufferGetDescription(DFU_BUFFER_DATA * bufferData)
+{
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        if (bufferData == dfuBufferInfo[index]._bufferData)
+            return dfuBufferInfo[index]._description;
+    }
+
+    // Buffer not found
+    return nullptr;
+}
+
+//----------------------------------------
+// Get the buffer index
+//----------------------------------------
+int bufferGetIndex(DFU_BUFFER_DATA * bufferData)
+{
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        if (bufferData == dfuBufferInfo[index]._bufferData)
+            return index;
+    }
+
+    // Buffer not found
+    return -1;
+}
+
+//----------------------------------------
+// Get the buffer length
+//----------------------------------------
+size_t bufferGetLength(DFU_BUFFER_DATA * bufferData)
+{
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        if (bufferData == dfuBufferInfo[index]._bufferData)
+            return dfuBufferInfo[index]._sizeInBytes;
+    }
+
+    // Buffer not found
+    return 0;
+}
+
+//----------------------------------------
+// Free the arrays
+//----------------------------------------
+void bufferNameSortFree(int bufferIndex)
+{
+    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+
+    // Free nameArray
+    if (bufferData->_nameArray != nullptr)
+    {
+        free(bufferData->_nameArray);
+        bufferData->_nameArray = nullptr;
+    }
+
+    // Free sortArray
+    if (bufferData->_sortArray != nullptr)
+    {
+        free(bufferData->_sortArray);
+        bufferData->_sortArray = nullptr;
+    }
+}
+
+//----------------------------------------
+// Configure UART2 serial port
+//----------------------------------------
+bool configureUart2(HardwareSerial ** hwSerialPort)
+{
+    HardwareSerial * serialPort;
+
+    // Determine if serial port is already configured
+    serialPort = *hwSerialPort;
+    if (serialPort)
+        return true;
+
+    // Allocate the serial port object
+    serialPort = new HardwareSerial(2);
+
+    // Determine if the allocation failed
+    if (serialPort == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the serial port!\r\n");
+        return false;
+    }
+
+    // Configure the serial port
+    serialPort->setRxBufferSize(1024 * 1);
+    serialPort->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
+    *hwSerialPort = serialPort;
+    return true;
+}
+
+//----------------------------------------
 // Count the application partitions
 //----------------------------------------
 int countAppPartitions()

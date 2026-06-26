@@ -84,15 +84,27 @@ void deviceFirmwareActionMenu(DEVICE_FIRMWARE_CTX * ctx)
 bool deviceFirmwareBufferAllocate(DEVICE_FIRMWARE_CTX * ctx)
 {
     // Determine which buffers need to be dynamically allocated
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Allocating %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareData)]._description);
     ctx->_dynamicAllocationFd = bufferDynamicallyAllocate(&dfuFirmwareData);
     deviceFirmwareBufferRestore(ctx, nullptr);
+
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Allocating %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareFileNamesNet)]._description);
     ctx->_dynamicAllocationNet = bufferDynamicallyAllocate(&dfuFirmwareFileNamesNet);
     if (ctx->_doAll == false)
     {
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("Allocating %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareFileNamesNvm)]._description);
         ctx->_dynamicAllocationNvm = bufferDynamicallyAllocate(&dfuFirmwareFileNamesNvm);
+
         ctx->_dynamicAllocationSd = false;
         if (present.microSd)
+        {
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("Allocating %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareFileNamesSd)]._description);
             ctx->_dynamicAllocationSd = bufferDynamicallyAllocate(&dfuFirmwareFileNamesSd);
+        }
     }
 
     // Return buffer allocation status
@@ -106,22 +118,36 @@ bool deviceFirmwareBufferAllocate(DEVICE_FIRMWARE_CTX * ctx)
 //----------------------------------------
 // Free the buffers
 //----------------------------------------
-void deviceFirmwareBufferFree(DEVICE_FIRMWARE_CTX * ctx)
+void deviceFirmwareBufferFree(DEVICE_FIRMWARE_CTX * ctx, bool freeDataBuffer)
 {
-    // Release any buffers
-    bufferFree(&dfuFirmwareData);
-    ctx->_dynamicAllocationFd = false;
-
-    bufferFree(&dfuFirmwareFileNamesNet);
-    ctx->_dynamicAllocationNet = false;
-
     if (ctx->_doAll == false)
     {
-        bufferFree(&dfuFirmwareFileNamesNvm);
-        ctx->_dynamicAllocationNvm = false;
-
-        bufferFree(&dfuFirmwareFileNamesSd);
+        // Release the SD card file name buffer
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("Freeing %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareFileNamesSd)]._description);
+        bufferNameSortFree(bufferGetIndex(&dfuFirmwareFileNamesSd));
         ctx->_dynamicAllocationSd = false;
+
+        // Release the NVM file name buffer
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("Freeing %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareFileNamesNvm)]._description);
+        bufferNameSortFree(bufferGetIndex(&dfuFirmwareFileNamesNvm));
+        ctx->_dynamicAllocationNvm = false;
+    }
+
+    // Release the network file name buffer
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Freeing %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareFileNamesNet)]._description);
+    bufferNameSortFree(bufferGetIndex(&dfuFirmwareFileNamesNet));
+    ctx->_dynamicAllocationNet = false;
+
+    // Release the firmware data buffer
+    if (freeDataBuffer)
+    {
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("Freeing %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareData)]._description);
+        bufferNameSortFree(bufferGetIndex(&dfuFirmwareData));
+        ctx->_dynamicAllocationFd = false;
     }
 }
 
@@ -585,13 +611,7 @@ void deviceFirmwareNextDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     }
 
     // Free the buffers
-    bufferNameSortFree(bufferGetIndex(&dfuFirmwareFileNamesNet));
-    if (ctx->_doAll == false)
-    {
-        bufferNameSortFree(bufferGetIndex(&dfuFirmwareFileNamesNvm));
-        bufferNameSortFree(bufferGetIndex(&dfuFirmwareFileNamesSd));
-    }
-    deviceFirmwareBufferFree(ctx);
+    deviceFirmwareBufferFree(ctx, false);
 
     // Free the write buffer
     if (ctx->_writeBuffer)
@@ -1350,7 +1370,12 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_DEVICE_CLOSE: deviceFirmwareClose(ctx, currentMsec); break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
         case DFUS_REBOOT: dfuEsp32Reboot(); break;
-        case DFUS_DONE: deviceFirmwareCleanup(ctx); running = false; break;
+
+        case DFUS_DONE:
+            deviceFirmwareBufferFree(ctx, true);
+            deviceFirmwareCleanup(ctx);
+            running = false;
+            break;
 
         default:
             stateName = deviceFirmwareStateGetName(ctx->_state);

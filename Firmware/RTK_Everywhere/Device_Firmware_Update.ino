@@ -39,6 +39,102 @@ const char * dfuStateName[] =
 const int dfuStateNameCount = sizeof(dfuStateName) / sizeof(dfuStateName[0]);
 
 //----------------------------------------
+// Allocate the buffers
+//----------------------------------------
+bool deviceFirmwareBufferAllocate(DEVICE_FIRMWARE_CTX * ctx)
+{
+    // Determine which buffers need to be dynamically allocated
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Allocating %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareData)]._description);
+    ctx->_dynamicAllocationFd = bufferDynamicallyAllocate(&dfuFirmwareData);
+    deviceFirmwareBufferRestore(ctx, nullptr);
+
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Allocating %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareFileNamesNet)]._description);
+    ctx->_dynamicAllocationNet = bufferDynamicallyAllocate(&dfuFirmwareFileNamesNet);
+    if (ctx->_doAll == false)
+    {
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("Allocating %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareFileNamesNvm)]._description);
+        ctx->_dynamicAllocationNvm = bufferDynamicallyAllocate(&dfuFirmwareFileNamesNvm);
+
+        ctx->_dynamicAllocationSd = false;
+        if (present.microSd)
+        {
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("Allocating %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareFileNamesSd)]._description);
+            ctx->_dynamicAllocationSd = bufferDynamicallyAllocate(&dfuFirmwareFileNamesSd);
+        }
+    }
+
+    // Return buffer allocation status
+    return (dfuFirmwareData._address && dfuFirmwareFileNamesNet._address
+        && ((ctx->_doAll == true)
+            || (dfuFirmwareFileNamesNvm._address
+                && ((present.microSd == false)
+                    || dfuFirmwareFileNamesSd._address))));
+}
+
+//----------------------------------------
+// Free the buffers
+//----------------------------------------
+void deviceFirmwareBufferFree(DEVICE_FIRMWARE_CTX * ctx, bool freeDataBuffer)
+{
+    if (ctx->_doAll == false)
+    {
+        // Release the SD card file name buffer
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("Freeing %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareFileNamesSd)]._description);
+        bufferNameSortFree(bufferGetIndex(&dfuFirmwareFileNamesSd));
+        ctx->_dynamicAllocationSd = false;
+
+        // Release the NVM file name buffer
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("Freeing %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareFileNamesNvm)]._description);
+        bufferNameSortFree(bufferGetIndex(&dfuFirmwareFileNamesNvm));
+        ctx->_dynamicAllocationNvm = false;
+    }
+
+    // Release the network file name buffer
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Freeing %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareFileNamesNet)]._description);
+    bufferNameSortFree(bufferGetIndex(&dfuFirmwareFileNamesNet));
+    ctx->_dynamicAllocationNet = false;
+
+    // Release the firmware data buffer
+    if (freeDataBuffer)
+    {
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("Freeing %s\r\n", dfuBufferInfo[bufferGetIndex(&dfuFirmwareData)]._description);
+        bufferNameSortFree(bufferGetIndex(&dfuFirmwareData));
+        ctx->_dynamicAllocationFd = false;
+    }
+}
+
+//----------------------------------------
+// Restore the data buffer
+//----------------------------------------
+void deviceFirmwareBufferRestore(DEVICE_FIRMWARE_CTX * ctx,
+                                 DFU_BUFFER_DATA * bufferData)
+{
+    // Update the offset value
+    if (bufferData)
+        bufferData->_offset = ctx->_validDataBytes;
+
+    // Restore the context to point at the data buffer
+    if (dfuFirmwareData._address)
+    {
+        ctx->_buffer = dfuFirmwareData._address;
+        ctx->_bufferLength = dfuFirmwareData._length;
+    }
+    else
+    {
+        ctx->_buffer = nullptr;
+        ctx->_bufferLength = 0;
+    }
+}
+
+//----------------------------------------
 // Cleanup after performing the device firmware update
 //----------------------------------------
 void deviceFirmwareCleanup(DEVICE_FIRMWARE_CTX * ctx)
@@ -137,6 +233,7 @@ deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
 
         case DFUS_DONE:
+            deviceFirmwareBufferFree(ctx, true);
             deviceFirmwareCleanup(ctx);
             running = false;
             break;
