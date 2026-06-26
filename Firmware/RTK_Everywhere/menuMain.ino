@@ -568,14 +568,8 @@ void menuRadio()
             byte bContinue = getUserInputCharacterNumber();
             if (bContinue == 'y')
             {
-                if (wifiEspNowRunning)
-                {
-                    for (int x = 0; x < settings.espnowPeerCount; x++)
-                        espNowRemovePeer(settings.espnowPeers[x]);
+                espNowRemoveAllPeers();
 
-                    espNowStart(); // Restart ESP-NOW to enable broadcastMAC
-                }
-                settings.espnowPeerCount = 0;
                 systemPrintln("Radios forgotten");
             }
         }

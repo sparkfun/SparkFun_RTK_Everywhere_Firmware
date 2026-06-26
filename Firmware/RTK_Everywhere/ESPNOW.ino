@@ -741,4 +741,19 @@ void espNowUpdate()
     }
 }
 
+// Remove all peers from the ESP-NOW peer list and reset the peer count to zero.
+// This is called when the user selects "Forget All Radios" from the serial menu, web config, or CLI.
+void espNowRemoveAllPeers()
+{
+    if (wifiEspNowRunning)
+    {
+        for (int x = 0; x < settings.espnowPeerCount; x++)
+            espNowRemovePeer(settings.espnowPeers[x]);
+
+        espNowStart(); // Restart ESP-NOW to enable broadcastMAC
+    }
+    settings.espnowPeerCount = 0;
+    recordSystemSettings();
+}
+
 #endif // COMPILE_ESPNOW
