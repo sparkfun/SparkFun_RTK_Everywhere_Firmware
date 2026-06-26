@@ -32,3 +32,15 @@ String dfuEsp32FirmwareVersion()
     firmwareVersionGet(version, sizeof(version), true);
     return String(version);
 }
+
+//----------------------------------------
+// Reboot the ESP32
+//----------------------------------------
+void dfuEsp32Reboot()
+{
+    // Restart ESP32 to see changes
+    systemPrintf("Rebooting. Goodbye!\r\n");
+    Serial.flush();
+    delay(1000);
+    ESP.restart();
+}

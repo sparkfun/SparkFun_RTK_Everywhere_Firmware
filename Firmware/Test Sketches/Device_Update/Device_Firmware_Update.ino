@@ -1100,7 +1100,6 @@ void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                     }
 
                     // Program the next device
-                    ctx->_reboot = true;
                     goto nextDevice;
                 }
             }
@@ -1108,12 +1107,14 @@ void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
         // Handle the menu timeout
         incoming = deviceFirmwareGetNumber(ctx, currentMsec);
+
+        // Done timing out the menu choice
+        if (incoming != DFU_USER_INPUT_NOT_DONE)
+            ctx->_timerMsec = 0;
+
         if (incoming == DFU_USER_INPUT_NOT_A_NUMBER)
         {
             systemPrintf("Invalid selection\r\n");
-
-            // Done timing out the menu choice
-            ctx->_timerMsec = 0;
 
             // Display the menu again
             deviceFirmwareDeviceListMenu(ctx);
@@ -1127,9 +1128,6 @@ void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             ctx->_deviceInfo = &deviceFirmwareInfo[incoming];
 
 nextDevice:
-            // Done timing out the menu choice
-            ctx->_timerMsec = 0;
-
             // Display the menu choice
             systemPrintf("Selected device: %s\r\n", ctx->_deviceInfo->_deviceName);
 
@@ -1155,6 +1153,7 @@ nextDevice:
                            ? ctx->_deviceInfo->_maxWriteBytes : ctx->_bufferLength;
 
             // Get the files
+            systemPrintf("Getting the file list...\r\n");
             deviceFirmwareStateSet(ctx, ctx->_networkConfigured ? DFUS_GET_NETWORK_FILES
                                                                 : DFUS_GET_NVM_FILE_LIST);
             break;

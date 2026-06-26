@@ -45,6 +45,8 @@ const int dfuStateNameCount = sizeof(dfuStateName) / sizeof(dfuStateName[0]);
 #define DFU_USER_INPUT_OVERFLOWS_BUFFER -4
 #define DFU_USER_INPUT_NOT_A_NUMBER     -5
 
+const char * dfuEqualSigns = "==================================================";
+
 //----------------------------------------
 // Allocate the buffers
 //----------------------------------------
@@ -411,6 +413,115 @@ void deviceFirmwareNextDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 }
 
 //----------------------------------------
+// Select the device to use
+//----------------------------------------
+void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    int incoming;
+    size_t length;
+
+    do
+    {
+        // Are all devices being updated
+        if (ctx->_doAll)
+        {
+            // Start from the end of the device list
+            if (ctx->_deviceInfo == nullptr)
+                ctx->_deviceInfo = &deviceFirmwareInfo[deviceFirmwareInfoCount];
+
+            // Locate the next device
+            while (1)
+            {
+                // Determine if it is time to reboot
+                if (ctx->_deviceInfo == &deviceFirmwareInfo[0])
+                {
+                    if (ctx->_reboot)
+                        dfuEsp32Reboot();
+
+                    systemPrintf("%s\r\n", dfuEqualSigns);
+                    systemPrintf("HALTED: Firmware update failed!\r\n");
+                    systemPrintf("%s\r\n", dfuEqualSigns);
+                    reportFatalError("Firmware update failed!");
+                }
+
+                // Determine if the next device is in the system
+                ctx->_deviceInfo -= 1;
+                if ((ctx->_deviceInfo->_present == nullptr)
+                    || (*ctx->_deviceInfo->_present))
+                {
+                    if ((dfuBufferInfo[0]._bufferData == nullptr)
+                        || (dfuBufferInfo[0]._bufferData->_address == nullptr))
+                    {
+                        // Allocate the buffers
+                        if (deviceFirmwareBufferAllocate(ctx) == false)
+                            reportFatalError("Failed buffer allocation!");
+                    }
+
+                    // Program the next device
+                    goto nextDevice;
+                }
+            }
+        }
+
+        // Handle the menu timeout
+        incoming = deviceFirmwareGetNumber(ctx, currentMsec);
+
+        // Done timing out the menu choice
+        if (incoming != DFU_USER_INPUT_NOT_DONE)
+            ctx->_timerMsec = 0;
+
+        if (incoming == DFU_USER_INPUT_NOT_A_NUMBER)
+        {
+            systemPrintf("Invalid selection\r\n");
+
+            // Display the menu again
+            deviceFirmwareDeviceListMenu(ctx);
+            break;
+        }
+
+        // Get the user selection
+        if ((incoming >= 0) && (incoming <= deviceFirmwareInfoCount))
+        {
+            // Valid menu choice
+            ctx->_deviceInfo = &deviceFirmwareInfo[incoming];
+
+nextDevice:
+            // Display the menu choice
+            systemPrintf("Selected device: %s\r\n", ctx->_deviceInfo->_deviceName);
+
+            // Allocate the necessary write buffer
+            length = ctx->_deviceInfo->_writeBufferBytes;
+            if (length)
+            {
+                // Allocate the write buffer for this device
+                ctx->_writeBuffer = (uint8_t *)rtkMalloc(length, "Firmware update write buffer");
+                if (ctx->_writeBuffer == nullptr)
+                {
+                    systemPrintf("ERROR: Failed to allocate the write buffer of %d bytes\r\n", length);
+                    reportHeapNow(true);
+                    if (ctx->_doAll)
+                        ctx->_reboot = false;
+                    deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+                    break;
+                }
+            }
+
+            // Determine maximum bytes to write at a time
+            ctx->_bytesMax = ctx->_deviceInfo->_maxWriteBytes
+                           ? ctx->_deviceInfo->_maxWriteBytes : ctx->_bufferLength;
+
+            // Get the files
+            systemPrintf("Getting the file list...\r\n");
+            deviceFirmwareStateSet(ctx, ctx->_networkConfigured ? DFUS_GET_NETWORK_FILES
+                                                                : DFUS_GET_NVM_FILE_LIST);
+            break;
+        }
+
+        // Continue putting together the input string
+    } while (0);
+}
+
+//----------------------------------------
 // Get the state name
 //----------------------------------------
 const char * deviceFirmwareStateGetName(int state)
@@ -481,7 +592,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         {
         case DFUS_INIT: deviceFirmwareInit(ctx, currentMsec); break;
         case DFUS_WAIT_NETWORK: deviceFirmwareWaitForNetwork(ctx, currentMsec); break;
-        case DFUS_GET_DEVICE:
+        case DFUS_GET_DEVICE: deviceFirmwareSelectDevice(ctx, currentMsec); break;
+        case DFUS_GET_NETWORK_FILES:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
