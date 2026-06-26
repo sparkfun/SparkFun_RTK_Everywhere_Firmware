@@ -9,13 +9,18 @@ Device_Update_ESP32.ino
 //----------------------------------------
 bool dfuEsp32AreFirmwareWritesSupported()
 {
-    DEVICE_FIRMWARE_CTX * ctx;
+    int partitionCount;
 
     // We can do OTA if there are two APP partitions
-    ctx = dfuContext;
-    return ((ctx->_outputDeviceType == DFU_ODT_DEVICE)
-        && (strcmp("ESP32", ctx->_deviceInfo->_deviceName) == 0)
-        && (countAppPartitions() >= 2));
+    partitionCount = countAppPartitions();
+    if (partitionCount >= 2)
+        return true;
+
+    // Warn the user
+    systemPrintf("WARNING: ESP32 updates require two APP paritions, found %d!\r\n",
+                 partitionCount);
+    printPartitionTable();
+    return false;
 }
 
 //----------------------------------------

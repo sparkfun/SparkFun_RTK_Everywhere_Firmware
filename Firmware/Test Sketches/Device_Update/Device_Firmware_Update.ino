@@ -307,12 +307,10 @@ bool deviceFirmwareDeviceAvailable(int deviceIndex)
             // Not in the system
             break;
 
-        // We cannot do OTA if there is only one partition
+        // We cannot do ESP32 OTA if there is only one partition
         if ((strcmp("ESP32", deviceInfo->_deviceName) == 0)
-            && (countAppPartitions() < 2))
-        {
+            && (dfuEsp32AreFirmwareWritesSupported() == false))
             break;
-        }
         deviceAvailable = true;
     } while (0);
     return deviceAvailable;
