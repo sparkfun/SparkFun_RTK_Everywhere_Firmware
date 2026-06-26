@@ -924,6 +924,9 @@ bool deviceFirmwareRead(DEVICE_FIRMWARE_CTX * ctx,
             deviceFirmwareStateSet(ctx, readErrorState);
             return false;
         }
+        else if (bytesRead)
+            // Compute the CRC
+            ctx->_crc = crc32Compute(ctx->_crc, ctx->_data, bytesRead);
     }
 
     // Remaining data starts at the beginning of the buffer
@@ -933,6 +936,10 @@ bool deviceFirmwareRead(DEVICE_FIRMWARE_CTX * ctx,
         // Account for the firmware bytes read
         ctx->_validDataBytes += bytesRead;
         ctx->_bytesRead += bytesRead;
+
+        // Display the number of bytes read
+        if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+            systemPrintf("bytesRead: %d\r\n", bytesRead);
     }
 
     // Done when:

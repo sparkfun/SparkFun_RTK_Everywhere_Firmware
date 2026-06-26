@@ -275,3 +275,22 @@ void dfuNetworkFileListHtmlRequest(DEVICE_FIRMWARE_CTX * ctx,
         }
     }
 }
+
+//----------------------------------------
+// Read firmware data from the web server
+//----------------------------------------
+ssize_t dfuNetworkRead(DEVICE_FIRMWARE_CTX * ctx,
+                       uint8_t * buffer,
+                       size_t bytesToRead)
+{
+    ssize_t bytesRead;
+
+    bytesRead = 0;
+    if (ctx->_networkClient->available())
+    {
+        bytesRead = ctx->_networkClient->read(buffer, bytesToRead);
+        if (bytesRead < 0)
+            systemPrintf("ERROR: Failed to read firmware from NVM!\r\n");
+    }
+    return bytesRead;
+}

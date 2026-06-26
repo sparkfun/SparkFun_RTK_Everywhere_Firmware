@@ -132,3 +132,18 @@ bool dfuSdOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
     }
     return true;
 }
+
+//----------------------------------------
+// Read data from the SD file
+//----------------------------------------
+ssize_t dfuSdRead(DEVICE_FIRMWARE_CTX * ctx,
+                  uint8_t * buffer,
+                  size_t bytesToRead)
+{
+    ssize_t bytesRead;
+
+    bytesRead = ctx->_sdFile.read(buffer, bytesToRead);
+    if (bytesRead < 0)
+        systemPrintf("ERROR: Failed to read firmware from SD card!\r\n");
+    return bytesRead;
+}

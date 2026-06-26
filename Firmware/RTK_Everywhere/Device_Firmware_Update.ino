@@ -230,6 +230,25 @@ void deviceFirmwareCrcOpen(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 }
 
 //----------------------------------------
+// Read some firmware data
+//----------------------------------------
+void deviceFirmwareCrcReadData(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    if (deviceFirmwareRead(ctx, currentMsec, DFUS_CRC_CLOSE))
+    {
+        // Compute the CRC across these bytes
+        ctx->_crc = crc32Compute(ctx->_crc, ctx->_buffer, ctx->_validDataBytes);
+
+        // Empty the buffer
+        ctx->_validDataBytes = 0;
+
+        // Wait until done
+        if (ctx->_bytesRead == ctx->_fileBytes)
+            deviceFirmwareStateSet(ctx, DFUS_CRC_CLOSE);
+    }
+}
+
+//----------------------------------------
 // Determine if the device is available for firmware updates
 //----------------------------------------
 bool deviceFirmwareDeviceAvailable(int deviceIndex)
@@ -679,6 +698,83 @@ bool deviceFirmwareOpenUrl(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 }
 
 //----------------------------------------
+// Read data from the input device
+// Returns true when buffer is full
+//----------------------------------------
+bool deviceFirmwareRead(DEVICE_FIRMWARE_CTX * ctx,
+                        uint32_t currentMsec,
+                        int readErrorState)
+{
+    ssize_t bytesRead;
+    size_t length;
+
+    // Blink the LED
+    deviceFirmwareLedBlink(ctx, currentMsec);
+
+    // Move remaining data to the beginning of the buffer
+    if (ctx->_validDataBytes && (ctx->_data != ctx->_buffer))
+        memcpy(ctx->_buffer, ctx->_data, ctx->_validDataBytes);
+
+    // Read firmware data from the input device
+    bytesRead = 0;
+    length = ctx->_fileBytes - ctx->_bytesRead;
+    if (length)
+    {
+        // Fill the buffer or read the remaining bytes
+        length = min(length, ctx->_bufferLength - ctx->_validDataBytes);
+
+        // Read firmware data from the input device
+        ctx->_data = &ctx->_buffer[ctx->_validDataBytes];
+        if (ctx->_inputDeviceType == DFU_IDT_NETWORK)
+            bytesRead = dfuNetworkRead(ctx, ctx->_data, length);
+        else if (ctx->_inputDeviceType == DFU_IDT_NVM)
+            bytesRead = dfuNvmRead(ctx, ctx->_data, length);
+        else
+            bytesRead = dfuSdRead(ctx, ctx->_data, length);
+
+        // Check for read error
+        if (bytesRead < 0)
+        {
+            // Read failed
+            systemPrintf("Read failed, closing files\r\n");
+            deviceFirmwareStateSet(ctx, readErrorState);
+            return false;
+        }
+        else if (bytesRead)
+            // Compute the CRC
+            ctx->_crc = crc32Compute(ctx->_crc, ctx->_data, bytesRead);
+    }
+
+    // Remaining data starts at the beginning of the buffer
+    ctx->_data = ctx->_buffer;
+    if (bytesRead > 0)
+    {
+        // Account for the firmware bytes read
+        ctx->_validDataBytes += bytesRead;
+        ctx->_bytesRead += bytesRead;
+
+        // Display the number of bytes read
+        if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+            systemPrintf("bytesRead: %d\r\n", bytesRead);
+    }
+
+    // Done when:
+    //  * Buffer is full
+    //  * Have all remaining bytes
+    //  * All bytes have been read
+    //  * At least one packet/frame can be programmed on the device
+    if ((ctx->_validDataBytes == ctx->_bufferLength)
+        || (ctx->_validDataBytes == (ctx->_fileBytes - ctx->_bytesRead))
+        || (ctx->_bytesRead == ctx->_fileBytes)
+        || ((ctx->_outputDeviceType == DFU_ODT_DEVICE)
+            && (ctx->_validDataBytes >= ctx->_bytesMax)))
+    {
+        return true;
+    }
+    return false;
+}
+
+//----------------------------------------
 // Determine which action to perform
 //----------------------------------------
 void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
@@ -1107,7 +1203,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_SELECT_FILE: deviceFirmwareSelectFile(ctx, currentMsec); break;
         case DFUS_SELECT_ACTION: deviceFirmwareSelectAction(ctx, currentMsec); break;
         case DFUS_CRC_OPEN_INPUT: deviceFirmwareCrcOpen(ctx, currentMsec); break;
-        case DFUS_CRC_READ_DATA:
+        case DFUS_CRC_READ_DATA: deviceFirmwareCrcReadData(ctx, currentMsec); break;
+        case DFUS_CRC_CLOSE:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
