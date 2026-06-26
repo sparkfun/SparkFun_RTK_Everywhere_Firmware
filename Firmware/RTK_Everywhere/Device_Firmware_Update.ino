@@ -904,6 +904,34 @@ void deviceFirmwareReduceBufferSize(DEVICE_FIRMWARE_CTX * ctx)
 }
 
 //----------------------------------------
+// Reset the device before doing the firmware update
+//----------------------------------------
+void deviceFirmwareReset(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    const char * deviceName;
+
+    deviceName = ctx->_deviceInfo->_deviceName;
+    if (ctx->_deviceInfo->_reset)
+    {
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("Resetting %s for firmware update\r\n", deviceName);
+        if (ctx->_deviceInfo->_reset(ctx, currentMsec))
+            deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_OUTPUT);
+        else
+        {
+            systemPrintf("ERROR: %s firmware reset failed!\r\n", deviceName);
+            deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+        }
+        return;
+    }
+
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("NOT IMPLEMENTED: %s firmware update reset routine!\r\n",
+                     deviceName);
+    deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_OUTPUT);
+}
+
+//----------------------------------------
 // Determine which action to perform
 //----------------------------------------
 void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
@@ -1351,7 +1379,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_CRC_CLOSE: deviceFirmwareCrcClose(ctx, currentMsec); break;
         case DFUS_DEVICE_OPEN_INPUT: deviceFirmwareOpenFirmwareFile(ctx, currentMsec); break;
         case DFUS_DEVICE_FILL_BUFFER: deviceFirmwareReadFillBuffer(ctx, currentMsec); break;
-        case DFUS_DEVICE_RESET:
+        case DFUS_DEVICE_RESET: deviceFirmwareReset(ctx, currentMsec); break;
+        case DFUS_DEVICE_OPEN_OUTPUT:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
