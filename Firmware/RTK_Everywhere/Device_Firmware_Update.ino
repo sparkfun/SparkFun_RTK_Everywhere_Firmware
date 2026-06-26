@@ -308,6 +308,18 @@ void deviceFirmwareStateSet(DEVICE_FIRMWARE_CTX * ctx,int newState)
 }
 
 //----------------------------------------
+// Start the timer
+//----------------------------------------
+void deviceFirmwareTimerStart(DEVICE_FIRMWARE_CTX * ctx)
+{
+    // Verify that the timer is not already in use
+    if (ctx->_timerMsec)
+        reportFatalError("Device firmware update timer in use!");
+
+    ctx->_timerMsec = millis();
+}
+
+//----------------------------------------
 // Perform the device firmware update
 //----------------------------------------
 bool deviceFirmwareUpdate(uint32_t currentMsec)
