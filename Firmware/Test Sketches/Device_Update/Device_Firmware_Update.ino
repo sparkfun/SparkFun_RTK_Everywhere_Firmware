@@ -116,6 +116,18 @@ bool deviceFirmwareBufferAllocate(DEVICE_FIRMWARE_CTX * ctx)
 }
 
 //----------------------------------------
+// Empty the buffers and remove the name and sort extensions
+//----------------------------------------
+void deviceFirmwareBufferEmpty(DEVICE_FIRMWARE_CTX * ctx)
+{
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        bufferNameSortFree(index);
+        dfuBufferInfo[index]._bufferData->_offset = 0;
+    }
+}
+
+//----------------------------------------
 // Free the buffers
 //----------------------------------------
 void deviceFirmwareBufferFree(DEVICE_FIRMWARE_CTX * ctx, bool freeDataBuffer)
@@ -443,6 +455,31 @@ void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx)
         // Start the menu timeout timer
         deviceFirmwareTimerStart(ctx);
     }
+}
+
+//----------------------------------------
+// Prepare to get the file list again
+//----------------------------------------
+void deviceFirmwareFileListReload(DEVICE_FIRMWARE_CTX * ctx)
+{
+    // Prepare the buffers for listing the files again
+    deviceFirmwareBufferEmpty(ctx);
+
+    // No files available yet
+    ctx->_fileCountNet = 0;
+    ctx->_fileCountNvm = 0;
+    ctx->_fileCountSd = 0;
+    ctx->_fileCount = 0;
+
+    // Input device and output device have not been chosen yet
+    ctx->_inputDeviceType = DFU_IDT_NONE;
+    ctx->_outputDeviceType = DFU_ODT_NONE;
+
+    // Display the file list again
+    if (ctx->_doAll)
+        systemPrintf("Getting the file list...\r\n");
+    deviceFirmwareStateSet(ctx, ctx->_networkConfigured ? DFUS_GET_NETWORK_FILES
+                                                        : DFUS_GET_NVM_FILE_LIST);
 }
 
 //----------------------------------------
@@ -1005,6 +1042,9 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             break;
         action = Serial.read();
 
+        // Done timing out the menu choice
+        ctx->_timerMsec = 0;
+
         // Echo the input
         systemPrintf("%c\r\n", action);
 
@@ -1024,10 +1064,7 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                 dfuSdDelete(ctx->_fileName.c_str());
 
             // Display the file list again
-            ctx->_inputDeviceType = DFU_IDT_NONE;
-            ctx->_outputDeviceType = DFU_ODT_NONE;
-            deviceFirmwareStateSet(ctx, ctx->_networkConfigured ? DFUS_GET_NETWORK_FILES
-                                                                : DFUS_GET_NVM_FILE_LIST);
+            deviceFirmwareFileListReload(ctx);
         }
         else if ((action == 'n') && ctx->_deviceInfo->_useNvm)
         {
@@ -1061,6 +1098,8 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                                         ? DFUS_CRC_OPEN_INPUT
                                         : DFUS_DEVICE_OPEN_INPUT);
         }
+        else if (action == 'x')
+            deviceFirmwareStateSet(ctx, DFUS_DONE);
         else
         {
             systemPrintf("\r\nInvalid selection\r\n");

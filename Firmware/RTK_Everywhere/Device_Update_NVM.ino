@@ -5,6 +5,16 @@ Device_Update_NVM.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
+// Delete the NVM file
+//----------------------------------------
+void dfuNvmDelete(const char * fileName)
+{
+    // Delete the file
+    if (LittleFS.exists(fileName) && (LittleFS.remove(fileName) == false))
+        systemPrintf("ERROR: Failed to delete the NVM file!\r\n");
+}
+
+//----------------------------------------
 // Scan the NVM for matching firmware files
 //----------------------------------------
 void dfuNvmGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)

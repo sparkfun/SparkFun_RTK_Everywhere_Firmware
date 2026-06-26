@@ -5,6 +5,16 @@ Device_Update_SD.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
+// Delete the SD card file
+//----------------------------------------
+void dfuSdDelete(const char * fileName)
+{
+    // Delete the file
+    if (sd->exists(fileName) && (sd->remove(fileName) == false))
+        systemPrintf("ERROR: Failed to delete the SD file!\r\n");
+}
+
+//----------------------------------------
 // Scan the SD card for matching firmware files
 //----------------------------------------
 void dfuSdGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
