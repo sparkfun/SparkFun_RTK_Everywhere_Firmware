@@ -277,6 +277,42 @@ void deviceFirmwareLedBlink(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 }
 
 //----------------------------------------
+// Cleanup after the current firmware update and prepare for the next one
+//----------------------------------------
+void deviceFirmwareNextDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    // Done with the web server
+    if (ctx->_https)
+    {
+        ctx->_networkClient;
+        ctx->_https->end();
+        delete ctx->_https;
+        ctx->_https = nullptr;
+    }
+
+    // Free the buffers
+    deviceFirmwareBufferFree(ctx, false);
+
+    // Free the write buffer
+    if (ctx->_writeBuffer)
+    {
+        rtkFree(ctx->_writeBuffer, "Firmware update write buffer");
+        ctx->_writeBuffer = nullptr;
+    }
+
+    // Free the device specific context
+    if (ctx->_devCtx)
+    {
+        rtkFree(ctx->_devCtx, "Device specific firmware update context");
+        ctx->_devCtx = nullptr;
+    }
+
+    // Handle the next device
+    deviceFirmwareStateSet(ctx, ctx->_doAll ? DFUS_GET_DEVICE :
+                               (ctx->_reboot ? DFUS_REBOOT : DFUS_DONE));
+}
+
+//----------------------------------------
 // Get the state name
 //----------------------------------------
 const char * deviceFirmwareStateGetName(int state)
@@ -348,6 +384,7 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_INIT:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
+        case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
 
         case DFUS_DONE:
             deviceFirmwareBufferFree(ctx, true);
