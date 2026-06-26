@@ -100,8 +100,6 @@ const iconProperty *wifiIconTable[ICON_POSITION_MAX][5]{
 // Locals
 //----------------------------------------
 
-#include "Display.h"
-
 // Fonts
 #include <res/qw_fnt_31x48.h>
 #include <res/qw_fnt_5x7.h>
@@ -155,11 +153,15 @@ void HYBRID_DISPLAY::display(void)
         _oled->display();
     else
     {
-        unsigned long startTime = millis();
-        while (_epaper->isBusy() && ((millis() - startTime) < 3000))
-            delay(10);
-        if (!_epaper->isBusy())
-            _epaper->display();
+        // If not in deep sleep, wait for any previous display calls to complete
+        if (!theDisplay->_inDeepSleep)
+        {
+            unsigned long startTime = millis();
+            while (_epaper->isBusy() && ((millis() - startTime) < 3000))
+                delay(10);
+        }
+        _epaper->display();
+        theDisplay->_inDeepSleep = false;
     }
 }
 void HYBRID_DISPLAY::erase(void)
@@ -328,11 +330,15 @@ void HYBRID_DISPLAY::displayBackground(void)
         _oled->display();
     else
     {
-        unsigned long startTime = millis();
-        while (_epaper->isBusy() && ((millis() - startTime) < 3000))
-            delay(10);
-        if (!_epaper->isBusy())
-            _epaper->displayBackground();
+        // If not in deep sleep, wait for any previous display calls to complete
+        if (!theDisplay->_inDeepSleep)
+        {
+            unsigned long startTime = millis();
+            while (_epaper->isBusy() && ((millis() - startTime) < 3000))
+                delay(10);
+        }
+        _epaper->displayBackground();
+        theDisplay->_inDeepSleep = false;
     }
 }
 void HYBRID_DISPLAY::displayPartial(void)
@@ -341,11 +347,15 @@ void HYBRID_DISPLAY::displayPartial(void)
         _oled->display();
     else
     {
-        unsigned long startTime = millis();
-        while (_epaper->isBusy() && ((millis() - startTime) < 3000))
-            delay(10);
-        if (!_epaper->isBusy())
-            _epaper->displayPartial();
+        // If not in deep sleep, wait for any previous display calls to complete
+        if (!theDisplay->_inDeepSleep)
+        {
+            unsigned long startTime = millis();
+            while (_epaper->isBusy() && ((millis() - startTime) < 3000))
+                delay(10);
+        }
+        _epaper->displayPartial();
+        theDisplay->_inDeepSleep = false;
     }
 }
 bool HYBRID_DISPLAY::isBusy(void)
@@ -358,7 +368,17 @@ bool HYBRID_DISPLAY::isBusy(void)
 void HYBRID_DISPLAY::deepSleep(bool mode2)
 {
     if (!_isOLED)
+    {
+        // If already in deep sleep, return now
+        if (theDisplay->_inDeepSleep)
+            return;
+        // Wait for any previous display calls to complete
+        unsigned long startTime = millis();
+        while (_epaper->isBusy() && ((millis() - startTime) < 3000))
+            delay(10);
         _epaper->deepSleep(mode2);
+        theDisplay->_inDeepSleep = true;
+    }
 }
 size_t HYBRID_DISPLAY::printf(const char *format, ...)
 {
@@ -555,7 +575,10 @@ void displayUpdate()
     if (online.display == true)
     {
         static unsigned long lastDisplayUpdate = 0;
-        if (((millis() - lastDisplayUpdate) > 500) || (forceDisplayUpdate == true)) // Update display at 2Hz
+        unsigned long displayUpdateInterval = 500; // Update display at 2Hz
+        if (present.display_type == DISPLAY_184x88)
+            displayUpdateInterval = 1000; // Only update e-paper once per second
+        if (((millis() - lastDisplayUpdate) > displayUpdateInterval) || (forceDisplayUpdate == true))
         {
             lastDisplayUpdate = millis();
             forceDisplayUpdate = false;
@@ -840,7 +863,21 @@ void displayUpdate()
                                   (const uint8_t *)it->icon.bitmap);
             }
 
-            theDisplay->display(); // Push internal buffer to display
+            if (present.display_type == DISPLAY_184x88)
+            {
+                // displayBackground one time in epaperRefreshLimit. Otherwise displayPartial
+                static int epaperRefresh = 0;
+                if (epaperRefresh == 0)
+                    theDisplay->displayBackground();
+                else
+                    theDisplay->displayPartial();
+                theDisplay->deepSleep();
+                epaperRefresh++;
+                const int epaperRefreshLimit = 20;
+                epaperRefresh %= epaperRefreshLimit;
+            }
+            else
+                theDisplay->display(); // Push internal buffer to display
         }
     } // End display online
 }
@@ -2786,7 +2823,7 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
             {
                 snprintf(myAddress, sizeof(myAddress), "%s", ipAddress.toString().c_str());
 
-                theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10x20);
+                theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10X20);
                 theDisplay->setCursor(0, 68);
                 theDisplay->print(myAddress);
             }
@@ -2797,9 +2834,36 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
 void paintSerial6digit(uint8_t xPos, uint8_t yPos) // 184x88 e-paper only
 {
     // Print six character serial number
-    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10x20);
+    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10X20);
     theDisplay->setCursor(xPos, yPos);
     theDisplay->print(serialNumber);
+}
+void paintSerial6digitLarge() // 184x88 e-paper only
+{
+    // Print six character serial number - using a mix of fonts
+    int width = 0;
+    for (int i = 0; i < 6; i++)
+    {
+        if ((serialNumber[i] >= '0') && (serialNumber[i] <= '9'))
+            width += 12; // 12x48 font for numbers
+        else
+            width += 31; // 31x48 font for letters
+    }
+    uint8_t yPos = 20; // (88 - 48) / 2
+    uint8_t xPos;
+    if (width > theDisplay->getWidth())
+        xPos = 0;
+    else
+        xPos = (theDisplay->getWidth() - width) / 2;
+    theDisplay->setCursor(xPos, yPos);
+    for (int i = 0; i < 6; i++)
+    {
+        if ((serialNumber[i] >= '0') && (serialNumber[i] <= '9'))
+            theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_LARGENUM);
+        else
+            theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_31X48);
+        theDisplay->print(serialNumber[i]);
+    }
 }
 void paintMACAddress4digit(uint8_t xPos, uint8_t yPos)
 {
@@ -3235,7 +3299,8 @@ void paintDisplaySetup()
 {
     constructSetupDisplay(&setupButtons); // Construct the vector (linked list) of buttons
 
-    uint8_t maxButtons = ((present.display_type == DISPLAY_128x64) ? 5 : 4);
+    uint8_t maxButtons = (present.display_type == DISPLAY_128x64) ? 5 : 
+                         (present.display_type == DISPLAY_184x88) ? 6 : 4;
 
     uint8_t printedButtons = 0;
 
@@ -3295,6 +3360,8 @@ void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, QwiicE
     theDisplay->setDrawMode(grROPXOR, grEpROPXOR);
 
     uint8_t fontWidth = fontType.width;
+    if (present.display_type == DISPLAY_184x88)
+        fontWidth = fontEpType.width;
     if (fontWidth == 8)
         fontWidth = 7; // 8x16, but widest character is only 7 pixels.
 

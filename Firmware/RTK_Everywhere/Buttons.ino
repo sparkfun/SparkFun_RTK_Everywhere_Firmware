@@ -40,7 +40,14 @@ void powerDown(bool displayInfo)
         delay(2000);
     }
 
-    // Wes' idea: display "OFF" and serialNumber on e-paper
+    // Wes' idea: display serialNumber on e-paper
+    if (present.display_type == DISPLAY_184x88)
+    {
+        theDisplay->reset(true); // Ensure epaper memory is clear
+        paintSerial6digitLarge(); // 6 characters, large fonts
+        theDisplay->display();
+        theDisplay->deepSleep();
+    }
 
     // Disable SD card use
     endSD(false, false);

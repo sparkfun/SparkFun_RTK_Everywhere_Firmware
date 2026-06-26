@@ -14,6 +14,9 @@ class HYBRID_DISPLAY
     SSD1680I2C184x88Rotated *_epaper;
     bool _isOLED;
 
+  protected:
+    bool _inDeepSleep;
+
   public:
     // Constructor
     HYBRID_DISPLAY(bool isOLED)
@@ -23,6 +26,7 @@ class HYBRID_DISPLAY
         _oled = new QwiicCustomOLED;
       else
         _epaper = new SSD1680I2C184x88Rotated;
+      _inDeepSleep = false;
     }
 
     ~HYBRID_DISPLAY()
@@ -77,7 +81,7 @@ class HYBRID_DISPLAY
     void displayBackground(void);
     void displayPartial(void);
     bool isBusy(void);
-    void deepSleep(bool mode2);
+    void deepSleep(bool mode2 = false);
 
     size_t printf(const char *format, ...);
     size_t print(const char *text);
