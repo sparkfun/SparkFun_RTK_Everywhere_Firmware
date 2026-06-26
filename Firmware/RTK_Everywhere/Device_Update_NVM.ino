@@ -5,25 +5,6 @@ Device_Update_NVM.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
-// Close the NVM file
-//----------------------------------------
-bool dfuNvmClose(DEVICE_FIRMWARE_CTX * ctx)
-{
-    ctx->_nvmFile.close();
-    return true;
-}
-
-//----------------------------------------
-// Delete the NVM file
-//----------------------------------------
-void dfuNvmDelete(const char * fileName)
-{
-    // Delete the file
-    if (LittleFS.exists(fileName) && (LittleFS.remove(fileName) == false))
-        systemPrintf("ERROR: Failed to delete the NVM file!\r\n");
-}
-
-//----------------------------------------
 // Scan the NVM for matching firmware files
 //----------------------------------------
 void dfuNvmGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
@@ -133,59 +114,4 @@ void dfuNvmGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         deviceFirmwareStateSet(ctx, DFUS_SELECT_FILE);
         deviceFirmwareFileListMenu(ctx);
     }
-}
-
-//----------------------------------------
-// Open the NVM file
-//----------------------------------------
-bool dfuNvmOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
-{
-    const char * operation;
-
-    // Create the file
-    if (createFile)
-    {
-        operation = "create";
-        ctx->_nvmFile = LittleFS.open(ctx->_fileName.c_str(), FILE_WRITE, true);
-    }
-    else
-    {
-        operation = "open";
-        ctx->_nvmFile = LittleFS.open(ctx->_fileName.c_str(), FILE_READ, false);
-    }
-    if (ctx->_nvmFile == false)
-    {
-        systemPrintf("ERROR - Failed to %s %s in NVM!\r\n", operation, ctx->_fileName.c_str());
-        return false;
-    }
-
-    // Get the input file size
-    if (createFile == false)
-        ctx->_fileBytes = ctx->_nvmFile.size();
-    return true;
-}
-
-//----------------------------------------
-// Read data from the NVM file
-//----------------------------------------
-ssize_t dfuNvmRead(DEVICE_FIRMWARE_CTX * ctx,
-                   uint8_t * buffer,
-                   size_t bytesToRead)
-{
-    ssize_t bytesRead;
-
-    bytesRead = ctx->_nvmFile.read(buffer, bytesToRead);
-    if (bytesRead < 0)
-        systemPrintf("ERROR: Failed to read firmware from NVM!\r\n");
-    return bytesRead;
-}
-
-//----------------------------------------
-// Write firmware data to an NVM file
-//----------------------------------------
-ssize_t dfuNvmWrite(DEVICE_FIRMWARE_CTX * ctx,
-                    uint8_t * buffer,
-                    size_t bytesToWrite)
-{
-    return ctx->_nvmFile.write(buffer, bytesToWrite);
 }

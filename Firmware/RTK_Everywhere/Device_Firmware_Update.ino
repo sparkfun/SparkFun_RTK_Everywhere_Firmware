@@ -694,7 +694,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_GET_NETWORK_FILES: dfuNetworkFileListBuildUrl(ctx); break;
         case DFUS_GET_HTTP_FILE_LIST_REQ: dfuNetworkFileListHtmlRequest(ctx, currentMsec); break;
         case DFUS_GET_NETWORK_FILE_LIST: dfuNetworkFileListGetFileName(ctx, currentMsec); break;
-        case DFUS_GET_NVM_FILE_LIST:
+        case DFUS_GET_NVM_FILE_LIST: dfuNvmGetFiles(ctx, currentMsec); break;
+        case DFUS_GET_SD_FILE_LIST:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
