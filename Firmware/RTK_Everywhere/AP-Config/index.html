@@ -1785,7 +1785,7 @@
                     <label class="form-check-label" for="enableEspNow">ESP-NOW</label>
                     <input class="form-check-input" type="checkbox" value="" id="enableEspNow">
                     <span class="tt" data-bs-placement="right"
-                        title="The internal ESP32 can be used as a point-to-point, or point-to-multipoint radio for RTCM transmission. Default: Off">
+                        title="The internal ESP32 can be used as a point-to-point, or point-to-multipoint radio for RTCM transmission. When no devices are paired, all devices can hear a transmitter (one-to-many). Default: Off">
                         <span class="icon-info-circle text-primary ms-2"></span>
                     </span>
                 </div>
@@ -1804,9 +1804,10 @@
                     <div class="form-group row">
                         <div style="margin-bottom:5px;">
                             <button type="button" id="btnPairRadios" class="btn btn-primary box-margin20 col-sm-3"
-                                onClick="pairRadios()" disabled="true">Pair Radios</button>
+                                onClick="espnowRequestPair()">Pair Radios</button>
+                            <p id="btnPairRadiosMsg" class="inlineSuccess"></p>
                             <span class="tt" data-bs-placement="right"
-                                title="To connect two devices, exit AP Config mode, and press setup button until 'Pair' is seen. Units will swap MAC addresses and begin communicating at next power on.">
+                                title="Once two devices are in pairing mode, they will swap MAC addresses. At the next power on, they will only communicate with each other.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </div>
@@ -1824,7 +1825,7 @@
                         </div>
                         <div class="form-check">
                             <button type="button" id="btnForgetRadios" class="btn btn-primary"
-                                onClick="forgetPairedRadios()" disabled>Forget All Radios</button>
+                                onClick="espnowForgetPairs()" disabled>Forget All Radios</button>
                             <p id="btnForgetRadiosMsg" class="inlineSuccess"></p>
                         </div>
                     </div>

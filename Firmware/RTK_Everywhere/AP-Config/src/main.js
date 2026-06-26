@@ -906,6 +906,15 @@ function parseIncoming(msg) {
         else if (id.includes("hasTilt")) {
             show("tiltConfig");
         }
+        
+        else if (id.includes("espNowRadiosForgotten")) {
+            btnForgetRadiosMsg.innerHTML = "Peers forgotten.";
+
+        }
+        else if (id.includes("espnowPairingComplete")) {
+            btnPairRadiosMsg.innerHTML = "Pairing complete.";
+
+        }
 
         //Check boxes / radio buttons
         else if (val == "true") {
@@ -1774,6 +1783,18 @@ function resetToCorrectionsPriorityDefaults() {
     updateCorrectionsPriorities();
 }
 
+function espnowRequestPair() {
+    // Let the ESP-NOW state machine know we want to start pairing
+    ge("btnPairRadiosMsg").innerHTML = "Pairing...";
+    websocket.send("espnowRequestPair,1,");
+}
+
+function espnowForgetPairs() {
+    ge("btnForgetRadiosMsg").innerHTML = "All radios forgotten.";
+    ge("peerMACs").innerHTML = "None";
+    websocket.send("espnowForgetPairs,1,");
+}
+
 function zeroMessages() {
     //match all input ids starting with ubxMessageRate_ (not ubxMessageRateBase_)
     var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
@@ -2107,12 +2128,6 @@ function firmwareUploadStatus(val) {
 function firmwareUploadComplete() {
     show("firmwareUploadComplete");
     hide("mainPage");
-}
-
-function forgetPairedRadios() {
-    ge("btnForgetRadiosMsg").innerHTML = "All radios forgotten.";
-    ge("peerMACs").innerHTML = "None";
-    websocket.send("forgetEspNowPeers,1,");
 }
 
 function btnResetProfile() {

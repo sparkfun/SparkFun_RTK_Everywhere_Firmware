@@ -289,17 +289,17 @@ t_cliResult processCommand(char *cmdBuffer)
             {
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 espnowRequestPair = true; // Start ESP-NOW pairing process
-                // Force exit all config menus and/or command modes to allow OTA state machine to run
+                // Force exit all config menus and/or command modes to allow ESP-NOW state machine to run
                 forceMenuExit = true;
-                return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
+                return (CLI_EXIT); // Exit the CLI to allow ESP-NOW state machine to run
             }
             else if (strcmp(tokens[1], "PAIRSTOP") == 0)
             {
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 espnowRequestPair = false; // Stop ESP-NOW pairing process
-                // Force exit all config menus and/or command modes to allow OTA state machine to run
+                // Force exit all config menus and/or command modes to allow ESP-NOW state machine to run
                 forceMenuExit = true;
-                return (CLI_EXIT); // Exit the CLI to allow OTA state machine to run
+                return (CLI_EXIT); // Exit the CLI to allow ESP-NOW state machine to run
             }
             else if (strcmp(tokens[1], "REBOOT") == 0)
             {
@@ -1202,6 +1202,14 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         espnowRequestPair = true;
         knownSetting = true;
     }
+    else if (strcmp(settingName, "espnowForgetPairs") == 0)
+    {
+        // Forget all ESP-NOW Peers
+        espNowRemoveAllPeers();
+
+        knownSetting = true;
+    }
+
     else if (strcmp(settingName, "exitAndReset") == 0)
     {
         // Confirm receipt
@@ -1308,14 +1316,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             knownSetting = true;
         }
     }
-    else if (strcmp(settingName, "forgetEspNowPeers") == 0)
-    {
-        // Forget all ESP-NOW Peers
-        for (int x = 0; x < settings.espnowPeerCount; x++)
-            espNowRemovePeer(settings.espnowPeers[x]);
-        settings.espnowPeerCount = 0;
-        knownSetting = true;
-    }
+
     else if (strcmp(settingName, "startNewLog") == 0)
     {
         if (settings.enableLogging == true && online.logging == true)
@@ -2606,6 +2607,8 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             "enableFactoryDefaults",
             "enableFirmwareUpdate",
             "enableForgetRadios",
+            "espnowForgetPairs",
+            "espnowRequestPair",
             "exitAndReset",
             "factoryDefaultReset",
             "fileSelectAll",
@@ -2615,7 +2618,6 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             "fixedHAEAPC",
             "fixedLatText",
             "fixedLongText",
-            "forgetEspNowPeers",
             "getNewFirmware",
             "measurementRateHz",
             "measurementRateSec",
