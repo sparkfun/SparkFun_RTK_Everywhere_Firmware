@@ -593,7 +593,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_INIT: deviceFirmwareInit(ctx, currentMsec); break;
         case DFUS_WAIT_NETWORK: deviceFirmwareWaitForNetwork(ctx, currentMsec); break;
         case DFUS_GET_DEVICE: deviceFirmwareSelectDevice(ctx, currentMsec); break;
-        case DFUS_GET_NETWORK_FILES:
+        case DFUS_GET_NETWORK_FILES: dfuNetworkFileListBuildUrl(ctx); break;
+        case DFUS_GET_HTTP_FILE_LIST_REQ:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
