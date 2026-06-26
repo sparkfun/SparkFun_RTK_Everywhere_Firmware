@@ -165,6 +165,71 @@ void deviceFirmwareCleanup(DEVICE_FIRMWARE_CTX * ctx)
 }
 
 //----------------------------------------
+// Determine if the device is available for firmware updates
+//----------------------------------------
+bool deviceFirmwareDeviceAvailable(int deviceIndex)
+{
+    bool deviceAvailable;
+    const DEVICE_FIRMWARE_INFO * deviceInfo;
+    bool * devicePresent;
+
+    do
+    {
+        deviceAvailable = false;
+        deviceInfo = &deviceFirmwareInfo[deviceIndex];
+
+        // Check if this device is in the system
+        devicePresent = deviceInfo->_present;
+        if (devicePresent && (*devicePresent == false))
+            // Not in the system
+            break;
+
+        // We cannot do ESP32 OTA if there is only one partition
+        if ((strcmp("ESP32", deviceInfo->_deviceName) == 0)
+            && (dfuEsp32AreFirmwareWritesSupported() == false))
+            break;
+        deviceAvailable = true;
+    } while (0);
+    return deviceAvailable;
+}
+
+//----------------------------------------
+// Display the device menu
+//----------------------------------------
+void deviceFirmwareDeviceListMenu(DEVICE_FIRMWARE_CTX * ctx)
+{
+    if (ctx->_doAll == false)
+    {
+        inMainMenu = true;
+        systemPrintf("\r\nDevice List:\r\n");
+
+        // Walk the list of devices
+        for (int index = 0; index < deviceFirmwareInfoCount; index++)
+        {
+            // Check if this device is in the system
+            if (deviceFirmwareDeviceAvailable(index) == false)
+                continue;
+
+            // Display the device
+            systemPrintf("%c) %s\r\n", '0' + index, deviceFirmwareInfo[index]._deviceName);
+        }
+
+        systemPrintf("x) Exit\r\n");
+
+        // Discard the input
+        serialInputClear();
+        ctx->_buffer[0] = 0;
+        ctx->_validDataBytes = 0;
+
+        // Output the prompt
+        systemPrintf("Select a device: ");
+
+        // Start the menu timeout timer
+        deviceFirmwareTimerStart(ctx);
+    }
+}
+
+//----------------------------------------
 // Get a number from the user
 //----------------------------------------
 int deviceFirmwareGetNumber(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
@@ -415,7 +480,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         switch (ctx->_state)
         {
         case DFUS_INIT: deviceFirmwareInit(ctx, currentMsec); break;
-        case DFUS_WAIT_NETWORK:
+        case DFUS_WAIT_NETWORK: deviceFirmwareWaitForNetwork(ctx, currentMsec); break;
+        case DFUS_GET_DEVICE:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
@@ -500,4 +566,42 @@ void deviceFirmwareVerifyTables()
     if (DFUS_MAX != dfuStateNameCount)
         reportFatalError("Fix _DEVICE_FIRMWARE_UPDATE_STATE and dfuStateName!");
 }
+
+//----------------------------------------
+// Wait for a network connection
+//----------------------------------------
+bool deviceFirmwareWaitForNetwork(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    bool hasInternetAccess;
+
+    do
+    {
+        hasInternetAccess = false;
+
+        // Determine if the network is configured
+        if (ctx->_networkConfigured == false)
+            reportFatalError("deviceFirmwareWaitForNetwork when ctx->_networkConfigured = false");
+
+        // Wait for the link to come up
+        hasInternetAccess = networkHasInternet();
+        if (hasInternetAccess == false)
+        {
+            // Don't wait forever
+            if ((currentMsec - ctx->_timerMsec) < WIFI_IP_ADDRESS_TIMEOUT_MSEC)
+                break;
+
+            // Stop polling the network
+            ctx->_networkConfigured = false;
+        }
+
+        // Done timing out the network connection
+        ctx->_timerMsec = 0;
+
+        // Display the menu
+        deviceFirmwareStateSet(ctx, DFUS_GET_DEVICE);
+        deviceFirmwareDeviceListMenu(ctx);
+    } while (0);
+    return hasInternetAccess;
+}
+
 #endif  // COMPILE_MENU_FIRMWARE
