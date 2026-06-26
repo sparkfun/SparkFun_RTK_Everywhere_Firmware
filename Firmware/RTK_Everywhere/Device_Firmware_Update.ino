@@ -38,6 +38,13 @@ const char * dfuStateName[] =
 };
 const int dfuStateNameCount = sizeof(dfuStateName) / sizeof(dfuStateName[0]);
 
+#define DFU_USER_INPUT_STRING           0
+#define DFU_USER_INPUT_NOT_DONE         -1
+#define DFU_USER_INPUT_EXIT             -2
+#define DFU_USER_INPUT_TIMEOUT          -3
+#define DFU_USER_INPUT_OVERFLOWS_BUFFER -4
+#define DFU_USER_INPUT_NOT_A_NUMBER     -5
+
 //----------------------------------------
 // Allocate the buffers
 //----------------------------------------
@@ -155,6 +162,104 @@ void deviceFirmwareCleanup(DEVICE_FIRMWARE_CTX * ctx)
     rtkFree(ctx, "Device firmware context");
     dfuContext = nullptr;
     inMainMenu = false;
+}
+
+//----------------------------------------
+// Get a number from the user
+//----------------------------------------
+int deviceFirmwareGetNumber(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    int value;
+
+    // Get the user input
+    value = deviceFirmwareGetUserInput(ctx, currentMsec);
+    if (value == DFU_USER_INPUT_STRING)
+    {
+        // Determine if a number was input
+        if ((sscanf((char *)ctx->_buffer, "0x%x", &value) == 1)
+            || (sscanf((char *)ctx->_buffer, "0X%x", &value) == 1)
+            || (sscanf((char *)ctx->_buffer, "%d", &value) == 1))
+        {
+            return value;
+        }
+
+        // Return the input error
+        value = DFU_USER_INPUT_NOT_A_NUMBER;
+    }
+
+    return value;
+}
+
+//----------------------------------------
+// Get a value from the user
+//----------------------------------------
+int deviceFirmwareGetUserInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    uint8_t incoming;
+    int value;
+
+    // Handle the menu timeout
+    ctx = dfuContext;
+    if ((currentMsec - ctx->_timerMsec) >= (menuTimeout * MILLISECONDS_IN_A_SECOND))
+    {
+        systemPrintf("\r\nUser input timeout\r\n");
+        deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+        return DFU_USER_INPUT_TIMEOUT;
+    }
+
+    // Get the user selection
+    if (Serial.available())
+    {
+        // Get an input character
+        incoming = Serial.read();
+
+        // All done at the end of the line
+        if ((incoming == '\r') || (incoming == '\n'))
+        {
+            systemPrintln();
+            return DFU_USER_INPUT_STRING;
+        }
+
+        // Handle the backspace
+        if (incoming == '\b')
+        {
+            if (ctx->_validDataBytes)
+            {
+                systemPrintf("\b \b");
+                ctx->_validDataBytes -= 1;
+                ctx->_buffer[ctx->_validDataBytes] = 0;
+            }
+            else
+                // Output the bell character
+                systemPrintf("%c", (char)0x07);
+            return DFU_USER_INPUT_NOT_DONE;
+        }
+
+        // Echo the input
+        else
+            systemPrintf("%c", incoming);
+
+        // Handle the error cases
+        if ((ctx->_validDataBytes == 0) && (incoming == 'x'))
+        {
+            systemPrintln();
+            deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+            return DFU_USER_INPUT_EXIT;
+        }
+
+        // Save the input
+        ctx->_buffer[ctx->_validDataBytes++] = incoming;
+        ctx->_buffer[ctx->_validDataBytes] = 0;
+
+        // Check for buffer overflow
+        if (ctx->_validDataBytes >= (ctx->_bufferLength - 1))
+        {
+            systemPrintf("\r\nBuffer overflow\r\n");
+            deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+            return DFU_USER_INPUT_OVERFLOWS_BUFFER;
+        }
+    }
+    return DFU_USER_INPUT_NOT_DONE;
 }
 
 //----------------------------------------

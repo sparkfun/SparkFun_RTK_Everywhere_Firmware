@@ -523,8 +523,24 @@ int deviceFirmwareGetUserInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             return DFU_USER_INPUT_STRING;
         }
 
+        // Handle the backspace
+        if (incoming == '\b')
+        {
+            if (ctx->_validDataBytes)
+            {
+                systemPrintf("\b \b");
+                ctx->_validDataBytes -= 1;
+                ctx->_buffer[ctx->_validDataBytes] = 0;
+            }
+            else
+                // Output the bell character
+                systemPrintf("%c", (char)0x07);
+            return DFU_USER_INPUT_NOT_DONE;
+        }
+
         // Echo the input
-        systemPrintf("%c", incoming);
+        else
+            systemPrintf("%c", incoming);
 
         // Handle the error cases
         if ((ctx->_validDataBytes == 0) && (incoming == 'x'))
