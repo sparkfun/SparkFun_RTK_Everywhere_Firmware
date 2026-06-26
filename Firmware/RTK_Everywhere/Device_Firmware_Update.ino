@@ -1009,6 +1009,15 @@ void deviceFirmwareReadFillBuffer(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMse
 }
 
 //----------------------------------------
+// Read some firmware data
+//----------------------------------------
+void deviceFirmwareReadFirmwareData(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    if (deviceFirmwareRead(ctx, currentMsec, DFUS_CRC_CLOSE))
+        deviceFirmwareStateSet(ctx, DFUS_DEVICE_PROGRAM_FIRMWARE);
+}
+
+//----------------------------------------
 // Reduce the buffer size when a write routine does not exist
 //----------------------------------------
 void deviceFirmwareReduceBufferSize(DEVICE_FIRMWARE_CTX * ctx)
@@ -1518,7 +1527,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_DEVICE_RESET: deviceFirmwareReset(ctx, currentMsec); break;
         case DFUS_DEVICE_OPEN_OUTPUT: deviceFirmwareOpenOutput(ctx, currentMsec); break;
         case DFUS_DEVICE_PROGRAM_FIRMWARE: deviceFirmwareWrite(ctx, currentMsec); break;
-        case DFUS_READ_FIRMWARE_DATA:
+        case DFUS_READ_FIRMWARE_DATA: deviceFirmwareReadFirmwareData(ctx, currentMsec); break;
+        case DFUS_DEVICE_CLOSE:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
