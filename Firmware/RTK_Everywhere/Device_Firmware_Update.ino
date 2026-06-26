@@ -656,6 +656,32 @@ void deviceFirmwareNextDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 }
 
 //----------------------------------------
+// Open the firmware file
+//----------------------------------------
+void deviceFirmwareOpenFirmwareFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    const char * devicePrefix;
+
+    // Get the file device
+    devicePrefix = deviceFirmwareGetDevicePrefix(ctx->_inputDeviceType);
+
+    // Give user a hint as to what is taking so long
+    systemPrintf("Opening %s firmware file %s:%s\r\n",
+                 ctx->_deviceInfo->_deviceName,
+                 devicePrefix,
+                 ctx->_fileName.c_str());
+    if (deviceFirmwareOpenInput(ctx, currentMsec))
+    {
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("%d bytes\r\n", ctx->_fileBytes);
+        deviceFirmwareReduceBufferSize(ctx);
+        deviceFirmwareStateSet(ctx, DFUS_DEVICE_FILL_BUFFER);
+    }
+    else
+        deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+}
+
+//----------------------------------------
 // Open the input device
 //----------------------------------------
 bool deviceFirmwareOpenInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
@@ -831,6 +857,37 @@ bool deviceFirmwareRead(DEVICE_FIRMWARE_CTX * ctx,
         return true;
     }
     return false;
+}
+
+//----------------------------------------
+// Reduce the buffer size when a write routine does not exist
+//----------------------------------------
+void deviceFirmwareReduceBufferSize(DEVICE_FIRMWARE_CTX * ctx)
+{
+    size_t temp;
+
+    if ((ctx->_outputDeviceType == DFU_ODT_DEVICE)
+        && (ctx->_deviceInfo->_write == nullptr))
+    {
+        systemPrintf("NOT IMPLEMENTED: %s firmware update write routine!\r\n",
+                     ctx->_deviceInfo->_deviceName);
+        systemPrintf("WARNING: Using dummy %s firmware update write routine!\r\n",
+                     ctx->_deviceInfo->_deviceName);
+        systemPrintf("Reducing the following values for testing:\r\n");
+        size_t temp = ctx->_bufferLength;
+        ctx->_bufferLength = 4;
+        systemPrintf("bufferLength: %d --> %d bytes\r\n", temp, ctx->_bufferLength);
+
+        temp = ctx->_fileBytes;
+        ctx->_fileBytes = min(temp, (size_t)16);
+        if (temp != ctx->_fileBytes)
+            systemPrintf("fileBytes: %d --> %d bytes\r\n", temp, ctx->_fileBytes);
+
+        temp = ctx->_bytesMax;
+        ctx->_bytesMax = min(temp, (size_t)2);
+        if (temp != ctx->_bytesMax)
+            systemPrintf("bytesMax: %d --> %d bytes\r\n", temp, ctx->_bytesMax);
+    }
 }
 
 //----------------------------------------
@@ -1264,7 +1321,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_CRC_OPEN_INPUT: deviceFirmwareCrcOpen(ctx, currentMsec); break;
         case DFUS_CRC_READ_DATA: deviceFirmwareCrcReadData(ctx, currentMsec); break;
         case DFUS_CRC_CLOSE: deviceFirmwareCrcClose(ctx, currentMsec); break;
-        case DFUS_DEVICE_OPEN_INPUT:
+        case DFUS_DEVICE_OPEN_INPUT: deviceFirmwareOpenFirmwareFile(ctx, currentMsec); break;
+        case DFUS_DEVICE_FILL_BUFFER:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
