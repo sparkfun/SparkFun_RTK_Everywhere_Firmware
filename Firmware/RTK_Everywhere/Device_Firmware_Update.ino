@@ -1528,9 +1528,7 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_DEVICE_OPEN_OUTPUT: deviceFirmwareOpenOutput(ctx, currentMsec); break;
         case DFUS_DEVICE_PROGRAM_FIRMWARE: deviceFirmwareWrite(ctx, currentMsec); break;
         case DFUS_READ_FIRMWARE_DATA: deviceFirmwareReadFirmwareData(ctx, currentMsec); break;
-        case DFUS_DEVICE_CLOSE:
-deviceFirmwareStateSet(ctx, DFUS_DONE);
-        break;
+        case DFUS_DEVICE_CLOSE: deviceFirmwareClose(ctx, currentMsec); break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
 
         case DFUS_DONE:
