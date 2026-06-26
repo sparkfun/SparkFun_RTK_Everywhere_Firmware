@@ -263,6 +263,39 @@ int deviceFirmwareGetUserInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 }
 
 //----------------------------------------
+// Initialize the firmware update
+//----------------------------------------
+void deviceFirmwareInit(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    int nextState;
+
+    do
+    {
+        nextState = DFUS_NEXT_DEVICE;
+
+        // Allocate the buffers
+        if (deviceFirmwareBufferAllocate(ctx) == false)
+            break;
+
+        // Determine if the network is online
+        ctx->_networkConfigured = (present.ethernet_ws5500 || wifiStationIsSsidSet());
+        if ((present.microSd == false) && (ctx->_networkConfigured == false))
+        {
+            systemPrintf("Network not configured!\r\n");
+            nextState = DFUS_GET_DEVICE;
+            break;
+        }
+
+        // Request the network
+        networkConsumerAdd(NETCONSUMER_DEVICE_OTA, NETWORK_ANY, __FILE__, __LINE__);
+        systemPrintf("Waiting for network\r\n");
+        deviceFirmwareTimerStart(ctx);
+        nextState = DFUS_WAIT_NETWORK;
+    } while (0);
+    deviceFirmwareStateSet(ctx, nextState);
+}
+
+//----------------------------------------
 // Blink a LED to indicate activity
 //----------------------------------------
 void deviceFirmwareLedBlink(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
@@ -381,7 +414,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         // Perform the firmware update
         switch (ctx->_state)
         {
-        case DFUS_INIT:
+        case DFUS_INIT: deviceFirmwareInit(ctx, currentMsec); break;
+        case DFUS_WAIT_NETWORK:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
