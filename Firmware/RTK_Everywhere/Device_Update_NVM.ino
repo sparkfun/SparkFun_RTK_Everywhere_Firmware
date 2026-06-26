@@ -125,3 +125,40 @@ void dfuNvmGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         deviceFirmwareFileListMenu(ctx);
     }
 }
+
+//----------------------------------------
+// Open the NVM file
+//----------------------------------------
+bool dfuNvmOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
+{
+    const char * operation;
+
+    // Create the file
+    if (createFile)
+    {
+        operation = "create";
+        ctx->_nvmFile = LittleFS.open(ctx->_fileName.c_str(), FILE_WRITE, true);
+    }
+    else
+    {
+        operation = "open";
+        ctx->_nvmFile = LittleFS.open(ctx->_fileName.c_str(), FILE_READ, false);
+    }
+    if (ctx->_nvmFile == false)
+    {
+        systemPrintf("ERROR - Failed to %s %s in NVM!\r\n", operation, ctx->_fileName.c_str());
+        return false;
+    }
+
+    // Get the input file size
+    if (createFile == false)
+    {
+        ctx->_fileBytes = ctx->_nvmFile.size();
+        if (ctx->_fileBytes == 0)
+        {
+            systemPrintf("ERROR: NVM file size is zero bytes!\r\n");
+            return false;
+        }
+    }
+    return true;
+}

@@ -161,7 +161,14 @@ bool dfuNvmOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
 
     // Get the input file size
     if (createFile == false)
+    {
         ctx->_fileBytes = ctx->_nvmFile.size();
+        if (ctx->_fileBytes == 0)
+        {
+            systemPrintf("ERROR: NVM file size is zero bytes!\r\n");
+            return false;
+        }
+    }
     return true;
 }
 

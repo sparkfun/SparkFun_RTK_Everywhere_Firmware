@@ -133,6 +133,11 @@ bool dfuSdOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
 
         // Get the input file size
         ctx->_fileBytes = ctx->_sdFile.size();
+        if (ctx->_fileBytes == 0)
+        {
+            systemPrintf("ERROR: SD file size is zero bytes!\r\n");
+            return false;
+        }
     }
     return true;
 }

@@ -96,3 +96,39 @@ void dfuSdGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     deviceFirmwareStateSet(ctx, DFUS_SELECT_FILE);
     deviceFirmwareFileListMenu(ctx);
 }
+
+//----------------------------------------
+// Create an SD file for the firmware
+//----------------------------------------
+bool dfuSdOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
+{
+    if (createFile)
+    {
+        // Create the file
+        if (ctx->_sdFile.open(ctx->_fileName.c_str(), O_WRONLY | O_CREAT | O_TRUNC) == false)
+        {
+            systemPrintf("ERROR - Failed to create %s on the microSD card!\r\n",
+                         ctx->_fileName.c_str());
+            return false;
+        }
+    }
+    else
+    {
+        // Open an existing file
+        if (ctx->_sdFile.open(ctx->_fileName.c_str(), O_RDONLY) == false)
+        {
+            systemPrintf("ERROR - Failed to open %s on the microSD card!\r\n",
+                         ctx->_fileName.c_str());
+            return false;
+        }
+
+        // Get the input file size
+        ctx->_fileBytes = ctx->_sdFile.size();
+        if (ctx->_fileBytes == 0)
+        {
+            systemPrintf("ERROR: SD file size is zero bytes!\r\n");
+            return false;
+        }
+    }
+    return true;
+}

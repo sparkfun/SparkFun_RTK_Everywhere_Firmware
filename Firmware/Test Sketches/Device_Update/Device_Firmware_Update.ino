@@ -727,18 +727,18 @@ bool deviceFirmwareOpenInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     ctx->_startMsec = millis();
 
     // Network file read path
-    //    _ctx->_http --> _ctx->_networkClient --> ctx->_buffer
+    //    ctx->_http --> ctx->_networkClient --> ctx->_buffer
     if (ctx->_inputDeviceType == DFU_IDT_NETWORK)
         // Send HTTP GET request
         return deviceFirmwareOpenUrl(ctx, currentMsec);
 
     // NVM file read data path:
-    //    _ctx->_nvmFile --> ctx->_buffer
+    //    ctx->_nvmFile --> ctx->_buffer
     if (ctx->_inputDeviceType == DFU_IDT_NVM)
         return dfuNvmOpen(ctx, false);
 
     // SD file read data path:
-    //    _ctx->_sdFile --> ctx->_buffer
+    //    ctx->_sdFile --> ctx->_buffer
     if (ctx->_inputDeviceType == DFU_IDT_SD)
         return dfuSdOpen(ctx, false);
 

@@ -210,6 +210,26 @@ void deviceFirmwareCleanup(DEVICE_FIRMWARE_CTX * ctx)
 }
 
 //----------------------------------------
+// Open the firmware file and output device
+//----------------------------------------
+void deviceFirmwareCrcOpen(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    // Give user a hint as to what is taking so long
+    if (settings.debugFirmwareUpdate)
+    {
+        if (ctx->_inputDeviceType == DFU_IDT_NETWORK)
+            systemPrintf("Opening URL: %s\r\n", ctx->_url.c_str());
+        else
+            systemPrintf("Opening firmware file: %s\r\n", ctx->_fileName.c_str());
+    }
+    systemPrintf("Computing %s firmware CRC\r\n", ctx->_deviceInfo->_deviceName);
+    if (deviceFirmwareOpenInput(ctx, currentMsec))
+        deviceFirmwareStateSet(ctx, DFUS_CRC_READ_DATA);
+    else
+        deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+}
+
+//----------------------------------------
 // Determine if the device is available for firmware updates
 //----------------------------------------
 bool deviceFirmwareDeviceAvailable(int deviceIndex)
@@ -577,6 +597,85 @@ void deviceFirmwareNextDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     // Handle the next device
     deviceFirmwareStateSet(ctx, ctx->_doAll ? DFUS_GET_DEVICE :
                                (ctx->_reboot ? DFUS_REBOOT : DFUS_DONE));
+}
+
+//----------------------------------------
+// Open the input device
+//----------------------------------------
+bool deviceFirmwareOpenInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    // Verify that the output was specified
+    if (ctx->_outputDeviceType == DFU_ODT_NONE)
+        reportFatalError("Output device type is DFU_ODT_NONE!");
+
+    ctx->_bytesRead = 0;
+    ctx->_complete = false;
+    ctx->_startMsec = millis();
+
+    // Network file read path
+    //    ctx->_http --> ctx->_networkClient --> ctx->_buffer
+    if (ctx->_inputDeviceType == DFU_IDT_NETWORK)
+        // Send HTTP GET request
+        return deviceFirmwareOpenUrl(ctx, currentMsec);
+
+    // NVM file read data path:
+    //    ctx->_nvmFile --> ctx->_buffer
+    if (ctx->_inputDeviceType == DFU_IDT_NVM)
+        return dfuNvmOpen(ctx, false);
+
+    // SD file read data path:
+    //    ctx->_sdFile --> ctx->_buffer
+    if (ctx->_inputDeviceType == DFU_IDT_SD)
+        return dfuSdOpen(ctx, false);
+
+    // Testing case
+    return true;
+}
+
+//----------------------------------------
+// Open the URL
+//----------------------------------------
+bool deviceFirmwareOpenUrl(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    int attempt;
+    int httpResponseCode;
+
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("URL: %s\r\n", ctx->_url.c_str());
+
+    // Send HTTP GET request
+    attempt = 0;
+    do
+    {
+        // Open the connection to the web server
+        ctx->_startMsec = currentMsec;
+        ctx->_https = new HTTPClient;
+        ctx->_https->begin(ctx->_url);
+        ctx->_https->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        httpResponseCode = ctx->_https->GET();
+        if (httpResponseCode == -1)
+            ctx->_https->end();
+
+        // Display the error
+        if ((httpResponseCode != 200) || (settings.debugFirmwareUpdate))
+            systemPrintf("HTTP Response code: %d\r\n", httpResponseCode);
+    } while ((httpResponseCode == -1) && (++attempt < 3));
+
+    // Handle the responses
+    if (httpResponseCode != 200)
+    {
+        systemPrintf("ERROR: Failed to open url: %s\r\n", ctx->_url.c_str());
+        return false;
+    }
+
+    // Save the file length
+    ctx->_fileBytes = ctx->_https->getSize();
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("File size: %d bytes\r\n", ctx->_fileBytes);
+
+    // Get TCP stream
+    ctx->_networkClient = ctx->_https->getStreamPtr();
+    return true;
 }
 
 //----------------------------------------
@@ -1007,7 +1106,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_GET_SD_FILE_LIST: dfuSdGetFiles(ctx, currentMsec); break;
         case DFUS_SELECT_FILE: deviceFirmwareSelectFile(ctx, currentMsec); break;
         case DFUS_SELECT_ACTION: deviceFirmwareSelectAction(ctx, currentMsec); break;
-        case DFUS_CRC_OPEN_INPUT:
+        case DFUS_CRC_OPEN_INPUT: deviceFirmwareCrcOpen(ctx, currentMsec); break;
+        case DFUS_CRC_READ_DATA:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
