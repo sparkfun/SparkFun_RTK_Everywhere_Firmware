@@ -1517,7 +1517,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_DEVICE_FILL_BUFFER: deviceFirmwareReadFillBuffer(ctx, currentMsec); break;
         case DFUS_DEVICE_RESET: deviceFirmwareReset(ctx, currentMsec); break;
         case DFUS_DEVICE_OPEN_OUTPUT: deviceFirmwareOpenOutput(ctx, currentMsec); break;
-        case DFUS_DEVICE_PROGRAM_FIRMWARE:
+        case DFUS_DEVICE_PROGRAM_FIRMWARE: deviceFirmwareWrite(ctx, currentMsec); break;
+        case DFUS_READ_FIRMWARE_DATA:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
@@ -1638,6 +1639,73 @@ bool deviceFirmwareWaitForNetwork(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMse
         deviceFirmwareDeviceListMenu(ctx);
     } while (0);
     return hasInternetAccess;
+}
+
+//----------------------------------------
+// Perform the firmware update
+//----------------------------------------
+void deviceFirmwareWrite(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    size_t bytesToWrite;
+    size_t bytesWritten;
+    int percentage;
+    DEVICE_WRITE write;
+
+    // Determine if there is enough data to write
+    write = ctx->_deviceInfo->_write;
+    bytesWritten = 0;
+    while (ctx->_validDataBytes
+        && ((ctx->_validDataBytes >= ctx->_bytesMax)
+            || (ctx->_validDataBytes == (ctx->_fileBytes - ctx->_bytesWritten))))
+    {
+        // Determine how much firmware data can be written
+        bytesToWrite = min(ctx->_bytesMax, ctx->_fileBytes - ctx->_bytesWritten);
+
+        // Use this value for testing
+        bytesWritten = ctx->_bytesMax;
+
+        // Write the data to the device
+        if (write && (ctx->_outputDeviceType == DFU_ODT_DEVICE))
+        {
+            bytesWritten = write(ctx, ctx->_data, bytesToWrite);
+            if (bytesWritten > bytesToWrite)
+                bytesWritten = bytesToWrite;
+        }
+        else if (ctx->_outputDeviceType == DFU_ODT_NVM)
+            bytesWritten = dfuNvmWrite(ctx, ctx->_data, bytesToWrite);
+        else if (ctx->_outputDeviceType == DFU_ODT_SD)
+            bytesWritten = dfuSdWrite(ctx, ctx->_data, bytesToWrite);
+        if (bytesWritten >= 0)
+        {
+            // Account for the data written
+            ctx->_validDataBytes -= bytesWritten;
+            ctx->_data += bytesWritten;
+            ctx->_bytesWritten += bytesWritten;
+            if (ctx->_bytesWritten == ctx->_fileBytes)
+                ctx->_complete = true;
+
+            // Display the number of bytes written
+            if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+                systemPrintf("bytesWritten: %d\r\n", bytesWritten);
+        }
+    }
+
+    // Display the percentage changes
+    percentage = ctx->_bytesWritten * 100 / ctx->_fileBytes;
+    if (percentage != ctx->_percentage)
+    {
+        ctx->_percentage = percentage;
+        displayFirmwareUpdateProgress(percentage);
+        systemPrintf("\r[%s %d%%",
+                     &dfuEqualSigns[strlen(dfuEqualSigns) - (percentage >> 1)],
+                     percentage);
+    }
+
+    // Read more data
+    if (ctx->_complete || settings.debugFirmwareUpdate)
+        systemPrintln();
+    deviceFirmwareStateSet(ctx, ctx->_complete ? DFUS_DEVICE_CLOSE
+                                               : DFUS_READ_FIRMWARE_DATA);
 }
 
 #endif  // COMPILE_MENU_FIRMWARE

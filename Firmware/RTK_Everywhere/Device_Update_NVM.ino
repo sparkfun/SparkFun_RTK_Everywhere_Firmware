@@ -186,3 +186,13 @@ ssize_t dfuNvmRead(DEVICE_FIRMWARE_CTX * ctx,
         systemPrintf("ERROR: Failed to read firmware from NVM!\r\n");
     return bytesRead;
 }
+
+//----------------------------------------
+// Write firmware data to an NVM file
+//----------------------------------------
+ssize_t dfuNvmWrite(DEVICE_FIRMWARE_CTX * ctx,
+                    uint8_t * buffer,
+                    size_t bytesToWrite)
+{
+    return ctx->_nvmFile.write(buffer, bytesToWrite);
+}
