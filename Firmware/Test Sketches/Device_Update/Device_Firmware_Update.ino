@@ -214,6 +214,11 @@ void deviceFirmwareCleanup(DEVICE_FIRMWARE_CTX * ctx)
 //----------------------------------------
 void deviceFirmwareClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
+    systemPrintf("deviceFirmwareClose entered\r\n");
+    // Display the CRC
+    if (ctx->_complete)
+        systemPrintf("CRC: 0x%08x\r\n", ctx->_crc);
+
     // Close the output file
     deviceFirmwareCloseOutput(ctx);
 
@@ -225,10 +230,20 @@ void deviceFirmwareClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     {
         if (ctx->_complete == false)
             ctx->_reboot = false;
+        deviceFirmwareFileListReload(ctx);
         deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
     }
     else
-        deviceFirmwareStateSet(ctx, ctx->_reboot ? DFUS_REBOOT : DFUS_DONE);
+    {
+        if ((ctx->_outputDeviceType == DFU_ODT_NVM)
+            || (ctx->_outputDeviceType == DFU_ODT_SD))
+        {
+            deviceFirmwareFileListReload(ctx);
+        }
+        else
+            deviceFirmwareStateSet(ctx, ctx->_reboot ? DFUS_REBOOT : DFUS_DONE);
+    }
+    systemPrintf("deviceFirmwareClose exiting\r\n");
 }
 
 //----------------------------------------
@@ -239,10 +254,10 @@ void deviceFirmwareCloseInput(DEVICE_FIRMWARE_CTX * ctx)
     // Close the input file
     if (ctx->_inputDeviceType == DFU_IDT_NETWORK)
         dfuNetworkCleanup(ctx, nullptr);
-    else if (ctx->_inputDeviceType = DFU_IDT_NVM)
-        ctx->_nvmFile.close();
+    else if (ctx->_inputDeviceType == DFU_IDT_NVM)
+        dfuNvmClose(ctx);
     else if (ctx->_inputDeviceType == DFU_IDT_SD)
-        ctx->_sdFile.close();
+        dfuSdClose(ctx);
 
     // Display the statistics
     if (ctx->_complete)
@@ -270,9 +285,9 @@ void deviceFirmwareCloseOutput(DEVICE_FIRMWARE_CTX * ctx)
                          ctx->_deviceInfo->_deviceName);
     }
     else if (ctx->_outputDeviceType == DFU_ODT_NVM)
-        ctx->_nvmFile.close();
+        dfuNvmClose(ctx);
     else if (ctx->_outputDeviceType == DFU_ODT_SD)
-        ctx->_sdFile.close();
+        dfuSdClose(ctx);
 }
 
 //----------------------------------------
@@ -796,9 +811,15 @@ void deviceFirmwareOpenOutput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                 systemPrintf("ERROR: %s firmware open failed!\r\n",
                              ctx->_deviceInfo->_deviceName);
             }
-            else if (settings.debugFirmwareUpdate)
-                systemPrintf("NOT IMPLEMENTED: %s firmware update open routine!\r\n",
-                             ctx->_deviceInfo->_deviceName);
+            else
+            {
+                if (settings.debugFirmwareUpdate)
+                    systemPrintf("NOT IMPLEMENTED: %s firmware update open routine!\r\n",
+                                 ctx->_deviceInfo->_deviceName);
+
+                // Enable testing of new devices
+                result = true;
+            }
             break;
         }
 

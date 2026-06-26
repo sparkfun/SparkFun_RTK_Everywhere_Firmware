@@ -210,6 +210,43 @@ void deviceFirmwareCleanup(DEVICE_FIRMWARE_CTX * ctx)
 }
 
 //----------------------------------------
+// Close the files
+//----------------------------------------
+void deviceFirmwareClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    systemPrintf("deviceFirmwareClose entered\r\n");
+    // Display the CRC
+    if (ctx->_complete)
+        systemPrintf("CRC: 0x%08x\r\n", ctx->_crc);
+
+    // Close the output file
+    deviceFirmwareCloseOutput(ctx);
+
+    // Close the input file
+    deviceFirmwareCloseInput(ctx);
+
+    // Determine if all firmware was written
+    if (ctx->_doAll)
+    {
+        if (ctx->_complete == false)
+            ctx->_reboot = false;
+        deviceFirmwareFileListReload(ctx);
+        deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+    }
+    else
+    {
+        if ((ctx->_outputDeviceType == DFU_ODT_NVM)
+            || (ctx->_outputDeviceType == DFU_ODT_SD))
+        {
+            deviceFirmwareFileListReload(ctx);
+        }
+        else
+            deviceFirmwareStateSet(ctx, ctx->_reboot ? DFUS_REBOOT : DFUS_DONE);
+    }
+    systemPrintf("deviceFirmwareClose exiting\r\n");
+}
+
+//----------------------------------------
 // Close the input file
 //----------------------------------------
 void deviceFirmwareCloseInput(DEVICE_FIRMWARE_CTX * ctx)
@@ -217,14 +254,40 @@ void deviceFirmwareCloseInput(DEVICE_FIRMWARE_CTX * ctx)
     // Close the input file
     if (ctx->_inputDeviceType == DFU_IDT_NETWORK)
         dfuNetworkCleanup(ctx, nullptr);
-    else if (ctx->_inputDeviceType = DFU_IDT_NVM)
-        ctx->_nvmFile.close();
+    else if (ctx->_inputDeviceType == DFU_IDT_NVM)
+        dfuNvmClose(ctx);
     else if (ctx->_inputDeviceType == DFU_IDT_SD)
-        ctx->_sdFile.close();
+        dfuSdClose(ctx);
 
     // Display the statistics
     if (ctx->_complete)
         deviceFirmwarePerformUpdate(ctx);
+}
+
+//----------------------------------------
+// Close the output file or device
+//----------------------------------------
+void deviceFirmwareCloseOutput(DEVICE_FIRMWARE_CTX * ctx)
+{
+    // Close the output file
+    if (ctx->_outputDeviceType == DFU_ODT_DEVICE)
+    {
+        // Finish the firmware update
+        if (ctx->_deviceInfo->_close)
+        {
+            if (settings.debugFirmwareUpdate && ctx->_complete)
+                systemPrintf("Done with the %s firmware update\r\n",
+                             ctx->_deviceInfo->_deviceName);
+            ctx->_deviceInfo->_close(ctx);
+        }
+        else if (settings.debugFirmwareUpdate)
+            systemPrintf("NOT IMPLEMENTED: %s firmware update close routine!\r\n",
+                         ctx->_deviceInfo->_deviceName);
+    }
+    else if (ctx->_outputDeviceType == DFU_ODT_NVM)
+        dfuNvmClose(ctx);
+    else if (ctx->_outputDeviceType == DFU_ODT_SD)
+        dfuSdClose(ctx);
 }
 
 //----------------------------------------
@@ -712,6 +775,79 @@ bool deviceFirmwareOpenInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
     // Testing case
     return true;
+}
+
+//----------------------------------------
+// Open the output device
+//----------------------------------------
+void deviceFirmwareOpenOutput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    bool result;
+
+    do
+    {
+        ctx->_bytesWritten = 0;
+        ctx->_packetNumber = 0;
+        result = false;
+
+        // Network write data path
+        //    ctx->_buffer --> ctx->_writeBuffer --> device
+        if (ctx->_outputDeviceType == DFU_ODT_DEVICE)
+        {
+            systemPrintf("Updating %s firmware\r\n", ctx->_deviceInfo->_deviceName);
+
+            // Determine if there is an open routine
+            if (ctx->_deviceInfo->_open)
+            {
+                // Yes, prepare the device for firmware updates
+                if (settings.debugFirmwareUpdate)
+                    systemPrintf("Preparing the %s for firmware update\r\n",
+                                 ctx->_deviceInfo->_deviceName);
+                result = ctx->_deviceInfo->_open(ctx);
+                if (result)
+                    break;
+
+                // Display the error
+                systemPrintf("ERROR: %s firmware open failed!\r\n",
+                             ctx->_deviceInfo->_deviceName);
+            }
+            else
+            {
+                if (settings.debugFirmwareUpdate)
+                    systemPrintf("NOT IMPLEMENTED: %s firmware update open routine!\r\n",
+                                 ctx->_deviceInfo->_deviceName);
+
+                // Enable testing of new devices
+                result = true;
+            }
+            break;
+        }
+
+        // NVM write data path
+        //    ctx->_buffer --> ctx->_nvmFile --> NVM
+        if (ctx->_outputDeviceType == DFU_ODT_NVM)
+        {
+            result = dfuNvmOpen(ctx, true);
+            break;
+        }
+
+        // SD card write data path
+        //    ctx->_buffer --> ctx->_sdFile --> SD card
+        if (ctx->_outputDeviceType == DFU_ODT_SD)
+        {
+            result = dfuSdOpen(ctx, true);
+            break;
+        }
+
+        // testing case
+        result = true;
+    } while (0);
+
+    // Set the next state
+    if (result)
+        deviceFirmwareStateSet(ctx, DFUS_DEVICE_PROGRAM_FIRMWARE);
+    else
+        deviceFirmwareClose(ctx, currentMsec);
 }
 
 //----------------------------------------
@@ -1380,7 +1516,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_DEVICE_OPEN_INPUT: deviceFirmwareOpenFirmwareFile(ctx, currentMsec); break;
         case DFUS_DEVICE_FILL_BUFFER: deviceFirmwareReadFillBuffer(ctx, currentMsec); break;
         case DFUS_DEVICE_RESET: deviceFirmwareReset(ctx, currentMsec); break;
-        case DFUS_DEVICE_OPEN_OUTPUT:
+        case DFUS_DEVICE_OPEN_OUTPUT: deviceFirmwareOpenOutput(ctx, currentMsec); break;
+        case DFUS_DEVICE_PROGRAM_FIRMWARE:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
