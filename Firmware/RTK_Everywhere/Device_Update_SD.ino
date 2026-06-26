@@ -5,25 +5,6 @@ Device_Update_SD.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
-// Close the SD file
-//----------------------------------------
-bool dfuSdClose(DEVICE_FIRMWARE_CTX * ctx)
-{
-    ctx->_sdFile.close();
-    return true;
-}
-
-//----------------------------------------
-// Delete the SD card file
-//----------------------------------------
-void dfuSdDelete(const char * fileName)
-{
-    // Delete the file
-    if (sd->exists(fileName) && (sd->remove(fileName) == false))
-        systemPrintf("ERROR: Failed to delete the SD file!\r\n");
-}
-
-//----------------------------------------
 // Scan the SD card for matching firmware files
 //----------------------------------------
 void dfuSdGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
@@ -104,60 +85,4 @@ void dfuSdGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     // Select the firmware file
     deviceFirmwareStateSet(ctx, DFUS_SELECT_FILE);
     deviceFirmwareFileListMenu(ctx);
-}
-
-//----------------------------------------
-// Create an SD file for the firmware
-//----------------------------------------
-bool dfuSdOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
-{
-    if (createFile)
-    {
-        // Create the file
-        if (ctx->_sdFile.open(ctx->_fileName.c_str(), O_WRONLY | O_CREAT | O_TRUNC) == false)
-        {
-            systemPrintf("ERROR - Failed to create %s on the microSD card!\r\n",
-                         ctx->_fileName.c_str());
-            return false;
-        }
-    }
-    else
-    {
-        // Open an existing file
-        if (ctx->_sdFile.open(ctx->_fileName.c_str(), O_RDONLY) == false)
-        {
-            systemPrintf("ERROR - Failed to open %s on the microSD card!\r\n",
-                         ctx->_fileName.c_str());
-            return false;
-        }
-
-        // Get the input file size
-        ctx->_fileBytes = ctx->_sdFile.size();
-    }
-    return true;
-}
-
-//----------------------------------------
-// Read data from the SD file
-//----------------------------------------
-ssize_t dfuSdRead(DEVICE_FIRMWARE_CTX * ctx,
-                  uint8_t * buffer,
-                  size_t bytesToRead)
-{
-    ssize_t bytesRead;
-
-    bytesRead = ctx->_sdFile.read(buffer, bytesToRead);
-    if (bytesRead < 0)
-        systemPrintf("ERROR: Failed to read firmware from SD card!\r\n");
-    return bytesRead;
-}
-
-//----------------------------------------
-// Copy firmware into the file
-//----------------------------------------
-ssize_t dfuSdWrite(DEVICE_FIRMWARE_CTX * ctx,
-                   uint8_t * buffer,
-                   size_t bytesToWrite)
-{
-    return ctx->_sdFile.write(buffer, bytesToWrite);
 }
