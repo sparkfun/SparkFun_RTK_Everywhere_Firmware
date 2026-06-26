@@ -980,7 +980,11 @@ bool deviceFirmwareRead(DEVICE_FIRMWARE_CTX * ctx,
 void deviceFirmwareReadFillBuffer(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     if (deviceFirmwareRead(ctx, currentMsec, DFUS_DEVICE_CLOSE))
+    {
+        deviceFirmwareStopTasks(ctx);
+        ctx->_reboot = true;
         deviceFirmwareStateSet(ctx, DFUS_DEVICE_RESET);
+    }
 }
 
 //----------------------------------------
@@ -1429,6 +1433,21 @@ void deviceFirmwareStateSet(DEVICE_FIRMWARE_CTX * ctx,int newState)
             systemPrintf("Device firmware state transition: %s --> %s\r\n", currentStateName, newStateName);
     }
     ctx->_state = newState;
+}
+
+//----------------------------------------
+// Stop tasks
+//----------------------------------------
+void deviceFirmwareStopTasks(DEVICE_FIRMWARE_CTX * ctx)
+{
+    // Turn off any tasks so that we are not disrupted
+    wifiEspNowOff(__FILE__, __LINE__);
+    if (ctx->_networkConfigured == false)
+        wifiStopAll();
+    bluetoothEnd();
+
+    // Delete tasks if running
+    tasksStopGnssUart();
 }
 
 //----------------------------------------

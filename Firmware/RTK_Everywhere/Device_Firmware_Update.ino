@@ -860,6 +860,19 @@ bool deviceFirmwareRead(DEVICE_FIRMWARE_CTX * ctx,
 }
 
 //----------------------------------------
+// Fill the read buffer
+//----------------------------------------
+void deviceFirmwareReadFillBuffer(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    if (deviceFirmwareRead(ctx, currentMsec, DFUS_DEVICE_CLOSE))
+    {
+        deviceFirmwareStopTasks(ctx);
+        ctx->_reboot = true;
+        deviceFirmwareStateSet(ctx, DFUS_DEVICE_RESET);
+    }
+}
+
+//----------------------------------------
 // Reduce the buffer size when a write routine does not exist
 //----------------------------------------
 void deviceFirmwareReduceBufferSize(DEVICE_FIRMWARE_CTX * ctx)
@@ -1271,6 +1284,21 @@ void deviceFirmwareStateSet(DEVICE_FIRMWARE_CTX * ctx,int newState)
 }
 
 //----------------------------------------
+// Stop tasks
+//----------------------------------------
+void deviceFirmwareStopTasks(DEVICE_FIRMWARE_CTX * ctx)
+{
+    // Turn off any tasks so that we are not disrupted
+    wifiEspNowOff(__FILE__, __LINE__);
+    if (ctx->_networkConfigured == false)
+        wifiStopAll();
+    bluetoothEnd();
+
+    // Delete tasks if running
+    tasksStopGnssUart();
+}
+
+//----------------------------------------
 // Start the timer
 //----------------------------------------
 void deviceFirmwareTimerStart(DEVICE_FIRMWARE_CTX * ctx)
@@ -1322,7 +1350,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
         case DFUS_CRC_READ_DATA: deviceFirmwareCrcReadData(ctx, currentMsec); break;
         case DFUS_CRC_CLOSE: deviceFirmwareCrcClose(ctx, currentMsec); break;
         case DFUS_DEVICE_OPEN_INPUT: deviceFirmwareOpenFirmwareFile(ctx, currentMsec); break;
-        case DFUS_DEVICE_FILL_BUFFER:
+        case DFUS_DEVICE_FILL_BUFFER: deviceFirmwareReadFillBuffer(ctx, currentMsec); break;
+        case DFUS_DEVICE_RESET:
 deviceFirmwareStateSet(ctx, DFUS_DONE);
         break;
         case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
