@@ -243,7 +243,9 @@ bool GNSS::setGnssSpecificConfiguration()
     return true; // Return true to clear GNSS_CONFIG_GNSS_SPECIFIC
 }
 
+//----------------------------------------
 // Antenna Short / Open detection
+//----------------------------------------
 bool GNSS::supportsAntennaShortOpen()
 {
     return false;
@@ -858,6 +860,14 @@ bool createPassthrough(const char *filename)
     if (settings.debugGnssConfig)
         systemPrintf("Unable to create %s on LittleFS\r\n", filename);
     return false;
+}
+
+//----------------------------------------
+// Restore the GNSS to the factory settings
+//----------------------------------------
+void gnssFactoryReset()
+{
+    gnss->factoryReset();
 }
 
 //----------------------------------------

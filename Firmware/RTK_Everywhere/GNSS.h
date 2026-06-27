@@ -441,6 +441,9 @@ bool gnssCmdUpdateConstellations(const char *settingName, void *settingData, int
 // Update the message rates following a set command
 bool gnssCmdUpdateMessageRates(const char *settingName, void *settingData, int settingType);
 
+// Restore the GNSS to the factory settings
+void gnssFactoryReset();
+
 // Determine if the GNSS receiver is present
 typedef bool (*GNSS_PRESENT)();
 
