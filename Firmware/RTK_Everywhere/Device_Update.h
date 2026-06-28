@@ -271,6 +271,17 @@ const int dfuBufferInfoCount = sizeof(dfuBufferInfo) / sizeof(dfuBufferInfo[0]);
 // Get firmware version
 String dfuEsp32FirmwareVersion();
 
+// Device open, prepare for writing firmware
+bool dfuEsp32Open(struct _DEVICE_FIRMWARE_CTX * ctx);
+
+// Device write, perform the firmware update
+ssize_t dfuEsp32Write(struct _DEVICE_FIRMWARE_CTX * ctx,
+                      uint8_t * buffer,
+                      size_t bytesToWrite);
+
+// Device close, finalize the firmware update
+void dfuEsp32Close(struct _DEVICE_FIRMWARE_CTX * ctx);
+
 //----------------------------------------
 // Describe the devices that support firmware update
 //----------------------------------------
@@ -279,7 +290,7 @@ String dfuEsp32FirmwareVersion();
 // parsing fails due to website changes on the servers below!
 const DEVICE_FIRMWARE_INFO deviceFirmwareInfo[] =
 {//  Name           present                 Directory                   NameData        Extension  Firmware version             Reset               Open                Write               Close           CRC     useNvm  Context Bytes           Buffer Bytes        Max Write Bytes                 Server     Branch      dPrefix1     dPrefix2  dirEnd      nPrefix  nameEnd     Raw Branch
-    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", dfuEsp32FirmwareVersion,     nullptr,            nullptr,            nullptr,            nullptr,        false,  false,  0,                      0,                  0,                              dfuGithub, nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
+    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", dfuEsp32FirmwareVersion,     nullptr,            dfuEsp32Open,       dfuEsp32Write,      dfuEsp32Close,  false,  false,  0,                      0,                  0,                              dfuGithub, nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
     // ESP32 must be the first entry in the list, p command does list in reverse
 };
 const int deviceFirmwareInfoCount = sizeof(deviceFirmwareInfo) / sizeof(deviceFirmwareInfo[0]);
