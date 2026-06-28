@@ -141,7 +141,7 @@ void beginBoard()
 
         pin_GnssUart_RX = 21;
         pin_GnssUart_TX = 22;
-        dfuGnssUartInit(1);
+        gnssUartInit(1);
 //        gnss = (GNSS *)new GNSS_LG290P();
 
         // Tell LG290P to boot
@@ -182,4 +182,15 @@ void beginBoard()
         reportFatalError("Product variant unknown. Unable to proceed. Please contact SparkFun with the \"Device MAC\" "
                          "and the \"Board ADC ID (mV)\" reported above.");
     }
+}
+
+//----------------------------------------
+// Initialize the GNSS UART
+//----------------------------------------
+void gnssUartInit(int uartNumber)
+{
+    serialGNSS = new HardwareSerial(uartNumber);
+    serialGNSS->setRxBufferSize(1024 * 2);
+    serialGNSS->setTimeout(1); // Requires serial traffic on the UART pins for detection
+    serialGNSS->setRxFIFOFull(50);
 }

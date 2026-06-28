@@ -17,6 +17,11 @@ Device_Update.ino
 #include <WiFiMulti.h>
 #include <Wire.h> //Built-in
 
+// Build defines
+#define COMPILE_LG290P
+#define COMPILE_MENU_FIRMWARE
+#define ENABLE_DEVELOPER        true
+
 #include "settings.h"
 #include "Device_Update.h"
 #include "Work_Arounds.h"
@@ -78,51 +83,6 @@ WiFiMulti wifiMulti;
 //----------------------------------------
 
 String tiltFirmwareVersion;    // First IM19 version message
-
-//----------------------------------------
-// Device firmware descriptions
-//----------------------------------------
-
-// IM19 declarations
-#ifdef  COMPILE_IM19_IMU
-#define DFU_IM19_MAX_PAYLOAD_SIZE       256
-#define DFU_IM19_BYTES                  (12 + DFU_IM19_MAX_PAYLOAD_SIZE)
-
-typedef struct _DFU_IM19_CTX
-{
-    uint32_t _txDoneMsec;       // Time when transmit completed
-    uint32_t _txDelayMsec;      // Delay before next transmit
-} DFU_IM19_CTX;
-
-uint8_t * dfuSaveData;
-size_t dfuSaveDataOffset;
-const size_t dfuSaveDataLength = 1 * 1024 * 1024;
-#endif  // COMPILE_IM19_IMU
-
-// LG290P declarations
-#ifdef  COMPILE_LG290P
-#define DFU_LG290P_MAX_PAYLOAD_SIZE     (5 * 1024)
-#define DFU_LG290P_BYTES                (1 + 1 + 1 + 2 + 4 + DFU_LG290P_MAX_PAYLOAD_SIZE + 4 + 1)
-#endif  //COMPILE_LG290P
-
-// Note: Use the JSON based OTA to get a new ESP32 image when the
-// parsing fails due to website changes on the servers below!
-const DEVICE_FIRMWARE_INFO deviceFirmwareInfo[] =
-{//  Name           present                 Directory                   NameData        Extension  Firmware version             Reset               Open                Write               Close           CRC     useNvm  Context Bytes           Buffer Bytes        Max Write Bytes                 Server     Branch      dPrefix1     dPrefix2  dirEnd      nPrefix  nameEnd     Raw Branch
-    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", dfuEsp32FirmwareVersion,     nullptr,            dfuEsp32Open,       dfuEsp32Write,      dfuEsp32Close,  false,  false,  0,                      0,                  0,                              dfuGithub, nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
-    // ESP32 must be the first entry in the list, p command does list in reverse
-
-    // GNSS devices
-#ifdef  COMPILE_LG290P
-    {"LG290P",      &present.gnss_lg290p,   "/gnss/lg290p",             "LG290P",          ".pkg", dfuGnssGetFirmwareVersion,   dfuLg290pReset,     dfuLg290pOpen,      dfuLg290pWrite,     dfuLg290pClose, true,   false,  0,                      DFU_LG290P_BYTES,   DFU_LG290P_MAX_PAYLOAD_SIZE,    dfuGithub, dfuRawHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
-#endif  // COMPILE_LG290P
-
-    // Tilt sensors
-#ifdef  COMPILE_IM19_IMU
-    {"IM19",        &present.imu_im19,      "/imu/im19",                "_VH2_B",          ".enc", tiltGetFirmwareVersion,      dfuIm19Reset,       dfuIm19Open,        dfuIm19Write,       dfuIm19Close,   false,  true,   sizeof(DFU_IM19_CTX),   DFU_IM19_BYTES,     DFU_IM19_MAX_PAYLOAD_SIZE,      dfuGithub, dfuRawHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
-#endif  // COMPILE_IM19_IMU
-};
-const int deviceFirmwareInfoCount = sizeof(deviceFirmwareInfo) / sizeof(deviceFirmwareInfo[0]);
 
 //----------------------------------------
 // Test sketch entry point

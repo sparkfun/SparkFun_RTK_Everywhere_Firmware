@@ -2,13 +2,6 @@
 Work_Arounds.h
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-// Build defines
-#define COMPILE_IM19_IMU
-#define COMPILE_LG290P
-//#define DEVELOPER_MAC_ADDRESS
-#define COMPILE_MENU_FIRMWARE
-#define ENABLE_DEVELOPER        true
-
 // Firmware version
 #define FIRMWARE_VERSION_MAJOR  99
 #define FIRMWARE_VERSION_MINOR  99
