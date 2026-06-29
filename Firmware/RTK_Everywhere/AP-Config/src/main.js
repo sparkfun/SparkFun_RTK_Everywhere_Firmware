@@ -2822,7 +2822,7 @@ function dhcpEthernet() {
 function networkCount() {
     var count = 0;
 
-    var wifiNetworks = document.querySelectorAll('input[id^=wifiNetwork]' && 'input[id$=SSID]');
+    var wifiNetworks = document.querySelectorAll('input[id^=wifiNetwork][id$=SSID]');
     for (let x = 0; x < wifiNetworks.length; x++) {
         if (wifiNetworks[x].value.length > 0)
             count++;
