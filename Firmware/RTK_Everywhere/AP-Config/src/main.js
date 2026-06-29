@@ -2258,8 +2258,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     // Only show/hide the PPP service settings on platforms that have PPP service settings
     // ie - Torch *has* PPP service, but no PPP service settings, so do not allow them to be displayed
-    if ((platformPrefix == "TX2") || (platformPrefix == "Postcard") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "LG290P"))) {
-        ge("pppMode").addEventListener("change", function () {
+    ge("pppMode").addEventListener("change", function () {
+        if ((platformPrefix == "TX2") || (platformPrefix == "Postcard") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "LG290P"))) {
             if ((isElementShown("pppSettings") == true)) {
                 if (ge("pppMode").value > 0) {
                     show("pppServiceSettings");
@@ -2268,8 +2268,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     hide("pppServiceSettings");
                 }
             }
-        });
-    }
+        }
+    });
 
     for (let y = 0; y < numCorrectionsSources; y++) {
         var buttonName = "corrPrioButton" + y;
