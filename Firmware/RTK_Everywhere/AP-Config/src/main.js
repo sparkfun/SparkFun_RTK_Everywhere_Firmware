@@ -970,15 +970,9 @@ function saveInitialSettings() {
 
 // Add this setting to initialSettings - if it has not been added before
 function addInitialSetting(id, val) {
-    var seen = false;
-    for (let x = 0; x < initialSettings.length; x++) {
-        if (initialSettings[x] === id) {
-            seen = true;
-        }
-    }
-    if (seen == false) {
-        //console.log("Adding " + id + ":" + val + " to initialSettings");
+    if ((id in initialSettings) == false) {
         initialSettings[id] = val;
+        //console.log("Adding " + id + ":" + val + " to initialSettings");
     }
 }
 
