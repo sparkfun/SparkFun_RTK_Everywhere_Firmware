@@ -1407,7 +1407,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             "deviceName",
             "gnssModuleInfo",
             "list",
-            "rtkFirmwareVersion",
+            "espFirmwareVersion",
             "rtkRemoteFirmwareVersion",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
@@ -1510,7 +1510,7 @@ void createSettingsString(char *newSettings)
         }
     }
 
-    stringRecord(newSettings, "rtkFirmwareVersion", (char *)printRtkFirmwareVersion());
+    stringRecord(newSettings, "espFirmwareVersion", (char *)printEspFirmwareVersion());
     stringRecord(newSettings, "gnssFirmwareVersion", (char *)printGnssModuleInfo());
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
     if (strlen(imuFirmwareVersion) > 3)
@@ -2543,9 +2543,9 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         knownSetting = true;
         settingIsString = true;
     }
-    else if (strcmp(settingName, "rtkFirmwareVersion") == 0)
+    else if (strcmp(settingName, "espFirmwareVersion") == 0)
     {
-        writeToString(settingValueStr, (char *)printRtkFirmwareVersion());
+        writeToString(settingValueStr, (char *)printEspFirmwareVersion());
         knownSetting = true;
         settingIsString = true;
     }
@@ -2959,7 +2959,7 @@ const char *commandGetName(int stringIndex, int rtkIndex)
 
     // Display the current firmware version number
     else if (rtkIndex == COMMAND_FIRMWARE_VERSION)
-        return "rtkFirmwareVersion";
+        return "espFirmwareVersion";
 
     // Connect to the internet and retrieve the remote firmware version
     else if (rtkIndex == COMMAND_REMOTE_FIRMWARE_VERSION)
@@ -3299,9 +3299,9 @@ void printAvailableSettings()
         {
             // Create the settingType based on the length of the firmware version
             char settingType[100];
-            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(printRtkFirmwareVersion()));
+            snprintf(settingType, sizeof(settingType), "char[%d]", strlen(printEspFirmwareVersion()));
 
-            commandSendExecuteListResponse("rtkFirmwareVersion", settingType, printRtkFirmwareVersion());
+            commandSendExecuteListResponse("espFirmwareVersion", settingType, printEspFirmwareVersion());
         }
 
         // Display the latest remote RTK Firmware version

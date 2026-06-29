@@ -171,13 +171,13 @@ void firmwareVersionGet(char *buffer, int bufferLength, bool includeDate)
 }
 
 // Returns string containing the current version number - ie "v2.0"
-const char *printRtkFirmwareVersion()
+const char *printEspFirmwareVersion()
 {
     // Create the firmware version string
-    static char rtkFirmwareVersion[86];
-    firmwareVersionGet(rtkFirmwareVersion, sizeof(rtkFirmwareVersion), true);
+    static char espFirmwareVersion[86];
+    firmwareVersionGet(espFirmwareVersion, sizeof(espFirmwareVersion), true);
 
-    return ((const char *)rtkFirmwareVersion);
+    return ((const char *)espFirmwareVersion);
 }
 
 // Returns a string containing the module model, firmware, and ID. Similar to gnss->printModuleInfo()

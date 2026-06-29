@@ -604,6 +604,7 @@ function parseIncoming(msg) {
         else if (id.includes("sdFreeSpace")
             || id.includes("sdSize")
             || id.includes("hardwareID")
+            || id.includes("espFirmwareVersion")
             || id.includes("gnssFirmwareVersion")
             || id.includes("profile0Name")
             || id.includes("profile1Name")
@@ -619,9 +620,6 @@ function parseIncoming(msg) {
             || id.includes("batteryPercent")
         ) {
             ge(id).innerHTML = val;
-        }
-        else if (id.includes("rtkFirmwareVersion")) {
-            ge("rtkFirmwareVersion").innerHTML = val;
         }
         else if (id.includes("confirmReset")) {
             resetComplete();

@@ -875,7 +875,7 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     char firmwareVersion[30]; // v1.3 December 31 2021
     firmwareVersionGet(firmwareVersion, sizeof(firmwareVersion), true);
-    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "rtkFirmwareVersion", firmwareVersion);
+    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "espFirmwareVersion", firmwareVersion);
 
     SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "gnssFirmwareVersion", gnssFirmwareVersion);
 
@@ -1503,7 +1503,7 @@ bool parseLine(const char *theLine, struct Settings * tempSettings)
     else
     {
         const char *table[] = {
-            "gnssFirmwareVersion", "gnssUniqueId", "neoFirmwareVersion", "rtkFirmwareVersion", "rtkIdentifier",
+            "gnssFirmwareVersion", "gnssUniqueId", "neoFirmwareVersion", "espFirmwareVersion", "rtkIdentifier",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
