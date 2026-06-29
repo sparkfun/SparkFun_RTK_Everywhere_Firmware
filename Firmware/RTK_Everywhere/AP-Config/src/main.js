@@ -1121,7 +1121,7 @@ function showMsg(id, msg, error = false) {
 function showMsgError(id, msg) {
     showMsg(id, "Error: " + msg, true);
 }
-function clearMsg(id, msg) {
+function clearMsg(id) {
     ge(id).innerHTML = '';
 }
 
