@@ -613,13 +613,13 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
         // Report progress over the BLE Command Channel
         char stringPercent[5];
         snprintf(stringPercent, sizeof(stringPercent), "%d", percent);
-        commandSendStringOkResponse((char *)"SPEXE", (char *)"UPDATEPROGRESS", stringPercent);
+        commandSendStringOkResponse((char *)"SPEXE", (char *)"ESPUPDATEPROGRESS", stringPercent);
 
         // Report progress to the Web Config socket
         if (apConfigFirmwareUpdateInProcess == true)
         {
             char myProgress[50];
-            snprintf(myProgress, sizeof(myProgress), "otaFirmwareStatus,%d,", percent);
+            snprintf(myProgress, sizeof(myProgress), "espOtaFirmwareStatus,%d,", percent);
             webServerSendString(myProgress);
         }
 
@@ -889,7 +889,7 @@ void otaUpdate()
                 if (webServerIsConnected())
                 {
                     // Report failed connection to web client
-                    webServerSendString((char *)"newFirmwareVersion,NO_INTERNET,");
+                    webServerSendString((char *)"espNewFirmwareVersion,NO_INTERNET,");
                     otaUpdateStop();
                 }
 
@@ -900,7 +900,7 @@ void otaUpdate()
                         commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
                                                         (char *)"No Internet");
                     else if (otaRequestFirmwareVersionCheck)
-                        commandSendErrorResponse((char *)"SPGET", (char *)"espRemoteFirmwareVersion",
+                        commandSendErrorResponse((char *)"SPGET", (char *)"espNewFirmwareVersion",
                                                  (char *)"No Internet");
                     otaUpdateStop();
                 }
@@ -946,7 +946,7 @@ void otaUpdate()
                         if (webServerIsConnected())
                         {
                             char newVersionCSV[40];
-                            snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,%s,",
+                            snprintf(newVersionCSV, sizeof(newVersionCSV), "espNewFirmwareVersion,%s,",
                                      otaReportedVersion);
                             webServerSendString(newVersionCSV);
                         }
@@ -954,7 +954,7 @@ void otaUpdate()
                         if (bluetoothCommandIsConnected())
                         {
                             // Report value over the CLI
-                            commandSendStringResponse((char *)"SPGET", (char *)"rtkRemoteVersion", otaReportedVersion);
+                            commandSendStringResponse((char *)"SPGET", (char *)"espNewFirmwareVersion", otaReportedVersion);
                         }
 
                         otaUpdateStop();
@@ -969,7 +969,7 @@ void otaUpdate()
                 {
                     systemPrintln("Version Check: Firmware is up to date. No new firmware available.");
                     if (webServerIsConnected())
-                        webServerSendString((char *)"newFirmwareVersion,CURRENT,");
+                        webServerSendString((char *)"espNewFirmwareVersion,CURRENT,");
 
                     otaUpdateStop();
                 }
@@ -979,11 +979,11 @@ void otaUpdate()
                 // Failed to get version number
                 systemPrintln("Failed to get version number from server.");
                 if (webServerIsConnected())
-                    webServerSendString((char *)"newFirmwareVersion,NO_SERVER,");
+                    webServerSendString((char *)"espNewFirmwareVersion,NO_SERVER,");
 
                 // Report failure over the CLI
                 if (bluetoothCommandIsConnected())
-                    commandSendExecuteErrorResponse((char *)"SPGET", (char *)"espRemoteFirmwareVersion",
+                    commandSendExecuteErrorResponse((char *)"SPGET", (char *)"espNewFirmwareVersion",
                                                     (char *)"No Server");
 
                 otaUpdateStop();

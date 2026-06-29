@@ -433,7 +433,8 @@
 
                     <div id="um980GnssSettings" style="display:none">
                         <div class="form-check mt-3">
-                            <label class="form-check-label" for="enableMultipathMitigation">Enable Multipath Mitigation</label>
+                            <label class="form-check-label" for="enableMultipathMitigation">Enable Multipath
+                                Mitigation</label>
                             <input class="form-check-input" type="checkbox" value="" id="enableMultipathMitigation">
                             <span class="tt" data-bs-placement="right"
                                 title="Mitigation can help in urban environments by reducing multipath errors. Default: Enabled.">
@@ -2004,13 +2005,37 @@
                 <div>
                     <div>
                         <button type="button" id="btnCheckNewFirmware" class="btn btn-primary"
-                            onClick="checkNewFirmware()">Check for New Firmware</button>
+                            onClick="checkNewFirmware()">Check for Updates</button>
 
-                        <span class="tt" data-bs-placement="right"
-                            title="Check SparkFun to see if new firmware is available for this device.">
+                        <span id="firmwareUpdateBubble" class="tt" data-bs-placement="right"
+                            title="Check to see if new firmware is available for this device.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                         <p id="firmwareCheckNewMsg"></p>
+
+                        <div class="form-check mt-3" id="espFirmwareUpdateDiv" style="display:none;">
+                            System Update: <progress id="espFirmwareUpdateProgressBar" value="37" max="100"
+                                    style="width:300px;"></progress>
+                                <p id="espFirmwareUpdateProgressMsg" class="inlineSuccess">37%</p>
+                        </div>
+
+                        <div class="form-check mt-3" id="gnssFirmwareUpdateDiv" style="display:none;">
+                            GNSS Update: <progress id="gnssFirmwareUpdateProgressBar" value="37" max="100"
+                                    style="width:300px;"></progress>
+                                <p id="gnssFirmwareUpdateProgressMsg" class="inlineSuccess">37%</p>
+                        </div>
+
+                        <div class="form-check mt-3" id="loraFirmwareUpdateDiv" style="display:none;">
+                            LoRa Update: <progress id="loraFirmwareUpdateProgressBar" value="37" max="100"
+                                    style="width:300px;"></progress>
+                                <p id="loraFirmwareUpdateProgressMsg" class="inlineSuccess">37%</p>
+                        </div>
+
+                        <div class="form-check mt-3" id="imuFirmwareUpdateDiv" style="display:none;">
+                            IMU Update: <progress id="imuFirmwareUpdateProgressBar" value="37" max="100"
+                                    style="width:300px;"></progress>
+                                <p id="imuFirmwareUpdateProgressMsg" class="inlineSuccess">37%</p>
+                        </div>
 
                         <div class="form-check mt-3">
                             <label class="form-check-label" for="enableRCFirmware">Allow Beta Firmware</label>
@@ -2046,18 +2071,8 @@
                         </div>
 
                     </div>
-                    <br>
-
-                    <div align="center" id="divGetNewFirmware" style="display:none">
-                        <button type="button" id="btnGetNewFirmware" class="btn btn-primary box-margin20"
-                            onClick="getNewFirmware()">Update to v3.14.15</button>
-
-                        <center><progress id="firmwareUpdateProgressBar" value="12" max="100"
-                                style="width:300px;"></progress>
-                            <p id="firmwareUpdateProgressMsg" class="inlineSuccess">37%</p>
-                        </center>
-                    </div>
                 </div>
+                <br>
 
                 <div id="lastStateDropdown" class="mb-2">
                     <label for="lastState">System Initial State: </label>

@@ -2,7 +2,7 @@
 menuCommands.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-char otaOutcome[21] = {0}; // Modified by otaUpdate(), used to respond to espRemoteFirmwareVersion commands
+char otaOutcome[21] = {0}; // Modified by otaUpdate(), used to respond to espNewFirmwareVersion commands
 int systemWriteCounts =
     0; // Modified by systemWrite(), used to calculate the number of items in the LIST command for CLI
 
@@ -1396,7 +1396,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             "gnssModuleInfo",
             "list",
             "espFirmwareVersion",
-            "espRemoteFirmwareVersion",
+            "espNewFirmwareVersion",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
@@ -2485,7 +2485,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         knownSetting = true;
         settingIsString = true;
     }
-    else if (strcmp(settingName, "espRemoteFirmwareVersion") == 0)
+    else if (strcmp(settingName, "espNewFirmwareVersion") == 0)
     {
         // otaUpdate() is synchronous and called from loop() so we respond here with OK, then go check the firmware
         // version
@@ -2869,7 +2869,7 @@ const char *commandGetName(int stringIndex, int rtkIndex)
 
     // Connect to the internet and retrieve the remote firmware version
     else if (rtkIndex == COMMAND_REMOTE_FIRMWARE_VERSION)
-        return "espRemoteFirmwareVersion";
+        return "espNewFirmwareVersion";
 
     // Allow release candidate firmware to be installed
     else if (rtkIndex == COMMAND_ENABLE_RC_FIRMWARE)
@@ -3214,7 +3214,7 @@ void printAvailableSettings()
         else if (commandIndex[i] == COMMAND_REMOTE_FIRMWARE_VERSION)
         {
             // Report the available command but without data. That requires the user issue separate SPGET.
-            commandSendExecuteListResponse("espRemoteFirmwareVersion", "char[21]", "NotYetRetrieved");
+            commandSendExecuteListResponse("espNewFirmwareVersion", "char[21]", "NotYetRetrieved");
         }
 
         // Allow beta firmware release candidates
