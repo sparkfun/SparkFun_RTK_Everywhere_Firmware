@@ -1774,7 +1774,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
-    { 1, 1, 0, 0, 0, 1, 0, ALL, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
+    { 1, 1, 0, 0, 0, 1, 0, NON, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
     { 0, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug", nullptr, },
     { 0, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableImuDebug, "enableImuDebug", nullptr, },
     { 1, 1, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation", nullptr, },
