@@ -3188,39 +3188,27 @@ function printableInputType(coordinateInputType) {
     switch (coordinateInputType) {
         default:
             return ("Unknown");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD):
             return ("DD.ddddddddd");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DDMM):
             return ("DDMM.mmmmmmm");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM):
             return ("DD MM.mmmmmmm");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_DASH):
             return ("DD-MM.mmmmmmm");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DDMMSS):
             return ("DDMMSS.ssssss");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS):
             return ("DD MM SS.ssssss");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS_DASH):
             return ("DD-MM-SS.ssssss");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DDMMSS_NO_DECIMAL):
             return ("DDMMSS");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS_NO_DECIMAL):
             return ("DD MM SS");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS_DASH_NO_DECIMAL):
             return ("DD-MM-SS");
-            break;
     }
-    return ("Unknown");
 }
 
 //Given a number as string, return the step based on the number of decimal places
