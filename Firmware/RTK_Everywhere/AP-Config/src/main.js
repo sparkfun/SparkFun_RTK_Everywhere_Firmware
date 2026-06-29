@@ -212,6 +212,7 @@ function parseIncoming(msg) {
 
                 show("useEnableExtCorrRadio");
                 show("enableNmeaOnRadio");
+                show("dataPortChannelDropdown"); // Facet mosaic-X5 has a configurable DATA port
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Static', '0');
