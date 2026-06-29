@@ -1167,6 +1167,7 @@ function validateFields() {
     collapseSection("collapseTCPUDPConfig", "tcpUdpCaret");
     collapseSection("collapseRadioConfig", "radioCaret");
     collapseSection("collapseCorrectionsPriorityConfig", "correctionsCaret");
+    collapseSection("collapseInstrumentConfig", "instrumentCaret");
     collapseSection("collapseSystemConfig", "systemCaret");
     collapseSection("collapseEthernetConfig", "ethernetCaret");
     collapseSection("collapseNTPConfig", "ntpCaret");
