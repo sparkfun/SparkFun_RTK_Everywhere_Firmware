@@ -1296,6 +1296,27 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         knownSetting = true;
     }
 
+    // Update the profile name of the currently selected profile number.
+    else if (strcmp(settingName, "profileNameSelected") == 0)
+    {
+        strncpy(settings.profileName, settingValueStr,
+                sizeof(settings.profileName)); // Copy the new profile name into the settings.profileName
+
+        setProfileName(profileNumber); // Copy the current settings.profileName into the array of profile
+                                       // names at location profileNumber
+
+        // Send the new name back so that the web config displays this new name in the list of profile names
+        char newProfileName[sizeof("profile0Name,") + 50 + 2];
+        snprintf(newProfileName, sizeof(newProfileName), "profile%dName,%d: %s,", profileNumber, profileNumber + 1,
+                 settings.profileName);
+
+        Serial.printf("Sending newProfilename: %s\r\n", newProfileName);
+
+        webServerSendString(newProfileName);
+
+        knownSetting = true;
+    }
+
     // Is this a profile name change request? ie, 'profile2Name'
     // Search by first letter first to speed up search
     else if ((settingName[0] == 'p') && (strstr(settingName, "profile") != nullptr) &&
@@ -1843,6 +1864,11 @@ void createSettingsString(char *newSettings)
         snprintf(nameText, sizeof(nameText), "%d: %s", index + 1, profileNames[index]);
         stringRecord(newSettings, tagText, nameText);
     }
+
+    // profileName is already loaded into the setting string but it contains the name of the currently *running*
+    // profile, not the name of the selected profile (users may switch profile numbers during Web Config). Add
+    // profileNameSelected entry with the name of the selected profile so that Web Config can display it.
+    stringRecord(newSettings, "profileNameSelected", profileNames[profileNumber]);
 
     // Drop downs on the AP config page expect a value, whereas bools get stringRecord as true/false
     // These special bool settings get added twice to the string, once above, once here.
