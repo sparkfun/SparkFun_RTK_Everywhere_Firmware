@@ -143,6 +143,7 @@ function parseIncoming(msg) {
     //console.log("Incoming message: " + msg);
 
     var data = msg.split(',');
+    var select, newOption;
     for (let x = 0; x < data.length - 1; x += 2) {
         var id = data[x];
         var val = data[x + 1];
@@ -561,13 +562,13 @@ function parseIncoming(msg) {
             // We don't do anything with the currently running profile name
             // Watch out for id.includes("profileName") because it will also match profileNameSelected
         }
-        
+
         // Catch the last setting
         else if (id.includes("lastSetting")) {
             // This is the last thing received so now update the page
             fullPageUpdate = true;
         }
-            
+
         else if (id.includes("confirmReset")) {
             resetComplete();
         }
@@ -1217,75 +1218,74 @@ function validateFields() {
     //Check all UBX message boxes
     //match all ids starting with ubxMessageRate_
     if (platformPrefix == "EVK") {
-        var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
+        let ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
         for (let x = 0; x < ubxMessages.length; x++) {
-            var messageName = ubxMessages[x].id;
+            let messageName = ubxMessages[x].id;
             checkMessageValueUBX(messageName);
         }
-        //match all ids starting with ubxMessageRateBase_
-        var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRateBase_]');
+        ubxMessages = document.querySelectorAll('input[id^=ubxMessageRateBase_]');
         for (let x = 0; x < ubxMessages.length; x++) {
-            var messageName = ubxMessages[x].id;
+            let messageName = ubxMessages[x].id;
             checkMessageValueUBXBase(messageName);
         }
     }
 
     //Check all UM980 message boxes
     else if (platformPrefix == "Torch") {
-        var messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
+        let messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkMessageValueUM980(messageName);
         }
-        var messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
+        messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkMessageValueUM980(messageName);
         }
-        var messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
+        messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkMessageValueUM980Base(messageName);
         }
     }
 
     //Check Mosaic-X5 RTCM intervals
     else if ((platformPrefix == "Facet X5") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
-        var messages = document.querySelectorAll('input[id^=messageIntervalRTCMRover]');
+        let messages = document.querySelectorAll('input[id^=messageIntervalRTCMRover]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkElementValue(messageName, 0.1, 600.0, "Must be between 0.1 and 600.0", "collapseGNSSConfigMsg");
         }
-        var messages = document.querySelectorAll('input[id^=messageIntervalRTCMBase]');
+        messages = document.querySelectorAll('input[id^=messageIntervalRTCMBase]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkElementValue(messageName, 0.1, 600.0, "Must be between 0.1 and 600.0", "collapseGNSSConfigMsgBase");
         }
     }
 
     //Check all LG290P message boxes
     else if ((platformPrefix == "Postcard") || (platformPrefix == "TX2") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "LG290P"))) {
-        var messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
+        let messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkMessageValueLG290P01(messageName);
         }
 
         // TODO - Some RTCM messages are 0 to 1, some are 0 to 1200.
-        var messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
+        messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkMessageValueLG290P01200(messageName);
         }
-        var messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
+        messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkMessageValueLG290P01200(messageName);
         }
 
-        var messages = document.querySelectorAll('input[id^=messageRatePQTM_]');
+        messages = document.querySelectorAll('input[id^=messageRatePQTM_]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkMessageValueLG290P0255(messageName);
         }
     }
@@ -1514,8 +1514,8 @@ function checkConstellations() {
 }
 
 function checkBitMapValue(id, min, max, bitMap, errorText, collapseID) {
-    value = ge(id).value;
-    mask = ge(bitMap).value;
+    var value = ge(id).value;
+    var mask = ge(bitMap).value;
     if ((value < min) || (value > max) || ((mask & (1 << value)) == 0)) {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
@@ -1584,7 +1584,7 @@ function updateLatLong() {
 }
 
 function checkElementValue(id, min, max, errorText, collapseID) {
-    value = ge(id).value;
+    var value = ge(id).value;
     if ((value < min) || (value > max) || (value == "")) {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
@@ -1601,7 +1601,7 @@ function checkElementValue(id, min, max, errorText, collapseID) {
 }
 
 function checkElementString(id, min, max, errorText, collapseID) {
-    value = ge(id).value;
+    var value = ge(id).value;
     if ((value.length < min) || (value.length > max)) {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         if (collapseID == "ntripServerConfig0") {
@@ -1633,7 +1633,7 @@ function checkElementString(id, min, max, errorText, collapseID) {
 }
 
 function checkElementStringSpacesNoCommas(id, min, max, errorText, collapseID) {
-    value = ge(id).value;
+    var value = ge(id).value;
     var commas = value.split(',');
     var spaces = value.split(' ');
     if ((value.length < min) || (value.length > max) || (commas.length > 1) || (spaces.length == 1)) {
@@ -1646,7 +1646,7 @@ function checkElementStringSpacesNoCommas(id, min, max, errorText, collapseID) {
 }
 
 function checkElementIPAddress(id, errorText, collapseID) {
-    value = ge(id).value;
+    var value = ge(id).value;
     var data = value.split('.');
     if ((data.length != 4)
         || ((data[0] == "") || (isNaN(Number(data[0]))) || (data[0] < 0) || (data[0] > 255))
@@ -1663,7 +1663,7 @@ function checkElementIPAddress(id, errorText, collapseID) {
 
 function checkElementCasterUser(host, user, url, errorText, collapseID) {
     if (ge(host).value.toLowerCase().includes(url)) {
-        value = ge(user).value;
+        var value = ge(user).value;
         if ((value.length < 1) || (value.length > 49)) {
             ge(user + 'Error').innerHTML = 'Error: ' + errorText;
             ge(collapseID).classList.add('show');
@@ -2612,7 +2612,7 @@ function getFileList() {
         ge("fileManagerTable").innerHTML = "<table><tr align='left'><th>Name</th><th>Size</th><td><input type='checkbox' id='fileSelectAll' class='form-check-input fileManagerCheck' onClick='fileManagerToggle()'></td></tr></tr></table>";
         fileTableText = "";
 
-        xmlhttp = new XMLHttpRequest();
+        var xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", "/listfiles", false);
         xmlhttp.send();
 
@@ -2637,7 +2637,7 @@ function getMessageList() {
         savedCheckboxNames = [];
         savedCheckboxValues = [];
 
-        xmlhttp = new XMLHttpRequest();
+        var xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", "/listMessages", false);
         xmlhttp.send();
 
@@ -2677,7 +2677,7 @@ function getMessageListBase() {
         savedCheckboxNames = [];
         savedCheckboxValues = [];
 
-        xmlhttp = new XMLHttpRequest();
+        var xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", "/listMessagesBase", false);
         xmlhttp.send();
 
@@ -2732,7 +2732,7 @@ function fileManagerDelete() {
 
     for (let x = 0; x < selectedFiles.length; x++) {
         var urltocall = "/file?name=" + selectedFiles[x].id + "&action=delete";
-        xmlhttp = new XMLHttpRequest();
+        var xmlhttp = new XMLHttpRequest();
 
         xmlhttp.open("GET", urltocall, false);
         xmlhttp.send();
