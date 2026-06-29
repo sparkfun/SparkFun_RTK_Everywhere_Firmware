@@ -572,6 +572,9 @@ function parseIncoming(msg) {
         else if (id.includes("confirmReset")) {
             resetComplete();
         }
+        else if (id.includes("confirmFactoryReset")) {
+            factoryResetComplete();
+        }
         else if (id.includes("confirmDataReceipt")) {
             confirmDataReceipt();
         }
@@ -1692,8 +1695,10 @@ function clearElement(id, value) {
 }
 
 function resetToFactoryDefaults() {
-    ge("factoryDefaultsMsg").innerHTML = "Defaults Applied. Please wait for device reset...";
     websocket.send("factoryDefaultReset,1,");
+
+    hide("mainPage");
+    show("factoryResetInProcess");
 }
 
 function resetToCorrectionsPriorityDefaults() {
@@ -2003,6 +2008,12 @@ function resetComplete() {
     hide("mainPage");
     hide("resetInProcess");
     show("resetComplete");
+}
+
+function factoryResetComplete() {
+    hide("mainPage");
+    hide("factoryResetInProcess");
+    show("factoryResetComplete");
 }
 
 //Called when the ESP32 has confirmed receipt of data over websocket from AP config page

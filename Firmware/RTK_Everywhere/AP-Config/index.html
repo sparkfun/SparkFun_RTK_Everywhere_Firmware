@@ -97,6 +97,14 @@
         <b>Reset Done</b><br><br>RTK device has now reset.
     </div>
 
+    <div class="container" style="display:none; margin-top:20px;max-width:600px;" id="factoryResetInProcess">
+        <b>Factory Resetting</b><br><br>RTK device is doing a factory reset. Please wait...
+    </div>
+
+    <div class="container" style="display:none; margin-top:20px;max-width:600px;" id="factoryResetComplete">
+        <b>Factory Reset Complete</b><br><br>RTK device has completed a factory reset.
+    </div>
+
     <div class="container" style="display:none; margin-top:20px;max-width:600px;" id="firmwareUploadComplete">
         <b>Done</b><br><br>Firmware update complete. RTK device is now rebooting.
     </div>
@@ -2290,14 +2298,13 @@
                     <label class="form-check-label" for="enableFactoryDefaults">Enable Factory Defaults</label>
                     <input class="form-check-input" type="checkbox" value="" id="enableFactoryDefaults" unchecked>
                     <span class="tt" data-bs-placement="right"
-                        title="Factory Defaults will erase any user settings and reset the internal receiver to stock settings. Any logs on SD are maintained. To prevent accidental reset the checkbox must first be checked before the button is pressed.">
+                        title="Factory Defaults will erase any user settings and reset the internal receiver to stock settings. Any other profiles are maintained. Any logs on SD are maintained. To prevent accidental reset the checkbox must first be checked before the button is pressed.">
                         <span class="icon-info-circle text-primary ms-2"></span>
                     </span>
                 </div>
                 <div class="form-check">
                     <button type="button" id="factoryDefaults" class="btn btn-primary"
                         onClick="resetToFactoryDefaults()" disabled>Reset to Factory Defaults</button>
-                    <p id="factoryDefaultsMsg" class="inlineSuccess"></p>
                 </div>
             </div>
         </div>

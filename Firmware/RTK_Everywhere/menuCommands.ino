@@ -1159,6 +1159,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     else if (strcmp(settingName, "factoryDefaultReset") == 0)
     {
         factoryReset(false); // We do not have the sdSemaphore
+        // We will not get here because factoryReset() will force a system reset.
+        
         knownSetting = true;
     }
     else if (strcmp(settingName, "espnowRequestPair") == 0)

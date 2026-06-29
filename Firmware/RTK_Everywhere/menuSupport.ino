@@ -373,6 +373,9 @@ void factoryReset(bool alreadyHasSemaphore)
     else
         systemPrintln("GNSS not online: Unable to factory reset.");
 
+    if(webServerIsConnected())
+        webServerSendString("confirmFactoryReset,1,");
+
     systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
     delay(2000);
     ESP.restart();
