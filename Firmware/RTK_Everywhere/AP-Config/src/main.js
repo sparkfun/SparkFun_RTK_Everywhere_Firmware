@@ -2770,8 +2770,6 @@ function completeHandler(event) {
     //Refresh file list
     showingFileList = false;
     getFileList();
-
-    document.getElementById("uploadStatus").innerHTML = "Upload Complete";
 }
 function errorHandler(event) {
     ge("uploadStatus").innerHTML = "Upload Failed";
