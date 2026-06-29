@@ -611,8 +611,10 @@ function parseIncoming(msg) {
             ge(id).innerHTML = val;
         }
         else if (id.includes("espnowPeerCount")) {
-            if (val > 0)
+            if (val > 0) {
                 ge("peerMACs").innerHTML = "";
+                show("forgetRadiosSection");
+            }
         }
         else if (id.includes("espnowPeer_")) {
             if (val[0] != "0" && val[1] != "0") {
