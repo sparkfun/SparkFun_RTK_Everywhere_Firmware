@@ -2050,6 +2050,9 @@ void createSettingsString(char *newSettings)
         }
     }
 
+    
+    stringRecord(newSettings, "lastSetting", "1"); // Add a lastSetting entry so that the Web Config page knows when we are doing a full page update
+
     strcat(newSettings, "\0");
     systemPrintf("newSettings len: %d\r\n", strlen(newSettings));
 
