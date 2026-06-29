@@ -187,14 +187,6 @@ function parseIncoming(msg) {
 
                 show("useEnableExtCorrRadio");
                 hide("enableNmeaOnRadio");
-
-                select = ge("pointPerfectService");
-                let newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
             }
 
             else if (platformPrefix == "Facet X5") {
@@ -235,14 +227,6 @@ function parseIncoming(msg) {
                 ge("messageRateInfoText").setAttribute('data-bs-original-title', 'The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages.');
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, MSM4, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0.1 to 600.');
                 ge("enableExtCorrRadioInfoText").setAttribute('data-bs-original-title', 'Enable external radio corrections: RTCMv3 on mosaic COM2. Default: False');
-
-                select = ge("pointPerfectService");
-                newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -272,14 +256,6 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
-
-                select = ge("pointPerfectService");
-                newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
             }
             else if (platformPrefix == "Postcard") {
                 show("baseConfig");
@@ -300,14 +276,6 @@ function parseIncoming(msg) {
                 hide("dynamicModelDropdown"); //Not supported on LG290P
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
-
-                select = ge("pointPerfectService");
-                let newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
 
                 select = ge("pppMode");
                 newOption = new Option('Disabled', '0');
@@ -368,14 +336,6 @@ function parseIncoming(msg) {
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
-                select = ge("pointPerfectService");
-                let newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
-
                 select = ge("pppMode");
                 newOption = new Option('Disabled', '0');
                 select.add(newOption, undefined);
@@ -427,13 +387,6 @@ function parseIncoming(msg) {
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, MSM4, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0.1 to 600.');
                 ge("enableExtCorrRadioInfoText").setAttribute('data-bs-original-title', 'Enable external radio corrections: RTCMv3 on mosaic COM2. Default: False');
 
-                select = ge("pointPerfectService");
-                newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
             }
             else if (facetFPGNSS == "LG290P") {
                 show("baseConfig");
@@ -454,14 +407,6 @@ function parseIncoming(msg) {
                 hide("dynamicModelDropdown"); //Not supported on LG290P
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
-
-                select = ge("pointPerfectService");
-                let newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
 
                 select = ge("pppMode");
                 newOption = new Option('Disabled', '0');
@@ -514,14 +459,6 @@ function parseIncoming(msg) {
                 show("surveyInSettings");
                 show("useEnableExtCorrRadio");
                 hide("enableNmeaOnRadio"); // ZED UART2 is limited to RTCM
-
-                select = ge("pointPerfectService");
-                let newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
             }
         }
         else if (id.includes("gnssFirmwareVersionInt")) {
@@ -955,7 +892,6 @@ function parseIncoming(msg) {
         ge("enableNtripServer").dispatchEvent(new CustomEvent('change'));
         ge("enableNtripClient").dispatchEvent(new CustomEvent('change'));
         ge("dataPortChannel").dispatchEvent(new CustomEvent('change'));
-        ge("pointPerfectService").dispatchEvent(new CustomEvent('change'));
         ge("enableExternalPulse").dispatchEvent(new CustomEvent('change'));
         ge("enableExternalHardwareEventLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableEspNow").dispatchEvent(new CustomEvent('change'));
@@ -1211,7 +1147,6 @@ function validateFields() {
     collapseSection("collapseGNSSConfigMsg", "gnssMsgCaret");
     collapseSection("collapseBaseConfig", "baseCaret");
     collapseSection("collapseGNSSConfigMsgBase", "baseMsgCaret");
-    collapseSection("collapsePPConfig", "pointPerfectCaret");
     collapseSection("collapsePortsConfig", "portsCaret");
     collapseSection("collapseWiFiConfig", "wifiCaret");
     collapseSection("collapseTCPUDPConfig", "tcpUdpCaret");
@@ -1382,9 +1317,6 @@ function validateFields() {
         checkElementString("ntripServerMountPointPW_3", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig3");
     }
 
-    //PointPerfect Config
-    checkPointPerfectService();
-
     //Port Config
     if (ge("enableExternalPulse").checked == true) {
         checkElementValue("externalPulseTimeBetweenPulse", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
@@ -1509,7 +1441,6 @@ function changeProfile() {
         collapseSection("collapseGNSSConfigMsg", "gnssMsgCaret");
         collapseSection("collapseBaseConfig", "baseCaret");
         collapseSection("collapseGNSSConfigMsgBase", "baseMsgCaret");
-        collapseSection("collapsePPConfig", "pointPerfectCaret");
         collapseSection("collapsePortsConfig", "portsCaret");
         collapseSection("collapseWiFiConfig", "wifiCaret");
         collapseSection("collapseTCPUDPConfig", "tcpUdpCaret");
@@ -1560,28 +1491,6 @@ function checkConstellations() {
     }
     else
         clearError("gnssConstellations");
-}
-
-function checkPointPerfectService() {
-    if (ge("pointPerfectService").value > 0) {
-        value = ge("pointPerfectDeviceProfileToken").value;
-        if (value.length > 0)
-            checkElementString("pointPerfectDeviceProfileToken", 36, 36, "Must be 36 characters", "collapsePPConfig");
-
-        if (networkCount() == 0) {
-            showError('pointPerfectService', "This PointPerfect service requires at least one WiFi network");
-            ge("collapsePPConfig").classList.add('show');
-            ge("collapseWiFiConfig").classList.add('show');
-            errorCount++;
-        }
-        else {
-            clearError("pointPerfectService");
-        }
-
-    }
-    else {
-        clearError("pointPerfectService");
-    }
 }
 
 function checkBitMapValue(id, min, max, bitMap, errorText, collapseID) {
