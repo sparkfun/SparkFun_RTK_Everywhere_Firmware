@@ -900,7 +900,7 @@ void otaUpdate()
                         commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
                                                         (char *)"No Internet");
                     else if (otaRequestFirmwareVersionCheck)
-                        commandSendErrorResponse((char *)"SPGET", (char *)"rtkRemoteFirmwareVersion",
+                        commandSendErrorResponse((char *)"SPGET", (char *)"espRemoteFirmwareVersion",
                                                  (char *)"No Internet");
                     otaUpdateStop();
                 }
@@ -983,7 +983,7 @@ void otaUpdate()
 
                 // Report failure over the CLI
                 if (bluetoothCommandIsConnected())
-                    commandSendExecuteErrorResponse((char *)"SPGET", (char *)"rtkRemoteFimrwareVersion",
+                    commandSendExecuteErrorResponse((char *)"SPGET", (char *)"espRemoteFirmwareVersion",
                                                     (char *)"No Server");
 
                 otaUpdateStop();
