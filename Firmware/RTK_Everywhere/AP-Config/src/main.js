@@ -204,7 +204,8 @@ function parseIncoming(msg) {
                 show("dataPortChannelDropdown"); // Facet mosaic-X5 has a configurable DATA port
 
                 select = ge("dynamicModel");
-                let newOption = new Option('Static', '0');
+                select.options.length = 0; //Remove all from list
+                newOption = new Option('Static', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('Quasistatic', '1');
                 select.add(newOption, undefined);
@@ -238,7 +239,8 @@ function parseIncoming(msg) {
                 show("measurementRateInput");
 
                 select = ge("dynamicModel");
-                let newOption = new Option('Survey', '0');
+                select.options.length = 0; // Clear previous options
+                newOption = new Option('Survey', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('UAV', '1');
                 select.add(newOption, undefined);
@@ -246,6 +248,7 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
 
                 select = ge("pppMode");
+                select.options.length = 0; // Clear previous options
                 newOption = new Option('Disabled', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('E6/HAS', '2');
@@ -273,6 +276,7 @@ function parseIncoming(msg) {
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
                 select = ge("pppMode");
+                select.options.length = 0; //Remove all from list
                 newOption = new Option('Disabled', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('B2P PPP', '1');
@@ -282,8 +286,8 @@ function parseIncoming(msg) {
                 newOption = new Option('Auto', '255');
                 select.add(newOption, undefined);
 
-                ge("radioPortBaud").options.length = 0; //Remove all from list
                 select = ge("radioPortBaud");
+                select.options.length = 0; //Remove all from list
                 newOption = new Option('9600', '9600');
                 select.add(newOption, undefined);
                 newOption = new Option('115200', '115200');
@@ -295,8 +299,8 @@ function parseIncoming(msg) {
                 newOption = new Option('921600', '921600');
                 select.add(newOption, undefined);
 
-                ge("dataPortBaud").options.length = 0; //Remove all from list
                 select = ge("dataPortBaud");
+                select.options.length = 0; //Remove all from list
                 newOption = new Option('9600', '9600');
                 select.add(newOption, undefined);
                 newOption = new Option('115200', '115200');
@@ -331,6 +335,7 @@ function parseIncoming(msg) {
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
                 select = ge("pppMode");
+                select.options.length = 0; //Remove all from list
                 newOption = new Option('Disabled', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('B2P PPP', '1');
@@ -359,7 +364,8 @@ function parseIncoming(msg) {
                 show("enableNmeaOnRadio");
 
                 select = ge("dynamicModel");
-                let newOption = new Option('Static', '0');
+                select.options.length = 0; //Remove all from list
+                newOption = new Option('Static', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('Quasistatic', '1');
                 select.add(newOption, undefined);
@@ -401,6 +407,7 @@ function parseIncoming(msg) {
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
                 select = ge("pppMode");
+                select.options.length = 0; //Remove all from list
                 newOption = new Option('Disabled', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('B2P PPP', '1');
@@ -410,8 +417,8 @@ function parseIncoming(msg) {
                 newOption = new Option('Auto', '255');
                 select.add(newOption, undefined);
 
-                ge("radioPortBaud").options.length = 0; //Remove all from list
                 select = ge("radioPortBaud");
+                select.options.length = 0; //Remove all from list
                 newOption = new Option('9600', '9600');
                 select.add(newOption, undefined);
                 newOption = new Option('115200', '115200');
@@ -423,8 +430,8 @@ function parseIncoming(msg) {
                 newOption = new Option('921600', '921600');
                 select.add(newOption, undefined);
 
-                ge("dataPortBaud").options.length = 0; //Remove all from list
                 select = ge("dataPortBaud");
+                select.options.length = 0; //Remove all from list
                 newOption = new Option('9600', '9600');
                 select.add(newOption, undefined);
                 newOption = new Option('115200', '115200');
@@ -456,7 +463,8 @@ function parseIncoming(msg) {
             //Modify settings due to firmware limitations
             if ((platformPrefix == "EVK") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS.substring(0, 3) == "ZED"))) {
                 select = ge("dynamicModel");
-                let newOption = new Option('Portable', '0');
+                select.options.length = 0; //Remove all from list
+                newOption = new Option('Portable', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('Stationary', '2');
                 select.add(newOption, undefined);
@@ -521,6 +529,7 @@ function parseIncoming(msg) {
                     hide("pppServiceSettings"); // No sub settings available on ZED-X20P
 
                     select = ge("pppMode");
+                    select.options.length = 0; //Remove all from list
                     newOption = new Option('Disabled', '0');
                     select.add(newOption, undefined);
                     newOption = new Option('E6/HAS', '2');
