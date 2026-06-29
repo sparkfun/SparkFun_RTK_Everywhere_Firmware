@@ -906,6 +906,11 @@ function parseIncoming(msg) {
         else if (id.includes("hasTilt")) {
             show("tiltConfig");
         }
+            
+        // Only the UM980 has Multipath Mitigation
+        else if (id.includes("enableMultipathMitigation")) {
+            show("um980GnssSettings");
+        }            
 
         //Check boxes / radio buttons
         else if (val == "true") {
