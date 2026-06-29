@@ -175,7 +175,6 @@ function parseIncoming(msg) {
 
             if (platformPrefix == "EVK") {
                 show("baseConfig");
-                show("ppConfig");
                 show("ethernetConfig");
                 show("ntpConfig");
                 show("portsConfig");
@@ -192,7 +191,6 @@ function parseIncoming(msg) {
             else if (platformPrefix == "Facet X5") {
                 //console.log("runng mosaic");
                 show("baseConfig");
-                show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
@@ -230,7 +228,6 @@ function parseIncoming(msg) {
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
-                show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
@@ -259,7 +256,6 @@ function parseIncoming(msg) {
             }
             else if (platformPrefix == "Postcard") {
                 show("baseConfig");
-                show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
@@ -315,7 +311,6 @@ function parseIncoming(msg) {
             }
             else if (platformPrefix == "TX2") {
                 show("baseConfig");
-                show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
@@ -352,7 +347,6 @@ function parseIncoming(msg) {
 
             if (facetFPGNSS == "Mosaic-X5") {
                 show("baseConfig");
-                show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
@@ -390,7 +384,6 @@ function parseIncoming(msg) {
             }
             else if (facetFPGNSS == "LG290P") {
                 show("baseConfig");
-                show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
@@ -446,7 +439,6 @@ function parseIncoming(msg) {
             }
             else if (facetFPGNSS.substring(0, 3) == "ZED") {
                 show("baseConfig");
-                show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
@@ -842,11 +834,17 @@ function parseIncoming(msg) {
         else if (id.includes("hasTilt")) {
             show("tiltConfig");
         }
-            
+
         // Only the UM980 has Multipath Mitigation
         else if (id.includes("enableMultipathMitigation")) {
             show("um980GnssSettings");
-        }            
+        }
+
+        // PointPerfect configuration has been removed from the Web Config interface. It will be restored if u-blox offers
+        // the global corrections network.
+        else if (id.includes("pointPerfectService")) {
+            // Do nothing
+        }
 
         //Check boxes / radio buttons
         else if (val == "true") {

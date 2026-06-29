@@ -1897,7 +1897,7 @@ void createSettingsString(char *newSettings)
     }
 
     // Add Device ID used for corrections
-    stringRecord(newSettings, "hardwareID", (char *)printDeviceId());
+    // stringRecord(newSettings, "hardwareID", (char *)printDeviceId());
 
     // Add Days Remaining for these keys
     // char apDaysRemaining[20];
