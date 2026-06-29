@@ -784,7 +784,7 @@ function parseIncoming(msg) {
             newFirmwareVersion(val);
         }
         else if (id.includes("gettingNewFirmware")) {
-            gettingNewFirmware();
+            gettingNewFirmware(val);
         }
         else if (id.includes("otaFirmwareStatus")) {
             otaFirmwareStatus(val);
