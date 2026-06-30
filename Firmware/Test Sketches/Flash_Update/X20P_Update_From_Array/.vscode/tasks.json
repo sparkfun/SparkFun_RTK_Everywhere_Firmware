@@ -1,0 +1,59 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Compile and Upload",
+            "type": "shell",
+            // None level of error, no warnings, fast upload
+            "command": "$portDevice = Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Caption -like '*SERIAL-B*' } | Select-Object -First 1; if ($portDevice -and $portDevice.Caption -match 'COM(\\d+)') { $port = 'COM' + $Matches[1]; arduino-cli --fqbn esp32:esp32:esp32:DebugLevel=none,UploadSpeed=921600,FlashSize=8M compile X20P_Update_From_Array.ino --build-property upload.maximum_size=4055040 --build-property build.partitions=RTKEverywhere_8MB -p $port -u }",
+
+            "options": {
+                "shell": {
+                    "executable": "powershell.exe",
+                    "args": ["-NoProfile", "-Command"]
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "isBackground": false,
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Just Upload",
+            "type": "shell",
+            "command": "$portDevice = Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Caption -like '*SERIAL-B*' } | Select-Object -First 1; if ($portDevice -and $portDevice.Caption -match 'COM(\\d+)') { $port = 'COM' + $Matches[1]; arduino-cli upload -p $port --fqbn esp32:esp32:esp32:UploadSpeed=921600,FlashSize=8M X20P_Update_From_Array.ino }",
+            "options": {
+                "shell": {
+                    "executable": "powershell.exe",
+                    "args": ["-NoProfile", "-Command"]
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "isBackground": false,
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}
