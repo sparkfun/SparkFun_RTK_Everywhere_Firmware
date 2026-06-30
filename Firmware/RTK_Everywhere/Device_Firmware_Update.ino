@@ -1031,7 +1031,8 @@ void deviceFirmwareReadFillBuffer(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMse
 {
     if (deviceFirmwareRead(ctx, currentMsec, DFUS_DEVICE_CLOSE))
     {
-        deviceFirmwareStopTasks(ctx);
+        if (ctx->_outputDeviceType == DFU_ODT_DEVICE)
+            deviceFirmwareStopTasks(ctx);
         if (ctx->_doAll == false)
             ctx->_reboot = true;
         deviceFirmwareStateSet(ctx, DFUS_DEVICE_RESET);
