@@ -68,7 +68,7 @@ void deviceFirmwareActionMenu(DEVICE_FIRMWARE_CTX * ctx)
             systemPrintf("d) Delete the file\r\n");
         if (ctx->_deviceInfo->_useNvm && (ctx->_inputDeviceType != DFU_IDT_NVM))
             systemPrintf("n) Copy file to NVM\r\n");
-        if (present.microSd)
+        if (present.microSd && (ctx->_inputDeviceType != DFU_IDT_SD))
             systemPrintf("s) Copy file to SD card\r\n");
         systemPrintf("u) Update device firmware\r\n");
         systemPrintf("x) Exit\r\n");
@@ -1231,7 +1231,8 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             ctx->_outputDeviceType = DFU_ODT_NVM;
             deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_INPUT);
         }
-        else if ((action == 's') && present.microSd)
+        else if ((action == 's') && present.microSd
+            && (ctx->_inputDeviceType != DFU_IDT_SD))
         {
             // Display the menu choice
             if (settings.debugFirmwareUpdate)
