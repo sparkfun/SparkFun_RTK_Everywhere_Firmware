@@ -261,8 +261,11 @@ void deviceFirmwareClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         if ((ctx->_outputDeviceType == DFU_ODT_NVM)
             || (ctx->_outputDeviceType == DFU_ODT_SD))
         {
+            // File copy
             deviceFirmwareFileListReload(ctx);
         }
+
+        // Programming a device
         else
             deviceFirmwareStateSet(ctx, ctx->_reboot ? DFUS_REBOOT : DFUS_DONE);
     }
