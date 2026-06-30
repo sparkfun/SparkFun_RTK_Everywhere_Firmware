@@ -1290,6 +1290,37 @@ nextDevice:
                 }
             }
 
+            // Allocate the device specific context
+            length = ctx->_deviceInfo->_devContextBytes;
+            if (length)
+            {
+                // Allocate the device specific context
+                ctx->_devCtx = (uint8_t *)rtkMalloc(length, "Device specific firmware update context");
+                if (ctx->_devCtx == nullptr)
+                {
+                    systemPrintf("ERROR: Failed to allocate the device specific context of %d bytes\r\n", length);
+                    reportHeapNow(true);
+                    if (ctx->_doAll)
+                        ctx->_reboot = false;
+                    deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+                    break;
+                }
+
+                // Initialize the device specific context
+                memset(ctx->_devCtx, 0, length);
+                if (ctx->_deviceInfo->_initDevCtx)
+                {
+                    if (ctx->_deviceInfo->_initDevCtx(ctx) == false)
+                    {
+                        systemPrintf("ERROR: Failed to initialize the %s device specific context\r\n",
+                                     ctx->_deviceInfo->_deviceName);
+                        if (ctx->_doAll)
+                            ctx->_reboot = false;
+                        deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+                    }
+                }
+            }
+
             // Determine maximum bytes to write at a time
             ctx->_bytesMax = ctx->_deviceInfo->_maxWriteBytes
                            ? ctx->_deviceInfo->_maxWriteBytes : ctx->_bufferLength;
