@@ -228,7 +228,6 @@ void deviceFirmwareCleanup(DEVICE_FIRMWARE_CTX * ctx)
 //----------------------------------------
 void deviceFirmwareClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
-    systemPrintf("deviceFirmwareClose entered\r\n");
     // Display the CRC
     if (ctx->_complete)
         systemPrintf("CRC: 0x%08x\r\n", ctx->_crc);
@@ -258,7 +257,6 @@ void deviceFirmwareClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         else
             deviceFirmwareStateSet(ctx, ctx->_reboot ? DFUS_REBOOT : DFUS_DONE);
     }
-    systemPrintf("deviceFirmwareClose exiting\r\n");
 }
 
 //----------------------------------------
