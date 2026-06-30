@@ -232,6 +232,15 @@ void deviceFirmwareClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     if (ctx->_complete)
         systemPrintf("CRC: 0x%08x\r\n", ctx->_crc);
 
+    // Display complete
+    systemPrintf("%s\r\n", dfuEqualSigns);
+    systemPrintf("%s %s %s!\r\n", ctx->_deviceInfo->_deviceName,
+                 (ctx->_outputDeviceType == DFU_ODT_DEVICE) ?
+                 "firmware update" : "file copy",
+                 (ctx->_bytesWritten == ctx->_fileBytes) ?
+                 "complete" : "failed");
+    systemPrintf("%s\r\n", dfuEqualSigns);
+
     // Close the output file
     deviceFirmwareCloseOutput(ctx);
 
