@@ -66,7 +66,7 @@ void deviceFirmwareActionMenu(DEVICE_FIRMWARE_CTX * ctx)
         // Display the menu
         if ((ctx->_inputDeviceType == DFU_IDT_NVM) || (ctx->_inputDeviceType == DFU_IDT_SD))
             systemPrintf("d) Delete the file\r\n");
-        if (ctx->_deviceInfo->_useNvm)
+        if (ctx->_deviceInfo->_useNvm && (ctx->_inputDeviceType != DFU_IDT_NVM))
             systemPrintf("n) Copy file to NVM\r\n");
         if (present.microSd)
             systemPrintf("s) Copy file to SD card\r\n");
@@ -1220,7 +1220,8 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             // Display the file list again
             deviceFirmwareFileListReload(ctx);
         }
-        else if ((action == 'n') && ctx->_deviceInfo->_useNvm)
+        else if ((action == 'n') && ctx->_deviceInfo->_useNvm
+            && (ctx->_inputDeviceType != DFU_IDT_NVM))
         {
             // Display the menu choice
             if (settings.debugFirmwareUpdate)
