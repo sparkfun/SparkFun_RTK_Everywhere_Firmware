@@ -19,7 +19,7 @@ Device_Update.ino
 
 #include "settings.h"
 #include "Work_Arounds.h"
-#include "secrets.h"
+#include "Secrets.h"
 
 //----------------------------------------
 // Hardware support
@@ -49,7 +49,6 @@ HardwareSerial *serialGNSS = nullptr;  // Don't instantiate until we know what g
 // IM19 support
 //----------------------------------------
 
-String im19FirmwareVersion;    // First IM19 version message
 HardwareSerial *SerialForTilt; // Don't instantiate until we know the tilt sensor exists
 
 //----------------------------------------
@@ -73,6 +72,12 @@ uint8_t btMACAddress[6];       // Display this address when Bluetooth is enabled
 uint8_t ethernetMACAddress[6]; // Display this address when Ethernet is enabled, otherwise display wifiMACAddress
 WiFiMulti wifiMulti;
 bool wifiStationSsidSet;
+
+//----------------------------------------
+// Tilt support
+//----------------------------------------
+
+String tiltFirmwareVersion;    // First IM19 version message
 
 //----------------------------------------
 // Device firmware descriptions

@@ -190,3 +190,32 @@ void bufferNameSortFree(int bufferIndex)
         bufferData->_sortArray = nullptr;
     }
 }
+
+//----------------------------------------
+// Configure UART2 serial port
+//----------------------------------------
+bool configureUart2(HardwareSerial ** hwSerialPort)
+{
+    HardwareSerial * serialPort;
+
+    // Determine if serial port is already configured
+    serialPort = *hwSerialPort;
+    if (serialPort)
+        return true;
+
+    // Allocate the serial port object
+    serialPort = new HardwareSerial(2);
+
+    // Determine if the allocation failed
+    if (serialPort == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the serial port!\r\n");
+        return false;
+    }
+
+    // Configure the serial port
+    serialPort->setRxBufferSize(1024 * 1);
+    serialPort->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
+    *hwSerialPort = serialPort;
+    return true;
+}
