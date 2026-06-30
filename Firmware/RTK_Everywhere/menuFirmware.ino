@@ -889,7 +889,7 @@ void otaUpdate()
                 if (webServerIsConnected())
                 {
                     // Report failed connection to web client
-                    webServerSendString((char *)"espNewFirmwareVersion,NO_INTERNET,");
+                    webServerSendString((char *)"newFirmwareVersion,NO_INTERNET,");
                     otaUpdateStop();
                 }
 
@@ -945,10 +945,7 @@ void otaUpdate()
 
                         if (webServerIsConnected())
                         {
-                            char newVersionCSV[40];
-                            snprintf(newVersionCSV, sizeof(newVersionCSV), "espNewFirmwareVersion,%s,",
-                                     otaReportedVersion);
-                            webServerSendString(newVersionCSV);
+                            webServerSendString("newFirmwareVersion,E,"); // Report new firmware version available for ESP
                         }
 
                         if (bluetoothCommandIsConnected())
@@ -969,7 +966,7 @@ void otaUpdate()
                 {
                     systemPrintln("Version Check: Firmware is up to date. No new firmware available.");
                     if (webServerIsConnected())
-                        webServerSendString((char *)"espNewFirmwareVersion,CURRENT,");
+                        webServerSendString((char *)"newFirmwareVersion,CURRENT,");
 
                     otaUpdateStop();
                 }
@@ -979,7 +976,7 @@ void otaUpdate()
                 // Failed to get version number
                 systemPrintln("Failed to get version number from server.");
                 if (webServerIsConnected())
-                    webServerSendString((char *)"espNewFirmwareVersion,NO_SERVER,");
+                    webServerSendString((char *)"newFirmwareVersion,NO_SERVER,");
 
                 // Report failure over the CLI
                 if (bluetoothCommandIsConnected())
