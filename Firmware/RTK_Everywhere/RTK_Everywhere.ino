@@ -169,7 +169,6 @@ RTK_Everywhere.ino
 #define NTRIP_SERVER_MAX 4
 
 #ifdef COMPILE_NETWORK
-#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
 #include <DNSServer.h>    //Built-in.
 #include <ESPmDNS.h>      //Built-in.
 #include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
@@ -481,6 +480,11 @@ const char *wifiSoftApPassword = nullptr;
     "RTK-Everywhere-RC-Firmware.json"
 char otaFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
 char otaRcFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
+
+#define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
+
+#define OTA_FIRMWARE_SYSTEM_VARIANTS_JSON \
+    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-Variants.json"
 
 bool apConfigFirmwareUpdateInProcess; // Goes true once WiFi is connected and OTA pull begins
 unsigned int binBytesSent;            // Tracks firmware bytes sent over WiFi OTA update via AP config.
