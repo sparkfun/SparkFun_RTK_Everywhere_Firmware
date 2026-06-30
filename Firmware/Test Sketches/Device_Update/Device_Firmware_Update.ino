@@ -48,6 +48,12 @@ const int dfuStateNameCount = sizeof(dfuStateName) / sizeof(dfuStateName[0]);
 const char * dfuEqualSigns = "==================================================";
 
 //----------------------------------------
+// Constants
+//----------------------------------------
+
+static bool dfuLoopInUpdate;    // Loop in deviceFirmwareUpdate while set
+
+//----------------------------------------
 // Display the action menu
 //----------------------------------------
 void deviceFirmwareActionMenu(DEVICE_FIRMWARE_CTX * ctx)
@@ -234,6 +240,7 @@ void deviceFirmwareClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     deviceFirmwareCloseInput(ctx);
 
     // Determine if all firmware was written
+    dfuLoopInUpdate = false;
     if (ctx->_doAll)
     {
         if (ctx->_complete == false)
@@ -1063,29 +1070,84 @@ void deviceFirmwareReduceBufferSize(DEVICE_FIRMWARE_CTX * ctx)
 
 //----------------------------------------
 // Reset the device before doing the firmware update
+//
+//    file copy          firmware update
+//        |                     |
+//        |                     V
+//        |         .-----------------------.  Error
+//        '-------->|   DFUS_DEVICE_RESET   |-------------------.
+//                  '-----------------------'                   |
+//                              |  if (DFU_ODT_DEVICE)          |
+//                              |      true -> loopInUpdate     |
+//                              V                               |
+//               .-----------------------------.  Error         |
+//               |   DFUS_DEVICE_OPEN_OUTPUT   |------------.   |
+//               '-----------------------------'            |   |
+//                              |                           |   |
+//                              V                           |   |
+//        Done  .-------------------------------.           |   |
+//      .-------| DFUS_DEVICE_PROGRAM_FIRMWARE  |<------.   |   |
+//      |       '-------------------------------'       |   |   |
+//      |                       |  Need more data       |   |   |
+//      |                       V                       |   |   |
+//      |        .-----------------------------.  More  |   |   |
+//      |        |   DFUS_READ_FIRMWARE_DATA   |--------'   |   |
+//      |        '-----------------------------'  data      |   |
+//      |                       |  Error                    |   |
+//      |                       V                           |   |
+//      |           .-----------------------.               |   |
+//      '---------->|   DFUS_DEVICE_CLOSE   |<--------------'   |
+//                  '-----------------------'                   |
+//                              |  false -> loopInUpdate        |
+//         if (doAll == false)  |                               |
+//      .-----------------------+                               |
+//      |                       |  if (doAll == true)           |
+//      |                       V                               |
+//      |           .-----------------------.                   |
+//      |           |   DFUS_NEXT_DEVICE    |<------------------'
+//      |           '-----------------------'
+//      |
+//      |  if (reboot == true)   .-----------------------.
+//      +----------------------->|      DFUS_REBOOT      |
+//      |                        '-----------------------'
+//      |
+//      |  if (reboot == false)  .-----------------------.
+//      '----------------------->|       DFUS_DONE       |
+//                               '-----------------------'
+//
 //----------------------------------------
 void deviceFirmwareReset(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     const char * deviceName;
 
     deviceName = ctx->_deviceInfo->_deviceName;
-    if (ctx->_deviceInfo->_reset)
-    {
-        if (settings.debugFirmwareUpdate)
-            systemPrintf("Resetting %s for firmware update\r\n", deviceName);
-        if (ctx->_deviceInfo->_reset(ctx, currentMsec))
-            deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_OUTPUT);
-        else
-        {
-            systemPrintf("ERROR: %s firmware reset failed!\r\n", deviceName);
-            deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
-        }
-        return;
-    }
 
-    if (settings.debugFirmwareUpdate)
-        systemPrintf("NOT IMPLEMENTED: %s firmware update reset routine!\r\n",
-                     deviceName);
+    // Enable looping in update when programming a device
+    dfuLoopInUpdate = (ctx->_outputDeviceType == DFU_ODT_DEVICE);
+
+    // Reset is not necessary when copying files
+    if (dfuLoopInUpdate)
+    {
+        // Get the reset routine
+        if (ctx->_deviceInfo->_reset)
+        {
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("Resetting %s for firmware update\r\n", deviceName);
+            if (ctx->_deviceInfo->_reset(ctx, currentMsec))
+                deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_OUTPUT);
+            else
+            {
+                systemPrintf("ERROR: %s firmware reset failed!\r\n", deviceName);
+                deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+            }
+            return;
+        }
+
+        // Testing or device does not require reset
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("NOT IMPLEMENTED: %s firmware update reset routine!\r\n",
+                         deviceName);
+    }
     deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_OUTPUT);
 }
 
@@ -1593,7 +1655,7 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
             deviceFirmwareStateSet(ctx, DFUS_DONE);
             break;
         }
-    } while (0);
+    } while (dfuLoopInUpdate);
     return running;
 }
 
