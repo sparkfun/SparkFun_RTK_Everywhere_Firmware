@@ -248,7 +248,7 @@ bool ntripClientConnect()
     snprintf(serverRequest, SERVER_BUFFER_SIZE, "GET /%s HTTP/1.0\r\nUser-Agent: NTRIP %s_",
              settings.ntripClient_MountPoint, deviceName);
     length = strlen(serverRequest);
-    firmwareVersionGet(&serverRequest[length], SERVER_BUFFER_SIZE - 2 - length, false);
+    espFirmwareVersionGet(&serverRequest[length], SERVER_BUFFER_SIZE - 2 - length, false);
     length = strlen(serverRequest);
     serverRequest[length++] = '\r';
     serverRequest[length++] = '\n';

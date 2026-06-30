@@ -409,7 +409,7 @@ void webServerCreateFirmwareVersionString(char *firmwareString)
 
     // Create a string of the unit's current firmware version
     char currentVersion[21];
-    firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
+    espFirmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
 
     // Compare the unit's version against the reported version from OTA
     // Allow updates if locally compiled developer version is detected

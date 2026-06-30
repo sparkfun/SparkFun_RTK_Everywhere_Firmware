@@ -1441,7 +1441,7 @@ void loraTxDirectConnectTorch()
             static char nmeaTxt[200]; // Max NMEA sentence length is 82
             static char versionString[21] = {0};
             if (strlen(versionString) == 0)
-                firmwareVersionGet(versionString, sizeof(versionString), true);
+                espFirmwareVersionGet(versionString, sizeof(versionString), true);
             snprintf(nmeaTxt, sizeof(nmeaTxt), "$GNTXT,%s,%s,%s,%s,%s,%09ld*",
                      getBrandAttributeFromProductVariant(productVariant)->name, platformPrefix, serialNumber,
                      versionString, loraFirmwareVersion, lastTx);
@@ -1517,7 +1517,7 @@ void loraTxDirectConnectFacetFP()
             static char nmeaTxt[200]; // Max NMEA sentence length is 82
             static char versionString[21] = {0};
             if (strlen(versionString) == 0)
-                firmwareVersionGet(versionString, sizeof(versionString), true);
+                espFirmwareVersionGet(versionString, sizeof(versionString), true);
             snprintf(nmeaTxt, sizeof(nmeaTxt), "$GNTXT,%s,%s,%s,%s,%s,%09ld*",
                      getBrandAttributeFromProductVariant(productVariant)->name, platformPrefix, serialNumber,
                      versionString, loraFirmwareVersion, lastTx);

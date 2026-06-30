@@ -785,8 +785,8 @@ function parseIncoming(msg) {
         else if (id.includes("checkingNewFirmware")) {
             checkingNewFirmware();
         }
-        else if (id.includes("newFirmwareVersion")) {
-            newFirmwareVersion(val);
+        else if (id.includes("newSubsystemFirmware")) {
+            newSubsystemFirmware(val);
         }
         else if (id.includes("gettingNewFirmware")) {
             gettingNewFirmware(val);
@@ -2894,7 +2894,8 @@ function checkingNewFirmware() {
     showMsg('firmwareCheckNewMsg', "Checking firmware version");
 }
 
-function newFirmwareVersion(firmwareVersion) {
+// Given a firmware version string such as "ELI", show the appropriate update messages and progress bars for each subsystem
+function newSubsystemFirmware(firmwareVersion) {
     clearMsg('firmwareCheckNewMsg');
     if (firmwareVersion == "NO_INTERNET") {
         showMsgError('firmwareCheckNewMsg', "No internet");

@@ -463,7 +463,7 @@ bool ntripServerConnectCaster(int serverIndex)
     snprintf(serverBuffer, SERVER_BUFFER_SIZE, "SOURCE %s /%s\r\nSource-Agent: NTRIP %s/\r\n\r\n",
              settings.ntripServer_MountPointPW[serverIndex], settings.ntripServer_MountPoint[serverIndex], deviceName);
     int length = strlen(serverBuffer);
-    firmwareVersionGet(&serverBuffer[length], sizeof(serverBuffer) - length, false);
+    espFirmwareVersionGet(&serverBuffer[length], sizeof(serverBuffer) - length, false);
 
     // Send the authorization credentials to the NTRIP caster
     ntripServer->networkClient->write((const uint8_t *)serverBuffer, strlen(serverBuffer));

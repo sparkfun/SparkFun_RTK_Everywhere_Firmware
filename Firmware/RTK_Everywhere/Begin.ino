@@ -728,10 +728,10 @@ void beginBoard()
 
 void beginVersion()
 {
-    firmwareVersionGet(deviceFirmware, sizeof(deviceFirmware), false);
+    espFirmwareVersionGet(deviceFirmware, sizeof(deviceFirmware), false);
 
     char versionString[21];
-    firmwareVersionGet(versionString, sizeof(versionString), true);
+    espFirmwareVersionGet(versionString, sizeof(versionString), true);
 
     // The GNSS and Tilt could be unknown. Show the generic name only
     char title[50];

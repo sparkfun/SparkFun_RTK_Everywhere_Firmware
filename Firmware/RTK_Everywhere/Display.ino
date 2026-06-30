@@ -554,7 +554,7 @@ void displaySplashCommon(bool nameKnown)
 
         yPos = yPos + fontHeight + 7;
         char unitFirmware[50];
-        firmwareVersionGet(unitFirmware, sizeof(unitFirmware), false);
+        espFirmwareVersionGet(unitFirmware, sizeof(unitFirmware), false);
         printTextCenter(unitFirmware, yPos, QW_FONT_5X7, 1, false);
 
         oled->display();

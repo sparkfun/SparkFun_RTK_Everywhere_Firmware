@@ -28,7 +28,7 @@ void menuMain()
     {
         systemPrintln();
         char versionString[21];
-        firmwareVersionGet(versionString, sizeof(versionString), true);
+        espFirmwareVersionGet(versionString, sizeof(versionString), true);
         systemPrintf("%s %s%s %s\r\n", getBrandAttributeFromProductVariant(productVariant)->name,
                      productVariantProperties->rtkPrefix ? "RTK " : "", platformPrefix, versionString);
         systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
@@ -494,8 +494,7 @@ void menuRadio()
             }
             else
             {
-                systemPrintln("10) LoRa Radio: Enabled\r\n");
-
+                systemPrintln("10) LoRa Radio: Enabled");
                 systemPrintf("11) LoRa Coordination Frequency: %0.3f\r\n", settings.loraCoordinationFrequency);
                 systemPrintf("12) LoRa Transmit Gain: %ddB\r\n", settings.loraTransmitGain_dB);
                 systemPrintf("13) LoRa Save Settings to Flash: %s\r\n",
