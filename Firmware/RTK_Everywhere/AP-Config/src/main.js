@@ -2658,10 +2658,10 @@ function getMessageList() {
 
         ge("messageList").innerHTML = "";
         messageText = "";
-        savedMessageNames = [];
-        savedMessageValues = [];
-        savedCheckboxNames = [];
-        savedCheckboxValues = [];
+        savedMessageNames.length = 0;
+        savedMessageValues.length = 0;
+        savedCheckboxNames.length = 0;
+        savedCheckboxValues.length = 0;
 
         var xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", "/listMessages", false);
