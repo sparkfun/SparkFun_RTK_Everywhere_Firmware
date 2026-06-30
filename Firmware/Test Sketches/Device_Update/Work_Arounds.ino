@@ -6,6 +6,8 @@ Work_Arounds.ino
 
 bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC;
 
+bool wifiStationSsidSet;
+
 //----------------------------------------
 // Blink the bluetooth LED
 //----------------------------------------
@@ -13,22 +15,6 @@ void bluetoothLedBlink()
 {
     if (pin_bluetoothStatusLED != PIN_UNDEFINED)
         digitalWrite(pin_bluetoothStatusLED, !digitalRead(pin_bluetoothStatusLED));
-}
-
-//----------------------------------------
-// Count the application partitions
-//----------------------------------------
-int countAppPartitions()
-{
-    // Count app partitions
-    int appPartitions = 0;
-    esp_partition_iterator_t it = esp_partition_find(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, nullptr);
-    while (it != nullptr)
-    {
-        appPartitions++;
-        it = esp_partition_next(it);
-    }
-    return appPartitions;
 }
 
 //----------------------------------------
@@ -177,6 +163,13 @@ const productProperties *getProductPropertiesFromVariant(ProductVariant variant)
 }
 
 //----------------------------------------
+// Perform a factory reset
+//----------------------------------------
+void gnssFactoryReset()
+{
+}
+
+//----------------------------------------
 // Add a network consumer
 //----------------------------------------
 void networkConsumerAdd(int consumer, int network, const char *fileName, uint32_t lineNumber)
@@ -264,7 +257,7 @@ void reportFatalError(const char *errorMsg)
     {
         // Allow carriage return to reset the system
         if (Serial.available() && (Serial.read() == '\r'))
-            esp32Reboot();
+            dfuEsp32Reboot();
 
         // Periodically display the halted message
         currentMsec = millis();
@@ -333,12 +326,12 @@ void rtkValidateHeap(const char *string)
 }
 
 //----------------------------------------
-// Discard any input data
+// Determine if at least one set of remote access point credentials
+// (SSID, password) are available
 //----------------------------------------
-void serialInputClear()
+bool wifiStationIsSsidSet()
 {
-    while (Serial.available())
-        Serial.read();
+    return wifiStationSsidSet;
 }
 
 //----------------------------------------

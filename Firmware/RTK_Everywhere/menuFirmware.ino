@@ -289,6 +289,7 @@ int firmwareVersionMapMonthName(char *mmm)
 //----------------------------------------
 
 //----------------------------------------
+// Mount the SD card and then perform the firmware update
 //----------------------------------------
 void microSDMountThenUpdate(const char *firmwareFileName)
 {
@@ -381,13 +382,7 @@ void microSDScanForFirmware()
 void microSDUpdateFirmware(const char *firmwareFileName)
 {
     // Count app partitions
-    int appPartitions = 0;
-    esp_partition_iterator_t it = esp_partition_find(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, nullptr);
-    while (it != nullptr)
-    {
-        appPartitions++;
-        it = esp_partition_next(it);
-    }
+    int appPartitions = countAppPartitions();
 
     // We cannot do OTA if there is only one partition
     if (appPartitions < 2)

@@ -5,16 +5,9 @@ Device_Update_GNSS.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
-// Perform a factory reset
-//----------------------------------------
-void gnssFactoryReset()
-{
-}
-
-//----------------------------------------
 // Get the GNSS firmware version
 //----------------------------------------
-String gnssGetFirmwareVersion()
+String dfuGnssGetFirmwareVersion()
 {
     return String(gnssFirmwareVersion);
 }
@@ -22,7 +15,7 @@ String gnssGetFirmwareVersion()
 //----------------------------------------
 // Initialize the GNSS UART
 //----------------------------------------
-void gnssUartInit(int uartNumber)
+void dfuGnssUartInit(int uartNumber)
 {
     serialGNSS = new HardwareSerial(uartNumber);
     serialGNSS->setRxBufferSize(1024 * 2);

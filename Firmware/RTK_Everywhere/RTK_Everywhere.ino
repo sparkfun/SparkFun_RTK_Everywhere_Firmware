@@ -436,6 +436,8 @@ int packetRSSI;
 RTK_WIFI wifi(false); // wifi(false); is non-verbose. For verbose, change to wifi(true);
 #endif                // COMPILE_WIFI
 
+#define WIFI_IP_ADDRESS_TIMEOUT_MSEC (15 * MILLISECONDS_IN_A_SECOND)
+
 // WiFi Globals - For other module direct access
 WIFI_CHANNEL_t wifiChannel;     // Current WiFi channel number
 bool wifiEspNowOnline;          // ESP-NOW started successfully
@@ -658,8 +660,6 @@ unsigned long minSplashFor = 100; // Display SparkFun Logo for at least 1/10 of 
 int binCount;
 const int maxBinFiles = 10;
 char binFileNames[maxBinFiles][50];
-const char *forceFirmwareFileName =
-    "RTK_Everywhere_Firmware_Force.bin"; // File that will be loaded at startup regardless of user input
 int binBytesLastUpdate;                  // Allows websocket notification to be sent every 100k bytes
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -860,6 +860,12 @@ char *latestGPGST;
 char *latestGPVTG;
 const size_t latestEASessionDataMaxLen = 4001; // 1000 * 4 plus NULL
 char *latestEASessionData;
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+// Global variables
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#include "Device_Update.h"
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

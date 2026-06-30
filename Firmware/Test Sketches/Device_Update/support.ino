@@ -5,7 +5,7 @@ support.ino
 //----------------------------------------
 // Dynamically allocate a buffer
 //----------------------------------------
-bool bufferDynamicallyAllocate(BUFFER_DATA * bufferData)
+bool bufferDynamicallyAllocate(DFU_BUFFER_DATA * bufferData)
 {
     const char * description;
     bool dynamicAllocation;
@@ -33,7 +33,7 @@ bool bufferDynamicallyAllocate(BUFFER_DATA * bufferData)
 bool bufferExpand(int bufferIndex)
 {
     // Locate the buffer data
-    BUFFER_DATA * bufferData = bufferInfo[bufferIndex]._bufferData;
+    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
     uint8_t * newBuffer;
     size_t newLength;
 
@@ -41,7 +41,7 @@ bool bufferExpand(int bufferIndex)
     newLength = bufferData->_length + 2048;
 
     // Allocate the new buffer
-    newBuffer = (uint8_t *)rtkMalloc(newLength, bufferInfo[bufferIndex]._description);
+    newBuffer = (uint8_t *)rtkMalloc(newLength, dfuBufferInfo[bufferIndex]._description);
     if (newBuffer == nullptr)
     {
         systemPrintf("ERROR: Failed to allocate the new buffer of %d bytes!\r\n", newLength);
@@ -66,7 +66,7 @@ bool bufferExpand(int bufferIndex)
 //----------------------------------------
 // Free a dynamically allocated buffer
 //----------------------------------------
-void bufferFree(BUFFER_DATA * bufferData)
+void bufferFree(DFU_BUFFER_DATA * bufferData)
 {
     const char * description;
 
@@ -82,13 +82,13 @@ void bufferFree(BUFFER_DATA * bufferData)
 //----------------------------------------
 // Get the buffer description
 //----------------------------------------
-const char * bufferGetDescription(BUFFER_DATA * bufferData)
+const char * bufferGetDescription(DFU_BUFFER_DATA * bufferData)
 {
     // Walk the list of buffers
-    for (int index = 0; index < bufferInfoCount; index++)
+    for (int index = 0; index < dfuBufferInfoCount; index++)
     {
-        if (bufferData == bufferInfo[index]._bufferData)
-            return bufferInfo[index]._description;
+        if (bufferData == dfuBufferInfo[index]._bufferData)
+            return dfuBufferInfo[index]._description;
     }
 
     // Buffer not found
@@ -98,12 +98,12 @@ const char * bufferGetDescription(BUFFER_DATA * bufferData)
 //----------------------------------------
 // Get the buffer index
 //----------------------------------------
-int bufferGetIndex(BUFFER_DATA * bufferData)
+int bufferGetIndex(DFU_BUFFER_DATA * bufferData)
 {
     // Walk the list of buffers
-    for (int index = 0; index < bufferInfoCount; index++)
+    for (int index = 0; index < dfuBufferInfoCount; index++)
     {
-        if (bufferData == bufferInfo[index]._bufferData)
+        if (bufferData == dfuBufferInfo[index]._bufferData)
             return index;
     }
 
@@ -114,13 +114,13 @@ int bufferGetIndex(BUFFER_DATA * bufferData)
 //----------------------------------------
 // Get the buffer length
 //----------------------------------------
-size_t bufferGetLength(BUFFER_DATA * bufferData)
+size_t bufferGetLength(DFU_BUFFER_DATA * bufferData)
 {
     // Walk the list of buffers
-    for (int index = 0; index < bufferInfoCount; index++)
+    for (int index = 0; index < dfuBufferInfoCount; index++)
     {
-        if (bufferData == bufferInfo[index]._bufferData)
-            return bufferInfo[index]._sizeInBytes;
+        if (bufferData == dfuBufferInfo[index]._bufferData)
+            return dfuBufferInfo[index]._sizeInBytes;
     }
 
     // Buffer not found
@@ -132,7 +132,7 @@ size_t bufferGetLength(BUFFER_DATA * bufferData)
 //----------------------------------------
 bool bufferNameSortAllocate(int bufferIndex, int fileCount)
 {
-    BUFFER_DATA * bufferData = bufferInfo[bufferIndex]._bufferData;
+    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
     char * fileName;
     size_t length;
 
@@ -174,7 +174,7 @@ bool bufferNameSortAllocate(int bufferIndex, int fileCount)
 //----------------------------------------
 void bufferNameSortFree(int bufferIndex)
 {
-    BUFFER_DATA * bufferData = bufferInfo[bufferIndex]._bufferData;
+    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
 
     // Free nameArray
     if (bufferData->_nameArray != nullptr)
@@ -218,4 +218,29 @@ bool configureUart2(HardwareSerial ** hwSerialPort)
     serialPort->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
     *hwSerialPort = serialPort;
     return true;
+}
+
+//----------------------------------------
+// Count the application partitions
+//----------------------------------------
+int countAppPartitions()
+{
+    // Count app partitions
+    int appPartitions = 0;
+    esp_partition_iterator_t it = esp_partition_find(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, nullptr);
+    while (it != nullptr)
+    {
+        appPartitions++;
+        it = esp_partition_next(it);
+    }
+    return appPartitions;
+}
+
+//----------------------------------------
+// Discard any input data
+//----------------------------------------
+void serialInputClear()
+{
+    while (Serial.available())
+        Serial.read();
 }

@@ -11,7 +11,6 @@ Wifi.ino
 //****************************************
 
 #define WIFI_DEFAULT_CHANNEL 1
-#define WIFI_IP_ADDRESS_TIMEOUT_MSEC (15 * MILLISECONDS_IN_A_SECOND)
 #define WIFI_CONNECTION_STABLE_MSEC (15 * MILLISECONDS_IN_A_MINUTE)
 
 static const char *wifiAuthorizationName[] = {
@@ -869,6 +868,14 @@ const char *wifiStationGetStateName(uint8_t state)
     if (state < wifiStationStateNameEntries)
         return wifiStationStateName[state];
     return "Unknown WiFi Station state";
+}
+
+//*********************************************************************
+// Determine if at least one set of remote access point credentials
+// (SSID, password) are available
+bool wifiStationIsSsidSet()
+{
+    return wifiStationSsidSet;
 }
 
 //*********************************************************************

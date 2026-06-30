@@ -1,5 +1,5 @@
 /*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-Support.ino
+support.ino
 
   Helper functions to support printing to either the serial port or bluetooth connection
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
@@ -1328,4 +1328,29 @@ const char *printMinuteSecondFromMilliseconds(uint32_t msToConvert)
     snprintf(theTime, sizeof(theTime), "%01d:%02d", minutes, seconds);
 
     return (const char *)theTime;
+}
+
+//----------------------------------------
+// Count the application partitions
+//----------------------------------------
+int countAppPartitions()
+{
+    // Count app partitions
+    int appPartitions = 0;
+    esp_partition_iterator_t it = esp_partition_find(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, nullptr);
+    while (it != nullptr)
+    {
+        appPartitions++;
+        it = esp_partition_next(it);
+    }
+    return appPartitions;
+}
+
+//----------------------------------------
+// Discard any input data
+//----------------------------------------
+void serialInputClear()
+{
+    while (Serial.available())
+        Serial.read();
 }

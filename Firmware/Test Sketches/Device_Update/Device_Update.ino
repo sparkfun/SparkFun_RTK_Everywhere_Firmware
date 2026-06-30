@@ -18,6 +18,7 @@ Device_Update.ino
 #include <Wire.h> //Built-in
 
 #include "settings.h"
+#include "Device_Update.h"
 #include "Work_Arounds.h"
 #include "Secrets.h"
 
@@ -71,7 +72,6 @@ uint8_t wifiMACAddress[6];     // Display this address in the system menu
 uint8_t btMACAddress[6];       // Display this address when Bluetooth is enabled, otherwise display wifiMACAddress
 uint8_t ethernetMACAddress[6]; // Display this address when Ethernet is enabled, otherwise display wifiMACAddress
 WiFiMulti wifiMulti;
-bool wifiStationSsidSet;
 
 //----------------------------------------
 // Tilt support
@@ -83,82 +83,46 @@ String tiltFirmwareVersion;    // First IM19 version message
 // Device firmware descriptions
 //----------------------------------------
 
-const char * dashes = "--------------------------------------------------------------------------------";
-
-const char * pfdGithub = "https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries";
-const char * pfdRawHead = "/raw/refs/heads/main";
-const char * pfdTree = "},\"tree";
-const char * pfdFileTree = ":{\"fileTree\":{\"";
-const char * pfdItems = "\":{\"items\":[";
-const char * pfdListEnd = "]";
-const char * pfdName = "\"name\":\"";
-const char * pfdNameEnd = "\"";
-
- // File that will be loaded at startup regardless of user input
-const char *forceFirmwareFileName = "RTK_Everywhere_Firmware_Force.bin";
-
 // IM19 declarations
 #ifdef  COMPILE_IM19_IMU
-#define IM19_MAX_PAYLOAD_SIZE           256
-#define IM19_BYTES                      (12 + IM19_MAX_PAYLOAD_SIZE)
+#define DFU_IM19_MAX_PAYLOAD_SIZE       256
+#define DFU_IM19_BYTES                  (12 + DFU_IM19_MAX_PAYLOAD_SIZE)
 
-typedef struct _IM19_CTX
+typedef struct _DFU_IM19_CTX
 {
     uint32_t _txDoneMsec;       // Time when transmit completed
     uint32_t _txDelayMsec;      // Delay before next transmit
-} IM19_CTX;
+} DFU_IM19_CTX;
 
-uint8_t * tiltSaveData;
-size_t tiltSaveDataOffset;
-const size_t tiltSaveDataLength = 1 * 1024 * 1024;
+uint8_t * dfuSaveData;
+size_t dfuSaveDataOffset;
+const size_t dfuSaveDataLength = 1 * 1024 * 1024;
 #endif  // COMPILE_IM19_IMU
 
 // LG290P declarations
 #ifdef  COMPILE_LG290P
-#define LG290P_MAX_PAYLOAD_SIZE         (5 * 1024)
-#define LG290P_BYTES                    (1 + 1 + 1 + 2 + 4 + LG290P_MAX_PAYLOAD_SIZE + 4 + 1)
+#define DFU_LG290P_MAX_PAYLOAD_SIZE     (5 * 1024)
+#define DFU_LG290P_BYTES                (1 + 1 + 1 + 2 + 4 + DFU_LG290P_MAX_PAYLOAD_SIZE + 4 + 1)
 #endif  //COMPILE_LG290P
 
 // Note: Use the JSON based OTA to get a new ESP32 image when the
 // parsing fails due to website changes on the servers below!
 const DEVICE_FIRMWARE_INFO deviceFirmwareInfo[] =
-{//  Name           present                 Directory                   NameData        Extension  Firmware version         Reset               Open                Write               Close           CRC     useNvm  Context Bytes       Buffer Bytes    Max Write Bytes             Server     Branch      dPrefix1     dPrefix2  dirEnd      nPrefix  nameEnd     Raw Branch
-    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", esp32FirmwareVersion,    nullptr,            esp32Open,          esp32Write,         esp32Close,     false,  false,  0,                  0,              0,                          pfdGithub, nullptr,    pfdTree,     pfdItems, pfdListEnd, pfdName, pfdNameEnd, pfdRawHead},
+{//  Name           present                 Directory                   NameData        Extension  Firmware version             Reset               Open                Write               Close           CRC     useNvm  Context Bytes           Buffer Bytes        Max Write Bytes                 Server     Branch      dPrefix1     dPrefix2  dirEnd      nPrefix  nameEnd     Raw Branch
+    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", dfuEsp32FirmwareVersion,     nullptr,            dfuEsp32Open,       dfuEsp32Write,      dfuEsp32Close,  false,  false,  0,                      0,                  0,                              dfuGithub, nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
     // ESP32 must be the first entry in the list, p command does list in reverse
 
     // GNSS devices
 #ifdef  COMPILE_LG290P
-    {"LG290P",      &present.gnss_lg290p,   "/gnss/lg290p",             "LG290P",          ".pkg", gnssGetFirmwareVersion,  lg290pReset,        lg290pOpen,         lg290pWrite,        lg290pClose,    true,   false,  0,                  LG290P_BYTES,   LG290P_MAX_PAYLOAD_SIZE,    pfdGithub, pfdRawHead, pfdFileTree, pfdItems, pfdListEnd, pfdName, pfdNameEnd, pfdRawHead},
+    {"LG290P",      &present.gnss_lg290p,   "/gnss/lg290p",             "LG290P",          ".pkg", dfuGnssGetFirmwareVersion,   dfuLg290pReset,     dfuLg290pOpen,      dfuLg290pWrite,     dfuLg290pClose, true,   false,  0,                      DFU_LG290P_BYTES,   DFU_LG290P_MAX_PAYLOAD_SIZE,    dfuGithub, dfuRawHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
 #endif  // COMPILE_LG290P
 
     // Tilt sensors
 #ifdef  COMPILE_IM19_IMU
-    {"IM19",        &present.imu_im19,      "/imu/im19",                "_VH2_B",          ".enc", tiltGetFirmwareVersion,  im19Reset,          im19Open,           im19Write,          im19Close,      false,  true,   sizeof(IM19_CTX),   IM19_BYTES,     IM19_MAX_PAYLOAD_SIZE,      pfdGithub, pfdRawHead, pfdFileTree, pfdItems, pfdListEnd, pfdName, pfdNameEnd, pfdRawHead},
+    {"IM19",        &present.imu_im19,      "/imu/im19",                "_VH2_B",          ".enc", tiltGetFirmwareVersion,      dfuIm19Reset,       dfuIm19Open,        dfuIm19Write,       dfuIm19Close,   false,  true,   sizeof(DFU_IM19_CTX),   DFU_IM19_BYTES,     DFU_IM19_MAX_PAYLOAD_SIZE,      dfuGithub, dfuRawHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
 #endif  // COMPILE_IM19_IMU
 };
 const int deviceFirmwareInfoCount = sizeof(deviceFirmwareInfo) / sizeof(deviceFirmwareInfo[0]);
-
-DEVICE_FIRMWARE_CTX * deviceFirmwareContext;
-
-//----------------------------------------
-// Statically allocated buffers
-//----------------------------------------
-
-BUFFER_DATA firmwareData;
-BUFFER_DATA firmwareFileNamesNet;
-BUFFER_DATA firmwareFileNamesNvm;
-BUFFER_DATA firmwareFileNamesSd;
-
-// Allocate buffer when (_present == nullptr) or (*_present == true)
-// Delayed allocations must be detected by code using the buffer
-const BUFFER_INFO bufferInfo[] =
-{ // _present           _sizeInBytes    _address                _description
-    {nullptr,            16 * 1024,     &firmwareData,          "Firmware download area"},
-    {nullptr,             4 * 1024,     &firmwareFileNamesNet,  "Firmware network file names"},
-    {nullptr,             4 * 1024,     &firmwareFileNamesNvm,  "Firmware NVM file names"},
-    {&present.microSd,    4 * 1024,     &firmwareFileNamesSd,   "Firmware SD card file names"},
-};
-const int bufferInfoCount = sizeof(bufferInfo) / sizeof(bufferInfo[0]);
 
 //----------------------------------------
 // Test sketch entry point
@@ -192,12 +156,11 @@ void setup()
 //----------------------------------------
 void loop()
 {
-    DEVICE_FIRMWARE_CTX * ctx;
     uint8_t incoming;
     static bool menuDisplayed;
+    static bool deviceUpdateRunning;
 
-    ctx = deviceFirmwareContext;
-    if (ctx == nullptr)
+    if (deviceUpdateRunning == false)
     {
         // Display the menu
         if (menuDisplayed == false)
@@ -228,7 +191,7 @@ void loop()
             if ((incoming == 'd') || (incoming == 'p'))
             {
                 inMainMenu = false;
-                deviceFirmwareUpdateBegin(incoming == 'p');
+                deviceUpdateRunning = deviceFirmwareUpdateBegin(incoming == 'p');
             }
             else if (incoming == 't')
             {
@@ -244,11 +207,14 @@ void loop()
     }
 
     // Perform the device firmware update
-    if (ctx)
+    if (deviceUpdateRunning)
     {
         // Perform the firmware update
-        if (deviceFirmwareUpdate(ctx, millis()) == false)
+        if (deviceFirmwareUpdate(millis()) == false)
+        {
             // Done doing firmware updates, display the menu again
             menuDisplayed = false;
+            deviceUpdateRunning = false;
+        }
     }
 }

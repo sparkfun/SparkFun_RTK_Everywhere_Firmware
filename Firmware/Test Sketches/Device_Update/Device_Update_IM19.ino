@@ -9,7 +9,7 @@ Device_Update_IM19.ino
 //----------------------------------------
 // Finish writing the IM19 firmware
 //----------------------------------------
-void im19Close(DEVICE_FIRMWARE_CTX * ctx)
+void dfuIm19Close(DEVICE_FIRMWARE_CTX * ctx)
 {
     uint32_t milliseconds;
     bool result;
@@ -21,10 +21,10 @@ void im19Close(DEVICE_FIRMWARE_CTX * ctx)
     {
         if (ctx->_complete)
         {
-tiltSaveData = (uint8_t *)rtkMalloc(tiltSaveDataLength, "Save data");
-tiltSaveDataOffset = 0;
+dfuSaveData = (uint8_t *)rtkMalloc(dfuSaveDataLength, "Save data");
+dfuSaveDataOffset = 0;
             // Tell the IM19 that the firmware download is complete
-            if (im19CmdEndOfFirmware(ctx->_writeBuffer) == false)
+            if (dfuIm19CmdEndOfFirmware(ctx->_writeBuffer) == false)
             {
                 systemPrintf("ERROR: Failed to send end-of-firmware\r\n");
                 break;
@@ -37,11 +37,11 @@ tiltSaveDataOffset = 0;
 /*
             // Wait for the IM19 to acknowledge the firmware completion
             result = im19WaitForEndOfFirmwareResponse(1 * MILLISECONDS_IN_A_SECOND);
-if (tiltSaveData)
+if (dfuSaveData)
 {
 systemPrintf("After end-of-firmware\r\n");
-dumpBuffer(0, tiltSaveData, tiltSaveDataOffset);
-tiltSaveDataOffset = 0;
+dumpBuffer(0, dfuSaveData, dfuSaveDataOffset);
+dfuSaveDataOffset = 0;
 }
             if (result == false)
             {
@@ -67,11 +67,11 @@ tiltSaveDataOffset = 0;
 //            while ((millis() - startMsec) < timeoutMsec)
 //                delay(1);
             result = tiltIm19WaitForOkResponse(timeoutMsec);
-if (tiltSaveData)
+if (dfuSaveData)
 {
 systemPrintf("After end-of-transmission\r\n");
-dumpBuffer(0, tiltSaveData, tiltSaveDataOffset);
-tiltSaveDataOffset = 0;
+dumpBuffer(0, dfuSaveData, dfuSaveDataOffset);
+dfuSaveDataOffset = 0;
 }
             if (result == false)
             {
@@ -84,10 +84,10 @@ tiltSaveDataOffset = 0;
                 systemPrintf("%s\r\n", tiltGetFirmwareVersion().c_str());
         }
     } while (0);
-if (tiltSaveData)
+if (dfuSaveData)
 {
-rtkFree(tiltSaveData, "Save data");
-tiltSaveData = nullptr;
+rtkFree(dfuSaveData, "Save data");
+dfuSaveData = nullptr;
 }
 
     // The firmware update failed
@@ -98,7 +98,7 @@ tiltSaveData = nullptr;
 //----------------------------------------
 // Enter the bootloader and display the version number
 //----------------------------------------
-bool im19CmdAppUpdate()
+bool dfuIm19CmdAppUpdate()
 {
     size_t bytesWritten;
     uint32_t startMsec;
@@ -125,7 +125,7 @@ bool im19CmdAppUpdate()
 //----------------------------------------
 // IM19 end of firmware command
 //----------------------------------------
-bool im19CmdEndOfFirmware(uint8_t * writeBuffer)
+bool dfuIm19CmdEndOfFirmware(uint8_t * writeBuffer)
 {
     ssize_t bytesWritten;
     size_t offset;
@@ -145,12 +145,12 @@ bool im19CmdEndOfFirmware(uint8_t * writeBuffer)
     writeBuffer[9] = 0xff;
     writeBuffer[10] = 0xff;
     writeBuffer[11] = 0xff;
-    memset(&writeBuffer[12], 0, IM19_MAX_PAYLOAD_SIZE);
+    memset(&writeBuffer[12], 0, DFU_IM19_MAX_PAYLOAD_SIZE);
 
     // Send the firmware packet
 systemPrintf("Sending end-of-firmware\r\n");
-dumpBuffer(0, writeBuffer, IM19_BYTES);
-    bytesWritten = SerialForTilt->write(writeBuffer, IM19_BYTES);
+dumpBuffer(0, writeBuffer, DFU_IM19_BYTES);
+    bytesWritten = SerialForTilt->write(writeBuffer, DFU_IM19_BYTES);
 
     // Delay before sending the next packet
     timeoutMsec = 50;
@@ -158,21 +158,21 @@ dumpBuffer(0, writeBuffer, IM19_BYTES);
     while ((millis() - startMsec) < timeoutMsec);
 
     // Handle the error cases
-    return (bytesWritten == IM19_BYTES);
+    return (bytesWritten == DFU_IM19_BYTES);
 }
 
 //----------------------------------------
 // IM19 open
 //----------------------------------------
-bool im19Open(DEVICE_FIRMWARE_CTX * ctx)
+bool dfuIm19Open(DEVICE_FIRMWARE_CTX * ctx)
 {
-    return im19CmdAppUpdate();
+    return dfuIm19CmdAppUpdate();
 }
 
 //----------------------------------------
 // IM19 firmware reset
 //----------------------------------------
-bool im19Reset(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+bool dfuIm19Reset(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     return tiltIm19Reset();
 }
@@ -180,9 +180,9 @@ bool im19Reset(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 //----------------------------------------
 // IM19 firmware write
 //----------------------------------------
-ssize_t im19Write(DEVICE_FIRMWARE_CTX * ctx,
-                  uint8_t * buffer,
-                  size_t bytesToWrite)
+ssize_t dfuIm19Write(DEVICE_FIRMWARE_CTX * ctx,
+                     uint8_t * buffer,
+                     size_t bytesToWrite)
 {
     ssize_t bytesWritten;
     uint32_t checksum;
@@ -205,20 +205,20 @@ ssize_t im19Write(DEVICE_FIRMWARE_CTX * ctx,
     writeBuffer[10] = (uint8_t)(ctx->_packetNumber >> 16);
     writeBuffer[11] = (uint8_t)(ctx->_packetNumber >> 24);
     memcpy(&writeBuffer[12], buffer, bytesToWrite);
-    if (bytesToWrite < IM19_MAX_PAYLOAD_SIZE)
-        memset(&writeBuffer[12 + bytesToWrite], 0xff, IM19_MAX_PAYLOAD_SIZE - bytesToWrite);
+    if (bytesToWrite < DFU_IM19_MAX_PAYLOAD_SIZE)
+        memset(&writeBuffer[12 + bytesToWrite], 0xff, DFU_IM19_MAX_PAYLOAD_SIZE - bytesToWrite);
 
     // Compute the checksum
     checksum = 0;
-    for (int index = 0; index < IM19_BYTES; index++)
+    for (int index = 0; index < DFU_IM19_BYTES; index++)
         checksum += writeBuffer[index];
     *(uint32_t *)&writeBuffer[4] = checksum;
 
     // Send the firmware packet
-    bytesWritten = SerialForTilt->write(writeBuffer, IM19_BYTES);
+    bytesWritten = SerialForTilt->write(writeBuffer, DFU_IM19_BYTES);
 
     // Handle the error cases
-    if (bytesWritten < IM19_BYTES)
+    if (bytesWritten < DFU_IM19_BYTES)
         return -1;
 
     // Account for this packet
