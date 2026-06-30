@@ -201,6 +201,14 @@ void deviceFirmwareCleanup(DEVICE_FIRMWARE_CTX * ctx)
         networkConsumerRemove(NETCONSUMER_DEVICE_OTA, NETWORK_ANY, __FILE__, __LINE__);
     }
 
+    // Done with the save data buffer
+    if (ctx->_saveData)
+    {
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("Freeing ctx->_saveData, %d bytes\r\n", ctx->_saveDataLength);
+        rtkFree(ctx->_saveData, "DFU: ctx->_saveData");
+    }
+
     // Done with the context
     if (settings.debugFirmwareUpdate)
         systemPrintf("Freeing device firmware update context, %d bytes\r\n", sizeof(*ctx));
@@ -1592,7 +1600,9 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
 //----------------------------------------
 // State machine to perform the device firmware update
 //----------------------------------------
-bool deviceFirmwareUpdateBegin(bool doAll, bool debugVerbose)
+bool deviceFirmwareUpdateBegin(bool doAll,
+                               bool debugVerbose,
+                               size_t saveDataLength)
 {
     DEVICE_FIRMWARE_CTX * ctx;
     uint32_t currentMsec;
@@ -1633,6 +1643,23 @@ bool deviceFirmwareUpdateBegin(bool doAll, bool debugVerbose)
         {
             ctx->_outputDeviceType = DFU_ODT_DEVICE;
             ctx->_reboot = true;
+        }
+
+        // Allocate the save data buffer
+        if (debugVerbose && saveDataLength)
+        {
+            length = saveDataLength;
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("Allocating %d bytes for _saveData\r\n", length);
+            ctx->_saveData = (uint8_t *)rtkMalloc(length, "DFU: ctx->_saveData");
+            if (ctx->_saveData == nullptr)
+            {
+                systemPrintf("ERROR: Failed to allocate ctx->_saveData of %d bytes\r\n", length);
+                rtkFree(ctx, "Device firmware context");
+                reportHeapNow(true);
+                break;
+            }
+            ctx->_saveDataLength = length;
         }
 
         // Set the initial state

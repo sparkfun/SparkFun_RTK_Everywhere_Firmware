@@ -109,6 +109,10 @@ typedef struct _DEVICE_FIRMWARE_CTX
     size_t _bytesWritten;               // Number of bytes written to the output device
     uint32_t _packetNumber;             // Current firmware packet number
 
+    // Verbose debug buffer
+    uint8_t * _saveData;                // Buffer to receive input data from device
+    size_t _saveDataLength;             // Size in bytes of the save buffer
+
     // Status values
     uint32_t _attemptNumber;            // Number of attempts
     uint32_t _lastBlinkMsec;            // Blinking LED to indicate activity
@@ -277,7 +281,7 @@ const int dfuBufferInfoCount = sizeof(dfuBufferInfo) / sizeof(dfuBufferInfo[0]);
 #endif  //COMPILE_LG290P
 
 //----------------------------------------
-// Declare the device support routines
+// Declare the forward device support routines
 //----------------------------------------
 
 // Get firmware version
@@ -302,6 +306,11 @@ ssize_t dfuLg290pWrite(DEVICE_FIRMWARE_CTX * ctx,
 // Device close, finalize the firmware update
 void dfuEsp32Close(DEVICE_FIRMWARE_CTX * ctx);
 void dfuLg290pClose(DEVICE_FIRMWARE_CTX * ctx);
+
+// Declare the begin routine
+bool deviceFirmwareUpdateBegin(bool doAll,
+                               bool debugVerbose,
+                               size_t saveDataLength = 8 * 1024);
 
 //----------------------------------------
 // Describe the devices that support firmware update
