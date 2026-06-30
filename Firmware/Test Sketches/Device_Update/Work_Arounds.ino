@@ -18,6 +18,13 @@ void bluetoothLedBlink()
 }
 
 //----------------------------------------
+// Turn off BlueTooth
+//----------------------------------------
+void bluetoothEnd()
+{
+}
+
+//----------------------------------------
 // Update the display
 //----------------------------------------
 void displayFirmwareUpdateProgress(int percentComplete)
@@ -326,12 +333,33 @@ void rtkValidateHeap(const char *string)
 }
 
 //----------------------------------------
+// Stop the tasks
+//----------------------------------------
+void tasksStopGnssUart()
+{
+}
+
+//----------------------------------------
+// Turn off WiFi ESP-NOW
+//----------------------------------------
+void wifiEspNowOff(const char * file, int lineNumber)
+{
+}
+
+//----------------------------------------
 // Determine if at least one set of remote access point credentials
 // (SSID, password) are available
 //----------------------------------------
 bool wifiStationIsSsidSet()
 {
     return wifiStationSsidSet;
+}
+
+//----------------------------------------
+// Turn off WiFi
+//----------------------------------------
+void wifiStopAll()
+{
 }
 
 //----------------------------------------

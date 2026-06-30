@@ -91,29 +91,4 @@ struct struct_online
     bool microSD = false;
 } online;
 
-bool dfuIm19Reset(struct _DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
-bool dfuLg290pReset(struct _DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
-
-String dfuEsp32FirmwareVersion();
-String dfuGnssGetFirmwareVersion();
-String tiltGetFirmwareVersion();
-
-bool dfuEsp32Open(struct _DEVICE_FIRMWARE_CTX * ctx);
-bool dfuIm19Open(struct _DEVICE_FIRMWARE_CTX * ctx);
-bool dfuLg290pOpen(struct _DEVICE_FIRMWARE_CTX * ctx);
-
-ssize_t dfuEsp32Write(struct _DEVICE_FIRMWARE_CTX * ctx,
-                      uint8_t * buffer,
-                      size_t bytesToWrite);
-ssize_t dfuIm19Write(struct _DEVICE_FIRMWARE_CTX * ctx,
-                     uint8_t * buffer,
-                     size_t bytesToWrite);
-ssize_t dfuLg290pWrite(struct _DEVICE_FIRMWARE_CTX * ctx,
-                       uint8_t * buffer,
-                       size_t bytesToWrite);
-
-void dfuEsp32Close(struct _DEVICE_FIRMWARE_CTX * ctx);
-void dfuIm19Close(struct _DEVICE_FIRMWARE_CTX * ctx);
-void dfuLg290pClose(struct _DEVICE_FIRMWARE_CTX * ctx);
-
 #endif  // __SETTINGS_H__

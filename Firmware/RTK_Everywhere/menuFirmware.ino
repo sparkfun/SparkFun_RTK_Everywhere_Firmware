@@ -50,6 +50,9 @@ bool newOTAFirmwareAvailable = false;
 //----------------------------------------
 void firmwareMenu()
 {
+    bool debugVerbose;
+
+    debugVerbose = false;
     while (1)
     {
         systemPrintln();
@@ -60,7 +63,15 @@ void firmwareMenu()
         systemPrintf("Current firmware: %s\r\n", currentVersion);
 
         // Display the OTA portion of the menu
+        // Note: Use otaMenuDisplay to get a new ESP32 image when the parsing
+        // fails in deviceFirmwareUpdate due to server website changes!
+        // Letters: a  c  e  i  r  s  u
         otaMenuDisplay(currentVersion);
+        systemPrintf("d) Single device firmware update\r\n");
+        systemPrintf("p) Program all firmware updates\r\n");
+        systemPrintf("t) %s firmware debugging\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("v) %s verbose firmware debugging\r\n", debugVerbose ? "Disable" : "Enable");
 
         for (int x = 0; x < binCount; x++)
             systemPrintf("%d) Load SD file: %s\r\n", x + 1, binFileNames[x]);
@@ -76,9 +87,34 @@ void firmwareMenu()
             microSDUpdateFirmware(binFileNames[incoming]);
         }
 
+        // Note: Use otaMenuProcessInput to get a new ESP32 image when the
+        // parsing fails in deviceFirmwareUpdate due to server website
+        // changes!
         else if (otaMenuProcessInput(incoming))
         {
         }
+
+        // Perform the device firmware update
+        else if ((incoming == 'd') || (incoming == 'p'))
+        {
+            deviceFirmwareUpdateBegin(incoming == 'p', debugVerbose);
+            while (deviceFirmwareUpdate(millis()))
+            {
+                networkUpdate();
+            }
+        }
+
+        // Toggle firmware debugging
+        else if (incoming == 't')
+        {
+            settings.debugFirmwareUpdate ^= 1;
+            if (settings.debugFirmwareUpdate == false)
+                debugVerbose = false;
+        }
+
+        // Toggle verbose firmware debugging
+        else if (settings.debugFirmwareUpdate && (incoming == 'v'))
+            debugVerbose ^= 1;
 
         else if (incoming == 'x')
             break;

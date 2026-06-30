@@ -1024,7 +1024,7 @@ int loraFirmwareVersionInt = 0;
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 50
+#define MAX_BOOT_TIME_ENTRIES 51
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1363,6 +1363,9 @@ void setup()
 
     DMW_b("beginPsram");
     beginPsram(); // Initialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
+
+    DMW_b("beginBuffers");
+    beginBuffers(); // Allocate permanent buffers from PSRAM
 
     DMW_b("beginMux");
     beginMux(); // Must come before I2C activity to avoid external devices from corrupting the bus. See issue 474

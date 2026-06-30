@@ -726,6 +726,64 @@ void beginBoard()
     }
 }
 
+// Initialize the allocate and forget PSRAM buffers
+void beginBuffers()
+{
+    // Display the memory use before buffer allocation
+    if (settings.debugMalloc)
+        reportHeapNow(true);
+
+    // Only allocate these buffers from PSRAM
+    if ((settings.enablePsram == false) || (ESP.getPsramSize() == 0))
+    {
+        systemPrintf("WARNING: PSRAM not available, delaying buffer allocation!\r\n");
+        systemPrintf("settings.enablePsram: %s\r\n", settings.enablePsram ? "true" : "false");
+        if (settings.debugMalloc == false)
+            reportHeapNow(true);
+        return;
+    }
+
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        uint8_t * address;
+        size_t length;
+
+        // Determine if this buffer will get used
+        if (dfuBufferInfo[index]._present && (*dfuBufferInfo[index]._present == false))
+            // Never used
+            continue;
+
+        // Determine if this buffer will be in PSRAM
+        length = dfuBufferInfo[index]._sizeInBytes;
+        dfuBufferInfo[index]._bufferData->_length = length;
+        if (length < settings.psramMallocLevel)
+        {
+            // No, allocation comes from RAM
+            systemPrintf("WARNING: Delaying allocation of %s from RAM\r\n",
+                         dfuBufferInfo[index]._description);
+            systemPrintf("%s: %d bytes < %d bytes for PSRAM allocation\r\n",
+                         dfuBufferInfo[index]._description, length, settings.psramMallocLevel);
+            continue;
+        }
+
+        // Allocate the buffer
+        address = (uint8_t *)rtkMalloc(length, dfuBufferInfo[index]._description);
+        dfuBufferInfo[index]._bufferData->_address = address;
+        if (address == nullptr)
+        {
+            systemPrintf("WARNING: PSRAM low, delay allocation for %s, %d bytes\r\n",
+                         dfuBufferInfo[index]._description, length);
+            if (settings.debugMalloc == false)
+                reportHeapNow(true);
+        }
+    }
+
+    // Display the memory use after buffer allocation
+    if (settings.debugMalloc)
+        reportHeapNow(true);
+}
+
 void beginVersion()
 {
     firmwareVersionGet(deviceFirmware, sizeof(deviceFirmware), false);
