@@ -188,7 +188,7 @@ typedef bool (* DEVICE_RESET)(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
 typedef ssize_t (* DEVICE_WRITE)(DEVICE_FIRMWARE_CTX * ctx,
                                  uint8_t * buffer,
                                  size_t bytesToWrite);
-typedef String (* GET_FIRMWARE_VERSION)();
+typedef String (* GET_FIRMWARE_VERSION)(DEVICE_FIRMWARE_CTX * ctx);
 
 //----------------------------------------
 // Describe a device that needs firmware updates
@@ -279,8 +279,8 @@ const int dfuBufferInfoCount = sizeof(dfuBufferInfo) / sizeof(dfuBufferInfo[0]);
 //----------------------------------------
 
 // Get firmware version
-String dfuEsp32FirmwareVersion();
-String dfuGnssGetFirmwareVersion();
+String dfuEsp32GetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx);
+String dfuGnssGetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx);
 
 // Device reset
 bool dfuLg290pReset(struct _DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
@@ -309,7 +309,7 @@ void dfuLg290pClose(struct _DEVICE_FIRMWARE_CTX * ctx);
 // parsing fails due to website changes on the servers below!
 const DEVICE_FIRMWARE_INFO deviceFirmwareInfo[] =
 {//  Name           present                 Directory                   NameData        Extension  Firmware version             Reset               Open                Write               Close           CRC     useNvm  Context Bytes           Buffer Bytes        Max Write Bytes                 Server     Branch      dPrefix1     dPrefix2  dirEnd      nPrefix  nameEnd     Raw Branch
-    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", dfuEsp32FirmwareVersion,     nullptr,            dfuEsp32Open,       dfuEsp32Write,      dfuEsp32Close,  false,  false,  0,                      0,                  0,                              dfuGithub, nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
+    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", dfuEsp32GetFirmwareVersion,  nullptr,            dfuEsp32Open,       dfuEsp32Write,      dfuEsp32Close,  false,  false,  0,                      0,                  0,                              dfuGithub, nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
     // ESP32 must be the first entry in the list, p command does list in reverse
 
     // GNSS devices

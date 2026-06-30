@@ -441,10 +441,14 @@ void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx)
     if (ctx->_doAll == false)
     {
         inMainMenu = true;
-        systemPrintf("\r\nFile List:\r\n");
+
+        // Display the firmware version
+        if (ctx->_deviceInfo->_version)
+            systemPrintf("\r\nCurrent firmware version: %s\r\n", ctx->_deviceInfo->_version(ctx).c_str());
 
         // Display the files
         offset = 0;
+        systemPrintf("\r\nFile List:\r\n");
         deviceFirmwareFileList(bufferGetIndex(&dfuFirmwareFileNamesNet),
                                ctx->_fileCountNet,
                                deviceFirmwareGetDevicePrefix(DFU_IDT_NETWORK),
@@ -1232,6 +1236,10 @@ void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                         if (deviceFirmwareBufferAllocate(ctx) == false)
                             reportFatalError("Failed buffer allocation!");
                     }
+
+                    // Display the firmware version
+                    if (ctx->_deviceInfo->_version)
+                        systemPrintf("Current firmware version: %s\r\n", ctx->_deviceInfo->_version(ctx).c_str());
 
                     // Program the next device
                     goto nextDevice;

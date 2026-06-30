@@ -7,7 +7,7 @@ Device_Update_GNSS.ino
 //----------------------------------------
 // Get the GNSS firmware version
 //----------------------------------------
-String dfuGnssGetFirmwareVersion()
+String dfuGnssGetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx)
 {
     return String(gnssFirmwareVersion);
 }
