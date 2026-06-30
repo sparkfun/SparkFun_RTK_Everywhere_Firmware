@@ -285,23 +285,23 @@ String dfuEsp32GetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx);
 String dfuGnssGetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx);
 
 // Device reset
-bool dfuLg290pReset(struct _DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
+bool dfuLg290pReset(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
 
 // Device open, prepare for writing firmware
-bool dfuEsp32Open(struct _DEVICE_FIRMWARE_CTX * ctx);
-bool dfuLg290pOpen(struct _DEVICE_FIRMWARE_CTX * ctx);
+bool dfuEsp32Open(DEVICE_FIRMWARE_CTX * ctx);
+bool dfuLg290pOpen(DEVICE_FIRMWARE_CTX * ctx);
 
 // Device write, perform the firmware update
-ssize_t dfuEsp32Write(struct _DEVICE_FIRMWARE_CTX * ctx,
+ssize_t dfuEsp32Write(DEVICE_FIRMWARE_CTX * ctx,
                       uint8_t * buffer,
                       size_t bytesToWrite);
-ssize_t dfuLg290pWrite(struct _DEVICE_FIRMWARE_CTX * ctx,
+ssize_t dfuLg290pWrite(DEVICE_FIRMWARE_CTX * ctx,
                        uint8_t * buffer,
                        size_t bytesToWrite);
 
 // Device close, finalize the firmware update
-void dfuEsp32Close(struct _DEVICE_FIRMWARE_CTX * ctx);
-void dfuLg290pClose(struct _DEVICE_FIRMWARE_CTX * ctx);
+void dfuEsp32Close(DEVICE_FIRMWARE_CTX * ctx);
+void dfuLg290pClose(DEVICE_FIRMWARE_CTX * ctx);
 
 //----------------------------------------
 // Describe the devices that support firmware update
