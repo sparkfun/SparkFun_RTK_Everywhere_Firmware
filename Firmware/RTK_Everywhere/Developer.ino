@@ -112,7 +112,7 @@ const char * wifiSoftApGetSsid()                {return "";}
 bool wifiSoftApOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiSoftApOn(const char * fileName, uint32_t lineNumber) {return false;}
 void wifiStationDisplayData()                   {}
-bool wifiStationIsSsidSet()                     {return false};
+bool wifiStationIsSsidSet()                     {return false;};
 bool wifiStationOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiStationOn(const char * fileName, uint32_t lineNumber) {return false;}
 void wifiStationUpdate()                        {}
@@ -160,6 +160,21 @@ void networkUserAdd(NETCONSUMER_t consumer, const char * fileName, uint32_t line
 void networkUserRemove(NETCONSUMER_t consumer, const char * fileName, uint32_t lineNumber) {}
 void networkValidateIndex(NetIndex_t index) {}
 void networkVerifyTables() {}
+
+//----------------------------------------
+// Device firmware update
+//----------------------------------------
+bool deviceFirmwareUpdate(uint32_t currentMsec) {return false;}
+bool deviceFirmwareUpdateBegin(bool doAll, bool debugVerbose, size_t saveDataLength) {return false;}
+void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx) {}
+void deviceFirmwareFileSort(int bufferIndex, int fileCount) {}
+void deviceFirmwareStateSet(DEVICE_FIRMWARE_CTX * ctx, int newState) {}
+
+//----------------------------------------
+// Device firmware update - network
+//----------------------------------------
+void dfuNetworkCleanup(DEVICE_FIRMWARE_CTX * ctx, DFU_BUFFER_DATA * bufferData) {}
+ssize_t dfuNetworkRead(DEVICE_FIRMWARE_CTX * ctx, uint8_t * buffer, size_t bytesToRead) {return 0;}
 
 #endif // COMPILE_NETWORK
 

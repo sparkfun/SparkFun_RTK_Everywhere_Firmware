@@ -69,7 +69,7 @@ void dfuEsp32Close(DEVICE_FIRMWARE_CTX * ctx)
 String dfuEsp32GetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx)
 {
     char version[128];
-    firmwareVersionGet(version, sizeof(version), true);
+    //firmwareVersionGet(version, sizeof(version), true);
     return String(version);
 }
 
