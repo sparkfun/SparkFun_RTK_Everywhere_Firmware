@@ -2414,6 +2414,10 @@ bool GNSS_LG290P::setMessagesRTCMBase()
     {
         for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
         {
+            // 1005, 1006, 1033, 107x to 113x can be set to 1-1200 fixes between reports
+            // 1019 to 1046, 1230 can only be set to 1 fix per report
+            // So we set all non-zero ephemeris to 1, and set PQTMCFGRTCM to the lowest value found
+
             // For ephemeris messages, capture the message with the lowest non-zero rate
             if (lgMessagesRTCM[messageNumber].msgIsEphemeris)
                 if (settings.lg290pMessageRatesRTCMBase[messageNumber] > 0 &&
@@ -2503,9 +2507,9 @@ bool GNSS_LG290P::setMessagesRTCMRover()
     {
         for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
         {
-            // 107x to 112x can be set to 1-1200 fixes between reports
-            // 1019 to 1046 can only be set to 1 fix per report
-            // So we set all ephemeris to 1, and set PQTMCFGRTCM to the lowest value found
+            // 1005, 1006, 1033, 107x to 113x can be set to 1-1200 fixes between reports
+            // 1019 to 1046, 1230 can only be set to 1 fix per report
+            // So we set all non-zero ephemeris to 1, and set PQTMCFGRTCM to the lowest value found
 
             // For ephemeris messages, capture the message with the lowest non-zero rate
             if (lgMessagesRTCM[messageNumber].msgIsEphemeris)
