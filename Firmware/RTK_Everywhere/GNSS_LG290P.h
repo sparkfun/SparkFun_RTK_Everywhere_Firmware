@@ -62,7 +62,7 @@ const lg290pMsg lgMessagesRTCM[] = {
     {"RTCM3-111X", 0, 1, 1200, false, 0},    //
     {"RTCM3-112X", 0, 1, 1200, false, 0},    //
     {"RTCM3-113X", 0, 1, 1200, false, 0},    //
-    {"RTCM3-1019", -1, 0, 7200, true, 0},      // Ephemeris: CFGRATE must be 0 or 1; CFGRTCM sets the interval 0-7200
+    {"RTCM3-1019", -1, 0, 7200, true, 0},      // Ephemeris: CFGMSGRATE must be 0 or 1; CFGRTCM sets the interval 0-7200
     {"RTCM3-1020", -1, 0, 7200, true, 0},      //
     {"RTCM3-1041", -1, 0, 7200, true, 0},      //
     {"RTCM3-1042", -1, 0, 7200, true, 0},      //
