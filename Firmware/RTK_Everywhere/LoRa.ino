@@ -94,8 +94,6 @@ static volatile uint8_t loraState = LORA_NOT_PRESENT;
 
 int loraBytesSent = 0;
 
-HardwareSerial *SerialForLoRa; // Don't instantiate until we know the platform. May compete with SerialForTilt.
-
 // Called from main loop
 // Control incoming/outgoing RTCM data from STM32 based LoRa radio (if supported by platform)
 void updateLora()
@@ -404,20 +402,7 @@ void beginLora()
         if (present.loraDedicatedUart == true)
         {
             // UART2 of the ESP32 is also used for Tilt module communication on the GNSS
-            // If Tilt is active we will use its serial port
-            if (SerialForTilt != nullptr)
-            {
-                SerialForLoRa = SerialForTilt; // SerialForTilt will be using UART2 (HardwareSerial(2))
-            }
-            else
-            {
-                if (SerialForLoRa == nullptr)
-                {
-                    SerialForLoRa = new HardwareSerial(2); // Use UART2 on the ESP32 to communicate with LoRa radio
-
-                    SerialForLoRa->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
-                }
-            }
+            beginUart2Serial();
         }
 
         // Store firmware version in char array
@@ -433,18 +418,6 @@ void loraStop()
             systemPrintln("Stopping LoRa");
 
         loraPowerOff(); // Power down STM32/radio
-
-        if (SerialForLoRa != nullptr)
-        {
-            // UART2 of the ESP32 is also used for Tilt module communication on the GNSS
-            // If Tilt is not active, then release the resources
-            if (SerialForTilt == nullptr)
-            {
-                delete SerialForLoRa;
-
-                SerialForLoRa = nullptr;
-            }
-        }
     }
 }
 
@@ -1303,13 +1276,9 @@ void loraRxDirectConnectFacetFP()
     // Push all data received on ESP32 UART2 out ESP32 UART0
 
     // We must use SerialForLoRa because loraAvailable checks SerialForLoRa->available
+    beginUart2Serial();
     if (SerialForLoRa == nullptr)
-        SerialForLoRa = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the LoRa radio
-
-    SerialForLoRa->setRxBufferSize(settings.uartReceiveBufferSize);
-    SerialForLoRa->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
-
-    SerialForLoRa->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX); // Keep this at 115200
+        return;
 
     loraPowerOn(); // Power STM32/radio
 
@@ -1479,13 +1448,9 @@ void loraTxDirectConnectFacetFP()
     // Push test data out on ESP32 UART1
 
     // We must use SerialForLoRa because loraAvailable  checks SerialForLoRa->available
+    beginUart2Serial();
     if (SerialForLoRa == nullptr)
-        SerialForLoRa = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the LoRa radio
-
-    SerialForLoRa->setRxBufferSize(settings.uartReceiveBufferSize);
-    SerialForLoRa->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
-
-    SerialForLoRa->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX); // Keep this at 115200
+        return;
 
     loraPowerOn(); // Power STM32/radio
 

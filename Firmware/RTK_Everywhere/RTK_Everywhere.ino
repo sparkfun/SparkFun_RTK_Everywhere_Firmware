@@ -435,6 +435,8 @@ int packetRSSI;
 RTK_WIFI wifi(false); // wifi(false); is non-verbose. For verbose, change to wifi(true);
 #endif                // COMPILE_WIFI
 
+#define WIFI_IP_ADDRESS_TIMEOUT_MSEC (15 * MILLISECONDS_IN_A_SECOND)
+
 // WiFi Globals - For other module direct access
 WIFI_CHANNEL_t wifiChannel;     // Current WiFi channel number
 bool wifiEspNowOnline;          // ESP-NOW started successfully
@@ -662,8 +664,6 @@ unsigned long minSplashFor = 100; // Display SparkFun Logo for at least 1/10 of 
 int binCount;
 const int maxBinFiles = 10;
 char binFileNames[maxBinFiles][50];
-const char *forceFirmwareFileName =
-    "RTK_Everywhere_Firmware_Force.bin"; // File that will be loaded at startup regardless of user input
 int binBytesLastUpdate;                  // Allows websocket notification to be sent every 100k bytes
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -781,14 +781,19 @@ static NetPriority_t networkPriorityForDisplay = NETWORK_NONE; // Reduce calls t
 #ifdef COMPILE_IM19_IMU
 #include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU
 IM19 *tiltSensor;
-HardwareSerial *SerialForTilt; // Don't instantiate until we know the tilt sensor exists
 unsigned long lastTiltCheck;   // Limits polling on IM19 to 1Hz
 bool tiltFailedBegin;          // Goes true if IMU fails beginTilt()
 unsigned long lastTiltBeepMs;  // Emit a beep every 10s if tilt is active
-int imuAppVersionInt;
-char imuFirmwareVersion[32]; // Ex: IM19_H2_B2.2_A11.4.1
-
 #endif                         // COMPILE_IM19_IMU
+
+int imuAppVersionInt;
+char imuFirmwareVersion[32];    // Ex: IM19_H2_B2.2_A11.4.1
+
+HardwareSerial * uart2Serial;   // Shared serial port between LoRa and Tilt
+
+#define SerialForLoRa           uart2Serial
+#define SerialForTilt           uart2Serial
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // PointPerfect Library (PPL)
@@ -859,6 +864,12 @@ char *latestGPGST;
 char *latestGPVTG;
 const size_t latestEASessionDataMaxLen = 4001; // 1000 * 4 plus NULL
 char *latestEASessionData;
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+// Global variables
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#include "Device_Update.h"
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -1017,7 +1028,7 @@ int loraFirmwareVersionInt = 0;
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 50
+#define MAX_BOOT_TIME_ENTRIES 51
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1356,6 +1367,9 @@ void setup()
 
     DMW_b("beginPsram");
     beginPsram(); // Initialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
+
+    DMW_b("beginBuffers");
+    beginBuffers(); // Allocate permanent buffers from PSRAM
 
     DMW_b("beginMux");
     beginMux(); // Must come before I2C activity to avoid external devices from corrupting the bus. See issue 474

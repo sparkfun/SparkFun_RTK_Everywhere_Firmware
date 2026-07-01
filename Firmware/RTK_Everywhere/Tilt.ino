@@ -302,15 +302,11 @@ void beginTilt()
 {
     // Use UART2 on the ESP32 to receive IMU corrections
     // Shown as UART2 on these schematics: Torch, Facet FP
-    tiltSensor = new IM19();
+    beginUart2Serial();
     if (SerialForTilt == nullptr)
-        SerialForTilt = new HardwareSerial(2);
+      return;
 
-    SerialForTilt->setRxBufferSize(1024 * 1);
-
-    // We must start the serial port before handing it over to the library
-    SerialForTilt->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
-
+    tiltSensor = new IM19();
     if (settings.enableImuDebug == true)
         tiltSensor->enableDebugging(); // Print all debug to Serial
 
@@ -414,12 +410,6 @@ void beginTilt()
 // Stops serial inteface. Marks tilt offline.
 void tiltStop()
 {
-    // Gracefully stop the UART before freeing resources
-    while (SerialForTilt->available())
-        SerialForTilt->read();
-
-    SerialForTilt->end();
-
     // Free the resources
     if (tiltSensor != nullptr)
     {
@@ -427,11 +417,9 @@ void tiltStop()
         tiltSensor = nullptr;
     }
 
-    if (SerialForTilt != nullptr)
-    {
-        delete SerialForTilt;
-        SerialForTilt = nullptr;
-    }
+    // Gracefully stop the UART before freeing resources
+    while (SerialForTilt->available())
+        SerialForTilt->read();
 
     // Beep to indicate we are going offline - but only from tiltRequestStop
     if (tiltState == TILT_REQUEST_STOP)

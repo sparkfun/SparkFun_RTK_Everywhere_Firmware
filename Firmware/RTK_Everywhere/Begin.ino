@@ -726,6 +726,64 @@ void beginBoard()
     }
 }
 
+// Initialize the allocate and forget PSRAM buffers
+void beginBuffers()
+{
+    // Display the memory use before buffer allocation
+    if (settings.debugMalloc)
+        reportHeapNow(true);
+
+    // Only allocate these buffers from PSRAM
+    if ((settings.enablePsram == false) || (ESP.getPsramSize() == 0))
+    {
+        systemPrintf("WARNING: PSRAM not available, delaying buffer allocation!\r\n");
+        systemPrintf("settings.enablePsram: %s\r\n", settings.enablePsram ? "true" : "false");
+        if (settings.debugMalloc == false)
+            reportHeapNow(true);
+        return;
+    }
+
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        uint8_t * address;
+        size_t length;
+
+        // Determine if this buffer will get used
+        if (dfuBufferInfo[index]._present && (*dfuBufferInfo[index]._present == false))
+            // Never used
+            continue;
+
+        // Determine if this buffer will be in PSRAM
+        length = dfuBufferInfo[index]._sizeInBytes;
+        dfuBufferInfo[index]._bufferData->_length = length;
+        if (length < settings.psramMallocLevel)
+        {
+            // No, allocation comes from RAM
+            systemPrintf("WARNING: Delaying allocation of %s from RAM\r\n",
+                         dfuBufferInfo[index]._description);
+            systemPrintf("%s: %d bytes < %d bytes for PSRAM allocation\r\n",
+                         dfuBufferInfo[index]._description, length, settings.psramMallocLevel);
+            continue;
+        }
+
+        // Allocate the buffer
+        address = (uint8_t *)rtkMalloc(length, dfuBufferInfo[index]._description);
+        dfuBufferInfo[index]._bufferData->_address = address;
+        if (address == nullptr)
+        {
+            systemPrintf("WARNING: PSRAM low, delay allocation for %s, %d bytes\r\n",
+                         dfuBufferInfo[index]._description, length);
+            if (settings.debugMalloc == false)
+                reportHeapNow(true);
+        }
+    }
+
+    // Display the memory use after buffer allocation
+    if (settings.debugMalloc)
+        reportHeapNow(true);
+}
+
 void beginVersion()
 {
     espFirmwareVersionGet(deviceFirmware, sizeof(deviceFirmware), false);
@@ -1125,6 +1183,32 @@ void beginGnssUart2()
     serial2GNSS->setRxBufferSize(1024 * 1);
 
     serial2GNSS->begin(115200, SERIAL_8N1, pin_GnssUart2_RX, pin_GnssUart2_TX);
+}
+
+//----------------------------------------
+// Configure UART2 serial port shared between LoRa and Tilt
+//----------------------------------------
+bool beginUart2Serial()
+{
+    // Determine if serial port is already configured
+    if (uart2Serial)
+        return true;
+
+    // Allocate the serial port object
+    uart2Serial = new HardwareSerial(2);
+
+    // Determine if the allocation failed
+    if (uart2Serial == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the uart2Serial port!\r\n");
+        return false;
+    }
+
+    // Configure the serial port
+    uart2Serial->setRxBufferSize(settings.uartReceiveBufferSize);
+    uart2Serial->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
+    uart2Serial->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
+    return true;
 }
 
 void beginFS()

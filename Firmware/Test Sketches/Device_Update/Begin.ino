@@ -145,7 +145,7 @@ void beginBoard()
 //        gnss = (GNSS *)new GNSS_LG290P();
 
         // Tell LG290P to boot
-        lg290pReset();
+        dfuLg290pReset();
 
 /*
         // Initialize the microSD card
@@ -182,4 +182,15 @@ void beginBoard()
         reportFatalError("Product variant unknown. Unable to proceed. Please contact SparkFun with the \"Device MAC\" "
                          "and the \"Board ADC ID (mV)\" reported above.");
     }
+}
+
+//----------------------------------------
+// Initialize the GNSS UART
+//----------------------------------------
+void gnssUartInit(int uartNumber)
+{
+    serialGNSS = new HardwareSerial(uartNumber);
+    serialGNSS->setRxBufferSize(1024 * 2);
+    serialGNSS->setTimeout(1); // Requires serial traffic on the UART pins for detection
+    serialGNSS->setRxFIFOFull(50);
 }

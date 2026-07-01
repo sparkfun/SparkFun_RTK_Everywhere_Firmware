@@ -2078,7 +2078,7 @@ void stringRecord(char *csvList, const char *id)
 }
 
 // Add record with string
-void stringRecord(char *csvList, const char *id, char *settingValue)
+void stringRecord(char *csvList, const char *id, const char *settingValue)
 {
     char record[100];
     snprintf(record, sizeof(record), "%s,%s,", id, settingValue);

@@ -1,5 +1,5 @@
 /*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-Support.ino
+support.ino
 
   Helper functions to support printing to either the serial port or bluetooth connection
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
@@ -1328,4 +1328,248 @@ const char *printMinuteSecondFromMilliseconds(uint32_t msToConvert)
     snprintf(theTime, sizeof(theTime), "%01d:%02d", minutes, seconds);
 
     return (const char *)theTime;
+}
+
+//----------------------------------------
+// Dynamically allocate a buffer
+//----------------------------------------
+bool bufferDynamicallyAllocate(DFU_BUFFER_DATA * bufferData)
+{
+    const char * description;
+    bool dynamicAllocation;
+    size_t length;
+
+    // Determine if the buffer needs to be dynamically allocated
+    dynamicAllocation = (bufferData->_address == nullptr);
+    if (dynamicAllocation)
+    {
+        // Attempt to allocate the buffer
+        description = bufferGetDescription(bufferData);
+        length = bufferGetLength(bufferData);
+        bufferData->_address = (uint8_t *)rtkMalloc(length, description);
+        if (bufferData->_address == nullptr)
+            systemPrintf("ERROR: Failed to allocate the '%s, %d bytes' buffer!\r\n",
+                         description, length);
+        else
+            bufferData->_length = length;
+    }
+    return dynamicAllocation;
+}
+
+//----------------------------------------
+// Expand an existing buffer
+//----------------------------------------
+bool bufferExpand(int bufferIndex)
+{
+    // Locate the buffer data
+    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+    uint8_t * newBuffer;
+    size_t newLength;
+
+    // Determine the new buffer size
+    newLength = bufferData->_length + 2048;
+
+    // Allocate the new buffer
+    newBuffer = (uint8_t *)rtkMalloc(newLength, dfuBufferInfo[bufferIndex]._description);
+    if (newBuffer == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the new buffer of %d bytes!\r\n", newLength);
+        return false;
+    }
+
+    // Copy the existing file names into the new buffer
+    memcpy(newBuffer, bufferData->_address, bufferData->_offset);
+
+    // Free the old buffer
+    free((void *)bufferData->_address);
+
+    // Switch to using the new buffer
+    bufferData->_address = newBuffer;
+    bufferData->_length = newLength;
+
+    // Zero terminate any strings in the new buffer
+    memset(&newBuffer[bufferData->_offset], 0, bufferData->_length - bufferData->_offset);
+    return true;
+}
+
+//----------------------------------------
+// Free a dynamically allocated buffer
+//----------------------------------------
+void bufferFree(DFU_BUFFER_DATA * bufferData)
+{
+    const char * description;
+
+    // Free the buffer
+    if (bufferData->_address)
+    {
+        description = bufferGetDescription(bufferData);
+        rtkFree(bufferData->_address, description);
+        bufferData->_address = nullptr;
+    }
+}
+
+//----------------------------------------
+// Get the buffer description
+//----------------------------------------
+const char * bufferGetDescription(DFU_BUFFER_DATA * bufferData)
+{
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        if (bufferData == dfuBufferInfo[index]._bufferData)
+            return dfuBufferInfo[index]._description;
+    }
+
+    // Buffer not found
+    return nullptr;
+}
+
+//----------------------------------------
+// Get the buffer index
+//----------------------------------------
+int bufferGetIndex(DFU_BUFFER_DATA * bufferData)
+{
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        if (bufferData == dfuBufferInfo[index]._bufferData)
+            return index;
+    }
+
+    // Buffer not found
+    return -1;
+}
+
+//----------------------------------------
+// Get the buffer length
+//----------------------------------------
+size_t bufferGetLength(DFU_BUFFER_DATA * bufferData)
+{
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        if (bufferData == dfuBufferInfo[index]._bufferData)
+            return dfuBufferInfo[index]._sizeInBytes;
+    }
+
+    // Buffer not found
+    return 0;
+}
+
+//----------------------------------------
+// Allocate the name and sort arrays, return true if successful
+//----------------------------------------
+bool bufferNameSortAllocate(int bufferIndex, int fileCount)
+{
+    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+    char * fileName;
+    size_t length;
+
+    // Allocate the sortArray
+    length = sizeof(*bufferData->_sortArray) * fileCount;
+    bufferData->_sortArray = (int *)rtkMalloc(length, "Sort Array");
+    if (bufferData->_sortArray == nullptr)
+        systemPrintf("ERROR: Failed to allocate sortArray, %d bytes!\r\n", length);
+    else
+    {
+        // Allocate the nameArray
+        length = sizeof(*bufferData->_nameArray) * fileCount;
+        bufferData->_nameArray = (char **)rtkMalloc(length, "Name Array");
+        if (bufferData->_nameArray == nullptr)
+        {
+            bufferNameSortFree(bufferIndex);
+            systemPrintf("ERROR: Failed to allocate nameArray, %d bytes!\r\n", length);
+        }
+        else
+        {
+            // Initialize the sortArray
+            for (int index = 0; index < fileCount; index++)
+                bufferData->_sortArray[index] = index;
+
+            // Initialize the nameArray
+            fileName = (char *)bufferData->_address;
+            for (int index = 0; index < fileCount; index++)
+            {
+                bufferData->_nameArray[index] = fileName;
+                fileName += strlen(fileName) + 1;
+            }
+        }
+    }
+    return (bufferData->_nameArray != nullptr);
+}
+
+//----------------------------------------
+// Free the arrays
+//----------------------------------------
+void bufferNameSortFree(int bufferIndex)
+{
+    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+
+    // Free nameArray
+    if (bufferData->_nameArray != nullptr)
+    {
+        free(bufferData->_nameArray);
+        bufferData->_nameArray = nullptr;
+    }
+
+    // Free sortArray
+    if (bufferData->_sortArray != nullptr)
+    {
+        free(bufferData->_sortArray);
+        bufferData->_sortArray = nullptr;
+    }
+}
+
+//----------------------------------------
+// Configure UART2 serial port
+//----------------------------------------
+bool configureUart2(HardwareSerial ** hwSerialPort)
+{
+    HardwareSerial * serialPort;
+
+    // Determine if serial port is already configured
+    serialPort = *hwSerialPort;
+    if (serialPort)
+        return true;
+
+    // Allocate the serial port object
+    serialPort = new HardwareSerial(2);
+
+    // Determine if the allocation failed
+    if (serialPort == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the serial port!\r\n");
+        return false;
+    }
+
+    // Configure the serial port
+    serialPort->setRxBufferSize(1024 * 1);
+    serialPort->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
+    *hwSerialPort = serialPort;
+    return true;
+}
+
+//----------------------------------------
+// Count the application partitions
+//----------------------------------------
+int countAppPartitions()
+{
+    // Count app partitions
+    int appPartitions = 0;
+    esp_partition_iterator_t it = esp_partition_find(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, nullptr);
+    while (it != nullptr)
+    {
+        appPartitions++;
+        it = esp_partition_next(it);
+    }
+    return appPartitions;
+}
+
+//----------------------------------------
+// Discard any input data
+//----------------------------------------
+void serialInputClear()
+{
+    while (Serial.available())
+        Serial.read();
 }

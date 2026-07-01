@@ -1,52 +1,19 @@
 /*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-Device_Update_Tilt.ino
-
-  Support routines to help program the tilt sensors
+Tilt.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
-
-//----------------------------------------
-// Configure the serial port
-//----------------------------------------
-bool tiltConfigureSerialPort(HardwareSerial ** hwSerialPort)
-{
-    HardwareSerial * serialPort;
-
-    // Determine if serial port is already configured
-    serialPort = *hwSerialPort;
-    if (serialPort)
-        return true;
-
-    // Allocate the serial port object
-    serialPort = new HardwareSerial(2);
-
-    // Determine if the allocation failed
-    if (serialPort == nullptr)
-    {
-        systemPrintf("ERROR: Failed to allocate the serial port!\r\n");
-        return false;
-    }
-
-    // Configure the serial port
-    serialPort->setRxBufferSize(1024 * 1);
-
-    // We must start the serial port before handing it over to the library
-    serialPort->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
-    *hwSerialPort = serialPort;
-    return true;
-}
 
 //----------------------------------------
 // Get the IM19 firmware version message
 //----------------------------------------
 String tiltGetFirmwareVersion()
 {
-    return im19FirmwareVersion;
+    return tiltFirmwareVersion;
 }
 
 //----------------------------------------
 // IM19 reset
 //----------------------------------------
-bool tiltReset()
+bool tiltIm19Reset()
 {
     size_t bytesWritten;
     char data;
@@ -60,7 +27,7 @@ bool tiltReset()
     {
         // Configure the serial port
         versionFound = false;
-        if (tiltConfigureSerialPort(&SerialForTilt) == false)
+        if (configureUart2(&SerialForTilt) == false)
             break;
 
         // Reset the IM19
@@ -76,7 +43,7 @@ bool tiltReset()
         // Wait for the OK response
         startMsec = millis();
         timeoutMsec = 1 * MILLISECONDS_IN_A_SECOND;
-        if (tiltWaitForOkResponse(timeoutMsec) == false)
+        if (tiltIm19WaitForOkResponse(timeoutMsec) == false)
             break;
 
         // Search for the version message
@@ -104,7 +71,7 @@ bool tiltReset()
                     if (data == '\r')
                     {
                         // Remove "Version:"
-                        im19FirmwareVersion = temp.substring(8);
+                        tiltFirmwareVersion = temp.substring(8);
                         return true;
                     }
                     temp += data;
@@ -119,7 +86,7 @@ bool tiltReset()
 //----------------------------------------
 // IM19 wait for OK response
 //----------------------------------------
-bool tiltWaitForOkResponse(uint32_t timeout)
+bool tiltIm19WaitForOkResponse(uint32_t timeout)
 {
     char data;
     const char * error = "Error\r\n";
@@ -143,15 +110,6 @@ bool tiltWaitForOkResponse(uint32_t timeout)
         {
             // Get any input data
             data = (char)SerialForTilt->read();
-
-            // Save the data if requested, otherwise discard the data
-            if (tiltSaveData)
-            {
-                tiltSaveData[tiltSaveDataOffset++] = data;
-                if (tiltSaveDataOffset >= tiltSaveDataLength)
-                    tiltSaveDataOffset = 0;
-            }
-
             if (settings.enableImuDebug)
                 systemPrintf(((data >= ' ') && (data < 0x7f)) ? "%c\r\n" : "0x%02x\r\n", data);
 

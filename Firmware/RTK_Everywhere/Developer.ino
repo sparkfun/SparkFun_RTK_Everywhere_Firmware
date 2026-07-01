@@ -112,6 +112,7 @@ const char * wifiSoftApGetSsid()                {return "";}
 bool wifiSoftApOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiSoftApOn(const char * fileName, uint32_t lineNumber) {return false;}
 void wifiStationDisplayData()                   {}
+bool wifiStationIsSsidSet()                     {return false};
 bool wifiStationOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiStationOn(const char * fileName, uint32_t lineNumber) {return false;}
 void wifiStationUpdate()                        {}
