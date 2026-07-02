@@ -688,10 +688,6 @@ function parseIncoming(msg) {
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
 
-            // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
-            savedCheckboxNames.push(messageName);
-            savedCheckboxValues.push(val);
-
             // Add to initialSettings - if it has not been added before. Val will be "true" / "false"
             addInitialSetting(id, val);
         }
@@ -2649,10 +2645,10 @@ function getMessageList() {
 
         ge("messageList").innerHTML = "";
         messageText = "";
-        savedMessageNames = [];
-        savedMessageValues = [];
-        savedCheckboxNames = [];
-        savedCheckboxValues = [];
+        savedMessageNames.length = 0;
+        savedMessageValues.length = 0;
+        savedCheckboxNames.length = 0;
+        savedCheckboxValues.length = 0;
 
         var xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", "/listMessages", false);

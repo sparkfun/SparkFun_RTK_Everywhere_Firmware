@@ -1790,7 +1790,7 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
             // Message rates maxes are set within lgMessagesPQTM
             if (strcmp(messageType, "NMEA") == 0)
             {
-                if (getNewSetting(messageString, 0, lgMessagesPQTM[incoming].msgMaxRate, &newSetting) ==
+                if (getNewSetting(messageString, 0, lgMessagesNMEA[incoming].msgMaxRate, &newSetting) ==
                     INPUT_RESPONSE_VALID)
                 {
                     settings.lg290pMessageRatesNMEA[incoming] = newSetting;
@@ -1799,7 +1799,7 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
             }
             if (strcmp(messageType, "RTCMRover") == 0)
             {
-                if (getNewSetting(messageString, 0, lgMessagesPQTM[incoming].msgMaxRate, &newSetting) ==
+                if (getNewSetting(messageString, 0, lgMessagesRTCM[incoming].msgMaxRate, &newSetting) ==
                     INPUT_RESPONSE_VALID)
                 {
                     settings.lg290pMessageRatesRTCMRover[incoming] = newSetting;
@@ -1808,7 +1808,7 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
             }
             if (strcmp(messageType, "RTCMBase") == 0)
             {
-                if (getNewSetting(messageString, 0, lgMessagesPQTM[incoming].msgMaxRate, &newSetting) ==
+                if (getNewSetting(messageString, 0, lgMessagesRTCM[incoming].msgMaxRate, &newSetting) ==
                     INPUT_RESPONSE_VALID)
                 {
                     settings.lg290pMessageRatesRTCMBase[incoming] = newSetting;
@@ -2419,14 +2419,36 @@ bool GNSS_LG290P::setMessagesOther()
 bool GNSS_LG290P::setMessagesRTCMBase()
 {
     bool response = true;
-    bool enableRTCM = false; // Goes true if we need to enable RTCM output reporting
+    bool enableRTCM = false;      // Goes true if we need to enable RTCM output reporting
+    bool enableEphemeris = false; // Goes true if we need to enable ephemeris output
 
     int portNumber = 1;
+
+    int minimumEphemeris = 7200; // Start at 7200. Reduce to minimum non-zero eph rate
 
     while (portNumber < 4)
     {
         for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
         {
+            // 1005, 1006, 1033, 107x to 113x can be set to 1-1200 fixes between reports
+            // 1019 to 1046, 1230 can only be set to 1 fix per report
+            // So we set all non-zero ephemeris to 1, and set PQTMCFGRTCM to the lowest value found
+
+            // For ephemeris messages, capture the message with the lowest non-zero rate
+            if (lgMessagesRTCM[messageNumber].msgIsEphemeris)
+                if (settings.lg290pMessageRatesRTCMBase[messageNumber] > 0 &&
+                    settings.lg290pMessageRatesRTCMBase[messageNumber] < minimumEphemeris)
+                    {
+                        minimumEphemeris = settings.lg290pMessageRatesRTCMBase[messageNumber];
+                        enableEphemeris = true;
+                    }
+
+            // Force all ephemeris messages to 1 or 0. See above for reasoning.
+            int rate = settings.lg290pMessageRatesRTCMBase[messageNumber];
+            if (lgMessagesRTCM[messageNumber].msgIsEphemeris)
+                if (rate > 1)
+                    rate = 1;
+
             // Check if this RTCM message is supported by the current LG290P firmware
             if (lg290pFirmwareVersionInt >= lgMessagesRTCM[messageNumber].firmwareVersionSupported)
             {
@@ -2434,13 +2456,12 @@ bool GNSS_LG290P::setMessagesRTCMBase()
                 if (lg290pFirmwareVersionInt >= 104)
                     // Enable this message, at this rate, on this port
                     response &= _lg290p->setMessageRateOnPort(
-                        lgMessagesRTCM[messageNumber].msgTextName, settings.lg290pMessageRatesRTCMBase[messageNumber],
+                        lgMessagesRTCM[messageNumber].msgTextName, rate,
                         portNumber, lgMessagesRTCM[messageNumber].msgVersionOffset);
                 else
                     // Enable this message, at this rate
                     response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
-                                                        settings.lg290pMessageRatesRTCMBase[messageNumber],
-                                                        lgMessagesRTCM[messageNumber].msgVersionOffset);
+                                                        rate, lgMessagesRTCM[messageNumber].msgVersionOffset);
 
                 if (response == false && settings.debugGnss)
                     systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
@@ -2462,11 +2483,17 @@ bool GNSS_LG290P::setMessagesRTCMBase()
     if (enableRTCM == true)
     {
         if (settings.debugGnss)
-            systemPrintln("Enabling Base RTCM output");
+        {
+            if (enableEphemeris)
+                systemPrintf("Enabling Base RTCM MSM output with ephemeris rate of %d\r\n", minimumEphemeris);
+            else
+                systemPrintln("Enabling Base RTCM MSM output");
+        }
 
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
         char cfgRtcm[40];
-        snprintf(cfgRtcm, sizeof(cfgRtcm), "PQTMCFGRTCM,W,%c,0,-90,07,06,2,1", settings.useMSM7 ? '7' : '4');
+        snprintf(cfgRtcm, sizeof(cfgRtcm), "PQTMCFGRTCM,W,%c,0,-90,07,06,%d,%d", settings.useMSM7 ? '7' : '4',
+                 enableEphemeris ? 2 : 0, enableEphemeris ? minimumEphemeris : 0);
         _lg290p->sendOkCommand(cfgRtcm); // Enable MSM4/7, output regular intervals, interval (seconds)
     }
 
@@ -2485,29 +2512,35 @@ bool GNSS_LG290P::setMessagesRTCMRover()
     bool rtcm1020Enabled = false;
     bool rtcm1042Enabled = false;
     bool rtcm1046Enabled = false;
-    bool enableRTCM = false; // Goes true if we need to enable RTCM output reporting
+    bool enableRTCM = false;      // Goes true if we need to enable RTCM output reporting
+    bool enableEphemeris = false; // Goes true if we need to enable ephemeris output
 
     int portNumber = 1;
 
-    int minimumRtcmRate = 1000;
+    int minimumEphemeris = 7200; // Start at 7200. Reduce to minimum non-zero eph rate
 
     while (portNumber < 4)
     {
         for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
         {
-            // 1019 to 1046 can only be set to 1 fix per report
-            // 107x to 112x can be set to 1-1200 fixes between reports
-            // So we set all RTCM to 1, and set PQTMCFGRTCM to the lowest value found
+            // 1005, 1006, 1033, 107x to 113x can be set to 1-1200 fixes between reports
+            // 1019 to 1046, 1230 can only be set to 1 fix per report
+            // So we set all non-zero ephemeris to 1, and set PQTMCFGRTCM to the lowest value found
 
-            // Capture the message with the lowest rate
-            if (settings.lg290pMessageRatesRTCMRover[messageNumber] > 0 &&
-                settings.lg290pMessageRatesRTCMRover[messageNumber] < minimumRtcmRate)
-                minimumRtcmRate = settings.lg290pMessageRatesRTCMRover[messageNumber];
+            // For ephemeris messages, capture the message with the lowest non-zero rate
+            if (lgMessagesRTCM[messageNumber].msgIsEphemeris)
+                if (settings.lg290pMessageRatesRTCMRover[messageNumber] > 0 &&
+                    settings.lg290pMessageRatesRTCMRover[messageNumber] < minimumEphemeris)
+                    {
+                        minimumEphemeris = settings.lg290pMessageRatesRTCMRover[messageNumber];
+                        enableEphemeris = true;
+                    }
 
-            // Force all RTCM messages to 1 or 0. See above for reasoning.
+            // Force all ephemeris messages to 1 or 0. See above for reasoning.
             int rate = settings.lg290pMessageRatesRTCMRover[messageNumber];
-            if (rate > 1)
-                rate = 1;
+            if (lgMessagesRTCM[messageNumber].msgIsEphemeris)
+                if (rate > 1)
+                    rate = 1;
 
             // Check if this RTCM message is supported by the current LG290P firmware
             if (lg290pFirmwareVersionInt >= lgMessagesRTCM[messageNumber].firmwareVersionSupported)
@@ -2562,8 +2595,10 @@ bool GNSS_LG290P::setMessagesRTCMRover()
     if (pointPerfectServiceUsesKeys())
     {
         enableRTCM = true; // Force enable RTCM output
+        enableEphemeris = true;
 
         // Force on any messages that are needed for PPL
+        // Note: a rate/interval of 1 is probably a bit agressive. A lower rate may be better?
         if (rtcm1019Enabled == false)
         {
             if (settings.debugCorrections)
@@ -2595,16 +2630,21 @@ bool GNSS_LG290P::setMessagesRTCMRover()
     // If any RTCM message is enabled, send CFGRTCM
     if (enableRTCM == true)
     {
-        if (settings.debugCorrections)
-            systemPrintf("Enabling Rover RTCM MSM output with rate of %d\r\n", minimumRtcmRate);
+        if (settings.debugGnss || settings.debugGnssConfig)
+        {
+            if (enableEphemeris)
+                systemPrintf("Enabling Rover RTCM MSM output with ephemeris rate of %d\r\n", minimumEphemeris);
+            else
+                systemPrintln("Enabling Rover RTCM MSM output");
+        }
 
         // Enable MSM4/7 (for faster PPP CSRS results), output at a rate equal to the minimum RTCM rate (EPH Mode =
         // 2) PQTMCFGRTCM, W, <MSM_Type>, <MSM_Mode>, <MSM_ElevThd>, <Reserved>, <Reserved>, <EPH_Mode>,
         // <EPH_Interval> Set MSM_ElevThd to 15 degrees from rftop suggestion
 
         char msmCommand[40] = {0};
-        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,%c,0,15,07,06,2,%d", settings.useMSM7 ? '7' : '4',
-                 minimumRtcmRate);
+        snprintf(msmCommand, sizeof(msmCommand), "PQTMCFGRTCM,W,%c,0,15,07,06,%d,%d", settings.useMSM7 ? '7' : '4',
+                 enableEphemeris ? 2 : 0, enableEphemeris ? minimumEphemeris : 0);
 
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
         _lg290p->sendOkCommand(msmCommand);
