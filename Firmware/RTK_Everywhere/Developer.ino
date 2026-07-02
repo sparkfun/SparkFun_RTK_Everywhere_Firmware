@@ -562,8 +562,8 @@ void espNowUpdate()                     {}
 //----------------------------------------
 
 #ifndef COMPILE_LORA
-void beginLoraFirmwareUpdate() {}
-bool checkUpdateLoraFirmware() {return false;}
+void loraBeginFirmwareUpdate() {}
+bool checkLoraUpdatePassthrough() {return false;}
 bool createLoRaPassthrough() {return false;}
 bool createLoraRxDirectFile() {return false;}
 bool createLoraTxDirectFile() {return false;}

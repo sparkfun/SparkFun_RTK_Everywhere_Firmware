@@ -850,21 +850,9 @@ bool removeFile(const char *fileName)
     bool removed = true;
 
     removed &= removeFileSD(fileName);
-    removed &= removeFileLFS(fileName);
+    removed &= removeFileLfs(fileName);
 
     return (removed);
-}
-
-bool removeFileLFS(const char *fileName)
-{
-    if (LittleFS.exists(fileName))
-    {
-        LittleFS.remove(fileName);
-        log_d("Removing LittleFS: %s", fileName);
-        return (true);
-    }
-
-    return (false);
 }
 
 // Remove a given filename from SD

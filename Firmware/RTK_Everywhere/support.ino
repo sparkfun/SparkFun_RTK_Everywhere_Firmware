@@ -1333,9 +1333,9 @@ const char *printMinuteSecondFromMilliseconds(uint32_t msToConvert)
 //----------------------------------------
 // Dynamically allocate a buffer
 //----------------------------------------
-bool bufferDynamicallyAllocate(DFU_BUFFER_DATA * bufferData)
+bool bufferDynamicallyAllocate(DFU_BUFFER_DATA *bufferData)
 {
-    const char * description;
+    const char *description;
     bool dynamicAllocation;
     size_t length;
 
@@ -1362,8 +1362,8 @@ bool bufferDynamicallyAllocate(DFU_BUFFER_DATA * bufferData)
 bool bufferExpand(int bufferIndex)
 {
     // Locate the buffer data
-    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
-    uint8_t * newBuffer;
+    DFU_BUFFER_DATA *bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+    uint8_t *newBuffer;
     size_t newLength;
 
     // Determine the new buffer size
@@ -1395,9 +1395,9 @@ bool bufferExpand(int bufferIndex)
 //----------------------------------------
 // Free a dynamically allocated buffer
 //----------------------------------------
-void bufferFree(DFU_BUFFER_DATA * bufferData)
+void bufferFree(DFU_BUFFER_DATA *bufferData)
 {
-    const char * description;
+    const char *description;
 
     // Free the buffer
     if (bufferData->_address)
@@ -1411,7 +1411,7 @@ void bufferFree(DFU_BUFFER_DATA * bufferData)
 //----------------------------------------
 // Get the buffer description
 //----------------------------------------
-const char * bufferGetDescription(DFU_BUFFER_DATA * bufferData)
+const char *bufferGetDescription(DFU_BUFFER_DATA *bufferData)
 {
     // Walk the list of buffers
     for (int index = 0; index < dfuBufferInfoCount; index++)
@@ -1427,7 +1427,7 @@ const char * bufferGetDescription(DFU_BUFFER_DATA * bufferData)
 //----------------------------------------
 // Get the buffer index
 //----------------------------------------
-int bufferGetIndex(DFU_BUFFER_DATA * bufferData)
+int bufferGetIndex(DFU_BUFFER_DATA *bufferData)
 {
     // Walk the list of buffers
     for (int index = 0; index < dfuBufferInfoCount; index++)
@@ -1443,7 +1443,7 @@ int bufferGetIndex(DFU_BUFFER_DATA * bufferData)
 //----------------------------------------
 // Get the buffer length
 //----------------------------------------
-size_t bufferGetLength(DFU_BUFFER_DATA * bufferData)
+size_t bufferGetLength(DFU_BUFFER_DATA *bufferData)
 {
     // Walk the list of buffers
     for (int index = 0; index < dfuBufferInfoCount; index++)
@@ -1461,8 +1461,8 @@ size_t bufferGetLength(DFU_BUFFER_DATA * bufferData)
 //----------------------------------------
 bool bufferNameSortAllocate(int bufferIndex, int fileCount)
 {
-    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
-    char * fileName;
+    DFU_BUFFER_DATA *bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+    char *fileName;
     size_t length;
 
     // Allocate the sortArray
@@ -1503,7 +1503,7 @@ bool bufferNameSortAllocate(int bufferIndex, int fileCount)
 //----------------------------------------
 void bufferNameSortFree(int bufferIndex)
 {
-    DFU_BUFFER_DATA * bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+    DFU_BUFFER_DATA *bufferData = dfuBufferInfo[bufferIndex]._bufferData;
 
     // Free nameArray
     if (bufferData->_nameArray != nullptr)
@@ -1523,9 +1523,9 @@ void bufferNameSortFree(int bufferIndex)
 //----------------------------------------
 // Configure UART2 serial port
 //----------------------------------------
-bool configureUart2(HardwareSerial ** hwSerialPort)
+bool configureUart2(HardwareSerial **hwSerialPort)
 {
-    HardwareSerial * serialPort;
+    HardwareSerial *serialPort;
 
     // Determine if serial port is already configured
     serialPort = *hwSerialPort;
@@ -1572,4 +1572,62 @@ void serialInputClear()
 {
     while (Serial.available())
         Serial.read();
+}
+
+// Returns true if file is successfully created
+// Used with passthrough files (LoRa, Tilt, GNSS, etc)
+bool createFileLfs(const char *filename)
+{
+    if (online.fs == false)
+        return false;
+
+    if (LittleFS.exists(filename))
+    {
+        if (settings.debugSettings)
+            systemPrintf("LittleFS %s already exists\r\n", filename);
+        return true;
+    }
+
+    File updateFile = LittleFS.open(filename, FILE_WRITE);
+    updateFile.close();
+
+    if (LittleFS.exists(filename))
+        return true;
+
+    if (settings.debugSettings)
+        systemPrintf("Unable to create %s on LittleFS\r\n", filename);
+    return false;
+}
+
+// Returns true if a file exists on LittleFS, false if not or if LittleFS is not mounted
+bool fileExistsLfs(const char *filename)
+{
+    if (online.fs == false)
+        return false;
+
+    if (LittleFS.exists(filename))
+    {
+        if (settings.debugSettings)
+            systemPrintf("LittleFS %s exists\r\n", filename);
+        return true;
+    }
+
+    return false;
+}
+
+// Remove a given file from LFS
+bool removeFileLfs(const char *filename)
+{
+    if (online.fs == false)
+        return false;
+
+    if (LittleFS.exists(filename))
+    {
+        if (settings.debugSettings)
+            systemPrintf("Removing file: %s\r\n", filename);
+
+        LittleFS.remove(filename);
+        return true;
+    }
+    return false;
 }
