@@ -3207,8 +3207,8 @@ void processSBFReceiverSetup(SEMP_PARSE_STATE *parse, uint16_t type)
 
         // gnssFirmwareVersion is 4.14.4, 4.14.10.1, etc.
         // Create gnssFirmwareVersionInt from the first two fields only, so it will fit on the OLED
-        sscanf(gnssFirmwareVersion, "%d.%d.%d.%d", &_majorVersion, &_minorVersion, &_patchVersion, &_revisionVersion); // Do we care if this fails?
-        gnssFirmwareVersionInt = (_majorVersion * 100) + _minorVersion;
+        sscanf(gnssFirmwareVersion, "%d.%d.%d.%d", &_versionMajor, &_versionMinor, &_versionPatch, &_versionRevision); // Do we care if this fails?
+        gnssFirmwareVersionInt = (_versionMajor * 100) + _versionMinor;
 
         GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
         mosaic->_receiverSetupSeen = true;

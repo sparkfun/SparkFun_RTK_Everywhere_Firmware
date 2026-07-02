@@ -490,6 +490,12 @@ const mosaicReceiverDynamic mosaicReceiverDynamics[] = {
 void mosaicX5flushRX(unsigned long timeout = 0); // Header
 bool mosaicX5waitCR(unsigned long timeout = 25); // Header
 
+// Version parts
+uint8_t _versionMajor = 0;
+uint8_t _versionMinor = 0;
+uint8_t _versionPatch = 0;
+uint8_t _versionRevision = 0;
+
 class GNSS_MOSAIC : GNSS
 {
     // The mosaic-X5 does not have self-contained interface library.
@@ -521,12 +527,6 @@ class GNSS_MOSAIC : GNSS
     // See notes at GNSS_MOSAIC::setCorrRadioExtPort
     uint32_t previousNrBytesReceived = 0;
     bool firstTimeNrBytesReceived = true;
-
-    // Version parts
-    uint8_t _majorVersion = 0;
-    uint8_t _minorVersion = 0;
-    uint8_t _patchVersion = 0;
-    uint8_t _revisionVersion = 0;
 
     // Setup the general configuration of the GNSS
     // Not Rover or Base specific (ie, baud rates)
