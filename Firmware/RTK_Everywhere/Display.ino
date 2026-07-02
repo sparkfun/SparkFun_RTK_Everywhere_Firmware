@@ -3155,6 +3155,10 @@ void paintGnssUpdate()
 {
     paintGenericUpdate("GNSS", "Update");
 }
+void paintImuUpdate()
+{
+    paintGenericUpdate("IMU", "Update");
+}
 void paintLoRaUpdate()
 {
     paintGenericUpdate("LoRa", "Update");

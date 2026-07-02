@@ -303,6 +303,7 @@ uint32_t laraTimer; // Backoff timer
 int pin_IMU_RX = PIN_UNDEFINED;
 int pin_IMU_TX = PIN_UNDEFINED;
 int pin_GNSS_DR_Reset = PIN_UNDEFINED;
+int pin_IMU_Boot = PIN_UNDEFINED;
 
 int pin_powerAdapterDetect = PIN_UNDEFINED;
 int pin_usbSelect = PIN_UNDEFINED;
@@ -1028,7 +1029,7 @@ int loraFirmwareVersionInt = 0;
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 51
+#define MAX_BOOT_TIME_ENTRIES 52
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1437,6 +1438,9 @@ void setup()
     DMW_b("gnssFirmwareCheckUpdate");
     if (gnssFirmwareCheckUpdate() == true) // Check if updateGnssFirmware.txt exists
         gnssFirmwareBeginUpdate();         // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
+    DMW_b("imuFirmwareCheckUpdate");
+    if (imuCheckUpdatePassthrough() == true) // Check if updateImuFirmware.txt exists
+        imuBeginFirmwareUpdate();         // 
 
     DMW_b("commandIndexFillActual");
     commandIndexFillActual(); // Shrink the commandIndex table now we're certain what GNSS we have

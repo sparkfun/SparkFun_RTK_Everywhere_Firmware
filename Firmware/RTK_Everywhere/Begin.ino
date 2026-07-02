@@ -202,6 +202,7 @@ void beginBoard()
 
         pin_IMU_RX = 14; // Pin 16 is not available on Torch due to PSRAM
         pin_IMU_TX = 17;
+        pin_IMU_Boot = 2; // On Torch ESP GPIO2 is connected to DR_BOOT of the IM19.
 
         pin_GNSS_TimePulse = 39; // PPS on UM980
 
@@ -242,7 +243,10 @@ void beginBoard()
         pinMode(pin_GNSS_TimePulse, INPUT);
 
         pinMode(pin_GNSS_DR_Reset, OUTPUT);
-        gnssBoot(); // Tell UM980 and DR to boot
+        gnssBoot(); // Tell UM980 and IMU to boot
+
+        pinMode(pin_IMU_Boot, OUTPUT);
+        imuDisableBootloader(); // Put IMU in run mode
 
         pinMode(pin_powerAdapterDetect, INPUT); // Has 10k pullup
 

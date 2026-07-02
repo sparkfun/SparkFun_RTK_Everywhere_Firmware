@@ -304,7 +304,7 @@ void beginTilt()
     // Shown as UART2 on these schematics: Torch, Facet FP
     beginUart2Serial();
     if (SerialForTilt == nullptr)
-      return;
+        return;
 
     tiltSensor = new IM19();
     if (settings.enableImuDebug == true)
@@ -1278,6 +1278,104 @@ void tiltDetect()
     settings.testedTilt = true; // Record this test so we don't do it again
     recordSystemSettings();
     return;
+}
+
+// Handle the file creation and tear down the for the firmware update process.
+bool imuCreateUpdatePassthrough()
+{
+    return createFileLfs("/updateImuFirmware.txt");
+}
+bool imuCheckUpdatePassthrough()
+{
+    return fileExistsLfs("/updateImuFirmware.txt");
+}
+bool imuRemoveUpdatePassthrough()
+{
+    removeFileLfs("/updateImuFirmware.txt");
+}
+
+void imuBeginFirmwareUpdate()
+{
+    // Flag that we are in direct connect mode
+    inDirectConnectMode = true;
+
+    // Paint IMU Update
+    paintImuUpdate();
+
+    systemPrintln();
+    systemPrintln("Entering IM19 direct connect for firmware update");
+    systemPrintln("Disconnect this terminal connection");
+    systemPrintln("Use the python tool to update the firmware:");
+    systemPrintln("Baudrate: 115200bps. Parity: None.");
+    systemPrintln("Press the power button to return to normal operation");
+
+    systemFlush(); // Complete prints
+
+    // Use UART2 on the ESP32 to communicate with the IMU
+    // Shown as UART2 on these schematics: Torch, Facet FP
+    beginUart2Serial();
+    if (SerialForTilt == nullptr)
+        return;
+
+    imuEnterBootloader(); // Push DR_BOOT pin high and reset the IMU
+
+    delay(50);
+
+    // Clear out any data from the serial buffer before entering the echo mode
+    while (Serial.available())
+        Serial.read();
+
+    // Push any incoming ESP32 UART2 to the IM19 and vice versa
+    // Infinite loop until button is pressed
+    task.endDirectConnectMode = false;
+    while (task.endDirectConnectMode == false)
+    {
+        if (Serial.available()) // Note: use if, not while
+            SerialForTilt->write(Serial.read());
+
+        if (SerialForTilt->available()) // Note: use if, not while
+            Serial.write(SerialForTilt->read());
+
+        // Button task will set task.endDirectConnectMode true
+    }
+
+    // Remove the special file.
+    imuRemoveUpdatePassthrough();
+
+    systemFlush(); // Complete prints
+
+    ESP.restart();
+}
+
+// Enter the bootloader by pulling DR_BOOT high and resetting the IMU.
+void imuEnterBootloader()
+{
+    imuEnableBootloader();
+    imuReset();
+}
+void imuExitBootloader()
+{
+    imuDisableBootloader();
+    imuReset();
+}
+
+// On Torch ESP GPIO2 is connected to DR_BOOT of the IM19.
+// When boot pin is high, the IM19 enters bootloader mode. NC or low is normal operation.
+void imuEnableBootloader()
+{
+    digitalWrite(pin_IMU_Boot, HIGH); // Enter bootloader mode
+}
+void imuDisableBootloader()
+{
+    digitalWrite(pin_IMU_Boot, LOW); // Exit bootloader mode
+}
+
+// Rest the IMU
+void imuReset()
+{
+    gnssReset();
+    delay(50);
+    gnssBoot();
 }
 
 #endif // COMPILE_IM19_IMU
