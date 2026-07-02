@@ -2580,7 +2580,7 @@ bool um980SettingsToFile(char * line,
 #endif // COMPILE_UM980
 
 //----------------------------------------
-void um980FirmwareBeginUpdate()
+void um980BeginFirmwareUpdate()
 {
     // Note: We cannot increase the bootloading speed beyond 115200 because
     //  we would need to alter the UM980 baud, then save to NVM, then allow the UM980 to reset.
@@ -2592,9 +2592,9 @@ void um980FirmwareBeginUpdate()
     // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
 
     // Note: UM980 is currently only available on Torch.
-    //  But um980FirmwareBeginUpdate has been reworked so it will work on Facet too.
+    //  But um980BeginFirmwareUpdate has been reworked so it will work on Facet too.
 
-    // Note: um980FirmwareBeginUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
+    // Note: um980BeginFirmwareUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
     //  and display have all been initialized. But, importantly, the UARTs have not yet been started.
     //  This makes our job much easier...
 
@@ -2694,15 +2694,15 @@ const char *um980FirmwareFileName = "/updateUm980Firmware.txt";
 //----------------------------------------
 bool um980CreatePassthrough()
 {
-    return createPassthrough(um980FirmwareFileName);
+    return createFileLfs(um980FirmwareFileName);
 }
 
 //----------------------------------------
 // Check if direct connection file exists
 //----------------------------------------
-bool um980FirmwareCheckUpdate()
+bool um980CheckUpdatePassthrough()
 {
-    return gnssFirmwareCheckUpdateFile(um980FirmwareFileName);
+    return fileExistsLfs(um980FirmwareFileName);
 }
 
 //----------------------------------------
@@ -2710,7 +2710,7 @@ bool um980FirmwareCheckUpdate()
 //----------------------------------------
 void um980FirmwareRemoveUpdate()
 {
-    gnssFirmwareRemoveUpdateFile(um980FirmwareFileName);
+    removeFile(um980FirmwareFileName);
 }
 
 //----------------------------------------

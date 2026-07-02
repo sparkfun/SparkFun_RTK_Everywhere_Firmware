@@ -1419,9 +1419,9 @@ void setup()
     checkGNSSArrayDefaults(); // Check various setting arrays (message rates, etc) to see if they need to be reset to
                               // defaults
 
-    DMW_b("checkUpdateLoraFirmware");
-    if (checkUpdateLoraFirmware() == true) // Check if updateLoraFirmware.txt exists
-        beginLoraFirmwareUpdate();         // Needs I2C, GPIO Expander Switches, display, buttons, etc.
+    DMW_b("checkLoraUpdatePassthrough");
+    if (checkLoraUpdatePassthrough() == true) // Check if updateLoraFirmware.txt exists
+        loraBeginFirmwareUpdate();         // Needs I2C, GPIO Expander Switches, display, buttons, etc.
 
     DMW_b("loraRxDirectCheckFile");
     if (loraRxDirectCheckFile() == true) // Check if loraRxDirect.txt exists
@@ -1431,13 +1431,14 @@ void setup()
     if (loraTxDirectCheckFile() == true) // Check if loraTxDirect.txt exists
         loraTxDirectConnect();           // Needs I2C, GPIO Expander Switches, display, buttons, etc.
 
-    DMW_b("um980FirmwareCheckUpdate");
-    if (um980FirmwareCheckUpdate() == true) // UM980 needs special treatment - ** before the UARTs are started **
-        um980FirmwareBeginUpdate();         // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
+    DMW_b("um980CheckUpdatePassthrough");
+    if (um980CheckUpdatePassthrough() == true) // UM980 needs special treatment - ** before the UARTs are started **
+        um980BeginFirmwareUpdate();         // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
 
-    DMW_b("gnssFirmwareCheckUpdate");
-    if (gnssFirmwareCheckUpdate() == true) // Check if updateGnssFirmware.txt exists
-        gnssFirmwareBeginUpdate();         // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
+    DMW_b("gnssCheckUpdatePassthrough");
+    if (gnssCheckUpdatePassthrough() == true) // Check if updateGnssFirmware.txt exists
+        gnssBeginFirmwareUpdate();         // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
+
     DMW_b("imuFirmwareCheckUpdate");
     if (imuCheckUpdatePassthrough() == true) // Check if updateImuFirmware.txt exists
         imuBeginFirmwareUpdate();         // 

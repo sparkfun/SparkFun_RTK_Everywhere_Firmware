@@ -458,7 +458,7 @@ void muxSelectLoRaCommunication()
 }
 
 // Connect ESP32 to LoRa for configuration and bootloading
-// This is only called by beginLoraFirmwareUpdate()
+// This is only called by loraBeginFirmwareUpdate()
 void muxSelectLoRaConfigure()
 {
     if (productVariant == RTK_TORCH)
@@ -571,112 +571,53 @@ bool loraIsOn()
 }
 
 // Check if updateLoraFirmware.txt exists
-bool checkUpdateLoraFirmware()
+bool checkLoraUpdatePassthrough()
 {
-    return checkUpdateLoraFirmwareFile("/updateLoraFirmware.txt");
+    return fileExistsLfs("/updateLoraFirmware.txt");
 }
 bool loraRxDirectCheckFile()
 {
-    return checkUpdateLoraFirmwareFile("/loraRxDirect.txt");
+    return fileExistsLfs("/loraRxDirect.txt");
 }
 bool loraTxDirectCheckFile()
 {
-    return checkUpdateLoraFirmwareFile("/loraTxDirect.txt");
-}
-bool checkUpdateLoraFirmwareFile(const char *filename)
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugLora)
-            systemPrintf("LittleFS %s exists\r\n", filename);
-
-        // We do not remove the file here. See removeupdateLoraFirmware().
-
-        return true;
-    }
-
-    return false;
+    return fileExistsLfs("/loraTxDirect.txt");
 }
 
 void removeUpdateLoraFirmware()
 {
-    removeUpdateLoraFirmwareFile("/updateLoraFirmware.txt");
+    removeFileLfs("/updateLoraFirmware.txt");
 }
 void loraRxDirectRemoveFile()
 {
-    removeUpdateLoraFirmwareFile("/loraRxDirect.txt");
+    removeFileLfs("/loraRxDirect.txt");
 }
 void loraTxDirectRemoveFile()
 {
-    removeUpdateLoraFirmwareFile("/loraTxDirect.txt");
-}
-void removeUpdateLoraFirmwareFile(const char *filename)
-{
-    if (online.fs == false)
-        return;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugLora)
-            systemPrintf("Removing direct connect file: %s\r\n", filename);
-
-        delay(50);
-
-        LittleFS.remove(filename);
-    }
+    removeFileLfs("/loraTxDirect.txt");
 }
 
 // Force UART connection to LoRa radio for firmware update on the next boot by creating updateLoraFirmware.txt in
 // LittleFS
 bool createLoRaPassthrough()
 {
-    return createLoRaPassthroughFile("/updateLoraFirmware.txt");
+    return createFileLfs("/updateLoraFirmware.txt");
 }
 bool createLoraRxDirectFile()
 {
-    return createLoRaPassthroughFile("/loraRxDirect.txt");
+    return createFileLfs("/loraRxDirect.txt");
 }
 bool createLoraTxDirectFile()
 {
-    return createLoRaPassthroughFile("/loraTxDirect.txt");
-}
-// Force UART connection to LoRa radio on the next boot by creating file in LittleFS
-bool createLoRaPassthroughFile(const char *filename)
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugLora)
-            systemPrintf("LittleFS %s already exists\r\n", filename);
-        return true;
-    }
-
-    File updateLoraFirmware = LittleFS.open(filename, FILE_WRITE);
-    updateLoraFirmware.close();
-
-    if (LittleFS.exists(filename))
-        return true;
-
-    if (settings.debugLora)
-        systemPrintf("Unable to create %s on LittleFS\r\n", filename);
-    return false;
+    return createFileLfs("/loraTxDirect.txt");
 }
 
-void beginLoraFirmwareUpdate()
+void loraBeginFirmwareUpdate()
 {
-    // NOTE: this currently fails on Facet FP due to the way LoRa_EN and LoRa_NRST are interconnected.
-    //  This will be resolved with the next Facet FP motherboard rev.
-    //  TODO: delete this comment once new hardware is available.
-
     // Flag that we are in direct connect mode
     inDirectConnectMode = true;
 
-    // Paint GNSS Update
+    // Paint LoRa Update
     paintLoRaUpdate();
 
     systemPrintln();
@@ -1180,7 +1121,7 @@ void loraRxDirectConnect()
     // Note: we can't call loraRxDirectRemoveFile() here as closing Tera Term will reset the ESP32,
     //       returning the firmware to normal operation...
 
-    // Paint GNSS Update
+    // Paint LoRa Direct RX
     paintLoRaDirectRx();
 
     systemPrintln();
@@ -1334,7 +1275,7 @@ void loraTxDirectConnect()
     // Note: we can't call loraTxDirectRemoveFile() here as closing Tera Term will reset the ESP32,
     //       returning the firmware to normal operation...
 
-    // Paint GNSS Update
+    // Paint LoRa Direct TX
     paintLoRaDirectTx();
 
     systemPrintln();
