@@ -1281,15 +1281,15 @@ void tiltDetect()
 }
 
 // Handle the file creation and tear down the for the firmware update process.
-bool imuCreateUpdatePassthrough()
+bool imuCreatePassthroughFile()
 {
     return createFileLfs("/updateImuFirmware.txt");
 }
-bool imuCheckUpdatePassthrough()
+bool imuCheckPassthroughFile()
 {
     return fileExistsLfs("/updateImuFirmware.txt");
 }
-bool imuRemoveUpdatePassthrough()
+bool imuRemovePassthroughFile()
 {
     removeFileLfs("/updateImuFirmware.txt");
 }
@@ -1340,7 +1340,7 @@ void imuBeginFirmwareUpdate()
     }
 
     // Remove the special file.
-    imuRemoveUpdatePassthrough();
+    imuRemovePassthroughFile();
 
     systemFlush(); // Complete prints
 

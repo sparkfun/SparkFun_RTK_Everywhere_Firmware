@@ -736,7 +736,7 @@ void menuDebugHardware()
             if (productVariant == RTK_FACET_FP)
             {
                 // Create a file in LittleFS
-                if (gnssCreatePassthrough() == true)
+                if (gnssCreatePassthroughFile() == true)
                 {
                     systemPrintln();
                     systemPrintln("GNSS passthrough mode has been recorded to LittleFS. Device will now reset.");
@@ -748,7 +748,7 @@ void menuDebugHardware()
             else if (present.gnss_um980)
             {
                 // Create a file in LittleFS
-                if (um980CreatePassthrough() == true)
+                if (um980CreatePassthroughFile() == true)
                 {
                     systemPrintln();
                     systemPrintln("UM980 passthrough mode has been recorded to LittleFS. Device will now reset.");
@@ -790,7 +790,7 @@ void menuDebugHardware()
         }
         else if (incoming == 17 && present.radio_lora)
         {
-            if (createLoRaPassthrough() == true)
+            if (loraCreatePassthroughFile() == true)
             {
                 systemPrintln();
                 systemPrintln("STM32 passthrough mode has been recorded to LittleFS. Device will now reset.");
@@ -851,7 +851,7 @@ void menuDebugHardware()
 
         else if (incoming == 26 && present.radio_lora)
         {
-            if (createLoraRxDirectFile() == true)
+            if (loraCreateRxDirectFile() == true)
             {
                 systemPrintln();
                 systemPrintln("STM32 RX passthrough mode has been recorded to LittleFS. Device will now reset.");
@@ -863,7 +863,7 @@ void menuDebugHardware()
 
         else if (incoming == 27 && present.radio_lora)
         {
-            if (createLoraTxDirectFile() == true)
+            if (loraCreateTxDirectFile() == true)
             {
                 systemPrintln();
                 systemPrintln("STM32 TX mode has been recorded to LittleFS. Device will now reset.");
@@ -873,9 +873,9 @@ void menuDebugHardware()
             }
         }
 
-        else if (incoming == 25 && present.imu_im19)
+        else if (incoming == 28 && present.imu_im19)
         {
-            if (createLoRaPassthrough() == true)
+            if (imuCreatePassthroughFile() == true)
             {
                 systemPrintln();
                 systemPrintln("IM19 passthrough mode has been recorded to LittleFS. Device will now reset.");

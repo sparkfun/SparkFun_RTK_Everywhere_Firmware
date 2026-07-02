@@ -843,7 +843,7 @@ void gnssBeginFirmwareUpdate()
     // Flag that we are in direct connect mode
     inDirectConnectMode = true;
 
-    // Note: we can't call gnssRemoveUpdatePassthrough() here as closing Tera Term will reset the ESP32,
+    // Note: we can't call gnssRemovePassthroughFile() here as closing Tera Term will reset the ESP32,
     //       returning the firmware to normal operation...
 
     // Paint GNSS Update
@@ -856,7 +856,7 @@ void gnssBeginFirmwareUpdate()
         gnssFirmwareDirectConnectSoftware();
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    gnssRemoveUpdatePassthrough();
+    gnssRemovePassthroughFile();
 
     systemFlush(); // Complete prints
 
@@ -977,16 +977,16 @@ void gnssFirmwareDirectConnectHardware() // Facet FP only
 }
 
 // Handle the file creation and tear down the for the firmware update process.
-bool gnssCreatePassthrough()
+bool gnssCreatePassthroughFile()
 {
     return createFileLfs("/updateGnssFirmware.txt");
 }
 
-bool gnssCheckUpdatePassthrough()
+bool gnssCheckPassthroughFile()
 {
     return fileExistsLfs("/updateGnssFirmware.txt");
 }
-void gnssRemoveUpdatePassthrough()
+void gnssRemovePassthroughFile()
 {
     removeFile("/updateGnssFirmware.txt");
 }

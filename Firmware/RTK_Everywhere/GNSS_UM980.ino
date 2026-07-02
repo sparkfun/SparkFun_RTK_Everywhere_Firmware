@@ -2680,7 +2680,7 @@ void um980BeginFirmwareUpdate()
     }
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    um980FirmwareRemoveUpdate();
+    um980RemovePassthroughFile();
 
     systemFlush(); // Complete prints
 
@@ -2692,7 +2692,7 @@ const char *um980FirmwareFileName = "/updateUm980Firmware.txt";
 //----------------------------------------
 // Force UART connection to GNSS for firmware update on the next boot by special file in LittleFS
 //----------------------------------------
-bool um980CreatePassthrough()
+bool um980CreatePassthroughFile()
 {
     return createFileLfs(um980FirmwareFileName);
 }
@@ -2700,7 +2700,7 @@ bool um980CreatePassthrough()
 //----------------------------------------
 // Check if direct connection file exists
 //----------------------------------------
-bool um980CheckUpdatePassthrough()
+bool um980CheckPassthroughFile()
 {
     return fileExistsLfs(um980FirmwareFileName);
 }
@@ -2708,7 +2708,7 @@ bool um980CheckUpdatePassthrough()
 //----------------------------------------
 // Remove direct connection file
 //----------------------------------------
-void um980FirmwareRemoveUpdate()
+void um980RemovePassthroughFile()
 {
     removeFile(um980FirmwareFileName);
 }

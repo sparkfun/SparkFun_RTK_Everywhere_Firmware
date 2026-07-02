@@ -570,46 +570,46 @@ bool loraIsOn()
     return (false);
 }
 
+// Force UART connection to LoRa radio for firmware update on the next boot by creating updateLoraFirmware.txt in
+// LittleFS
+bool loraCreatePassthroughFile()
+{
+    return createFileLfs("/updateLoraFirmware.txt");
+}
+bool loraCreateRxDirectFile()
+{
+    return createFileLfs("/loraRxDirect.txt");
+}
+bool loraCreateTxDirectFile()
+{
+    return createFileLfs("/loraTxDirect.txt");
+}
+
 // Check if updateLoraFirmware.txt exists
-bool checkLoraUpdatePassthrough()
+bool loraCheckPassthroughFile()
 {
     return fileExistsLfs("/updateLoraFirmware.txt");
 }
-bool loraRxDirectCheckFile()
+bool loraCheckRxDirectFile()
 {
     return fileExistsLfs("/loraRxDirect.txt");
 }
-bool loraTxDirectCheckFile()
+bool loraCheckTxDirectFile()
 {
     return fileExistsLfs("/loraTxDirect.txt");
 }
 
-void removeUpdateLoraFirmware()
+void loraRemovePassthroughFile()
 {
     removeFileLfs("/updateLoraFirmware.txt");
 }
-void loraRxDirectRemoveFile()
+void loraRemoveRxDirectFile()
 {
     removeFileLfs("/loraRxDirect.txt");
 }
-void loraTxDirectRemoveFile()
+void loraRemoveTxDirectFile()
 {
     removeFileLfs("/loraTxDirect.txt");
-}
-
-// Force UART connection to LoRa radio for firmware update on the next boot by creating updateLoraFirmware.txt in
-// LittleFS
-bool createLoRaPassthrough()
-{
-    return createFileLfs("/updateLoraFirmware.txt");
-}
-bool createLoraRxDirectFile()
-{
-    return createFileLfs("/loraRxDirect.txt");
-}
-bool createLoraTxDirectFile()
-{
-    return createFileLfs("/loraTxDirect.txt");
 }
 
 void loraBeginFirmwareUpdate()
@@ -676,7 +676,7 @@ void loraBeginFirmwareUpdate()
     }
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    removeUpdateLoraFirmware();
+    loraRemovePassthroughFile();
 
     systemFlush(); // Complete prints
 
@@ -1118,7 +1118,7 @@ void loraRxDirectConnect()
     // Flag that we are in direct connect mode
     inDirectConnectMode = true;
 
-    // Note: we can't call loraRxDirectRemoveFile() here as closing Tera Term will reset the ESP32,
+    // Note: we can't call loraRemoveRxDirectFile() here as closing Tera Term will reset the ESP32,
     //       returning the firmware to normal operation...
 
     // Paint LoRa Direct RX
@@ -1147,7 +1147,7 @@ void loraRxDirectConnect()
     }
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    loraRxDirectRemoveFile();
+    loraRemoveRxDirectFile();
 
     systemFlush(); // Complete prints
 
@@ -1272,7 +1272,7 @@ void loraTxDirectConnect()
     // Flag that we are in direct connect mode
     inDirectConnectMode = true;
 
-    // Note: we can't call loraTxDirectRemoveFile() here as closing Tera Term will reset the ESP32,
+    // Note: we can't call loraRemoveTxDirectFile() here as closing Tera Term will reset the ESP32,
     //       returning the firmware to normal operation...
 
     // Paint LoRa Direct TX
@@ -1301,7 +1301,7 @@ void loraTxDirectConnect()
     }
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    loraTxDirectRemoveFile();
+    loraRemoveTxDirectFile();
 
     systemFlush(); // Complete prints
 

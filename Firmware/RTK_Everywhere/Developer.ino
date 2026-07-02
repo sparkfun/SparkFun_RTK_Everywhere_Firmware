@@ -563,16 +563,16 @@ void espNowUpdate()                     {}
 
 #ifndef COMPILE_LORA
 void loraBeginFirmwareUpdate() {}
-bool checkLoraUpdatePassthrough() {return false;}
-bool createLoRaPassthrough() {return false;}
-bool createLoraRxDirectFile() {return false;}
-bool createLoraTxDirectFile() {return false;}
+bool loraCheckPassthroughFile() {return false;}
+bool loraCreatePassthroughFile() {return false;}
+bool loraCreateRxDirectFile() {return false;}
+bool loraCreateTxDirectFile() {return false;}
 void loraGetVersion() {}
 void loraPowerOff() {}
 void loraProcessRTCM(uint8_t *rtcmData, uint16_t dataLength) {}
-bool loraRxDirectCheckFile() {return false;}
+bool loraCheckRxDirectFile() {return false;}
 void loraRxDirectConnect() {}
-bool loraTxDirectCheckFile() {return false;}
+bool loraCheckTxDirectFile() {return false;}
 void loraTxDirectConnect() {}
 void muxSelectUm980() {}
 void muxSelectUsb() {}
