@@ -1259,9 +1259,8 @@ void assembleDeviceName()
     snprintf(displayName, sizeof(displayName), "%s%s%s", productVariantProperties->displayName, gnssModelIdentifier,
              tiltIdentifier);
 
-    // Set the prefix for broadcast names: "TX2", "FPLT"
-    snprintf(platformPrefix, sizeof(platformPrefix), "%s%s%s", productVariantProperties->name, gnssModelIdentifier,
-             tiltIdentifier);
+    // Set the prefix for broadcast names: "TX2", "FP"
+    snprintf(platformPrefix, sizeof(platformPrefix), "%s", productVariantProperties->name);
 
     // Set the accessory name for MFi: "SparkPNT TX2", "SparkPNT FPLT"
     snprintf(accessoryName, sizeof(accessoryName), "%s %s", brandAttributes->name, platformPrefix);
