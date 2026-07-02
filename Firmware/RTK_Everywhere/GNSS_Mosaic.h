@@ -18,8 +18,12 @@ typedef struct
 } mosaicExpectedID;
 
 const mosaicExpectedID mosaicExpectedIDs[] = {
-    {4007, true, 96, "PVTGeodetic"},  {4013, false, 0, "ChannelStatus"}, {4014, false, 0, "ReceiverStatus"},
-    {4059, false, 0, "DiskStatus"},   {4090, false, 0, "InputLink"},     {4097, false, 0, "EncapsulatedOutput"},
+    {4007, true, 96, "PVTGeodetic"},
+    {4013, false, 0, "ChannelStatus"},
+    {4014, false, 0, "ReceiverStatus"},
+    {4059, false, 0, "DiskStatus"},
+    {4090, false, 0, "InputLink"},
+    {4097, false, 0, "EncapsulatedOutput"},
     {5914, true, 24, "ReceiverTime"},
 };
 
@@ -111,8 +115,13 @@ typedef struct
 } mosaicObsInterval;
 
 const mosaicObsInterval mosaicObsIntervals[] = {
-    {"sec1", "1s", 1},    {"sec2", "2s", 2},    {"sec5", "5s", 5},    {"sec10", "10s", 10},
-    {"sec15", "15s", 15}, {"sec30", "30s", 30}, {"sec60", "60s", 60},
+    {"sec1", "1s", 1},
+    {"sec2", "2s", 2},
+    {"sec5", "5s", 5},
+    {"sec10", "10s", 10},
+    {"sec15", "15s", 15},
+    {"sec30", "30s", 30},
+    {"sec60", "60s", 60},
 };
 
 #define MAX_MOSAIC_OBS_INTERVALS (sizeof(mosaicObsIntervals) / sizeof(mosaicObsInterval))
@@ -140,9 +149,15 @@ typedef struct
 } mosaicComRate;
 
 const mosaicComRate mosaicComRates[] = {
-    {"baud4800", 4800},     {"baud9600", 9600},     {"baud19200", 19200},
-    {"baud38400", 38400},   {"baud57600", 57600},   {"baud115200", 115200},
-    {"baud230400", 230400}, {"baud460800", 460800}, {"baud921600", 921600},
+    {"baud4800", 4800},
+    {"baud9600", 9600},
+    {"baud19200", 19200},
+    {"baud38400", 38400},
+    {"baud57600", 57600},
+    {"baud115200", 115200},
+    {"baud230400", 230400},
+    {"baud460800", 460800},
+    {"baud921600", 921600},
 };
 
 #define MAX_MOSAIC_COM_RATES (sizeof(mosaicComRates) / sizeof(mosaicComRate))
@@ -177,11 +192,20 @@ typedef struct
 } mosaicPPSInterval;
 
 const mosaicPPSInterval mosaicPPSIntervals[] = {
-    {"msec10", "10ms", 10000},    {"msec20", "20ms", 20000},    {"msec50", "50ms", 50000},
-    {"msec100", "100ms", 100000}, {"msec200", "200ms", 200000}, {"msec250", "250ms", 250000},
-    {"msec500", "500ms", 500000}, {"sec1", "1s", 1000000},      {"sec2", "2s", 2000000},
-    {"sec4", "4s", 4000000},      {"sec5", "5s", 5000000},      {"sec10", "10s", 10000000},
-    {"sec30", "30s", 30000000},   {"sec60", "60s", 60000000},
+    {"msec10", "10ms", 10000},
+    {"msec20", "20ms", 20000},
+    {"msec50", "50ms", 50000},
+    {"msec100", "100ms", 100000},
+    {"msec200", "200ms", 200000},
+    {"msec250", "250ms", 250000},
+    {"msec500", "500ms", 500000},
+    {"sec1", "1s", 1000000},
+    {"sec2", "2s", 2000000},
+    {"sec4", "4s", 4000000},
+    {"sec5", "5s", 5000000},
+    {"sec10", "10s", 10000000},
+    {"sec30", "30s", 30000000},
+    {"sec60", "60s", 60000000},
 };
 
 #define MAX_MOSAIC_PPS_INTERVALS (sizeof(mosaicPPSIntervals) / sizeof(mosaicPPSInterval))
@@ -208,8 +232,13 @@ typedef struct
 
 // Constellations monitored/used for fix
 const mosaicSignalConstellation mosaicSignalConstellations[] = {
-    {"GPS", "GPS"},       {"GLONASS", "GLONASS"}, {"GALILEO", "Galileo"}, {"SBAS", "SBAS"},
-    {"BEIDOU", "BeiDou"}, {"QZSS", "QZSS"},       {"NAVIC", "NavIC"},
+    {"GPS", "GPS"},
+    {"GLONASS", "GLONASS"},
+    {"GALILEO", "Galileo"},
+    {"SBAS", "SBAS"},
+    {"BEIDOU", "BeiDou"},
+    {"QZSS", "QZSS"},
+    {"NAVIC", "NavIC"},
 };
 
 #define MAX_MOSAIC_CONSTELLATIONS (sizeof(mosaicSignalConstellations) / sizeof(mosaicSignalConstellation))
@@ -256,10 +285,26 @@ typedef struct
 const mosaicMsgRate mosaicMsgRates[] = {
     // { "off"},
     // { "OnChange"},
-    {"msec10", "10ms"},   {"msec20", "20ms"},   {"msec40", "40ms"}, {"msec50", "50ms"}, {"msec100", "100ms"},
-    {"msec200", "200ms"}, {"msec500", "500ms"}, {"sec1", "1s"},     {"sec2", "2s"},     {"sec5", "5s"},
-    {"sec10", "10s"},     {"sec15", "15s"},     {"sec30", "30s"},   {"sec60", "60s"},   {"min2", "2min"},
-    {"min5", "5min"},     {"min10", "10min"},   {"min15", "15min"}, {"min30", "30min"}, {"min60", "60min"},
+    {"msec10", "10ms"},
+    {"msec20", "20ms"},
+    {"msec40", "40ms"},
+    {"msec50", "50ms"},
+    {"msec100", "100ms"},
+    {"msec200", "200ms"},
+    {"msec500", "500ms"},
+    {"sec1", "1s"},
+    {"sec2", "2s"},
+    {"sec5", "5s"},
+    {"sec10", "10s"},
+    {"sec15", "15s"},
+    {"sec30", "30s"},
+    {"sec60", "60s"},
+    {"min2", "2min"},
+    {"min5", "5min"},
+    {"min10", "10min"},
+    {"min15", "15min"},
+    {"min30", "30min"},
+    {"min60", "60min"},
 };
 
 // Check MAX_MOSAIC_MSG_RATES == MOSAIC_NUM_MSG_RATES
@@ -278,10 +323,36 @@ typedef struct
 // Stream 0 is off; stream 1 defaults to MSEC500; stream 2 defaults to SEC1
 const mosaicNMEAMsg mosaicMessagesNMEA[] = {
     // NMEA
-    {"ALM", 0}, {"AVR", 0}, {"DTM", 0}, {"GBS", 0},     {"GFA", 0}, {"GGA", 1}, {"GGK", 0}, {"GGQ", 0},
-    {"GLL", 0}, {"GMP", 0}, {"GNS", 0}, {"GRS", 0},     {"GSA", 1}, {"GST", 1}, {"GSV", 2}, {"HDT", 0},
-    {"HRP", 0}, {"LLK", 0}, {"LLQ", 0}, {"RBD", 0},     {"RBP", 0}, {"RBV", 0}, {"RMC", 1}, {"ROT", 0},
-    {"SNC", 0}, {"TFM", 0}, {"THS", 0}, {"TXTbase", 0}, {"VTG", 0}, {"ZDA", 0},
+    {"ALM", 0},
+    {"AVR", 0},
+    {"DTM", 0},
+    {"GBS", 0},
+    {"GFA", 0},
+    {"GGA", 1},
+    {"GGK", 0},
+    {"GGQ", 0},
+    {"GLL", 0},
+    {"GMP", 0},
+    {"GNS", 0},
+    {"GRS", 0},
+    {"GSA", 1},
+    {"GST", 1},
+    {"GSV", 2},
+    {"HDT", 0},
+    {"HRP", 0},
+    {"LLK", 0},
+    {"LLQ", 0},
+    {"RBD", 0},
+    {"RBP", 0},
+    {"RBV", 0},
+    {"RMC", 1},
+    {"ROT", 0},
+    {"SNC", 0},
+    {"TFM", 0},
+    {"THS", 0},
+    {"TXTbase", 0},
+    {"VTG", 0},
+    {"ZDA", 0},
 };
 
 #define MAX_MOSAIC_NMEA_MSG (sizeof(mosaicMessagesNMEA) / sizeof(mosaicNMEAMsg))
@@ -351,14 +422,32 @@ typedef struct
 } mosaicRTCMv3MsgIntervalGroup;
 
 const mosaicRTCMv3MsgIntervalGroup mosaicRTCMv3MsgIntervalGroups[] = {
-    {"RTCM1001|2", 1.0},  {"RTCM1003|4", 1.0}, {"RTCM1005|6", 1.0}, {"RTCM1007|8", 1.0}, {"RTCM1009|10", 1.0},
-    {"RTCM1011|12", 1.0}, {"RTCM1013", 1.0},   {"RTCM1019", 1.0},   {"RTCM1020", 1.0},   {"RTCM1029", 1.0},
-    {"RTCM1033", 10.0},   {"RTCM1042", 1.0},   {"RTCM1044", 1.0},   {"RTCM1045", 1.0},   {"RTCM1046", 1.0},
-    {"MSM1", 1.0},        {"MSM2", 1.0},       {"MSM3", 1.0},       {"MSM4", 1.0},       {"MSM5", 1.0},
-    {"MSM6", 1.0},        {"MSM7", 1.0},       {"RTCM1230", 1.0},
+    {"RTCM1001|2", 1.0},
+    {"RTCM1003|4", 1.0},
+    {"RTCM1005|6", 1.0},
+    {"RTCM1007|8", 1.0},
+    {"RTCM1009|10", 1.0},
+    {"RTCM1011|12", 1.0},
+    {"RTCM1013", 1.0},
+    {"RTCM1019", 1.0},
+    {"RTCM1020", 1.0},
+    {"RTCM1029", 1.0},
+    {"RTCM1033", 10.0},
+    {"RTCM1042", 1.0},
+    {"RTCM1044", 1.0},
+    {"RTCM1045", 1.0},
+    {"RTCM1046", 1.0},
+    {"MSM1", 1.0},
+    {"MSM2", 1.0},
+    {"MSM3", 1.0},
+    {"MSM4", 1.0},
+    {"MSM5", 1.0},
+    {"MSM6", 1.0},
+    {"MSM7", 1.0},
+    {"RTCM1230", 1.0},
 };
 
-#define MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS                                                                             \
+#define MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS \
     (sizeof(mosaicRTCMv3MsgIntervalGroups) / sizeof(mosaicRTCMv3MsgIntervalGroup))
 
 typedef struct
@@ -506,7 +595,7 @@ class GNSS_MOSAIC : GNSS
     // TODO: consider breaking the mosaic comms functions out into their own library
     // and add a private library class instance here.
 
-  protected:
+protected:
     // Flag which indicates GNSS is blocking (needs exclusive access to the UART)
     bool _isBlocking = false;
 
@@ -537,7 +626,7 @@ class GNSS_MOSAIC : GNSS
     // Set the minimum satellite signal level for navigation.
     bool setMinCN0(uint8_t cnoValue);
 
-  public:
+public:
     // Allow access from parser routines
     float _latStdDev;
     float _lonStdDev;
@@ -1094,27 +1183,27 @@ bool mosaicCommandList(RTK_Settings_Types type,
                        int settingsIndex,
                        bool inCommands,
                        int qualifier,
-                       char * settingName,
-                       char * settingValue);
+                       char *settingName,
+                       char *settingValue);
 void mosaicCommandTypeJson(JsonArray &command_types);
 bool mosaicCreateString(RTK_Settings_Types type,
                         int settingsIndex,
-                        char * newSettings);
+                        char *newSettings);
 bool mosaicpGetSettingValue(RTK_Settings_Types type,
-                            const char * suffix,
+                            const char *suffix,
                             int settingsIndex,
                             int qualifier,
-                            char * settingValueStr);
+                            char *settingValueStr);
 bool mosaicIsPresentOnFacetFP();
 void mosaicNewClass();
-bool mosaicNewSettingValue(struct Settings * tempSettings,
+bool mosaicNewSettingValue(struct Settings *tempSettings,
                            RTK_Settings_Types type,
-                           const char * suffix,
+                           const char *suffix,
                            int qualifier,
                            double d);
-bool mosaicSettingsToFile(char * line,
+bool mosaicSettingsToFile(char *line,
                           size_t lineSize,
                           RTK_Settings_Types type,
                           int settingsIndex);
 
-#endif  // __GNSS_MOSAIC_H__
+#endif // __GNSS_MOSAIC_H__
