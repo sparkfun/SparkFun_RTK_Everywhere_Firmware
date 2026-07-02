@@ -1285,6 +1285,22 @@ uint32_t GNSS_MOSAIC::getTimeAccuracy()
 }
 
 //----------------------------------------
+// Sets the pieces of the version number
+//----------------------------------------
+bool GNSS_MOSAIC::getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, uint8_t &revision)
+{
+    if (online.gnss)
+    {
+        major = _versionMajor;
+        minor = _versionMinor;
+        patch = _versionPatch;
+        revision = _versionRevision;
+        return (true);
+    }
+    return (false);
+}
+
+//----------------------------------------
 // Returns full year, ie 2023, not 23.
 //----------------------------------------
 uint16_t GNSS_MOSAIC::getYear()
@@ -2629,8 +2645,8 @@ void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
 {
     _latitude = sempSbfGetF8(parse, 16) * 180.0 / PI; // Convert from radians to degrees
     _longitude = sempSbfGetF8(parse, 24) * 180.0 / PI;
-    _altitude = sempSbfGetF8(parse, 32); // Ellipsoidal height
-    _geoidalSeparation = (double)sempSbfGetF4(parse, 40); // Geoid undulation
+    _altitude = sempSbfGetF8(parse, 32);                            // Ellipsoidal height
+    _geoidalSeparation = (double)sempSbfGetF4(parse, 40);           // Geoid undulation
     _horizontalAccuracy = ((float)sempSbfGetU2(parse, 90)) / 100.0; // Convert from cm to m
 
     // NrSV is the total number of satellites used in the PVT computation.

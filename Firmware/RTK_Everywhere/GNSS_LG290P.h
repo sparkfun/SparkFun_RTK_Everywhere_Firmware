@@ -336,6 +336,9 @@ class GNSS_LG290P : GNSS
     // Returns timing accuracy or zero if not online
     uint32_t getTimeAccuracy();
 
+    // Sets the pieces of the version number
+    bool getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, uint8_t &revision);
+
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
 

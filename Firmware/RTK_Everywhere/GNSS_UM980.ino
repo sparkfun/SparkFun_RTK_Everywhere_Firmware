@@ -884,6 +884,27 @@ uint32_t GNSS_UM980::getTimeAccuracy()
 }
 
 //----------------------------------------
+// Sets the pieces of the version number
+//----------------------------------------
+bool GNSS_UM980::getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, uint8_t &revision)
+{
+    if (online.gnss)
+    {
+        // Unit responds with a large in such as 11833
+        int um980Version = String(_um980->getVersion()).toInt(); // Convert the string response to a value
+        if (um980Version >= 0)
+        {
+            major = um980Version;
+            minor = 0;
+            patch = 0;
+            revision = 0;
+            return (true);
+        }
+    }
+    return false;
+}
+
+//----------------------------------------
 // Returns full year, ie 2023, not 23.
 //----------------------------------------
 uint16_t GNSS_UM980::getYear()

@@ -1100,6 +1100,22 @@ uint32_t GNSS_LG290P::getTimeAccuracy()
 }
 
 //----------------------------------------
+// Sets the pieces of the version number
+//----------------------------------------
+bool GNSS_LG290P::getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, uint8_t &revision)
+{
+    if (online.gnss)
+    {
+        bool response = _lg290p->getFirmwareVersionMajor((int &)major);
+        response &= _lg290p->getFirmwareVersionMinor((int &)minor);
+        patch = 0;
+        revision = 0;
+        return (response);
+    }
+    return false;
+}
+
+//----------------------------------------
 // Returns full year, ie 2023, not 23.
 //----------------------------------------
 uint16_t GNSS_LG290P::getYear()

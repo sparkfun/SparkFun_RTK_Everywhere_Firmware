@@ -522,6 +522,12 @@ class GNSS_MOSAIC : GNSS
     uint32_t previousNrBytesReceived = 0;
     bool firstTimeNrBytesReceived = true;
 
+    // Version parts
+    uint8_t _majorVersion = 0;
+    uint8_t _minorVersion = 0;
+    uint8_t _patchVersion = 0;
+    uint8_t _revisionVersion = 0;
+
     // Setup the general configuration of the GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
@@ -782,6 +788,9 @@ class GNSS_MOSAIC : GNSS
 
     // Returns timing accuracy or zero if not online
     uint32_t getTimeAccuracy();
+
+    // Sets the pieces of the version number
+    bool getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, uint8_t &revision);
 
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
