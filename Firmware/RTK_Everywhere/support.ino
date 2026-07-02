@@ -1574,6 +1574,22 @@ void serialInputClear()
         Serial.read();
 }
 
+// Returns true if a file exists on LittleFS, false if not or if LittleFS is not mounted
+bool fileExistsLfs(const char *filename)
+{
+    if (online.fs == false)
+        return false;
+
+    if (LittleFS.exists(filename))
+    {
+        if (settings.debugSettings)
+            systemPrintf("LittleFS %s exists\r\n", filename);
+        return true;
+    }
+
+    return false;
+}
+
 // Returns true if file is successfully created
 // Used with passthrough files (LoRa, Tilt, GNSS, etc)
 bool createFileLfs(const char *filename)
@@ -1596,22 +1612,6 @@ bool createFileLfs(const char *filename)
 
     if (settings.debugSettings)
         systemPrintf("Unable to create %s on LittleFS\r\n", filename);
-    return false;
-}
-
-// Returns true if a file exists on LittleFS, false if not or if LittleFS is not mounted
-bool fileExistsLfs(const char *filename)
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugSettings)
-            systemPrintf("LittleFS %s exists\r\n", filename);
-        return true;
-    }
-
     return false;
 }
 
