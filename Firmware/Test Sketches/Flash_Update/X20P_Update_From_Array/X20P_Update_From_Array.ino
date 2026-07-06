@@ -100,6 +100,7 @@ void setup()
     Wire.begin(pin_SDA, pin_SCL);
     beginGpioExpanderSwitches();
     gpioExpanderConnectGNSSToESP32(); // Connect Facet FP GNSS receiver UART1 to ESP32 UART1 for normal comms
+    displayMenu();
 }
 
 void loop()
@@ -118,6 +119,7 @@ void loop()
             delay(250);
             gpioExpanderGnssBoot();
             delay(250);
+            displayMenu();
         }
         else if (incoming == 'u')
         {
@@ -131,6 +133,7 @@ void loop()
             else
             {
                 Serial.println("Failed to enter bootloader mode.");
+                displayMenu();
                 return;
             }
 
@@ -150,6 +153,15 @@ void loop()
             Serial.print("Firmware update time: ");
             Serial.print(firmwareUpdateElapsed / 1000.0, 3);
             Serial.println(" seconds");
+            displayMenu();
         }
     }
+}
+
+void displayMenu()
+{
+    Serial.println();
+    Serial.printf("g) Reset GNSS\r\n");
+    Serial.printf("u) Update GNSS\r\n");
+    Serial.printf("r) Reboot system\r\n");
 }
