@@ -929,6 +929,14 @@ const char *coordinatePrintableInputType(CoordinateInputType coordinateInputType
     return ("Unknown");
 }
 
+// Resest the system
+void systemReset()
+{
+    Serial.println("System reset");
+    Serial.flush();
+    ESP.restart();
+}
+
 // Print the error message every 15 seconds
 void reportFatalError(const char *errorMsg)
 {
@@ -956,11 +964,7 @@ void reportFatalError(const char *errorMsg)
 
         // Allow carriage return to reset the system
         if (Serial.available() && (Serial.read() == '\r'))
-        {
-            Serial.println("System reset");
-            Serial.flush();
-            ESP.restart();
-        }
+            systemReset();
     }
 }
 
