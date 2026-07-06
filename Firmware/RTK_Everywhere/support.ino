@@ -1235,7 +1235,7 @@ void assembleDeviceName()
     RTKBrandAttribute *brandAttributes = getBrandAttributeFromProductVariant(productVariant);
 
     char gnssModelIdentifier[2] = {0};
-    char tiltIdentifier[2] = {0};
+    char tiltIdentifier[3] = {0};
 
     if (productVariant == RTK_FACET_FP)
     {
@@ -1252,7 +1252,7 @@ void assembleDeviceName()
 
         // Form the Tilt identifier.
         if (settings.detectedTilt)
-            snprintf(tiltIdentifier, sizeof(tiltIdentifier), "T");
+            snprintf(tiltIdentifier, sizeof(tiltIdentifier), "-T");
     }
 
     // Set the display name for the OLED: "TX2", "FPLT", "Facet LB"
