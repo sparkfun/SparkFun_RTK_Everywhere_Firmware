@@ -282,7 +282,7 @@ const int dfuBufferInfoCount = sizeof(dfuBufferInfo) / sizeof(dfuBufferInfo[0]);
 #ifdef  COMPILE_LG290P
 #define DFU_LG290P_MAX_PAYLOAD_SIZE     (5 * 1024)
 #define DFU_LG290P_BYTES                (1 + 1 + 1 + 2 + 4 + DFU_LG290P_MAX_PAYLOAD_SIZE + 4 + 1)
-#endif  //COMPILE_LG290P
+#endif  // COMPILE_LG290P
 
 //----------------------------------------
 // Declare the forward device support routines
