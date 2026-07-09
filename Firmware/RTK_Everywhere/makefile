@@ -67,6 +67,7 @@ DIR_LISTING=ls
 ENABLE_EXECUTION=chmod +x
 TERMINAL_APP=minicom
 TERMINAL_PORT=/dev/ttyUSB0
+TERMINAL_PORT_FACET_FP=/dev/ttyACM2
 TERMINAL_PORT_LG290P=/dev/ttyACM0
 TERMINAL_PORT_TORCH=/dev/ttyACM1
 TERMINAL_PARAMS=-b 115200 -8 < /dev/tty
@@ -241,6 +242,26 @@ upload:	$(RTK_BIN_PATH)
         0x10000   $<
 	$(TERMINAL_APP)   -D $(TERMINAL_PORT)   $(TERMINAL_PARAMS)
 
+.PHONY: upload_facet_fp
+
+upload_facet_fp:	$(RTK_BIN_PATH)
+	python3 $(ESPTOOL_PATH)esptool.py \
+        --chip   esp32 \
+        --port   $(TERMINAL_PORT_FACET_FP) \
+        --baud   460800 \
+        --before   default_reset \
+        --after   hard_reset \
+        write_flash \
+        --flash_mode dio \
+        --flash_freq 80m \
+        --flash_size detect \
+        --compress \
+         0x1000   $(BOOT_LOADER_PATH)RTK_Surveyor.ino.bootloader.bin \
+         0x8000   $(BOOT_LOADER_PATH)RTK_Surveyor_Partitions_16MB.bin \
+         0xe000   $(BOOT_LOADER_PATH)boot_app0.bin \
+        0x10000   $<
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT_FACET_FP)   $(TERMINAL_PARAMS)
+
 .PHONY: upload_lg290p
 
 upload_lg290p:	$(RTK_BIN_PATH)
@@ -287,6 +308,9 @@ terminal:
 	$(TERMINAL_APP)   -D $(TERMINAL_PORT)   $(TERMINAL_PARAMS)
 
 .PHONY:	terminal_lg290p
+
+terminal_facet_fp:
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT_FACET_FP)   $(TERMINAL_PARAMS)
 
 terminal_lg290p:
 	$(TERMINAL_APP)   -D $(TERMINAL_PORT_LG290P)   $(TERMINAL_PARAMS)

@@ -53,16 +53,16 @@ const uint32_t x20p_firmware_size = sizeof(x20p_firmware);
 // #define UPDATE_BAUD 921600u
 
 #include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
-SFE_PCA95XX io(PCA95XX_PCA9534); // Create a PCA9534
+SFE_PCA95XX io(PCA95XX_PCA9534);                   // Create a PCA9534
 SFE_PCA95XX *gpioExpanderSwitches = nullptr;
 
 int pin_SDA = 15;
 int pin_SCL = 4;
 
-const int gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
-const int gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
-const int gpioExpanderSwitch_S3 = 2; // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
-const int gpioExpanderSwitch_S4 = 3; // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
+const int gpioExpanderSwitch_S1 = 0;         // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
+const int gpioExpanderSwitch_S2 = 1;         // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
+const int gpioExpanderSwitch_S3 = 2;         // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
+const int gpioExpanderSwitch_S4 = 3;         // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
 const int gpioExpanderSwitch_LoraEnable = 4; // LoRa_EN
 const int gpioExpanderSwitch_GNSS_Reset = 5; // RST_GNSS
 const int gpioExpanderSwitch_LoraBoot = 6;   // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
@@ -100,6 +100,7 @@ void setup()
     Wire.begin(pin_SDA, pin_SCL);
     beginGpioExpanderSwitches();
     gpioExpanderConnectGNSSToESP32(); // Connect Facet FP GNSS receiver UART1 to ESP32 UART1 for normal comms
+    displayMenu();
 }
 
 void loop()
@@ -118,6 +119,7 @@ void loop()
             delay(250);
             gpioExpanderGnssBoot();
             delay(250);
+            displayMenu();
         }
         else if (incoming == 'u')
         {
@@ -131,6 +133,7 @@ void loop()
             else
             {
                 Serial.println("Failed to enter bootloader mode.");
+                displayMenu();
                 return;
             }
 
@@ -150,6 +153,15 @@ void loop()
             Serial.print("Firmware update time: ");
             Serial.print(firmwareUpdateElapsed / 1000.0, 3);
             Serial.println(" seconds");
+            displayMenu();
         }
     }
+}
+
+void displayMenu()
+{
+    Serial.println();
+    Serial.printf("g) Reset GNSS\r\n");
+    Serial.printf("u) Update GNSS\r\n");
+    Serial.printf("r) Reboot system\r\n");
 }
