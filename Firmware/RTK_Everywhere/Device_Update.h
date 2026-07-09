@@ -212,9 +212,9 @@ typedef struct _DEVICE_FIRMWARE_INFO
     DEVICE_WRITE _write;        // Perform the firmware writes
     DEVICE_CLOSE _close;        // Perform firmware write cleanup
     INIT_DEV_CTX _initDevCtx;   // Initialize the device specific context
+    size_t _devContextBytes;    // Size of device specific context buffer
     bool _crcNeeded;            // Is file CRC needed to do firmware update
     bool _useNvm;               // Allow copy to NVM
-    size_t _devContextBytes;    // Size of device specific context buffer
     size_t _writeBufferBytes;   // Number of bytes needed for the write buffer
     size_t _maxWriteBytes;      // Maximum write packet size
 
@@ -319,13 +319,13 @@ bool deviceFirmwareUpdateBegin(bool doAll,
 // Note: Use the JSON based OTA to get a new ESP32 image when the
 // parsing fails due to website changes on the servers below!
 const DEVICE_FIRMWARE_INFO deviceFirmwareInfo[] =
-{//  Name           present                 Directory                   NameData        Extension  Firmware version             Reset               Open                Write               Close           InitDevCtx          CRC     useNvm  Context Bytes           Buffer Bytes        Max Write Bytes                 Server     Branch      dPrefix1     dPrefix2  dirEnd      nPrefix  nameEnd     Raw Branch
-    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", dfuEsp32GetFirmwareVersion,  nullptr,            dfuEsp32Open,       dfuEsp32Write,      dfuEsp32Close,  nullptr,            false,  false,  0,                      0,                  0,                              dfuGithub, nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
+{//  Name           present                 Directory                   NameData        Extension  Firmware version             Reset               Open                Write               Close           InitDevCtx          Context Bytes           CRC     useNvm  Buffer Bytes        Max Write Bytes                 Server     Branch      dPrefix1     dPrefix2  dirEnd      nPrefix  nameEnd     Raw Branch
+    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", dfuEsp32GetFirmwareVersion,  nullptr,            dfuEsp32Open,       dfuEsp32Write,      dfuEsp32Close,  nullptr,            0,                      false,  false,  0,                  0,                              dfuGithub, nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
     // ESP32 must be the first entry in the list, p command does list in reverse
 
     // GNSS devices
 #ifdef  COMPILE_LG290P
-    {"LG290P",      &present.gnss_lg290p,   "/gnss/lg290p",             "LG290P",          ".pkg", dfuGnssGetFirmwareVersion,   dfuLg290pReset,     dfuLg290pOpen,      dfuLg290pWrite,     dfuLg290pClose, nullptr,            true,   false,  0,                      DFU_LG290P_BYTES,   DFU_LG290P_MAX_PAYLOAD_SIZE,    dfuGithub, dfuRawHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
+    {"LG290P",      &present.gnss_lg290p,   "/gnss/lg290p",             "LG290P",          ".pkg", dfuGnssGetFirmwareVersion,   dfuLg290pReset,     dfuLg290pOpen,      dfuLg290pWrite,     dfuLg290pClose, nullptr,            0,                      true,   false,  DFU_LG290P_BYTES,   DFU_LG290P_MAX_PAYLOAD_SIZE,    dfuGithub, dfuRawHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
 #endif  // COMPILE_LG290P
 };
 const int deviceFirmwareInfoCount = sizeof(deviceFirmwareInfo) / sizeof(deviceFirmwareInfo[0]);
