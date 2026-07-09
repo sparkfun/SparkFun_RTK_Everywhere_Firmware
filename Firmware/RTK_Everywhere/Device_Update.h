@@ -190,7 +190,7 @@ typedef void (* DEVICE_CLOSE)(DEVICE_FIRMWARE_CTX * ctx);
 typedef bool (* DEVICE_OPEN)(DEVICE_FIRMWARE_CTX * ctx);
 typedef bool (* DEVICE_RESET)(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
 typedef ssize_t (* DEVICE_WRITE)(DEVICE_FIRMWARE_CTX * ctx,
-                                 uint8_t * buffer,
+                                 const uint8_t * buffer,
                                  size_t bytesToWrite);
 typedef String (* GET_FIRMWARE_VERSION)(DEVICE_FIRMWARE_CTX * ctx);
 typedef bool (* INIT_DEV_CTX)(DEVICE_FIRMWARE_CTX * ctx);
@@ -297,10 +297,10 @@ bool dfuLg290pOpen(DEVICE_FIRMWARE_CTX * ctx);
 
 // Device write, perform the firmware update
 ssize_t dfuEsp32Write(DEVICE_FIRMWARE_CTX * ctx,
-                      uint8_t * buffer,
+                      const uint8_t * buffer,
                       size_t bytesToWrite);
 ssize_t dfuLg290pWrite(DEVICE_FIRMWARE_CTX * ctx,
-                       uint8_t * buffer,
+                       const uint8_t * buffer,
                        size_t bytesToWrite);
 
 // Device close, finalize the firmware update
