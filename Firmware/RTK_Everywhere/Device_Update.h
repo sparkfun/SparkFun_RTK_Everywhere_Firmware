@@ -271,6 +271,19 @@ const DFU_BUFFER_INFO dfuBufferInfo[] =
 const int dfuBufferInfoCount = sizeof(dfuBufferInfo) / sizeof(dfuBufferInfo[0]);
 
 //----------------------------------------
+// Device specific context
+//----------------------------------------
+
+typedef struct _DFU_STM32_CONTEXT
+{
+    HardwareSerial * _stm32Serial;  // ESP32 serial port for STM32 communication
+} DFU_STM32_CONTEXT;
+#define DFU_STM32_CTX_LEN    sizeof(DFU_STM32_CONTEXT)
+
+// Context initialization routines
+bool dfuLoRaCtxInit(DEVICE_FIRMWARE_CTX * ctx);
+
+//----------------------------------------
 // Declare the device specific maximum write size
 //----------------------------------------
 
@@ -280,6 +293,10 @@ const int dfuBufferInfoCount = sizeof(dfuBufferInfo) / sizeof(dfuBufferInfo[0]);
 #define DFU_LG290P_BYTES                (1 + 1 + 1 + 2 + 4 + DFU_LG290P_MAX_PAYLOAD_SIZE + 4 + 1)
 #endif  // COMPILE_LG290P
 
+// STM32 declarations
+#define DFU_STM32_MAX_PAYLOAD_SIZE      256
+#define DFU_STM32_BYTES                 (1 + DFU_STM32_MAX_PAYLOAD_SIZE + 1)
+
 //----------------------------------------
 // Declare the forward device support routines
 //----------------------------------------
@@ -287,13 +304,16 @@ const int dfuBufferInfoCount = sizeof(dfuBufferInfo) / sizeof(dfuBufferInfo[0]);
 // Get firmware version
 String dfuEsp32GetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx);
 String dfuGnssGetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx);
+String dfuLoRaGetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx);
 
 // Device reset
 bool dfuLg290pReset(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
+bool dfuLoRaReset(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
 
 // Device open, prepare for writing firmware
 bool dfuEsp32Open(DEVICE_FIRMWARE_CTX * ctx);
 bool dfuLg290pOpen(DEVICE_FIRMWARE_CTX * ctx);
+bool dfuStm32Open(DEVICE_FIRMWARE_CTX * ctx);
 
 // Device write, perform the firmware update
 ssize_t dfuEsp32Write(DEVICE_FIRMWARE_CTX * ctx,
@@ -302,10 +322,14 @@ ssize_t dfuEsp32Write(DEVICE_FIRMWARE_CTX * ctx,
 ssize_t dfuLg290pWrite(DEVICE_FIRMWARE_CTX * ctx,
                        const uint8_t * buffer,
                        size_t bytesToWrite);
+ssize_t dfuStm32Write(DEVICE_FIRMWARE_CTX * ctx,
+                      const uint8_t * buffer,
+                      size_t bytesToWrite);
 
 // Device close, finalize the firmware update
 void dfuEsp32Close(DEVICE_FIRMWARE_CTX * ctx);
 void dfuLg290pClose(DEVICE_FIRMWARE_CTX * ctx);
+void dfuLoRaClose(DEVICE_FIRMWARE_CTX * ctx);
 
 // Declare the begin routine
 bool deviceFirmwareUpdateBegin(bool doAll,
@@ -327,6 +351,11 @@ const DEVICE_FIRMWARE_INFO deviceFirmwareInfo[] =
 #ifdef  COMPILE_LG290P
     {"LG290P",      &present.gnss_lg290p,   "/gnss/lg290p",             "LG290P",          ".pkg", dfuGnssGetFirmwareVersion,   dfuLg290pReset,     dfuLg290pOpen,      dfuLg290pWrite,     dfuLg290pClose, nullptr,            0,                      true,   false,  DFU_LG290P_BYTES,   DFU_LG290P_MAX_PAYLOAD_SIZE,    dfuGithub, dfuRawHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
 #endif  // COMPILE_LG290P
+
+    // LoRa devices
+#ifdef  COMPILE_LORA
+    {"LoRa",        &present.radio_lora,    "/lora/stm32wl",            "LoRa_",           ".bin", dfuLoRaGetFirmwareVersion,   dfuLoRaReset,       dfuStm32Open,       dfuStm32Write,      dfuLoRaClose,   dfuLoRaCtxInit,     DFU_STM32_CTX_LEN,      false,  false,  DFU_STM32_BYTES,    DFU_STM32_MAX_PAYLOAD_SIZE,     dfuGithub, dfuRawHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
+#endif  // COMPILE_LORA
 };
 const int deviceFirmwareInfoCount = sizeof(deviceFirmwareInfo) / sizeof(deviceFirmwareInfo[0]);
 
