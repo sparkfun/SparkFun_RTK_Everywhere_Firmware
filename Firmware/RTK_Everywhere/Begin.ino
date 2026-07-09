@@ -245,9 +245,6 @@ void beginBoard()
         pinMode(pin_GNSS_DR_Reset, OUTPUT);
         gnssBoot(); // Tell UM980 and IMU to boot
 
-        pinMode(pin_IMU_Boot, OUTPUT);
-        imuDisableBootloader(); // Put IMU in run mode
-
         pinMode(pin_powerAdapterDetect, INPUT); // Has 10k pullup
 
         pinMode(pin_usbSelect, OUTPUT);

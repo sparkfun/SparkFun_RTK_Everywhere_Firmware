@@ -46,8 +46,14 @@ static const int webServerStateEntries = sizeof(webServerStateNames) / sizeof(we
 // access to see if internet access is available.  If one is requested,
 // redirect user to captive portal (main page "/").
 const char *webServerCaptiveUrls[] = {
-    "canonical.html", "check_network_status.txt", "chrome-variations/seed",    "connecttest.txt",
-    "generate_204",   "hotspot-detect.html",      "library/test/success.html", "ncsi.txt",
+    "canonical.html",
+    "check_network_status.txt",
+    "chrome-variations/seed",
+    "connecttest.txt",
+    "generate_204",
+    "hotspot-detect.html",
+    "library/test/success.html",
+    "ncsi.txt",
     "success.txt",
 };
 const uint8_t webServerCaptiveUrlCount = sizeof(webServerCaptiveUrls) / sizeof(webServerCaptiveUrls[0]);
@@ -82,30 +88,30 @@ typedef struct _WEB_SOCKETS_CLIENT
 // Macros
 //----------------------------------------
 
-#define PAGE_HANDLER(index, page, httpMethod, type, routine)                                                           \
-    {                                                                                                                  \
-        {                                                                                                              \
-            .uri = page,                                                                                               \
-            .method = httpMethod,                                                                                      \
-            .handler = routine,                                                                                        \
-            .user_ctx = (void *)index,                                                                                 \
-        },                                                                                                             \
-        &type,                                                                                                         \
-        nullptr,                                                                                                       \
-        0,                                                                                                             \
+#define PAGE_HANDLER(index, page, httpMethod, type, routine) \
+    {                                                        \
+        {                                                    \
+            .uri = page,                                     \
+            .method = httpMethod,                            \
+            .handler = routine,                              \
+            .user_ctx = (void *)index,                       \
+        },                                                   \
+        &type,                                               \
+        nullptr,                                             \
+        0,                                                   \
     }
 
-#define WEB_PAGE(index, page, type, data)                                                                              \
-    {                                                                                                                  \
-        {                                                                                                              \
-            .uri = page,                                                                                               \
-            .method = HTTP_GET,                                                                                        \
-            .handler = webServerHandlerGetPage,                                                                        \
-            .user_ctx = (void *)index,                                                                                 \
-        },                                                                                                             \
-        &type,                                                                                                         \
-        (void *)data,                                                                                                  \
-        sizeof(data),                                                                                                  \
+#define WEB_PAGE(index, page, type, data)       \
+    {                                           \
+        {                                       \
+            .uri = page,                        \
+            .method = HTTP_GET,                 \
+            .handler = webServerHandlerGetPage, \
+            .user_ctx = (void *)index,          \
+        },                                      \
+        &type,                                  \
+        (void *)data,                           \
+        sizeof(data),                           \
     }
 
 //----------------------------------------
@@ -2222,7 +2228,8 @@ void webServerSendString(const char *stringToSend)
 
     if (!webServerIsConnected())
     {
-        systemPrintf("webServerSendString: not connected - could not send %d bytes\r\n", strlen(stringToSend));
+        if (settings.debugWebServer == true)
+            systemPrintf("webServerSendString: not connected - could not send %d bytes\r\n", strlen(stringToSend));
         return;
     }
 
@@ -2483,7 +2490,8 @@ void webServerUpdate()
         break;
 
     // Start the web server
-    case WEBSERVER_STATE_NETWORK_CONNECTED: {
+    case WEBSERVER_STATE_NETWORK_CONNECTED:
+    {
         // Determine if the network has failed
         if (connected == false && wifiSoftApRunning == false)
         {

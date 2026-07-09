@@ -1,3 +1,6 @@
+// Below are the functions necessary for firmware upgrading the IM19
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 const uint16_t IM19_FRAME_HEADER = 0xAA55;
 const uint16_t IM19_FRAME_TYPE_BIN = 0x01;
 const uint16_t IM19_FRAME_TYPE_REQ = 0x02;
@@ -444,3 +447,5 @@ void im19FirmwareUpdateEnd()
     }
     im19ResetFrameAssembly();
 }
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// End

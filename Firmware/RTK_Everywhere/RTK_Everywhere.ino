@@ -490,7 +490,10 @@ char otaRcFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
     "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-Variants.json"
 
 bool apConfigFirmwareUpdateInProcess; // Goes true once WiFi is connected and OTA pull begins
-unsigned int binBytesSent;            // Tracks firmware bytes sent over WiFi OTA update via AP config.
+
+// Global variables used by firmwareUpdateProgressCallback, called by all firmware update procedures
+uint32_t firmwareUpdateBytesToProcess = 0;
+uint32_t firmwareUpdateBytesProcessed = 0;
 
 char otaReportedVersion[50];
 bool otaRequestFirmwareVersionCheck = false;
