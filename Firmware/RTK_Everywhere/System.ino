@@ -948,7 +948,7 @@ void reportFatalError(const char *errorMsg)
     displayHalt();
 
     // Empty the FIFO of any incoming data
-    serialInputClear();
+    serialInputClear(&Serial);
 
     lastDisplayMsec = millis() - MILLISECONDS_IN_A_DAY;
     while (1)
