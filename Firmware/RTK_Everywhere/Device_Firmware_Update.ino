@@ -74,7 +74,7 @@ void deviceFirmwareActionMenu(DEVICE_FIRMWARE_CTX * ctx)
         systemPrintf("x) Exit\r\n");
 
         // Discard the input
-        serialInputClear();
+        serialInputClear(&Serial);
 
         // Output the prompt
         systemPrintf("Select an action: ");
@@ -426,7 +426,7 @@ void deviceFirmwareDeviceListMenu(DEVICE_FIRMWARE_CTX * ctx)
         systemPrintf("x) Exit\r\n");
 
         // Discard the input
-        serialInputClear();
+        serialInputClear(&Serial);
         ctx->_buffer[0] = 0;
         ctx->_validDataBytes = 0;
 
@@ -492,7 +492,7 @@ void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx)
         systemPrintf("x) Exit\r\n");
 
         // Discard the input
-        serialInputClear();
+        serialInputClear(&Serial);
         ctx->_buffer[0] = 0;
         ctx->_validDataBytes = 0;
 

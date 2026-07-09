@@ -1568,8 +1568,8 @@ int countAppPartitions()
 //----------------------------------------
 // Discard any input data
 //----------------------------------------
-void serialInputClear()
+void serialInputClear(Stream * stream)
 {
-    while (Serial.available())
-        Serial.read();
+    while (stream->available())
+        stream->read();
 }
