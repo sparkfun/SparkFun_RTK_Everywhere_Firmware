@@ -841,6 +841,7 @@ void deviceFirmwareOpenOutput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                 // Display the error
                 systemPrintf("ERROR: %s firmware open failed!\r\n",
                              ctx->_deviceInfo->_deviceName);
+                rtkTaskList(&Serial);
             }
             else
             {
