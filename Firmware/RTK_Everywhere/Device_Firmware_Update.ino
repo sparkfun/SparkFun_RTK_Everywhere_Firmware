@@ -1842,17 +1842,18 @@ void deviceFirmwareWrite(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         // Display the number of bytes written
         if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
             systemPrintf("bytesWritten: %d\r\n", bytesWritten);
-    }
 
-    // Display the percentage changes
-    percentage = ctx->_bytesWritten * 100 / ctx->_fileBytes;
-    if (percentage != ctx->_percentage)
-    {
-        ctx->_percentage = percentage;
-        displayFirmwareUpdateProgress(percentage);
-        systemPrintf("\r[%s %d%%",
-                     &dfuEqualSigns[strlen(dfuEqualSigns) - (percentage >> 1)],
-                     percentage);
+        // Display the percentage changes
+        percentage = ctx->_bytesWritten * 100 / ctx->_fileBytes;
+        if (percentage != ctx->_percentage)
+        {
+            ctx->_percentage = percentage;
+            displayFirmwareUpdateProgress(percentage);
+            systemPrintf("\r[%s %d%%%s",
+                         &dfuEqualSigns[strlen(dfuEqualSigns) - (percentage >> 1)],
+                         percentage,
+                         settings.debugFirmwareUpdate ? "\r\n" : "");
+        }
     }
 
     // Read more data
