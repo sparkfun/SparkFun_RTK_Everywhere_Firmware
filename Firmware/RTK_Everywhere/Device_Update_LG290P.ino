@@ -431,7 +431,7 @@ bool dfuLg290pReset()
 // LG290P firmware write
 //----------------------------------------
 ssize_t dfuLg290pWrite(DEVICE_FIRMWARE_CTX * ctx,
-                       uint8_t * buffer,
+                       const uint8_t * buffer,
                        size_t bytesToWrite)
 {
     size_t commandLength;

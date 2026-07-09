@@ -161,7 +161,7 @@ ssize_t dfuSdRead(DEVICE_FIRMWARE_CTX * ctx,
 // Copy firmware into the file
 //----------------------------------------
 ssize_t dfuSdWrite(DEVICE_FIRMWARE_CTX * ctx,
-                   uint8_t * buffer,
+                   const uint8_t * buffer,
                    size_t bytesToWrite)
 {
     return ctx->_sdFile.write(buffer, bytesToWrite);
