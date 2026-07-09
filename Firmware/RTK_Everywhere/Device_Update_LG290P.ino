@@ -479,7 +479,7 @@ ssize_t dfuLg290pWrite(DEVICE_FIRMWARE_CTX * ctx,
             }
         }
     } while (retryCount++ < 3);
-    return -1;
+    return 0;
 }
 
 #endif  // COMPILE_LG290P
