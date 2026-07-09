@@ -830,10 +830,6 @@ void deviceFirmwareOpenOutput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             // Determine if there is an open routine
             if (ctx->_deviceInfo->_open)
             {
-                // Yes, prepare the device for firmware updates
-                if (settings.debugFirmwareUpdate)
-                    systemPrintf("Preparing the %s for firmware update\r\n",
-                                 ctx->_deviceInfo->_deviceName);
                 result = ctx->_deviceInfo->_open(ctx);
                 if (result)
                     break;
