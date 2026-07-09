@@ -114,11 +114,15 @@ bool deviceFirmwareBufferAllocate(DEVICE_FIRMWARE_CTX * ctx)
     }
 
     // Return buffer allocation status
-    return (dfuFirmwareData._address && dfuFirmwareFileNamesNet._address
+    return (dfuFirmwareData._address
+        && dfuFirmwareFileNamesNet._address
         && ((ctx->_doAll == true)
             || (dfuFirmwareFileNamesNvm._address
                 && ((present.microSd == false)
-                    || dfuFirmwareFileNamesSd._address))));
+                    || dfuFirmwareFileNamesSd._address)
+               )
+           )
+           );
 }
 
 //----------------------------------------
