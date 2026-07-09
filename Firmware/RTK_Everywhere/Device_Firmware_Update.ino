@@ -60,7 +60,7 @@ void deviceFirmwareActionMenu(DEVICE_FIRMWARE_CTX * ctx)
 {
     if (ctx->_doAll == false)
     {
-        inMainMenu = true;
+//        inMainMenu = true;
         systemPrintf("\r\nAction:\r\n");
 
         // Display the menu
@@ -220,7 +220,7 @@ void deviceFirmwareCleanup(DEVICE_FIRMWARE_CTX * ctx)
         systemPrintf("Freeing device firmware update context, %d bytes\r\n", sizeof(*ctx));
     rtkFree(ctx, "Device firmware context");
     dfuContext = nullptr;
-    inMainMenu = false;
+//    inMainMenu = false;
 }
 
 //----------------------------------------
@@ -409,7 +409,7 @@ void deviceFirmwareDeviceListMenu(DEVICE_FIRMWARE_CTX * ctx)
 {
     if (ctx->_doAll == false)
     {
-        inMainMenu = true;
+//        inMainMenu = true;
         systemPrintf("\r\nDevice List:\r\n");
 
         // Walk the list of devices
@@ -465,7 +465,7 @@ void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx)
 
     if (ctx->_doAll == false)
     {
-        inMainMenu = true;
+//        inMainMenu = true;
 
         // Display the firmware version
         if (ctx->_deviceInfo->_version)
