@@ -691,6 +691,9 @@ bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
 }
 
 // Update the X20P firmware
+// Owns the full update sequence: enters bootloader mode, streams the image
+// over WiFi, then verifies/reboots — callers only need to call this one
+// function and do not need to know about Begin()/End().
 bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
 {
     if (relativeFirmwareFileLocation == nullptr)
@@ -701,6 +704,16 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
 
     systemPrintln("Starting X20P firmware update...");
 
+    if (x20pFirmwareUpdateBegin() == false)
+    {
+        systemPrintln("Failed to enter bootloader mode.");
+        return false;
+    }
+
+    systemPrintln("Device is in bootloader mode.");
+
+    bool success = true;
+
     WiFiClientSecure client;
     client.setCACert(GITHUB_RAW_PUBLIC_CERT);
 
@@ -709,83 +722,96 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
     if (!client.connect(OTA_FIRMWARE_GITHUB_RAW, 443))
     {
         systemPrintln("TLS socket connect failed");
-        return false;
+        success = false;
     }
-
-    // if (settings.debugFirmwareUpdate)
-    systemPrintln("TLS certificate verified for raw.githubusercontent.com");
-
-    client.stop();
-
-    // The relative file location looks like "\imu\im19\20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc"
-    // We need to access "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc"
-
-    char firmwareFileLocation[256];
-    snprintf(firmwareFileLocation, sizeof(firmwareFileLocation), "https://%s/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main%s", OTA_FIRMWARE_GITHUB_RAW, relativeFirmwareFileLocation);
-
-    // Convert backslashes to forward slashes for URL formatting
-    for (char *c = firmwareFileLocation; *c != '\0'; c++)
-        if (*c == '\\')
-            *c = '/';
-
-    // if (settings.debugFirmwareUpdate)
-    systemPrintf("Starting HTTP GET for firmware: %s\r\n", firmwareFileLocation);
-
-    HTTPClient http;
-    if (!http.begin(client, firmwareFileLocation))
+    else
     {
-        systemPrintln("Unable to begin HTTP request.");
-        return false;
-    }
+        // if (settings.debugFirmwareUpdate)
+        systemPrintln("TLS certificate verified for raw.githubusercontent.com");
 
-    int httpCode = http.GET();
-    if (httpCode != HTTP_CODE_OK)
-    {
-        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
-        http.end();
-        return false;
-    }
+        client.stop();
 
-    int contentLength = http.getSize();
-    if (contentLength > 0)
-        firmwareUpdateBytesToProcess = (uint32_t)contentLength;
+        // The relative file location looks like "\imu\im19\20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc"
+        // We need to access "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc"
 
-    WiFiClient *stream = http.getStreamPtr();
-    uint8_t buffer[256];
-    bool success = true;
+        char firmwareFileLocation[256];
+        snprintf(firmwareFileLocation, sizeof(firmwareFileLocation), "https://%s/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main%s", OTA_FIRMWARE_GITHUB_RAW, relativeFirmwareFileLocation);
 
-    while (http.connected() && (contentLength > 0 || contentLength == -1))
-    {
-        size_t available = stream->available();
-        if (available == 0)
+        // Convert backslashes to forward slashes for URL formatting
+        for (char *c = firmwareFileLocation; *c != '\0'; c++)
+            if (*c == '\\')
+                *c = '/';
+
+        // if (settings.debugFirmwareUpdate)
+        systemPrintf("Starting HTTP GET for firmware: %s\r\n", firmwareFileLocation);
+
+        HTTPClient http;
+        if (!http.begin(client, firmwareFileLocation))
         {
-            if (!client.connected())
-                break;
-            delay(1);
-            continue;
-        }
-
-        size_t toRead = min(available, sizeof(buffer));
-        int bytesRead = stream->readBytes(buffer, toRead);
-        if (bytesRead <= 0)
-            break;
-
-        if (x20pUpdateFirmware(SerialGNSS, buffer, (uint32_t)bytesRead) == false)
-        {
-            systemPrintln("Firmware update failed during WiFi data upload.");
+            systemPrintln("Unable to begin HTTP request.");
             success = false;
-            break;
         }
+        else
+        {
+            int httpCode = http.GET();
+            if (httpCode != HTTP_CODE_OK)
+            {
+                systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
+                success = false;
+            }
+            else
+            {
+                int contentLength = http.getSize();
+                if (contentLength > 0)
+                    firmwareUpdateBytesToProcess = (uint32_t)contentLength;
 
-        firmwareUpdateProgressCallback(bytesRead);
+                WiFiClient *stream = http.getStreamPtr();
+                uint8_t buffer[256];
 
-        if (contentLength > 0)
-            contentLength -= bytesRead;
+                while (http.connected() && (contentLength > 0 || contentLength == -1))
+                {
+                    size_t available = stream->available();
+                    if (available == 0)
+                    {
+                        if (!client.connected())
+                            break;
+                        delay(1);
+                        continue;
+                    }
+
+                    size_t toRead = min(available, sizeof(buffer));
+                    int bytesRead = stream->readBytes(buffer, toRead);
+                    if (bytesRead <= 0)
+                        break;
+
+                    if (x20pUpdateFirmware(SerialGNSS, buffer, (uint32_t)bytesRead) == false)
+                    {
+                        systemPrintln("Firmware update failed during WiFi data upload.");
+                        success = false;
+                        break;
+                    }
+
+                    firmwareUpdateProgressCallback(bytesRead);
+
+                    if (contentLength > 0)
+                        contentLength -= bytesRead;
+                }
+
+                if (success)
+                    systemPrintln("Update successfully completed.");
+            }
+
+            http.end();
+        }
     }
 
-    if (success)
-        systemPrintln("Update successfully completed.");
+    if (success == false)
+        systemPrintln("X20P firmware update failed.");
 
-    http.end();
-    return success;
+    // x20pFirmwareUpdateBegin() succeeded above, so End() must always run —
+    // it verifies (when success), frees the page buffer, and reboots the device.
+    systemPrintln("Rebooting receiver...");
+    bool updateOk = x20pFirmwareUpdateEnd(success);
+
+    return updateOk;
 }

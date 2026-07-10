@@ -134,27 +134,13 @@ void loop()
         }
         else if (incoming == 'u')
         {
-            Serial.println("Starting X20P firmware update...");
-
             // Start timer before erase
             firmwareUpdateStartTime = millis();
 
-            if (x20pFirmwareUpdateBegin() == true)
-            {
-                Serial.println("Device is in bootloader mode.");
-
-                bool streamOk = x20pStreamFirmware(firmwareURL);
-                if (streamOk == false)
-                    Serial.println("X20P firmware update failed.");
-
-                Serial.println("Rebooting receiver...");
-                if (x20pFirmwareUpdateEnd(streamOk))
-                    Serial.println("ZED-X20P updated successfully.");
-                else
-                    Serial.println("ZED-X20P update failed.");
-            }
+            if (x20pStreamFirmware(firmwareURL) == true)
+                systemPrintln("ZED-X20P updated successfully.");
             else
-                Serial.println("Failed to enter bootloader mode.");
+                systemPrintln("ZED-X20P update failed.");
 
             // Stop timer and print elapsed time
             firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
