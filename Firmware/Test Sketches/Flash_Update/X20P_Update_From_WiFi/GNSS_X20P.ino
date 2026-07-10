@@ -1,3 +1,6 @@
+// The following functions are for the X20P firmware update process.
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 // ==================================================================
 //  UBX PROTOCOL CONSTANTS
 // ==================================================================
@@ -815,3 +818,5 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
 
     return updateOk;
 }
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// End of X20P firmware update functions.

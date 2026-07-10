@@ -22,6 +22,7 @@ void loraReset()
 }
 
 // The following functions are for the STM32 firmware update process.
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 #define STM32_WRITE_BLOCK_MAX 256
 
@@ -320,3 +321,5 @@ bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
     http.end();
     return true;
 }
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// End of LoRa/STM32 firmware update functions.

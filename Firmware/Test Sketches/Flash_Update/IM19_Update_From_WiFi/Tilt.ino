@@ -448,4 +448,4 @@ void im19UpdateFirmwareEnd()
     im19ResetFrameAssembly();
 }
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-// End
+// End of IM19 firmware update functions.
