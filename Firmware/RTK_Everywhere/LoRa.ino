@@ -406,7 +406,7 @@ void beginLora()
         }
 
         // Store firmware version in char array
-        loraGetVersion(); // Calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
+        online.radio_lora = loraGetVersion(); // Calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     }
 }
 
@@ -1062,16 +1062,16 @@ bool loraEnterCommandMode()
 
 // Stores the current LoRa radio firmware version
 // Note: This enters command mode and does not exit.
-void loraGetVersion()
+bool loraGetVersion()
 {
     // Get the firmware version only once
     if (strlen(loraFirmwareVersion) > 3)
-        return;
+        return (true);
 
     if (loraIsOn() == false)
     {
         systemPrintln("loraGetVersion: LoRa radio is off");
-        return;
+        return (false);
     }
 
     if (loraEnterCommandMode() == true)
@@ -1101,6 +1101,7 @@ void loraGetVersion()
                 systemFlush(); // Complete prints
             }
         }
+        return (true);
     }
     else
     {
@@ -1110,6 +1111,7 @@ void loraGetVersion()
             systemFlush(); // Complete prints
         }
     }
+    return (false);
 }
 
 //----------------------------------------

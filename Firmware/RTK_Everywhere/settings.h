@@ -1966,7 +1966,6 @@ struct struct_online
     bool lband_gnss = false;
     bool pointPerfectKeysApplied = false;
     bool logging = false;
-    bool loraRadio = false;
     bool microSD = false;
     bool mqttClient = false;
     bool ntripClient = false;
@@ -1974,6 +1973,7 @@ struct struct_online
     bool otaClient = false;
     bool ppl = false;
     bool psram = false;
+    bool radio_lora = false;
     bool rtc = false;
     bool serialOutput = false;
     bool tcpClient = false;

@@ -793,7 +793,7 @@ unsigned long lastTiltBeepMs;  // Emit a beep every 10s if tilt is active
 int imuAppVersionInt;
 char imuFirmwareVersion[32];    // Ex: IM19_H2_B2.2_A11.4.1
 
-HardwareSerial * uart2Serial;   // Shared serial port between LoRa and Tilt
+HardwareSerial *uart2Serial;   // Shared serial port between LoRa and Tilt
 
 #define SerialForLoRa           uart2Serial
 #define SerialForTilt           uart2Serial

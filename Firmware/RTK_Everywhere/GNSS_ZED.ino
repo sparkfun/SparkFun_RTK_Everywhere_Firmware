@@ -2025,7 +2025,6 @@ bool GNSS_ZED::setConstellations()
 // Always update if force is true. Otherwise, only update if enable has changed state
 bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
 {
-
     if (force || (enable != _corrRadioExtPortEnabled))
     {
         bool response = _zed->newCfgValset(VAL_LAYER_ALL);

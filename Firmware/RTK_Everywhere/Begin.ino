@@ -1188,6 +1188,7 @@ void beginGnssUart2()
 
 //----------------------------------------
 // Configure UART2 serial port shared between LoRa and Tilt
+// This only applies to the FP. The Torch has tilt connected direct to ESP UART0 (shared with USB)
 //----------------------------------------
 bool beginUart2Serial()
 {

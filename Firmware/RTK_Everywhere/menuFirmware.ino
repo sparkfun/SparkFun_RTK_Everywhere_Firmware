@@ -1003,6 +1003,7 @@ void otaUpdate()
                 otaSetState(OTA_STATE_UPDATE_FIRMWARE_LG290P);
 
             // Currently there is no UM980 update path. Move on
+            systemPrintln("No UM980 update path, moving on");
             otaSetState(OTA_STATE_UPDATE_FIRMWARE_LG290P);
             break;
 
@@ -1386,7 +1387,7 @@ bool otaGetSystemsToUpdate(char *modelType)
         }
         else if (strcasecmp(subsystem, "STM32WL") == 0)
         {
-            if (online.loraRadio == false)
+            if (online.radio_lora == false)
             {
                 systemPrintf("LoRa Radio is offline, forcing update for %s\r\n", subsystem);
                 addTargetToUpdateList('L', remoteFilePath);
