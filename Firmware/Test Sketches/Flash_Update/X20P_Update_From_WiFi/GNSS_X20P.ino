@@ -269,7 +269,9 @@ void x20pSendDataFrame(HardwareSerial &ser, uint32_t address, const uint8_t *chu
  * Handles the concurrent chip-erase case
  *   - Packet 0 is sent while CERASE is in flight; the device ignores it.
  *   - When the CERASE completion arrives, the deadline is tightened to
- *     TIMEOUT_WRITE (3 s) from the original send time.
+ *     TIMEOUT_WRITE (3 s) from that completion time (not from the original
+ *     send time — erase duration is unpredictable and often exceeds
+ *     TIMEOUT_WRITE on its own).
  *   - On timeout, the packet is resent (up to WRITE_RETRIES times).
  *   - For packets 1+, eraseComplete is already true and the shorter
  *     TIMEOUT_WRITE deadline is used from the start.
@@ -311,9 +313,12 @@ bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk,
                     Serial.print("    [DBG] CERASE done, t=");
                     Serial.print(eraseCompleteAt - sendTime);
                     Serial.println(" ms after send");
-                    // Tighten deadline to TIMEOUT_WRITE after first send
-                    uint32_t fireAt = sendTime + TIMEOUT_WRITE;
-                    deadline = ((int32_t)(millis() - fireAt) >= 0) ? millis() : fireAt;
+                    // Tighten deadline to a full TIMEOUT_WRITE window from *now* (erase-complete
+                    // time), not from the original send time. Erase duration is unpredictable and
+                    // routinely exceeds TIMEOUT_WRITE, so anchoring to sendTime could put fireAt in
+                    // the past and leave zero time for packet 0's actual ACK to arrive, causing a
+                    // spurious timeout/retry right after every erase.
+                    deadline = eraseCompleteAt + TIMEOUT_WRITE;
                 }
                 else if (m.len >= 1 && m.payload[0] != 1)
                 {
