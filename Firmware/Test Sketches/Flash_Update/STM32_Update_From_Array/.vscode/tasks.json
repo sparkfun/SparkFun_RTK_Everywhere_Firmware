@@ -6,9 +6,21 @@
         {
             "label": "Compile and Upload",
             "type": "shell",
-            // None level of error, no warnings, fast upload
-            "command": "arduino-cli --fqbn esp32:esp32:esp32:DebugLevel=none,UploadSpeed=921600 compile STM32_Update_From_Array.ino -p COM16 -u",
-
+            
+            // FP/TX2 standard - None level of error, no warnings, fast upload
+            "command": "$portDevice = Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Caption -like '*SERIAL-B*' } | Select-Object -First 1; if ($portDevice -and $portDevice.Caption -match 'COM(\\d+)') { $port = 'COM' + $Matches[1]; arduino-cli --fqbn esp32:esp32:esp32:FlashSize=8M,PSRAM=enabled,DebugLevel=none,UploadSpeed=921600 compile . --build-property upload.maximum_size=4055040 --build-property build.partitions=RTKEverywhere_8MB -p $port -u } else { Write-Error 'No SERIAL-B port detected' }",
+            // Torch standard - Debug level of debug, no warnings, upload speed slow to Torch
+            
+            // "command": "$portDevice = Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Caption -like '*SERIAL-B*' } | Select-Object -First 1; if ($portDevice -and $portDevice.Caption -match 'COM(\\d+)') { $port = 'COM' + $Matches[1]; arduino-cli --fqbn esp32:esp32:esp32:FlashSize=8M,PSRAM=enabled,DebugLevel=none,UploadSpeed=512000 compile . --build-property upload.maximum_size=4055040 --build-property build.partitions=RTKEverywhere_8MB -p $port -u } else { Write-Error 'No SERIAL-B port detected' }",
+            "options": {
+                "shell": {
+                    "executable": "powershell.exe",
+                    "args": [
+                        "-NoProfile",
+                        "-Command"
+                    ]
+                }
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -27,7 +39,19 @@
         {
             "label": "Just Upload",
             "type": "shell",
-            "command": "arduino-cli upload -p COM16 --fqbn esp32:esp32:esp32:UploadSpeed=921600 STM32_Update_From_Array.ino",
+            //All other platforms - upload normal
+            "command": "$portDevice = Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Caption -like '*SERIAL-B*' } | Select-Object -First 1; if ($portDevice -and $portDevice.Caption -match 'COM(\\d+)') { $port = 'COM' + $Matches[1]; arduino-cli upload -p $port --fqbn esp32:esp32:esp32:UploadSpeed=921600,FlashSize=8M . } else { Write-Error 'No SERIAL-B port detected' }",
+            //Torch - upload slow
+            //  "command": "$portDevice = Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Caption -like '*SERIAL-B*' } | Select-Object -First 1; if ($portDevice -and $portDevice.Caption -match 'COM(\\d+)') { $port = 'COM' + $Matches[1]; arduino-cli upload -p $port --fqbn esp32:esp32:esp32:UploadSpeed=512000,FlashSize=8M . } else { Write-Error 'No SERIAL-B port detected' }",
+            "options": {
+                "shell": {
+                    "executable": "powershell.exe",
+                    "args": [
+                        "-NoProfile",
+                        "-Command"
+                    ]
+                }
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true

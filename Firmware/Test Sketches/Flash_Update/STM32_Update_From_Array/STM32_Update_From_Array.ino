@@ -1,15 +1,14 @@
 /*
-    This example shows how to read a firmware file from an array and send chunks to the STM32WL.
-    The goal is to eventually read from WiFi so we intentionally don't expect HEX file lines.
-
-    Non-contiguous addresses are detected and written when necessary.
+    This example shows how to read a raw firmware binary from an array and send chunks to the STM32WL.
+    The goal is to eventually read from WiFi so we intentionally treat the data as an opaque byte
+    stream rather than a HEX file - the array is written to Flash starting at 0x08000000, contiguously.
 
     This was written for FP hardware but should be adaptable to the Torch.
 
     To test: load this sketch onto an FP. 
     Press 'u' to start the update. Allow the update to complete.
     Load RTK Everywhere and put the device into STM32 passthrough mode. 
-    Use STM32CubeProgrammer to read the flash and compare it against the contents of 'lora_firmware.hex'. 
+    Use STM32CubeProgrammer to read the flash and compare it against the contents of 'SparkPNT_LoRa_3.0.1.bin'. 
     Files should be identical.
 
     All loaders should have similar structure:
@@ -22,7 +21,7 @@
 
 #define COMPILE_ALL_FIRMWARE // Comment this out to test with a smaller firmware blob
 
-#include "TheData.h" //Array containing the PKG data
+#include "TheData.h" //Array containing the raw binary firmware image
 
 #include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
 SFE_PCA95XX io(PCA95XX_PCA9534); // Create a PCA9534
@@ -66,7 +65,7 @@ void setup()
     Serial.begin(115200);
     delay(250);
 
-    Serial.println("STM32 bootloader test");
+    systemPrintln("STM32 bootloader test");
 
     Wire.begin(pin_SDA, pin_SCL);
 
@@ -77,7 +76,7 @@ void setup()
     // Connect ESP32 UART2 to LoRa UART2 via SW3 for configuration and bootloading/firmware updates
     gpioExpanderSelectLoraConfigure();
 
-    Serial.println("Serial LoRa started");
+    systemPrintln("Serial LoRa started");
 }
 
 void loop()
@@ -91,39 +90,40 @@ void loop()
         }
         else if (incoming == 'u')
         {
-            Serial.println("Starting firmware update...");
+            systemPrintln("Starting firmware update...");
 
             // Start timer before erase
             firmwareUpdateStartTime = millis();
 
             stm32UpdateFirmwareBegin();
 
-            Serial.println("Loading new firmware...");
+            systemPrintln("Loading new firmware...");
 
-            // We will be given bytes over WiFi so we need to parse the incoming
-            // stream to look for starting HEX lines and extract the data from those lines to send to stm32FirmwareUpdateParseHexLine().
-
+            // We will eventually be given bytes over WiFi, so feed the update state machine
+            // in fixed-size chunks rather than requiring the whole blob at once.
+            const uint16_t chunkSize = 256;
             uint32_t blobIndex = 0;
 
-            while (blobIndex < sizeof(lora_firmware))
+            while (blobIndex < sizeof(lora_firmware_3_0_1))
             {
-                uint8_t c = lora_firmware[blobIndex++];
-                stm32UpdateFirmware(&c, 1, false);
+                uint32_t bytesRemaining = sizeof(lora_firmware_3_0_1) - blobIndex;
+                uint16_t bytesToSend = (bytesRemaining < chunkSize) ? bytesRemaining : chunkSize;
+
+                stm32UpdateFirmware((uint8_t *)&lora_firmware_3_0_1[blobIndex], bytesToSend);
+
+                blobIndex += bytesToSend;
             }
 
-            // Send any remaining lines
-            stm32UpdateFirmware(NULL, 0, true);
-
             if (stm32UpdateFirmwareEnd())
-                Serial.println("Firmware Updated Successfully.");
+                systemPrintln("Firmware Updated Successfully.");
             else
-                Serial.println("Firmware Update Failed.");
+                systemPrintln("Firmware Update Failed.");
 
             // Stop timer and print elapsed time
             firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
-            Serial.print("Firmware update time: ");
-            Serial.print(firmwareUpdateElapsed / 1000.0, 3);
-            Serial.println(" seconds");
+            systemPrint("Firmware update time: ");
+            systemPrint(firmwareUpdateElapsed / 1000.0, 3);
+            systemPrintln(" seconds");
         }
     }
 }

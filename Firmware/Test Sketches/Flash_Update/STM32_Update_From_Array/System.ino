@@ -21,11 +21,11 @@ void firmwareUpdateProgressCallback(uint16_t bytesProcessed)
 
     lastUpdatePercent = progressPercent;
     
-    Serial.print("Update Progress: [");
+    systemPrint("Update Progress: [");
     for (uint8_t i = 0; i < progressBarWidth; i++)
-        Serial.print(i < filled ? '#' : '-');
+        systemWrite(i < filled ? '#' : '-');
 
-    Serial.print("] ");
-    Serial.print(progressPercent);
-    Serial.println("%");
+    systemPrint("] ");
+    systemPrint(progressPercent);
+    systemPrintln("%");
 }
