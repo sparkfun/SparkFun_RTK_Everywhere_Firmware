@@ -348,6 +348,12 @@ public:
         return 0;
     }
 
+    // Sets the pieces of the version number
+    bool getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, uint8_t &revision)
+    {
+        return false;
+    }
+
     // Returns full year, ie 2023, not 23.
     uint16_t getYear()
     {

@@ -6,6 +6,8 @@ Device_Firmware_Update.ino
 
 #ifdef  COMPILE_MENU_FIRMWARE
 
+#ifdef  COMPILE_NETWORK
+
 //----------------------------------------
 // Constants
 //----------------------------------------
@@ -1858,5 +1860,7 @@ void deviceFirmwareWrite(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     deviceFirmwareStateSet(ctx, ctx->_complete ? DFUS_DEVICE_CLOSE
                                                : DFUS_READ_FIRMWARE_DATA);
 }
+
+#endif  // COMPILE_NETWORK
 
 #endif  // COMPILE_MENU_FIRMWARE

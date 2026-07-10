@@ -4,6 +4,8 @@ Device_Update_Network.ino
   Support routines to use the network for firmware input
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+#ifdef COMPILE_NETWORK
+
 //----------------------------------------
 // Done with the network link
 //----------------------------------------
@@ -315,3 +317,5 @@ ssize_t dfuNetworkRead(DEVICE_FIRMWARE_CTX * ctx,
     }
     return bytesRead;
 }
+
+#endif  // COMPILE_NETWORK

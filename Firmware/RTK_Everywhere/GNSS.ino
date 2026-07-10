@@ -828,41 +828,6 @@ void gnssReset()
 }
 
 //----------------------------------------
-// Force UART connection to GNSS for firmware update on the next boot by special file in
-// LittleFS
-//----------------------------------------
-bool createGNSSPassthrough()
-{
-    return createPassthrough("/updateGnssFirmware.txt");
-}
-
-bool createPassthrough(const char *filename)
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugGnssConfig)
-            systemPrintf("LittleFS %s already exists\r\n", filename);
-        return true;
-    }
-
-    if (settings.debugGnssConfig)
-        systemPrintf("Creating passthrough file: %s \r\n", filename);
-
-    File simpleFile = LittleFS.open(filename, FILE_WRITE);
-    simpleFile.close();
-
-    if (LittleFS.exists(filename))
-        return true;
-
-    if (settings.debugGnssConfig)
-        systemPrintf("Unable to create %s on LittleFS\r\n", filename);
-    return false;
-}
-
-//----------------------------------------
 // Restore the GNSS to the factory settings
 //----------------------------------------
 void gnssFactoryReset()
@@ -871,14 +836,14 @@ void gnssFactoryReset()
 }
 
 //----------------------------------------
-void gnssFirmwareBeginUpdate()
+void gnssBeginFirmwareUpdate()
 {
     // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
 
     // Flag that we are in direct connect mode
     inDirectConnectMode = true;
 
-    // Note: we can't call gnssFirmwareRemoveUpdate() here as closing Tera Term will reset the ESP32,
+    // Note: we can't call gnssRemovePassthroughFile() here as closing Tera Term will reset the ESP32,
     //       returning the firmware to normal operation...
 
     // Paint GNSS Update
@@ -891,7 +856,7 @@ void gnssFirmwareBeginUpdate()
         gnssFirmwareDirectConnectSoftware();
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    gnssFirmwareRemoveUpdate();
+    gnssRemovePassthroughFile();
 
     systemFlush(); // Complete prints
 
@@ -903,7 +868,7 @@ void gnssFirmwareDirectConnectSoftware()
 {
     // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
 
-    // Note: gnssFirmwareBeginUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
+    // Note: gnssBeginFirmwareUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
     //  and display have all been initialized. But, importantly, the UARTs have not yet been started.
     //  This makes our job much easier...
 
@@ -1011,53 +976,19 @@ void gnssFirmwareDirectConnectHardware() // Facet FP only
     }
 }
 
-//----------------------------------------
-// Check if direct connection file exists
-//----------------------------------------
-bool gnssFirmwareCheckUpdate()
+// Handle the file creation and tear down the for the firmware update process.
+bool gnssCreatePassthroughFile()
 {
-    return gnssFirmwareCheckUpdateFile("/updateGnssFirmware.txt");
-}
-bool gnssFirmwareCheckUpdateFile(const char *filename)
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugGnss)
-            systemPrintf("LittleFS %s exists\r\n", filename);
-
-        // We do not remove the file here. See removeupdateUm980Firmware().
-
-        return true;
-    }
-
-    return false;
+    return createFileLfs("/updateGnssFirmware.txt");
 }
 
-//----------------------------------------
-// Remove direct connection file
-//----------------------------------------
-void gnssFirmwareRemoveUpdate()
+bool gnssCheckPassthroughFile()
 {
-    gnssFirmwareRemoveUpdateFile("/updateGnssFirmware.txt");
+    return fileExistsLfs("/updateGnssFirmware.txt");
 }
-
-void gnssFirmwareRemoveUpdateFile(const char *filename)
+void gnssRemovePassthroughFile()
 {
-    if (online.fs == false)
-        return;
-
-    if (settings.debugGnssConfig)
-        systemPrintf("Removing passthrough file: %s \r\n", filename);
-
-    if (LittleFS.exists(filename))
-    {
-        delay(50);
-
-        LittleFS.remove(filename);
-    }
+    removeFile("/updateGnssFirmware.txt");
 }
 
 //----------------------------------------

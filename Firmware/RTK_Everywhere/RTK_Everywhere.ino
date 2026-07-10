@@ -169,7 +169,6 @@ RTK_Everywhere.ino
 #define NTRIP_SERVER_MAX 4
 
 #ifdef COMPILE_NETWORK
-#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
 #include <DNSServer.h>    //Built-in.
 #include <ESPmDNS.h>      //Built-in.
 #include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
@@ -304,6 +303,7 @@ uint32_t laraTimer; // Backoff timer
 int pin_IMU_RX = PIN_UNDEFINED;
 int pin_IMU_TX = PIN_UNDEFINED;
 int pin_GNSS_DR_Reset = PIN_UNDEFINED;
+int pin_IMU_Boot = PIN_UNDEFINED;
 
 int pin_powerAdapterDetect = PIN_UNDEFINED;
 int pin_usbSelect = PIN_UNDEFINED;
@@ -484,8 +484,16 @@ const char *wifiSoftApPassword = nullptr;
 char otaFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
 char otaRcFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
 
+#define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
+
+#define OTA_FIRMWARE_SYSTEM_VARIANTS_JSON \
+    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-Variants.json"
+
 bool apConfigFirmwareUpdateInProcess; // Goes true once WiFi is connected and OTA pull begins
-unsigned int binBytesSent;            // Tracks firmware bytes sent over WiFi OTA update via AP config.
+
+// Global variables used by firmwareUpdateProgressCallback, called by all firmware update procedures
+uint32_t firmwareUpdateBytesToProcess = 0;
+uint32_t firmwareUpdateBytesProcessed = 0;
 
 char otaReportedVersion[50];
 bool otaRequestFirmwareVersionCheck = false;
@@ -785,7 +793,7 @@ unsigned long lastTiltBeepMs;  // Emit a beep every 10s if tilt is active
 int imuAppVersionInt;
 char imuFirmwareVersion[32];    // Ex: IM19_H2_B2.2_A11.4.1
 
-HardwareSerial * uart2Serial;   // Shared serial port between LoRa and Tilt
+HardwareSerial *uart2Serial;   // Shared serial port between LoRa and Tilt
 
 #define SerialForLoRa           uart2Serial
 #define SerialForTilt           uart2Serial
@@ -1024,7 +1032,7 @@ int loraFirmwareVersionInt = 0;
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 51
+#define MAX_BOOT_TIME_ENTRIES 52
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1414,25 +1422,29 @@ void setup()
     checkGNSSArrayDefaults(); // Check various setting arrays (message rates, etc) to see if they need to be reset to
                               // defaults
 
-    DMW_b("checkUpdateLoraFirmware");
-    if (checkUpdateLoraFirmware() == true) // Check if updateLoraFirmware.txt exists
-        beginLoraFirmwareUpdate();         // Needs I2C, GPIO Expander Switches, display, buttons, etc.
+    DMW_b("loraCheckPassthroughFile");
+    if (loraCheckPassthroughFile() == true) // Check if updateLoraFirmware.txt exists
+        loraBeginFirmwareUpdate();         // Needs I2C, GPIO Expander Switches, display, buttons, etc.
 
-    DMW_b("loraRxDirectCheckFile");
-    if (loraRxDirectCheckFile() == true) // Check if loraRxDirect.txt exists
+    DMW_b("loraCheckRxDirectFile");
+    if (loraCheckRxDirectFile() == true) // Check if loraRxDirect.txt exists
         loraRxDirectConnect();           // Needs I2C, GPIO Expander Switches, display, buttons, etc.
 
-    DMW_b("loraTxDirectCheckFile");
-    if (loraTxDirectCheckFile() == true) // Check if loraTxDirect.txt exists
+    DMW_b("loraCheckTxDirectFile");
+    if (loraCheckTxDirectFile() == true) // Check if loraTxDirect.txt exists
         loraTxDirectConnect();           // Needs I2C, GPIO Expander Switches, display, buttons, etc.
 
-    DMW_b("um980FirmwareCheckUpdate");
-    if (um980FirmwareCheckUpdate() == true) // UM980 needs special treatment - ** before the UARTs are started **
-        um980FirmwareBeginUpdate();         // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
+    DMW_b("um980CheckPassthroughFile");
+    if (um980CheckPassthroughFile() == true) // UM980 needs special treatment - ** before the UARTs are started **
+        um980BeginFirmwareUpdate();         // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
 
-    DMW_b("gnssFirmwareCheckUpdate");
-    if (gnssFirmwareCheckUpdate() == true) // Check if updateGnssFirmware.txt exists
-        gnssFirmwareBeginUpdate();         // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
+    DMW_b("gnssCheckPassthroughFile");
+    if (gnssCheckPassthroughFile() == true) // Check if updateGnssFirmware.txt exists
+        gnssBeginFirmwareUpdate();         // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
+
+    DMW_b("imuFirmwareCheckUpdate");
+    if (imuCheckPassthroughFile() == true) // Check if updateImuFirmware.txt exists
+        imuBeginFirmwareUpdate();         // 
 
     DMW_b("commandIndexFillActual");
     commandIndexFillActual(); // Shrink the commandIndex table now we're certain what GNSS we have

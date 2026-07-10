@@ -202,6 +202,7 @@ void beginBoard()
 
         pin_IMU_RX = 14; // Pin 16 is not available on Torch due to PSRAM
         pin_IMU_TX = 17;
+        pin_IMU_Boot = 2; // On Torch ESP GPIO2 is connected to DR_BOOT of the IM19.
 
         pin_GNSS_TimePulse = 39; // PPS on UM980
 
@@ -242,7 +243,7 @@ void beginBoard()
         pinMode(pin_GNSS_TimePulse, INPUT);
 
         pinMode(pin_GNSS_DR_Reset, OUTPUT);
-        gnssBoot(); // Tell UM980 and DR to boot
+        gnssBoot(); // Tell UM980 and IMU to boot
 
         pinMode(pin_powerAdapterDetect, INPUT); // Has 10k pullup
 
@@ -786,10 +787,10 @@ void beginBuffers()
 
 void beginVersion()
 {
-    firmwareVersionGet(deviceFirmware, sizeof(deviceFirmware), false);
+    espFirmwareVersionGet(deviceFirmware, sizeof(deviceFirmware), false);
 
     char versionString[21];
-    firmwareVersionGet(versionString, sizeof(versionString), true);
+    espFirmwareVersionGet(versionString, sizeof(versionString), true);
 
     // The GNSS and Tilt could be unknown. Show the generic name only
     char title[50];
@@ -1187,6 +1188,7 @@ void beginGnssUart2()
 
 //----------------------------------------
 // Configure UART2 serial port shared between LoRa and Tilt
+// This only applies to the FP. The Torch has tilt connected direct to ESP UART0 (shared with USB)
 //----------------------------------------
 bool beginUart2Serial()
 {

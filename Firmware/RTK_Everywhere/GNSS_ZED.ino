@@ -1264,6 +1264,23 @@ uint32_t GNSS_ZED::getTimeAccuracy()
 }
 
 //----------------------------------------
+// Sets the pieces of the version number
+//----------------------------------------
+bool GNSS_ZED::getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, uint8_t &revision)
+{
+    if (online.gnss)
+    {
+        major = _zed->getFirmwareVersionHigh();
+        minor = _zed->getFirmwareVersionLow();
+        patch = 0;
+        revision = 0;
+        return (true);
+    }
+
+    return (false);
+}
+
+//----------------------------------------
 // Returns full year, ie 2023, not 23.
 //----------------------------------------
 uint16_t GNSS_ZED::getYear()
@@ -2008,7 +2025,6 @@ bool GNSS_ZED::setConstellations()
 // Always update if force is true. Otherwise, only update if enable has changed state
 bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
 {
-
     if (force || (enable != _corrRadioExtPortEnabled))
     {
         bool response = _zed->newCfgValset(VAL_LAYER_ALL);

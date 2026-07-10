@@ -44,9 +44,13 @@ typedef struct _DEVICE_FIRMWARE_CTX
     // Input device
     int _inputDeviceType;               // Type of input device
     bool _networkConfigured;            // Is the network configured
+
+#ifdef COMPILE_NETWORK
     HTTPClient * _https;                // HTTPS object connected to web server
     NetworkClientSecure * _httpsClient; // Secure HTTPS client
     NetworkClient * _networkClient;     // Network client object connected to web server
+#endif  // COMPILE_NETWORK
+
     String _url;                        // URL for network access
     String _fileName;                   // File name for SD and NVM
     size_t _fileBytes;                  // Length of the file in bytes

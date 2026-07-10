@@ -188,10 +188,10 @@ void loop()
 
             Serial.print("Waiting up to 25 seconds for device to boot. updateFirmwareIsFinished: ");
             if (lg290pFirmwareUpdateEnd() == true) // Clean up and reset
-                Serial.println("Firmware Updated Successfully.");
+                Serial.println("LG290 updated successfully.");
             else
             {
-                Serial.println("Firmware Update Failed.");
+                Serial.println("LG290P update failed.");
                 return;
             }
 

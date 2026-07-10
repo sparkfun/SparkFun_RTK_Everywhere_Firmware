@@ -884,6 +884,27 @@ uint32_t GNSS_UM980::getTimeAccuracy()
 }
 
 //----------------------------------------
+// Sets the pieces of the version number
+//----------------------------------------
+bool GNSS_UM980::getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, uint8_t &revision)
+{
+    if (online.gnss)
+    {
+        // Unit responds with a large in such as 11833
+        int um980Version = String(_um980->getVersion()).toInt(); // Convert the string response to a value
+        if (um980Version >= 0)
+        {
+            major = um980Version;
+            minor = 0;
+            patch = 0;
+            revision = 0;
+            return (true);
+        }
+    }
+    return false;
+}
+
+//----------------------------------------
 // Returns full year, ie 2023, not 23.
 //----------------------------------------
 uint16_t GNSS_UM980::getYear()
@@ -2559,7 +2580,7 @@ bool um980SettingsToFile(char * line,
 #endif // COMPILE_UM980
 
 //----------------------------------------
-void um980FirmwareBeginUpdate()
+void um980BeginFirmwareUpdate()
 {
     // Note: We cannot increase the bootloading speed beyond 115200 because
     //  we would need to alter the UM980 baud, then save to NVM, then allow the UM980 to reset.
@@ -2571,9 +2592,9 @@ void um980FirmwareBeginUpdate()
     // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
 
     // Note: UM980 is currently only available on Torch.
-    //  But um980FirmwareBeginUpdate has been reworked so it will work on Facet too.
+    //  But um980BeginFirmwareUpdate has been reworked so it will work on Facet too.
 
-    // Note: um980FirmwareBeginUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
+    // Note: um980BeginFirmwareUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
     //  and display have all been initialized. But, importantly, the UARTs have not yet been started.
     //  This makes our job much easier...
 
@@ -2659,7 +2680,7 @@ void um980FirmwareBeginUpdate()
     }
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    um980FirmwareRemoveUpdate();
+    um980RemovePassthroughFile();
 
     systemFlush(); // Complete prints
 
@@ -2671,25 +2692,25 @@ const char *um980FirmwareFileName = "/updateUm980Firmware.txt";
 //----------------------------------------
 // Force UART connection to GNSS for firmware update on the next boot by special file in LittleFS
 //----------------------------------------
-bool um980CreatePassthrough()
+bool um980CreatePassthroughFile()
 {
-    return createPassthrough(um980FirmwareFileName);
+    return createFileLfs(um980FirmwareFileName);
 }
 
 //----------------------------------------
 // Check if direct connection file exists
 //----------------------------------------
-bool um980FirmwareCheckUpdate()
+bool um980CheckPassthroughFile()
 {
-    return gnssFirmwareCheckUpdateFile(um980FirmwareFileName);
+    return fileExistsLfs(um980FirmwareFileName);
 }
 
 //----------------------------------------
 // Remove direct connection file
 //----------------------------------------
-void um980FirmwareRemoveUpdate()
+void um980RemovePassthroughFile()
 {
-    gnssFirmwareRemoveUpdateFile(um980FirmwareFileName);
+    removeFile(um980FirmwareFileName);
 }
 
 //----------------------------------------

@@ -1,7 +1,7 @@
 /*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 menuFirmware.ino
 
-  This module implements the firmware menu and update code.
+  This module implements the over-the-air (OTA) firmware update menu and update paths.
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
@@ -15,17 +15,24 @@ enum OtaState
 {
     OTA_STATE_OFF = 0,
     OTA_STATE_WAIT_FOR_NETWORK,
-    OTA_STATE_GET_FIRMWARE_VERSION,
-    OTA_STATE_CHECK_FIRMWARE_VERSION,
-    OTA_STATE_UPDATE_FIRMWARE,
+    OTA_STATE_GET_SYSTEMS_TO_UPDATE,
+    OTA_STATE_UPDATE_FIRMWARE_IM19,
+    OTA_STATE_UPDATE_FIRMWARE_STM32,
+    OTA_STATE_UPDATE_FIRMWARE_UM980,
+    OTA_STATE_UPDATE_FIRMWARE_LG290P,
+    OTA_STATE_UPDATE_FIRMWARE_MX5,
+    OTA_STATE_UPDATE_FIRMWARE_X20P,
+    OTA_STATE_UPDATE_FIRMWARE_ESP,
 
     // Add new states here
     OTA_STATE_MAX
 };
 
 static const char *const otaStateNames[] = {"OTA_STATE_OFF", "OTA_STATE_WAIT_FOR_NETWORK",
-                                            "OTA_STATE_GET_FIRMWARE_VERSION", "OTA_STATE_CHECK_FIRMWARE_VERSION",
-                                            "OTA_STATE_UPDATE_FIRMWARE"};
+                                            "OTA_STATE_GET_SYSTEMS_TO_UPDATE", "OTA_STATE_UPDATE_FIRMWARE_IM19",
+                                            "OTA_STATE_UPDATE_FIRMWARE_STM32", "OTA_STATE_UPDATE_FIRMWARE_UM980",
+                                            "OTA_STATE_UPDATE_FIRMWARE_LG290P", "OTA_STATE_UPDATE_FIRMWARE_MX5",
+                                            "OTA_STATE_UPDATE_FIRMWARE_X20P", "OTA_STATE_UPDATE_FIRMWARE_ESP32"};
 static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[0]);
 
 //----------------------------------------
@@ -34,6 +41,14 @@ static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[
 
 static uint32_t otaLastUpdateCheck;
 static uint8_t otaState;
+
+struct OtaTarget
+{
+    char subsystemCode; // 'E'=ESP32, 'G'=GNSS, 'L'=LoRa, 'I'=IMU
+    char filePath[256];
+};
+OtaTarget otaTargets[4];
+int otaTargetCount = -1; // -1 means we have not yet pulled the list of targets from the server
 
 #endif // COMPILE_OTA_AUTO
 
@@ -59,7 +74,7 @@ void firmwareMenu()
         systemPrintln("Menu: Firmware Update");
 
         char currentVersion[21];
-        firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
+        espFirmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
         systemPrintf("Current firmware: %s\r\n", currentVersion);
 
         // Display the OTA portion of the menu
@@ -136,16 +151,19 @@ void firmwareMenu()
 // Given a char string, break into version number major/minor, year, month, day
 // Returns false if parsing failed
 //----------------------------------------
-bool firmwareVersionBreakIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor, int *year,
-                                   int *month, int *day)
+bool firmwareVersionBreakIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor, int *patch,
+                                   int *revision, int *year, int *month, int *day)
 {
     char monthStr[20];
     int placed = 0;
 
+    *patch = 0;
+    *revision = 0;
+
     if (enableRCFirmware == false)
     {
-        placed = sscanf(version, "%d.%d", versionNumberMajor, versionNumberMinor);
-        if (placed != 2)
+        placed = sscanf(version, "%d.%d.%d.%d", versionNumberMajor, versionNumberMinor, patch, revision);
+        if (placed < 2)
         {
             log_d("Failed to sscanf basic");
             return (false); // Something went wrong
@@ -153,12 +171,18 @@ bool firmwareVersionBreakIntoParts(char *version, int *versionNumberMajor, int *
     }
     else
     {
-        placed = sscanf(version, "%d.%d-%s %d %d", versionNumberMajor, versionNumberMinor, monthStr, day, year);
+        placed = sscanf(version, "%d.%d.%d.%d-%s %d %d", versionNumberMajor, versionNumberMinor, patch, revision,
+                        monthStr, day, year);
 
-        if (placed != 5)
+        if (placed < 5)
         {
-            log_d("Failed to sscanf RC");
-            return (false); // Something went wrong
+            // Fall back to major.minor-date format without patch/revision
+            placed = sscanf(version, "%d.%d-%s %d %d", versionNumberMajor, versionNumberMinor, monthStr, day, year);
+            if (placed != 5)
+            {
+                log_d("Failed to sscanf RC");
+                return (false); // Something went wrong
+            }
         }
 
         (*month) = firmwareVersionMapMonthName(monthStr);
@@ -172,7 +196,7 @@ bool firmwareVersionBreakIntoParts(char *version, int *versionNumberMajor, int *
 //----------------------------------------
 // Format the firmware version
 //----------------------------------------
-void firmwareVersionFormat(uint8_t major, uint8_t minor, char *buffer, int bufferLength, bool includeDate)
+void espFirmwareVersionFormat(uint8_t major, uint8_t minor, char *buffer, int bufferLength, bool includeDate)
 {
     char prefix;
 
@@ -201,9 +225,9 @@ void firmwareVersionFormat(uint8_t major, uint8_t minor, char *buffer, int buffe
 //----------------------------------------
 // Get the current firmware version
 //----------------------------------------
-void firmwareVersionGet(char *buffer, int bufferLength, bool includeDate)
+void espFirmwareVersionGet(char *buffer, int bufferLength, bool includeDate)
 {
-    firmwareVersionFormat(FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR, buffer, bufferLength, includeDate);
+    espFirmwareVersionFormat(FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR, buffer, bufferLength, includeDate);
 }
 
 // Returns string containing the current version number - ie "v2.0"
@@ -211,7 +235,7 @@ const char *printEspFirmwareVersion()
 {
     // Create the firmware version string
     static char espFirmwareVersion[86];
-    firmwareVersionGet(espFirmwareVersion, sizeof(espFirmwareVersion), true);
+    espFirmwareVersionGet(espFirmwareVersion, sizeof(espFirmwareVersion), true);
 
     return ((const char *)espFirmwareVersion);
 }
@@ -248,32 +272,40 @@ bool firmwareVersionIsReportedNewer(char *reportedVersion, char *currentVersion)
 {
     int currentVersionNumberMajor = 0;
     int currentVersionNumberMinor = 0;
+    int currentVersionNumberPatch = 0;
+    int currentVersionNumberRevision = 0;
     int currentDay = 0;
     int currentMonth = 0;
     int currentYear = 0;
 
     int reportedVersionNumberMajor = 0;
     int reportedVersionNumberMinor = 0;
+    int reportedVersionNumberPatch = 0;
+    int reportedVersionNumberRevision = 0;
     int reportedDay = 0;
     int reportedMonth = 0;
     int reportedYear = 0;
 
-    firmwareVersionBreakIntoParts(currentVersion, &currentVersionNumberMajor, &currentVersionNumberMinor, &currentYear,
+    firmwareVersionBreakIntoParts(currentVersion, &currentVersionNumberMajor, &currentVersionNumberMinor,
+                                  &currentVersionNumberPatch, &currentVersionNumberRevision, &currentYear,
                                   &currentMonth, &currentDay);
     firmwareVersionBreakIntoParts(reportedVersion, &reportedVersionNumberMajor, &reportedVersionNumberMinor,
-                                  &reportedYear, &reportedMonth, &reportedDay);
+                                  &reportedVersionNumberPatch, &reportedVersionNumberRevision, &reportedYear,
+                                  &reportedMonth, &reportedDay);
 
     if (settings.debugFirmwareUpdate)
     {
-        systemPrintf("currentVersion (%s): %d.%d %d %d %d\r\n", currentVersion, currentVersionNumberMajor,
-                     currentVersionNumberMinor, currentYear, currentMonth, currentDay);
-        systemPrintf("reportedVersion (%s): %d.%d %d %d %d\r\n", reportedVersion, reportedVersionNumberMajor,
-                     reportedVersionNumberMinor, reportedYear, reportedMonth, reportedDay);
+        systemPrintf("currentVersion (%s): %d.%d.%d.%d %d %d %d\r\n", currentVersion, currentVersionNumberMajor,
+                     currentVersionNumberMinor, currentVersionNumberPatch, currentVersionNumberRevision, currentYear,
+                     currentMonth, currentDay);
+        systemPrintf("reportedVersion (%s): %d.%d.%d.%d %d %d %d\r\n", reportedVersion, reportedVersionNumberMajor,
+                     reportedVersionNumberMinor, reportedVersionNumberPatch, reportedVersionNumberRevision,
+                     reportedYear, reportedMonth, reportedDay);
         if (enableRCFirmware)
             systemPrintln("RC firmware enabled");
     }
 
-    // Production firmware is named "2.6"
+    // Production firmware is named "2.6" or "4.11.1.2"
     // Release Candidate firmware is named "2.6-Dec 5 2022"
 
     // If the user is not using Release Candidate firmware, then check only the version number
@@ -284,6 +316,15 @@ bool firmwareVersionIsReportedNewer(char *reportedVersion, char *currentVersion)
         if (reportedVersionNumberMajor == currentVersionNumberMajor &&
             reportedVersionNumberMinor > currentVersionNumberMinor)
             return (true);
+        if (reportedVersionNumberMajor == currentVersionNumberMajor &&
+            reportedVersionNumberMinor == currentVersionNumberMinor &&
+            reportedVersionNumberPatch > currentVersionNumberPatch)
+            return (true);
+        if (reportedVersionNumberMajor == currentVersionNumberMajor &&
+            reportedVersionNumberMinor == currentVersionNumberMinor &&
+            reportedVersionNumberPatch == currentVersionNumberPatch &&
+            reportedVersionNumberRevision > currentVersionNumberRevision)
+            return (true);
         return (false);
     }
 
@@ -293,6 +334,15 @@ bool firmwareVersionIsReportedNewer(char *reportedVersion, char *currentVersion)
         return (true);
     if (reportedVersionNumberMajor == currentVersionNumberMajor &&
         reportedVersionNumberMinor > currentVersionNumberMinor)
+        return (true);
+    if (reportedVersionNumberMajor == currentVersionNumberMajor &&
+        reportedVersionNumberMinor == currentVersionNumberMinor &&
+        reportedVersionNumberPatch > currentVersionNumberPatch)
+        return (true);
+    if (reportedVersionNumberMajor == currentVersionNumberMajor &&
+        reportedVersionNumberMinor == currentVersionNumberMinor &&
+        reportedVersionNumberPatch == currentVersionNumberPatch &&
+        reportedVersionNumberRevision > currentVersionNumberRevision)
         return (true);
 
     // Check which date is more recent
@@ -529,7 +579,7 @@ void microSDUpdateFirmware(const char *firmwareFileName)
             // Clear all settings from LittleFS
             LittleFS.format();
 
-            systemPrintln("Firmware updated successfully. Rebooting. Goodbye!");
+            systemPrintln("ESP32 updated successfully. Rebooting. Goodbye!");
 
             // If forced firmware is detected, do a full reset of config as well
             if (strcmp(forceFirmwareFileName, firmwareFileName) == 0)
@@ -563,59 +613,6 @@ void microSDUpdateFirmware(const char *firmwareFileName)
 }
 
 #ifdef COMPILE_OTA_AUTO
-
-//----------------------------------------
-// Returns true if we successfully got the versionAvailable
-// Modifies versionAvailable with OTA getVersion response
-// This is currently limited to only WiFi (no cellular) because of ESP32OTAPull limitations
-//----------------------------------------
-bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
-{
-    bool gotVersion = false;
-
-    if (networkHasInternet() == false)
-    {
-        systemPrintln("Error: Network not available!");
-        return (false);
-    }
-
-    // Create a string of the unit's current firmware version
-    char currentVersion[21];
-    firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
-
-    systemPrintf("Current firmware version: %s\r\n", currentVersion);
-
-    const char *url = otaGetUrl();
-    if (settings.debugFirmwareUpdate)
-        systemPrintf("Checking to see if an update is available from %s\r\n", url);
-
-    ESP32OTAPull ota;
-
-    int response = ota.CheckForOTAUpdate(url, currentVersion, ESP32OTAPull::DONT_DO_UPDATE);
-
-    // We don't care if the library thinks the available firmware is newer, we just need a successful JSON parse
-    if (response == ESP32OTAPull::UPDATE_AVAILABLE || response == ESP32OTAPull::NO_UPDATE_AVAILABLE)
-    {
-        gotVersion = true;
-
-        // Call getVersion after original inquiry
-        String otaVersion = ota.GetVersion();
-        otaVersion.toCharArray(versionAvailable, versionAvailableLength);
-
-        if (settings.debugFirmwareUpdate)
-            systemPrintf("Reported version available: %s\r\n", versionAvailable);
-    }
-    else if (response == ESP32OTAPull::HTTP_FAILED)
-    {
-        systemPrintln("Firmware server not available");
-    }
-    else
-    {
-        systemPrintln("OTA failed");
-    }
-
-    return (gotVersion);
-}
 
 //----------------------------------------
 //----------------------------------------
@@ -659,21 +656,6 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 }
 
 //----------------------------------------
-//----------------------------------------
-const char *otaGetUrl()
-{
-    const char *url;
-
-    // Return the user specified URL if it was specified
-    url = enableRCFirmware ? otaRcFirmwareJsonUrl : otaFirmwareJsonUrl;
-    if (strlen(url))
-        return url;
-
-    // Select the URL for the over-the-air (OTA) updates
-    return enableRCFirmware ? OTA_RC_FIRMWARE_JSON_URL : OTA_FIRMWARE_JSON_URL;
-}
-
-//----------------------------------------
 // Display the OTA portion of the firmware menu
 //----------------------------------------
 void otaMenuDisplay(char *currentVersion)
@@ -681,14 +663,14 @@ void otaMenuDisplay(char *currentVersion)
     // Automatic firmware updates
     systemPrintf("a) Automatic firmware updates: %s\r\n", settings.enableAutoFirmwareUpdate ? "Enabled" : "Disabled");
 
-    systemPrint("c) Check SparkFun for device firmware: ");
+    systemPrint("c) Check for firmware updates: ");
 
     if (otaRequestFirmwareVersionCheck == true)
         systemPrintln("Requested");
     else
         systemPrintln("Not requested");
 
-    systemPrintf("e) Allow Beta Firmware: %s\r\n", enableRCFirmware ? "Enabled" : "Disabled");
+    systemPrintf("e) Allow beta firmware: %s\r\n", enableRCFirmware ? "Enabled" : "Disabled");
 
     if (settings.enableAutoFirmwareUpdate)
         systemPrintf("i) Automatic firmware check minutes: %d\r\n", settings.autoFirmwareCheckMinutes);
@@ -699,12 +681,16 @@ void otaMenuDisplay(char *currentVersion)
         systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
     }
 
-    if (firmwareVersionIsReportedNewer(otaReportedVersion, &currentVersion[1]) == true ||
-        settings.debugFirmwareUpdate == true)
-    {
-        systemPrintf("u) Update to new firmware: v%s - %s\r\n", otaReportedVersion,
-                     otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
-    }
+    // Allow user to initiate a firmware update without checking for new firmware first
+    // If all systems are up to date, the process will exit
+    if (otaTargetCount == -1)
+        systemPrintf("u) Run system update: %s\r\n", otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
+    else if (otaTargetCount == 0)
+        systemPrintln("u) Run system update: No updates needed");
+    else if (otaTargetCount == 1)
+        systemPrintf("u) Run %d system update: %s\r\n", otaTargetCount, otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
+    else
+        systemPrintf("u) Run %d system updates: %s\r\n", otaTargetCount, otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
 }
 
 //----------------------------------------
@@ -741,52 +727,13 @@ bool otaMenuProcessInput(byte incoming)
         getUserInputString(otaFirmwareJsonUrl, sizeof(otaFirmwareJsonUrl) - 1);
     }
 
-    else if ((incoming == 'u') && (newOTAFirmwareAvailable || settings.debugFirmwareUpdate == true))
+    else if (incoming == 'u')
         otaRequestFirmwareUpdate ^= 1; // Tell network we need access, and otaUpdate() that we want to update
 
     // Input not associated with OTA menu items
     else
         return false;
     return true;
-}
-
-//----------------------------------------
-// Called while the OTA Pull update is happening
-//----------------------------------------
-void otaPullCallback(int bytesWritten, int totalLength)
-{
-    otaDisplayPercentage(bytesWritten, totalLength, false);
-}
-
-//----------------------------------------
-// Translate the ESP32OTAPull code into a zero terminated error string
-//----------------------------------------
-const char *otaPullErrorText(int code)
-{
-    switch (code)
-    {
-    case ESP32OTAPull::UPDATE_AVAILABLE:
-        return "An update is available but wasn't installed";
-    case ESP32OTAPull::NO_UPDATE_PROFILE_FOUND:
-        return "No profile matches";
-    case ESP32OTAPull::NO_UPDATE_AVAILABLE:
-        return "Profile matched, but update not applicable";
-    case ESP32OTAPull::UPDATE_OK:
-        return "An update was done, but no reboot";
-    case ESP32OTAPull::HTTP_FAILED:
-        return "HTTP GET failure";
-    case ESP32OTAPull::WRITE_ERROR:
-        return "Write error";
-    case ESP32OTAPull::JSON_PROBLEM:
-        return "Invalid JSON";
-    case ESP32OTAPull::OTA_UPDATE_FAIL:
-        return "Update fail (no OTA partition?)";
-    default:
-        if (code > 0)
-            return "Unexpected HTTP response code";
-        break;
-    }
-    return "Unknown error";
 }
 
 //----------------------------------------
@@ -905,7 +852,7 @@ void otaUpdate()
 
                 // Get the latest firmware version
                 networkUserAdd(NETCONSUMER_OTA_CLIENT, __FILE__, __LINE__);
-                otaSetState(OTA_STATE_GET_FIRMWARE_VERSION);
+                otaSetState(OTA_STATE_GET_SYSTEMS_TO_UPDATE);
             }
 
             else if ((millis() - connectTimer) > settings.wifiConnectTimeoutMs)
@@ -917,12 +864,8 @@ void otaUpdate()
                 // is requesting the firmware update via those interfaces, thus we attempt an update
                 // only once, stopping the state machine on failure
 
-                if (webServerIsConnected())
-                {
-                    // Report failed connection to web client
-                    webServerSendString((char *)"espNewFirmwareVersion,NO_INTERNET,");
-                    otaUpdateStop();
-                }
+                // Report failed connection to web client
+                webServerSendString((char *)"newFirmwareVersion,NO_INTERNET,");
 
                 if (bluetoothCommandIsConnected())
                 {
@@ -933,123 +876,220 @@ void otaUpdate()
                     else if (otaRequestFirmwareVersionCheck)
                         commandSendErrorResponse((char *)"SPGET", (char *)"espNewFirmwareVersion",
                                                  (char *)"No Internet");
-                    otaUpdateStop();
                 }
+                otaUpdateStop();
             }
             break;
 
-        // Get firmware version from server
-        case OTA_STATE_GET_FIRMWARE_VERSION:
+        // Create list of subsystems that need updating
+        case OTA_STATE_GET_SYSTEMS_TO_UPDATE:
             // Determine if the network has failed
             if (!connected)
+            {
                 otaUpdateStop();
+                break;
+            }
             if (settings.debugFirmwareUpdate)
-                systemPrintln("Checking for latest firmware version");
+                systemPrintln("Creating list of subsystems to update");
 
             // If we are using auto updates, only update to production firmware, disable release candidates
             if (settings.enableAutoFirmwareUpdate)
                 enableRCFirmware = 0;
 
-            // Get firmware version from server
-            otaReportedVersion[0] = 0;
-            if (otaCheckVersion(otaReportedVersion, sizeof(otaReportedVersion)))
+            // Get JSON and form the list of subsystems that need updating
+            if (otaGetSystemsToUpdate(platformPrefix) == true)
             {
                 online.otaClient = true;
 
-                // Create a string of the unit's current firmware version
-                char currentVersion[21];
-                firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
-
-                // We got a version number, now determine if it's newer or not
-                // Allow update if locally compiled developer version
-                if ((firmwareVersionIsReportedNewer(otaReportedVersion, &currentVersion[1]) == true) ||
-                    (currentVersion[0] == 'd'))
+                // We successfully parsed the JSON and created otaTargets
+                if (otaTargetCount > 0)
                 {
                     newOTAFirmwareAvailable = true;
-                    systemPrintf("Version Check: New firmware version available: %s\r\n", otaReportedVersion);
+                    systemPrintf("New updates available for %d system(s):\r\n", otaTargetCount);
 
-                    // If we are doing just a version check, set version number, turn off network request and stop
-                    // machine
+                    // Create string of chars to pass to the web interface and CLI
+                    char otaSystemsToUpdate[otaTargetCount + 1] = {'\0'};
+                    int otaSystemsToUpdateSpot = 0;
+                    for (int i = 0; i < otaTargetCount; i++)
+                    {
+                        systemPrintf("  %c: %s\r\n", otaTargets[i].subsystemCode, otaTargets[i].filePath);
+                        otaSystemsToUpdate[otaSystemsToUpdateSpot++] = otaTargets[i].subsystemCode; // Add this letter to the list
+                    }
+                    otaSystemsToUpdate[otaSystemsToUpdateSpot] = '\0'; // Null-terminate the string
+
+                    // If we are doing just a version check, set version number,
+                    // turn off network request and stop machine
                     if (otaRequestFirmwareVersionCheck == true)
                     {
                         otaRequestFirmwareVersionCheck = false;
 
-                        if (webServerIsConnected())
-                        {
-                            char newVersionCSV[40];
-                            snprintf(newVersionCSV, sizeof(newVersionCSV), "espNewFirmwareVersion,%s,",
-                                     otaReportedVersion);
-                            webServerSendString(newVersionCSV);
-                        }
+                        char systemsToUpdate[50];
+                        snprintf(systemsToUpdate, sizeof(systemsToUpdate), "newSubsystemFirmware,%s,",
+                                 otaSystemsToUpdate);
+                        webServerSendString(systemsToUpdate); // Report systems that have new firmware available
 
-                        if (bluetoothCommandIsConnected())
-                        {
-                            // Report value over the CLI
-                            commandSendStringResponse((char *)"SPGET", (char *)"espNewFirmwareVersion", otaReportedVersion);
-                        }
+                        commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware",
+                                                  otaSystemsToUpdate);
 
-                        otaUpdateStop();
+                        otaUpdateStop(); // Nothing to update.
+
                         return;
                     }
 
                     // If we are doing a scheduled automatic update or a manually requested update, continue through the
                     // state machine
-                    otaSetState(OTA_STATE_UPDATE_FIRMWARE);
-                }
-                else // Current firmware is up to date
-                {
-                    systemPrintln("Version Check: Firmware is up to date. No new firmware available.");
-                    if (webServerIsConnected())
-                        webServerSendString((char *)"espNewFirmwareVersion,CURRENT,");
 
-                    otaUpdateStop();
+                    otaSetState(OTA_STATE_UPDATE_FIRMWARE_IM19);
+                    return;
+                }
+                else
+                {
+                    // systemPrintln("All systems up to date");
+
+                    webServerSendString("newSubsystemFirmware,CURRENT,"); // Report systems are up to date
+
+                    commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware", "CURRENT");
+
+                    otaRequestFirmwareVersionCheck = false;
+                    otaSetState(OTA_STATE_OFF);
                 }
             }
             else
             {
-                // Failed to get version number
+                // Failed to get JSON for some reason
                 systemPrintln("Failed to get version number from server.");
-                if (webServerIsConnected())
-                    webServerSendString((char *)"espNewFirmwareVersion,NO_SERVER,");
+                webServerSendString((char *)"newSubsystemFirmware,NO_SERVER,");
 
-                // Report failure over the CLI
-                if (bluetoothCommandIsConnected())
-                    commandSendExecuteErrorResponse((char *)"SPGET", (char *)"espNewFirmwareVersion",
-                                                    (char *)"No Server");
+                commandSendExecuteErrorResponse((char *)"SPGET", (char *)"newSubsystemFirmware",
+                                                (char *)"No Server");
 
                 otaUpdateStop();
             }
             break;
+        case OTA_STATE_UPDATE_FIRMWARE_IM19:
 
-        // Update the firmware
-        case OTA_STATE_UPDATE_FIRMWARE:
+            // If the subsystem is not present, or there is not a new version, then move to the next subsystem
+            if (present.imu_im19 == false || otaSubsystemFilePath('I') == nullptr)
+            {
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_STM32); // Move on
+            }
+
             // Determine if the network has failed
-            if (!connected)
+            else if (!connected)
             {
                 otaUpdateStop();
 
-                if (webServerIsConnected())
-                    webServerSendString((char *)"gettingNewFirmware,ERROR,");
+                // Report failure to interfaces
+                webServerSendString((char *)"gettingNewFirmware,ERROR,");
 
-                // Report failure over the CLI
-                if (bluetoothCommandIsConnected())
-                    commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
-                                                    (char *)"Connection Error");
+                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
+                                                (char *)"Connection Error");
+            }
+
+            // Get binary file over the network and stream/update the target
+            else if (im19StreamFirmware(otaSubsystemFilePath('I')) == false)
+            {
+                systemPrintln("Failed to update IM19 firmware");
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_STM32); // If we get here, move on
+            }
+            else
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_STM32); // If we get here, move on
+
+            break;
+
+        case OTA_STATE_UPDATE_FIRMWARE_STM32:
+            // If the subsystem is not present, or there is not a new version, then move to the next subsystem
+            if (present.radio_lora == false || otaSubsystemFilePath('L') == nullptr)
+            {
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // Move on
+            }
+
+            // Determine if the network has failed
+            else if (!connected)
+            {
+                otaUpdateStop();
+
+                // Report failure to interfaces
+                webServerSendString((char *)"gettingNewFirmware,ERROR,");
+
+                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
+                                                (char *)"Connection Error");
+            }
+
+            // Get binary file over the network and stream/update the target
+            else if (stm32StreamFirmware(otaSubsystemFilePath('L')) == false)
+            {
+                systemPrintln("Failed to update LoRa firmware");
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // If we get here, move on
+            }
+            else
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // If we get here, move on
+
+            break;
+
+        case OTA_STATE_UPDATE_FIRMWARE_UM980:
+            if (present.gnss_um980 == false || otaSubsystemFilePath('G') == nullptr)
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_LG290P);
+
+            // Currently there is no UM980 update path. Move on
+            systemPrintln("No UM980 update path, moving on");
+            otaSetState(OTA_STATE_UPDATE_FIRMWARE_LG290P);
+            break;
+
+        case OTA_STATE_UPDATE_FIRMWARE_LG290P:
+            if (present.gnss_lg290p == false || otaSubsystemFilePath('G') == nullptr)
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_MX5);
+            break;
+
+        case OTA_STATE_UPDATE_FIRMWARE_MX5:
+            if (present.gnss_mosaicX5 == false || otaSubsystemFilePath('G') == nullptr)
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_X20P);
+            break;
+
+        case OTA_STATE_UPDATE_FIRMWARE_X20P:
+            if (present.gnss_zedx20p == false || otaSubsystemFilePath('G') == nullptr)
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP);
+            break;
+
+        // Update the firmware on the ESP32 - the last update path because it will end in a reset
+        case OTA_STATE_UPDATE_FIRMWARE_ESP:
+            // If there is not a new version, then the machine is complete
+            // The only way we got here is if *one* of the subsystems updated. So do a system reset
+            if (otaSubsystemFilePath('E') == nullptr)
+            {
+                systemPrintln("System update complete. Resetting. Good bye!");
+                ESP.restart();
+            }
+
+            // Determine if the network has failed
+            else if (!connected)
+            {
+                otaUpdateStop();
+
+                // Report failure to interfaces
+                webServerSendString((char *)"gettingNewFirmware,ERROR,");
+
+                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
+                                                (char *)"Connection Error");
             }
             else
             {
-                // Perform the firmware update
-                otaUpdateFirmware();
+                // Get binary file over the network and stream/update the target
+                if (espStreamFirmware(otaSubsystemFilePath('E')) == true)
+                {
+                    systemPrintln("ESP32 update complete. Resetting. Good bye!");
+                    ESP.restart();
+                }
+                else
+                {
+                    systemPrintln("Failed to update ESP32 firmware");
 
-                // Update triggers ESP.restart(). If we get this far, the firmware update has failed
-                if (webServerIsConnected())
                     webServerSendString((char *)"gettingNewFirmware,ERROR,");
 
-                // Report failure over the CLI
-                if (bluetoothCommandIsConnected())
                     commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"OTA Error");
 
-                otaUpdateStop();
+                    otaUpdateStop();
+                }
             }
             break;
         }
@@ -1067,38 +1107,157 @@ void otaUpdate()
     }
 }
 
-//----------------------------------------
-// Updates firmware using OTA pull
-// Exits by either updating firmware and resetting, or failing to connect
-//----------------------------------------
-void otaUpdateFirmware()
+// Return the file path if a specified subsystem code is in the list, null string if not
+// subsystemCode should be a single character - ie 'E' for ESP32, 'I' for IM19, etc.
+char *otaSubsystemFilePath(char subsystemCode)
 {
-    char versionString[9];
-    firmwareVersionFormat(0, 0, versionString, sizeof(versionString), false);
-
-    ESP32OTAPull ota;
-
-    int response;
-    const char *url = otaGetUrl();
-    response = ota.CheckForOTAUpdate(url, &versionString[1], ESP32OTAPull::DONT_DO_UPDATE);
-
-    if (response == ESP32OTAPull::UPDATE_AVAILABLE)
+    for (int i = 0; i < otaTargetCount; i++)
     {
-        systemPrintln("Installing new firmware");
-        ota.SetCallback(otaPullCallback);
-        ota.CheckForOTAUpdate(url, &versionString[1]); // Install new firmware, no reset
-
-        if (apConfigFirmwareUpdateInProcess)
-            // Tell AP page to display reset info
-            webServerSendString("confirmReset,1,");
-        ESP.restart();
+        if (otaTargets[i].subsystemCode == subsystemCode)
+            return otaTargets[i].filePath;
     }
-    else if (response == ESP32OTAPull::NO_UPDATE_AVAILABLE)
-        systemPrintln("OTA Update: Current firmware is up to date");
-    else if (response == ESP32OTAPull::HTTP_FAILED)
-        systemPrintln("OTA Update: Firmware server not available");
-    else
-        systemPrintln("OTA Update: OTA failed");
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("No file path found for subsystem code '%c'\r\n", subsystemCode);
+    return nullptr;
+}
+
+// Update the ESP32 firmware
+bool espStreamFirmware(char *relativeFirmwareFileLocation)
+{
+    if (relativeFirmwareFileLocation == nullptr)
+    {
+        systemPrintln("Firmware file location is null.");
+        return false;
+    }
+
+    systemPrintln("Starting ESP32 firmware update...");
+
+    WiFiClientSecure client;
+    client.setCACert(GITHUB_RAW_PUBLIC_CERT);
+
+    // Preflight TLS handshake using the expected host name.
+    // With CA configured, connect() fails if certificate validation fails.
+    if (!client.connect(OTA_FIRMWARE_GITHUB_RAW, 443))
+    {
+        systemPrintln("TLS socket connect failed");
+        return false;
+    }
+
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("TLS certificate verified for raw.githubusercontent.com");
+
+    client.stop();
+
+    // The relative file location looks like "\imu\im19\20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc"
+    // We need to access "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc"
+
+    char firmwareFileLocation[256];
+    snprintf(firmwareFileLocation, sizeof(firmwareFileLocation), "https://%s/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main%s", OTA_FIRMWARE_GITHUB_RAW, relativeFirmwareFileLocation);
+
+    // Convert backslashes to forward slashes for URL formatting
+    for (char *c = firmwareFileLocation; *c != '\0'; c++)
+        if (*c == '\\')
+            *c = '/';
+
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Starting HTTP GET for firmware: %s\r\n", firmwareFileLocation);
+
+    HTTPClient http;
+    if (!http.begin(client, firmwareFileLocation))
+    {
+        systemPrintln("Unable to begin HTTP request.");
+        return false;
+    }
+
+    int httpCode = http.GET();
+    if (httpCode != HTTP_CODE_OK)
+    {
+        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
+        http.end();
+        return false;
+    }
+
+    int contentLength = http.getSize();
+    if (contentLength > 0)
+        firmwareUpdateBytesToProcess = (uint32_t)contentLength;
+
+    WiFiClient *stream = http.getStreamPtr();
+
+    if (Update.begin(contentLength) == false)
+    {
+        systemPrintln("Not enough space to begin OTA");
+        http.end();
+        return false;
+    }
+
+    // Stream the firmware in chunks (rather than Update.writeStream(*stream) in one shot)
+    // so we can report progress via firmwareUpdateProgressCallback() along the way.
+    firmwareUpdateBytesProcessed = 0;
+
+    uint8_t buffer[512];
+    int bytesWritten = 0;
+    unsigned long lastDataTime = millis();
+    const unsigned long dataTimeoutMs = 15000;
+
+    while (http.connected() && (bytesWritten < contentLength))
+    {
+        size_t availableBytes = stream->available();
+        if (availableBytes == 0)
+        {
+            if ((millis() - lastDataTime) > dataTimeoutMs)
+            {
+                systemPrintln("OTA update timed out waiting for data");
+                http.end();
+                return false;
+            }
+            delay(1);
+            continue;
+        }
+
+        size_t bytesToRead = (availableBytes > sizeof(buffer)) ? sizeof(buffer) : availableBytes;
+        int bytesRead = stream->readBytes(buffer, bytesToRead);
+        if (bytesRead <= 0)
+            continue;
+
+        if (Update.write(buffer, bytesRead) != (size_t)bytesRead)
+        {
+            systemPrintln("OTA update failed during write");
+            http.end();
+            return false;
+        }
+
+        bytesWritten += bytesRead;
+        lastDataTime = millis();
+
+        firmwareUpdateProgressCallback((uint16_t)bytesRead);
+    }
+
+    if (bytesWritten != contentLength)
+    {
+        systemPrintln("OTA update failed during writeStream");
+        http.end();
+        return false;
+    }
+
+    if (Update.end() == false)
+    {
+        systemPrintln("Error Occurred. Error #: " + String(Update.getError()));
+        http.end();
+        return false;
+    }
+
+    systemPrintln("OTA done!");
+    if (Update.isFinished() == false)
+    {
+        systemPrintln("Update not finished? Something went wrong!");
+        http.end();
+        return false;
+    }
+
+    systemPrintln("Update successfully completed.");
+
+    http.end();
+    return true;
 }
 
 //----------------------------------------
@@ -1137,6 +1296,362 @@ void otaVerifyTables()
     // Verify the table lengths
     if (otaStateEntries != OTA_STATE_MAX)
         reportFatalError("Fix otaStateNames table to match OtaState");
+}
+
+// Parse JSON for the current product variant
+// Compare all discovered subsystem versions and build a string of subsystems that need to be updated.
+// Return true if at least one subsystem was found for the model, false if no subsystems were found or an error
+// occurred.
+bool otaGetSystemsToUpdate(char *modelType)
+{
+    if (modelType == nullptr || modelType[0] == '\0')
+    {
+        systemPrintln("Model is empty");
+        return false;
+    }
+
+    String jsonPayload;
+    if (otaGetSystemVariantsJson(jsonPayload) == false)
+    {
+        systemPrintln("Failed to load variants JSON");
+        return false;
+    }
+
+    DynamicJsonDocument doc(1024);
+    DeserializationError err = deserializeJson(doc, jsonPayload);
+    if (err)
+    {
+        systemPrintf("JSON parse error: %s\r\n", err.c_str());
+        return false;
+    }
+
+    JsonArray root = doc.as<JsonArray>();
+    if (root.isNull())
+    {
+        systemPrintln("Unexpected JSON: root is not an array");
+        return false;
+    }
+
+    const char *subsystems[4] = {nullptr, nullptr, nullptr, nullptr};
+    int subsystemCount = 0;
+    if (!otaBuildSubsystemList(root, modelType, subsystems, subsystemCount))
+    {
+        systemPrintf("No subsystems found for model '%s'\r\n", modelType);
+        return false;
+    }
+
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("\r\nModel: %s - Subsystem count: %d\r\n", modelType, subsystemCount);
+
+    otaTargetCount = 0; // Clear the otaTargets array
+
+    for (int i = 0; i < subsystemCount; i++)
+    {
+        const char *subsystem = subsystems[i];
+        JsonObject found;
+        if (otaJsonFindSubsystem(root, modelType, subsystem, found) == false)
+        {
+            systemPrintf("No target entry found for subsystem '%s'\r\n", subsystem);
+            continue;
+        }
+
+        const char *remoteVersionText = found["human_readable"] | "";
+        const char *remoteFilePath = found["file_path"] | "";
+        int remoteMajor = found["version_major"] | 0;
+        int remoteMinor = found["version_minor"] | 0;
+        int remotePatch = found["version_patch"] | 0;
+        int remoteRevision = found["version_revision"] | 0;
+
+        char localVersionText[50];
+        int localMajor = 0;
+        int localMinor = 0;
+        int localPatch = 0;
+        int localRevision = 0;
+
+        if (settings.debugFirmwareUpdate)
+            systemPrintln("=================================================");
+
+        if (strcasecmp(subsystem, "ESP32") == 0)
+        {
+            localMajor = FIRMWARE_VERSION_MAJOR;
+            localMinor = FIRMWARE_VERSION_MINOR;
+            snprintf(localVersionText, sizeof(localVersionText), "v%d.%d", localMajor, localMinor);
+
+            int compareResult =
+                otaCompareVersionsPrint(subsystem, localVersionText, remoteVersionText, localMajor, localMinor, 0, 0,
+                                        remoteMajor, remoteMinor, remotePatch, remoteRevision, remoteFilePath);
+
+            // If the remote version is newer, add it to the list of subsystems to update
+            if (compareResult == -1)
+                addTargetToUpdateList('E', remoteFilePath);
+
+            // If the remote version is older, we may still want to update if the local version
+            // is a release candidate
+            else if (compareResult == 1 && settings.debugFirmwareUpdate == true)
+            {
+                systemPrintln("The ESP32 local firmware version is newer than the remote version. Debug is on. "
+                              "Updating ESP32.");
+                addTargetToUpdateList('E', remoteFilePath);
+            }
+        }
+        else if (otaIsGnssSubsystem(subsystem))
+        {
+            if (online.gnss == false)
+            {
+                systemPrintf("GNSS is offline, skipping version check for %s\r\n", subsystem);
+                continue;
+            }
+
+            // TODO gnss->getVersion(major/minor/patch/revision)
+            // gnss->getVersionString()
+            localMajor = gnssFirmwareVersionInt / 100;
+            localMinor = gnssFirmwareVersionInt % 100;
+            snprintf(localVersionText, sizeof(localVersionText), "v%d.%d", localMajor, localMinor);
+
+            if (otaCompareVersionsPrint(subsystem, localVersionText, remoteVersionText, localMajor, localMinor, 0, 0,
+                                        remoteMajor, remoteMinor, remotePatch, remoteRevision, remoteFilePath) == -1)
+            {
+                addTargetToUpdateList('G', remoteFilePath);
+            }
+        }
+        else if (strcasecmp(subsystem, "STM32WL") == 0)
+        {
+            if (online.radio_lora == false)
+            {
+                systemPrintf("LoRa Radio is offline, forcing update for %s\r\n", subsystem);
+                addTargetToUpdateList('L', remoteFilePath);
+                continue;
+            }
+
+            // TODO lora->getVersion(major/minor/patch/revision)
+            localMajor = loraFirmwareVersionInt / 100;
+            localMinor = (loraFirmwareVersionInt / 10) % 10;
+            localPatch = loraFirmwareVersionInt % 10;
+            snprintf(localVersionText, sizeof(localVersionText), "v%d.%d.%d", localMajor, localMinor, localPatch);
+            if (otaCompareVersionsPrint(subsystem, localVersionText, remoteVersionText, localMajor, localMinor,
+                                        localPatch, 0, remoteMajor, remoteMinor, remotePatch, remoteRevision,
+                                        remoteFilePath) == -1)
+            {
+                addTargetToUpdateList('L', remoteFilePath);
+            }
+
+            // Testing - force add. TODO - remove once path is tested
+            addTargetToUpdateList('L', remoteFilePath);
+        }
+        else if (strcasecmp(subsystem, "IM19") == 0)
+        {
+            if (online.imu_im19 == false)
+            {
+                systemPrintf("IMU is offline, skipping version check for %s\r\n", subsystem);
+                continue;
+            }
+
+            // TODO imu->getVersion(major/minor/patch/revision)
+            localMajor = imuAppVersionInt / 100;
+            localMinor = imuAppVersionInt % 100;
+            snprintf(localVersionText, sizeof(localVersionText), "v%d.%d", localMajor, localMinor);
+            if (otaCompareVersionsPrint(subsystem, localVersionText, remoteVersionText, localMajor, localMinor, 0, 0,
+                                        remoteMajor, remoteMinor, remotePatch, remoteRevision, remoteFilePath) == -1)
+            {
+                addTargetToUpdateList('I', remoteFilePath);
+            }
+        }
+        else
+        {
+            systemPrintf("No comparison rule implemented for subsystem: %s\r\n", subsystem);
+        }
+    }
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("=================================================");
+
+    return true;
+}
+
+void addTargetToUpdateList(char subsystemCode, const char *filePath)
+{
+    if (otaTargetCount < 4)
+    {
+        otaTargets[otaTargetCount].subsystemCode = subsystemCode;
+        strlcpy(otaTargets[otaTargetCount].filePath, filePath, sizeof(otaTargets[0].filePath));
+        otaTargetCount++;
+    }
+    else
+    {
+        systemPrintln("OTA target list is full. Cannot add more targets.");
+    }
+}
+
+// Find the JSON entry matching model and subsystem, preferring release_candidate==1 when enableRCFirmware is set.
+// Falls back to the stable (release_candidate==0) entry if no RC entry exists for the subsystem.
+bool otaJsonFindSubsystem(JsonArray root, const char *modelType, const char *subsystem, JsonObject &found)
+{
+    if (enableRCFirmware)
+    {
+        for (JsonObject entry : root)
+        {
+            const char *model = entry["model"] | "";
+            const char *entrySubsystem = entry["subsystem"] | "";
+            int rc = entry["release_candidate"] | 0;
+            if (strcasecmp(model, modelType) == 0 && strcasecmp(entrySubsystem, subsystem) == 0 && rc == 1)
+            {
+                found = entry;
+                return true;
+            }
+        }
+        // No RC entry found for this subsystem; fall through to stable
+    }
+
+    for (JsonObject entry : root)
+    {
+        const char *model = entry["model"] | "";
+        const char *entrySubsystem = entry["subsystem"] | "";
+        int rc = entry["release_candidate"] | 0;
+        if (strcasecmp(model, modelType) == 0 && strcasecmp(entrySubsystem, subsystem) == 0 && rc == 0)
+        {
+            found = entry;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// Securely download the RTK-Everywhere-Variants.json file from GitHub and return it as a string
+bool otaGetSystemVariantsJson(String &payload)
+{
+    WiFiClientSecure client;
+    client.setCACert(GITHUB_RAW_PUBLIC_CERT);
+
+    // Preflight TLS handshake using the expected host name.
+    // With CA configured, connect() fails if certificate validation fails.
+    if (!client.connect(OTA_FIRMWARE_GITHUB_RAW, 443))
+    {
+        systemPrintln("TLS socket connect failed");
+        return false;
+    }
+
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("TLS certificate verified for raw.githubusercontent.com");
+
+    client.stop();
+
+    HTTPClient http;
+    if (!http.begin(client, OTA_FIRMWARE_SYSTEM_VARIANTS_JSON))
+
+    {
+        systemPrintln("HTTP begin failed");
+        return false;
+    }
+
+    const int httpCode = http.GET();
+    if (httpCode != HTTP_CODE_OK)
+    {
+        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
+        http.end();
+        return false;
+    }
+
+    payload = http.getString();
+    http.end();
+
+    if (payload.length() == 0)
+    {
+        systemPrintln("Downloaded JSON is empty");
+        return false;
+    }
+    return true;
+}
+
+// Build a unique subsystem list for the requested model from the JSON array.
+bool otaBuildSubsystemList(JsonArray root, const char *modelType, const char *subsystems[], int &subsystemCount)
+{
+    subsystemCount = 0;
+
+    for (JsonObject entry : root)
+    {
+        const char *model = entry["model"] | "";
+        const char *subsystem = entry["subsystem"] | "";
+
+        if (strcasecmp(model, modelType) != 0 || subsystem[0] == '\0')
+            continue;
+
+        bool seen = false;
+        for (int i = 0; i < subsystemCount; i++)
+        {
+            if (strcasecmp(subsystems[i], subsystem) == 0)
+            {
+                seen = true;
+                break;
+            }
+        }
+
+        if (!seen && subsystemCount < 4)
+            subsystems[subsystemCount++] = subsystem;
+    }
+
+    return (subsystemCount > 0);
+}
+
+// Compare local and remote version components; returns -1, 0, or 1.
+// -1 if update is available, 0 if up to date, 1 if local version is newer than remote.
+int otaCompareVersions(int localMajor, int localMinor, int localPatch, int localRevision, int remoteMajor,
+                       int remoteMinor, int remotePatch, int remoteRevision)
+{
+    if (localMajor != remoteMajor)
+        return (localMajor < remoteMajor) ? -1 : 1;
+    if (localMinor != remoteMinor)
+        return (localMinor < remoteMinor) ? -1 : 1;
+    if (localPatch != remotePatch)
+        return (localPatch < remotePatch) ? -1 : 1;
+    if (localRevision != remoteRevision)
+        return (localRevision < remoteRevision) ? -1 : 1;
+    return 0;
+}
+
+// Returns -1 if update available, 0 if up to date, 1 if local version is newer than remote.
+// Prints additional context if debug is enabled
+int otaCompareVersionsPrint(const char *subsystem, const char *currentVersionText, const char *remoteVersionText,
+                            int localMajor, int localMinor, int localPatch, int localRevision, int remoteMajor,
+                            int remoteMinor, int remotePatch, int remoteRevision, const char *remoteFilePath)
+{
+    if (settings.debugFirmwareUpdate)
+    {
+        systemPrintf("Subsystem: %s\r\n", subsystem);
+        if (localRevision != 0)
+            systemPrintf("Current version: %s (%d.%d.%d.%d)\r\n", currentVersionText, localMajor, localMinor,
+                         localPatch, localRevision);
+        else
+            systemPrintf("Current version: %s (%d.%d.%d)\r\n", currentVersionText, localMajor, localMinor, localPatch);
+        if (remoteRevision != 0)
+            systemPrintf("Found version: %s (%d.%d.%d.%d)\r\n", remoteVersionText, remoteMajor, remoteMinor,
+                         remotePatch, remoteRevision);
+        else
+            systemPrintf("Found version: %s (%d.%d.%d)\r\n", remoteVersionText, remoteMajor, remoteMinor, remotePatch);
+    }
+
+    int cmp = otaCompareVersions(localMajor, localMinor, localPatch, localRevision, remoteMajor, remoteMinor,
+                                 remotePatch, remoteRevision);
+    if (settings.debugFirmwareUpdate)
+    {
+        if (cmp < 0)
+            systemPrintf("Update available. Binary path: %s\r\n", remoteFilePath);
+        else if (cmp == 0)
+            systemPrintln("Up to date.");
+        else
+            systemPrintln("WARNING: Current version is newer than target JSON.");
+    }
+    return (cmp);
+}
+
+// Identify GNSS subsystem names that use GNSS firmware version comparison logic.
+bool otaIsGnssSubsystem(const char *subsystem)
+{
+    if (subsystem == nullptr)
+        return false;
+
+    return (strcasecmp(subsystem, "zed-f9p") == 0 || strcasecmp(subsystem, "zed-x20p") == 0 ||
+            strcasecmp(subsystem, "lg290p") == 0 || strcasecmp(subsystem, "mosaic-x5") == 0 ||
+            strcasecmp(subsystem, "um980") == 0);
 }
 
 #endif // COMPILE_OTA_AUTO

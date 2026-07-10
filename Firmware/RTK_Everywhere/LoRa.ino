@@ -76,15 +76,15 @@ const unsigned long LORA_CMD_SAVE_TIMEOUT_MS = 200;
 // Define the NTRIP client states
 enum LoraState
 {
-    LORA_NOT_PRESENT = 0,      // Start. If present, power on, start serial interface, and check version.
-    LORA_DISABLED,             // Radio is powered off, but serial interface remains.
-    LORA_IDLE,                 // Radio is ready, now determine if we are TXing or RXing
-    LORA_TX_SETTLING,          // Do not transmit while surveying in to avoid RF cross-talk
-    LORA_TX,                   // Send RTCM over LoRa when it's received from the GNSS (share UART0 with prints)
-    LORA_RX_DEDICATED,         // For platforms with separate/dedicated connections to the the LoRa radio.
-    LORA_RX_SHARED,            // USB cable connected so share UART0 between prints and data
-    LORA_RX_SHARED_USB_IGNORE, // For platforms with shared connection to the LoRa radio. No USB cable detected, so stop
-                               // monitoring USB.
+    LORA_NOT_PRESENT = 0,       // Start. If present, power on, start serial interface, and check version.
+    LORA_DISABLED,              // Radio is powered off, but serial interface remains.
+    LORA_IDLE,                  // Radio is ready, now determine if we are TXing or RXing
+    LORA_TX_SETTLING,           // Do not transmit while surveying in to avoid RF cross-talk
+    LORA_TX,                    // Send RTCM over LoRa when it's received from the GNSS (share UART0 with prints)
+    LORA_RX_DEDICATED,          // For platforms with separate/dedicated connections to the the LoRa radio.
+    LORA_RX_SHARED,             // USB cable connected so share UART0 between prints and data
+    LORA_RX_SHARED_USB_IGNORE,  // For platforms with shared connection to the LoRa radio. No USB cable detected, so stop
+                                // monitoring USB.
     LORA_RX_SHARED_USB_TIMEOUT, // USB cable has been connected for more than loraSerialInteractionTimeout_s so ignore
                                 // USB. Insert new states here
     LORA_STATE_MAX              // Last entry in the state list
@@ -406,7 +406,7 @@ void beginLora()
         }
 
         // Store firmware version in char array
-        loraGetVersion(); // Calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
+        online.radio_lora = loraGetVersion(); // Calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     }
 }
 
@@ -435,7 +435,7 @@ void muxSelectUsb()
     {
         pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
         digitalWrite(pin_muxA,
-                     LOW); // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
+                     LOW);           // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
         digitalWrite(pin_muxB, LOW); // Control U18: Connect ESP UART0 to CH340 Serial
 
         usbSerialIsSelected = true; // Let other print operations know we are connected to the CH34x
@@ -450,7 +450,7 @@ void muxSelectLoRaCommunication()
     {
         pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
         digitalWrite(pin_muxA,
-                     LOW); // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
+                     LOW);            // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
         digitalWrite(pin_muxB, HIGH); // Control U18: Connect ESP UART0 to U11
 
         usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
@@ -458,7 +458,7 @@ void muxSelectLoRaCommunication()
 }
 
 // Connect ESP32 to LoRa for configuration and bootloading
-// This is only called by beginLoraFirmwareUpdate()
+// This is only called by loraBeginFirmwareUpdate()
 void muxSelectLoRaConfigure()
 {
     if (productVariant == RTK_TORCH)
@@ -535,9 +535,12 @@ void loraReset()
     else if (productVariant == RTK_FACET_FP)
     {
         // There is no reset, only a power cycle
+        // This timing is sensitive. Delay too long after the enable and the bootloader
+        // will exit due to timeout.
         gpioExpanderLoraDisable();
-        delay(50);
+        delay(50); // 50 ok, 100 ok,
         gpioExpanderLoraEnable();
+        delay(50); // 50 ok, 100 ok, 250 too long
     }
 }
 
@@ -570,113 +573,54 @@ bool loraIsOn()
     return (false);
 }
 
-// Check if updateLoraFirmware.txt exists
-bool checkUpdateLoraFirmware()
-{
-    return checkUpdateLoraFirmwareFile("/updateLoraFirmware.txt");
-}
-bool loraRxDirectCheckFile()
-{
-    return checkUpdateLoraFirmwareFile("/loraRxDirect.txt");
-}
-bool loraTxDirectCheckFile()
-{
-    return checkUpdateLoraFirmwareFile("/loraTxDirect.txt");
-}
-bool checkUpdateLoraFirmwareFile(const char *filename)
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugLora)
-            systemPrintf("LittleFS %s exists\r\n", filename);
-
-        // We do not remove the file here. See removeupdateLoraFirmware().
-
-        return true;
-    }
-
-    return false;
-}
-
-void removeUpdateLoraFirmware()
-{
-    removeUpdateLoraFirmwareFile("/updateLoraFirmware.txt");
-}
-void loraRxDirectRemoveFile()
-{
-    removeUpdateLoraFirmwareFile("/loraRxDirect.txt");
-}
-void loraTxDirectRemoveFile()
-{
-    removeUpdateLoraFirmwareFile("/loraTxDirect.txt");
-}
-void removeUpdateLoraFirmwareFile(const char *filename)
-{
-    if (online.fs == false)
-        return;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugLora)
-            systemPrintf("Removing direct connect file: %s\r\n", filename);
-
-        delay(50);
-
-        LittleFS.remove(filename);
-    }
-}
-
 // Force UART connection to LoRa radio for firmware update on the next boot by creating updateLoraFirmware.txt in
 // LittleFS
-bool createLoRaPassthrough()
+bool loraCreatePassthroughFile()
 {
-    return createLoRaPassthroughFile("/updateLoraFirmware.txt");
+    return createFileLfs("/updateLoraFirmware.txt");
 }
-bool createLoraRxDirectFile()
+bool loraCreateRxDirectFile()
 {
-    return createLoRaPassthroughFile("/loraRxDirect.txt");
+    return createFileLfs("/loraRxDirect.txt");
 }
-bool createLoraTxDirectFile()
+bool loraCreateTxDirectFile()
 {
-    return createLoRaPassthroughFile("/loraTxDirect.txt");
-}
-// Force UART connection to LoRa radio on the next boot by creating file in LittleFS
-bool createLoRaPassthroughFile(const char *filename)
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugLora)
-            systemPrintf("LittleFS %s already exists\r\n", filename);
-        return true;
-    }
-
-    File updateLoraFirmware = LittleFS.open(filename, FILE_WRITE);
-    updateLoraFirmware.close();
-
-    if (LittleFS.exists(filename))
-        return true;
-
-    if (settings.debugLora)
-        systemPrintf("Unable to create %s on LittleFS\r\n", filename);
-    return false;
+    return createFileLfs("/loraTxDirect.txt");
 }
 
-void beginLoraFirmwareUpdate()
+// Check if updateLoraFirmware.txt exists
+bool loraCheckPassthroughFile()
 {
-    // NOTE: this currently fails on Facet FP due to the way LoRa_EN and LoRa_NRST are interconnected.
-    //  This will be resolved with the next Facet FP motherboard rev.
-    //  TODO: delete this comment once new hardware is available.
+    return fileExistsLfs("/updateLoraFirmware.txt");
+}
+bool loraCheckRxDirectFile()
+{
+    return fileExistsLfs("/loraRxDirect.txt");
+}
+bool loraCheckTxDirectFile()
+{
+    return fileExistsLfs("/loraTxDirect.txt");
+}
 
+void loraRemovePassthroughFile()
+{
+    removeFileLfs("/updateLoraFirmware.txt");
+}
+void loraRemoveRxDirectFile()
+{
+    removeFileLfs("/loraRxDirect.txt");
+}
+void loraRemoveTxDirectFile()
+{
+    removeFileLfs("/loraTxDirect.txt");
+}
+
+void loraBeginFirmwareUpdate()
+{
     // Flag that we are in direct connect mode
     inDirectConnectMode = true;
 
-    // Paint GNSS Update
+    // Paint LoRa Update
     paintLoRaUpdate();
 
     systemPrintln();
@@ -735,7 +679,7 @@ void beginLoraFirmwareUpdate()
     }
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    removeUpdateLoraFirmware();
+    loraRemovePassthroughFile();
 
     systemFlush(); // Complete prints
 
@@ -888,9 +832,9 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
 }
 
 // Assumes STM32 is in command mode
-// Disconnects from USB
+// On the Torch, disconnects from Serial USB
 // Sends a given command plus \r\n
-// Reconnects to USB
+// On the Torch, reconnects to USB
 // Caller's response array is filled
 // Returns true if OK is seen in response
 bool loraSendCommand(const char *command, char *response, int *responseSize, const unsigned long timeout,
@@ -1121,16 +1065,16 @@ bool loraEnterCommandMode()
 
 // Stores the current LoRa radio firmware version
 // Note: This enters command mode and does not exit.
-void loraGetVersion()
+bool loraGetVersion()
 {
     // Get the firmware version only once
     if (strlen(loraFirmwareVersion) > 3)
-        return;
+        return (true);
 
     if (loraIsOn() == false)
     {
         systemPrintln("loraGetVersion: LoRa radio is off");
-        return;
+        return (false);
     }
 
     if (loraEnterCommandMode() == true)
@@ -1160,6 +1104,7 @@ void loraGetVersion()
                 systemFlush(); // Complete prints
             }
         }
+        return (true);
     }
     else
     {
@@ -1169,6 +1114,7 @@ void loraGetVersion()
             systemFlush(); // Complete prints
         }
     }
+    return (false);
 }
 
 //----------------------------------------
@@ -1177,10 +1123,10 @@ void loraRxDirectConnect()
     // Flag that we are in direct connect mode
     inDirectConnectMode = true;
 
-    // Note: we can't call loraRxDirectRemoveFile() here as closing Tera Term will reset the ESP32,
+    // Note: we can't call loraRemoveRxDirectFile() here as closing Tera Term will reset the ESP32,
     //       returning the firmware to normal operation...
 
-    // Paint GNSS Update
+    // Paint LoRa Direct RX
     paintLoRaDirectRx();
 
     systemPrintln();
@@ -1206,7 +1152,7 @@ void loraRxDirectConnect()
     }
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    loraRxDirectRemoveFile();
+    loraRemoveRxDirectFile();
 
     systemFlush(); // Complete prints
 
@@ -1331,10 +1277,10 @@ void loraTxDirectConnect()
     // Flag that we are in direct connect mode
     inDirectConnectMode = true;
 
-    // Note: we can't call loraTxDirectRemoveFile() here as closing Tera Term will reset the ESP32,
+    // Note: we can't call loraRemoveTxDirectFile() here as closing Tera Term will reset the ESP32,
     //       returning the firmware to normal operation...
 
-    // Paint GNSS Update
+    // Paint LoRa Direct TX
     paintLoRaDirectTx();
 
     systemPrintln();
@@ -1360,7 +1306,7 @@ void loraTxDirectConnect()
     }
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    loraTxDirectRemoveFile();
+    loraRemoveTxDirectFile();
 
     systemFlush(); // Complete prints
 
@@ -1410,7 +1356,7 @@ void loraTxDirectConnectTorch()
             static char nmeaTxt[200]; // Max NMEA sentence length is 82
             static char versionString[21] = {0};
             if (strlen(versionString) == 0)
-                firmwareVersionGet(versionString, sizeof(versionString), true);
+                espFirmwareVersionGet(versionString, sizeof(versionString), true);
             snprintf(nmeaTxt, sizeof(nmeaTxt), "$GNTXT,%s,%s,%s,%s,%s,%09ld*",
                      getBrandAttributeFromProductVariant(productVariant)->name, platformPrefix, serialNumber,
                      versionString, loraFirmwareVersion, lastTx);
@@ -1447,7 +1393,7 @@ void loraTxDirectConnectFacetFP()
     // Push all data received on ESP32 UART2 out ESP32 UART0
     // Push test data out on ESP32 UART1
 
-    // We must use SerialForLoRa because loraAvailable  checks SerialForLoRa->available
+    // We must use SerialForLoRa because loraAvailable checks SerialForLoRa->available
     beginUart2Serial();
     if (SerialForLoRa == nullptr)
         return;
@@ -1482,7 +1428,7 @@ void loraTxDirectConnectFacetFP()
             static char nmeaTxt[200]; // Max NMEA sentence length is 82
             static char versionString[21] = {0};
             if (strlen(versionString) == 0)
-                firmwareVersionGet(versionString, sizeof(versionString), true);
+                espFirmwareVersionGet(versionString, sizeof(versionString), true);
             snprintf(nmeaTxt, sizeof(nmeaTxt), "$GNTXT,%s,%s,%s,%s,%s,%09ld*",
                      getBrandAttributeFromProductVariant(productVariant)->name, platformPrefix, serialNumber,
                      versionString, loraFirmwareVersion, lastTx);
@@ -1598,5 +1544,324 @@ uint16_t loraRead()
     systemPrintln("loraRead - invalid ProductVariant");
     return 0;
 }
+
+// The following functions are for the STM32 firmware update process.
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+#define STM32_WRITE_BLOCK_MAX 256
+
+uint8_t *stm32PageBuffer = nullptr; // Buffer written to the STM32 flash in 256 byte chunks
+uint16_t stm32BufferIndex = 0;
+
+uint32_t stm32CurrentAddress = 0x08000000; // Next flash address to write; advances as pages are flashed
+
+bool stm32UpdateFailed = false; // Set once a flash block write fails past its retries; halts further processing
+
+// Given a chunk of raw binary firmware bytes, feed the STM32 firmware update machine.
+// The binary blob is contiguous, so bytes are simply appended to the page buffer and
+// flashed every time a full 256 byte page accumulates.
+bool stm32UpdateFirmware(uint8_t *dataArray, uint16_t bytesToWrite)
+{
+    if (stm32UpdateFailed)
+        return false; // A prior block write failed - stop touching the page buffer/flash
+
+    stm32UpdatePageBuffer(dataArray, bytesToWrite);
+
+    firmwareUpdateProgressCallback(bytesToWrite); // Notify callback
+
+    return true;
+}
+
+// Helper to send STM32 commands and wait for ACK (0x79)
+bool stm32UpdateFirmwareWaitForAck()
+{
+    uint32_t startTime = millis();
+    while (millis() - startTime < 1000)
+    {
+        if (SerialForLoRa->available())
+        {
+            if (SerialForLoRa->read() == 0x79)
+                return true;
+        }
+        else
+            yield(); // Feed the idle/watchdog task while waiting on the UART
+    }
+    return false;
+}
+
+// Function to put STM32 into bootload mode and initialize UART sync
+void stm32UpdateFirmwareBegin()
+{
+    beginUart2Serial(); // Init the UART if not already initialized.
+
+    // UART baud rate is started at 115200bps.
+    // Increasing the baud rate does not decrease the programming time. Programming time is
+    // likely limited by STM32's internal flash write time.
+    SerialForLoRa->begin(115200, SERIAL_8E1, pin_IMU_RX, pin_IMU_TX); // STM32 bootloader requires Even parity
+
+    // (On FP) Connect ESP32 UART2 to LoRa UART2 via SW3 for configuration and bootloading/firmware updates
+    gpioExpanderSelectLoraConfigure();
+
+    loraEnterBootloader(); // Push boot pin high and reset STM32
+
+    stm32UpdateFailed = false;
+
+    // Send 0x7F for auto-baud detection
+    SerialForLoRa->write(0x7F);
+    if (stm32UpdateFirmwareWaitForAck())
+    {
+        systemPrintln("STM32 Bootloader Synced.");
+    }
+    else
+    {
+        systemPrintln("STM32 Bootloader failed to sync - aborting update.");
+        stm32UpdateFailed = true;
+        return;
+    }
+
+    systemPrintln("Erasing flash...");
+
+    // Global Mass Erase Command (0x44 for extended erase)
+    SerialForLoRa->write(0x44);
+    SerialForLoRa->write(0xBB); // Checksum for 0x44
+    if (stm32UpdateFirmwareWaitForAck())
+    {
+        SerialForLoRa->write(0xFF); // Special Mass Erase
+        SerialForLoRa->write(0xFF);
+        SerialForLoRa->write(0x00); // Checksum
+        // Mass erase of the whole chip can take much longer than a normal command ACK,
+        // so poll well past the usual 1 second window before giving up.
+        bool erased = false;
+        uint32_t eraseStartTime = millis();
+        while (millis() - eraseStartTime < 20000)
+        {
+            if (stm32UpdateFirmwareWaitForAck())
+            {
+                erased = true;
+                break;
+            }
+            yield(); // Each failed attempt above already yields internally, but be explicit here too
+        }
+
+        if (erased)
+            systemPrintln("STM32 Erased.");
+        else
+        {
+            systemPrintln("STM32 mass erase failed to ACK - aborting update.");
+            stm32UpdateFailed = true;
+            return;
+        }
+    }
+    else
+    {
+        systemPrintln("STM32 did not ACK erase command - aborting update.");
+        stm32UpdateFailed = true;
+        return;
+    }
+
+    // Allocate page buffer if not already allocated
+    if (stm32PageBuffer == nullptr)
+        stm32PageBuffer = (uint8_t *)malloc(STM32_WRITE_BLOCK_MAX);
+
+    stm32BufferIndex = 0;
+    stm32CurrentAddress = 0x08000000; // Reset to Flash start for this update
+    firmwareUpdateBytesProcessed = 0;
+}
+
+// Write a 256-byte chunk to the STM32 Flash
+bool stm32UpdateFirmwareFlashBlock(uint32_t addr, uint8_t *data, uint16_t len)
+{
+    if (len == 0)
+        return true;
+
+    // systemPrintf("Flashing block: Addr=0x%08X, Len=%d\n\r", addr, len);
+
+    // Write Memory Command
+    SerialForLoRa->write(0x31);
+    SerialForLoRa->write(0xCE);
+    if (stm32UpdateFirmwareWaitForAck() == false)
+        return false;
+
+    // Send Address + Checksum
+    uint8_t addrBytes[4] = {(uint8_t)(addr >> 24), (uint8_t)(addr >> 16), (uint8_t)(addr >> 8), (uint8_t)addr};
+    uint8_t checksum = addrBytes[0] ^ addrBytes[1] ^ addrBytes[2] ^ addrBytes[3];
+    SerialForLoRa->write(addrBytes, 4);
+    SerialForLoRa->write(checksum);
+
+    if (stm32UpdateFirmwareWaitForAck() == false)
+        return false;
+
+    // Send Number of bytes - 1 (STM32 protocol requirement)
+    uint8_t n = len - 1;
+    SerialForLoRa->write(n);
+    checksum = n;
+    for (uint16_t i = 0; i < len; i++)
+    {
+        SerialForLoRa->write(data[i]);
+        checksum ^= data[i];
+    }
+    SerialForLoRa->write(checksum);
+
+    return stm32UpdateFirmwareWaitForAck();
+}
+
+// Add data to the stm32PageBuffer. Write to STM32 when we hit 256 bytes.
+// The binary blob is contiguous, so bytes are always appended at stm32CurrentAddress,
+// which advances by one page every time a full 256 byte block is flashed.
+void stm32UpdatePageBuffer(uint8_t *dataArray, uint16_t bytesToWrite)
+{
+    for (uint16_t i = 0; i < bytesToWrite; i++)
+    {
+        stm32PageBuffer[stm32BufferIndex++] = dataArray[i];
+
+        // Once we hit 256 bytes, write to STM32
+        if (stm32BufferIndex == STM32_WRITE_BLOCK_MAX)
+        {
+            // A single dropped ACK/NACK is common on real hardware - retry a few times
+            // before treating it as fatal so the buffer index is always resolved one way
+            // or another (never left sitting at 256, which would overflow stm32PageBuffer).
+            bool wrote = false;
+            for (uint8_t attempt = 0; attempt < 3 && !wrote; attempt++)
+                wrote = stm32UpdateFirmwareFlashBlock(stm32CurrentAddress, stm32PageBuffer, STM32_WRITE_BLOCK_MAX);
+
+            stm32BufferIndex = 0; // Buffer is consumed either way - never let it stay at 256
+
+            if (wrote)
+                stm32CurrentAddress += STM32_WRITE_BLOCK_MAX;
+            else
+            {
+                systemPrintf("Flash write failed at address 0x%08X - aborting update.\n\r", stm32CurrentAddress);
+                stm32UpdateFailed = true;
+                return;
+            }
+        }
+    }
+}
+
+// Flushes remaining bytes, cleans up memory, and resets the STM32
+bool stm32UpdateFirmwareEnd()
+{
+    bool success = !stm32UpdateFailed;
+    if (success && stm32BufferIndex > 0)
+    {
+        // systemPrintf("Flushing final block: Addr=0x%08X, BufferIndex=%d\n\r", stm32CurrentAddress, stm32BufferIndex);
+        success = stm32UpdateFirmwareFlashBlock(stm32CurrentAddress, stm32PageBuffer, stm32BufferIndex);
+    }
+
+    free(stm32PageBuffer);
+    stm32PageBuffer = nullptr;
+
+    // systemPrintln("Update Complete. Resetting IC...");
+
+    gpioExpanderLoraBootDisable(); // Pull BOOT0 low to exit bootloader mode on reset
+    loraReset();                   // Power cycle LoRa to reset into normal mode
+
+    return success;
+}
+
+// Update the STM32 firmware
+bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
+{
+    if (relativeFirmwareFileLocation == nullptr)
+    {
+        systemPrintln("Firmware file location is null.");
+        return false;
+    }
+
+    systemPrintln("Starting STM32 firmware update...");
+
+    WiFiClientSecure client;
+    client.setCACert(GITHUB_RAW_PUBLIC_CERT);
+
+    // Preflight TLS handshake using the expected host name.
+    // With CA configured, connect() fails if certificate validation fails.
+    if (!client.connect(OTA_FIRMWARE_GITHUB_RAW, 443))
+    {
+        systemPrintln("TLS socket connect failed");
+        return false;
+    }
+
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("TLS certificate verified for raw.githubusercontent.com");
+
+    client.stop();
+
+    // The relative file location looks like "\imu\im19\20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc"
+    // We need to access "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc"
+
+    char firmwareFileLocation[256];
+    snprintf(firmwareFileLocation, sizeof(firmwareFileLocation), "https://%s/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main%s", OTA_FIRMWARE_GITHUB_RAW, relativeFirmwareFileLocation);
+
+    // Convert backslashes to forward slashes for URL formatting
+    for (char *c = firmwareFileLocation; *c != '\0'; c++)
+        if (*c == '\\')
+            *c = '/';
+
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Starting HTTP GET for firmware: %s\r\n", firmwareFileLocation);
+
+    HTTPClient http;
+    if (!http.begin(client, firmwareFileLocation))
+    {
+        systemPrintln("Unable to begin HTTP request.");
+        return false;
+    }
+
+    int httpCode = http.GET();
+    if (httpCode != HTTP_CODE_OK)
+    {
+        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
+        http.end();
+        return false;
+    }
+
+    int contentLength = http.getSize();
+    if (contentLength > 0)
+        firmwareUpdateBytesToProcess = (uint32_t)contentLength;
+
+    WiFiClient *stream = http.getStreamPtr();
+    uint8_t buffer[STM32_WRITE_BLOCK_MAX];
+    bool success = true;
+
+    // Setup the serial connection and put STM32 into bootloader mode
+    stm32UpdateFirmwareBegin();
+
+    while (http.connected() && (contentLength > 0 || contentLength == -1))
+    {
+        size_t available = stream->available();
+        if (available == 0)
+        {
+            if (!client.connected())
+                break;
+            delay(1);
+            continue;
+        }
+
+        size_t toRead = min(available, sizeof(buffer));
+        int bytesRead = stream->readBytes(buffer, toRead);
+        if (bytesRead <= 0)
+            break;
+
+        if (stm32UpdateFirmware(buffer, (uint16_t)bytesRead) == false)
+        {
+            systemPrintln("Firmware update failed during WiFi data upload.");
+            success = false;
+            break;
+        }
+
+        if (contentLength > 0)
+            contentLength -= bytesRead;
+    }
+
+    if (stm32UpdateFirmwareEnd())
+        systemPrintln("LoRa/STM32 updated successfully.");
+    else
+        systemPrintln("LoRa/STM32 update failed.");
+
+    http.end();
+    return true;
+}
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// End subsystem firmware update functions
 
 #endif // COMPILE_LORA
