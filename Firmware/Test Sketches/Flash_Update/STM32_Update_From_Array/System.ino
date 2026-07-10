@@ -1,31 +1,36 @@
-// Callback for all firmware update targets. Called with the number of bytes written to flash so far. Used to track and print progress.
-void firmwareUpdateProgressCallback(uint16_t bytesProcessed)
+// Resest the system
+void systemReset()
 {
-    const uint8_t progressBarWidth = 20;
-    static uint8_t lastUpdatePercent = 0;
+    Serial.println("System reset");
+    Serial.flush();
+    ESP.restart();
+}
 
-    firmwareUpdateBytesProcessed += bytesProcessed;
+// Print the error message every 15 seconds
+void reportFatalError(const char *errorMsg)
+{
+    uint32_t currentMsec;
+    static uint32_t lastDisplayMsec;
 
-    uint32_t progressPercent = 0;
-    if (firmwareUpdateBytesToProcess > 0)
-        progressPercent = (firmwareUpdateBytesProcessed * 100UL) / firmwareUpdateBytesToProcess;
+    // Empty the FIFO of any incoming data
+    serialInputClear(&Serial);
 
-    if (progressPercent > 100)
-        progressPercent = 100;
+    lastDisplayMsec = millis() - MILLISECONDS_IN_A_DAY;
+    while (1)
+    {
+        currentMsec = millis();
+        if ((currentMsec - lastDisplayMsec) >= (15 * MILLISECONDS_IN_A_SECOND))
+        {
+            lastDisplayMsec = currentMsec;
 
-    uint8_t filled = (progressPercent * progressBarWidth) / 100;
+            // Periodically display the halted message
+            systemPrintf("HALTED: ");
+            systemPrint(errorMsg);
+            systemPrintln();
+        }
 
-        // Don't update unless there is a change
-    if (progressPercent == lastUpdatePercent)
-        return;
-
-    lastUpdatePercent = progressPercent;
-    
-    Serial.print("Update Progress: [");
-    for (uint8_t i = 0; i < progressBarWidth; i++)
-        Serial.print(i < filled ? '#' : '-');
-
-    Serial.print("] ");
-    Serial.print(progressPercent);
-    Serial.println("%");
+        // Allow carriage return to reset the system
+        if (Serial.available() && (Serial.read() == '\r'))
+            systemReset();
+    }
 }

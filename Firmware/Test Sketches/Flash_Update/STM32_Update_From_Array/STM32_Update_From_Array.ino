@@ -6,10 +6,10 @@
 
     This was written for FP hardware but should be adaptable to the Torch.
 
-    To test: load this sketch onto an FP. 
+    To test: load this sketch onto an FP.
     Press 'u' to start the update. Allow the update to complete.
-    Load RTK Everywhere and put the device into STM32 passthrough mode. 
-    Use STM32CubeProgrammer to read the flash and compare it against the contents of 'lora_firmware.hex'. 
+    Load RTK Everywhere and put the device into STM32 passthrough mode.
+    Use STM32CubeProgrammer to read the flash and compare it against the contents of 'lora_firmware.hex'.
     Files should be identical.
 
     All loaders should have similar structure:
@@ -25,6 +25,50 @@
 #include "TheData.h" //Array containing the PKG data
 
 #include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
+
+#include "Device_Update.h"
+
+//----------------------------------------
+// RTK defines
+//----------------------------------------
+
+#define HOURS_IN_A_DAY 24L
+#define MINUTES_IN_AN_HOUR 60L
+#define SECONDS_IN_A_MINUTE 60L
+#define MILLISECONDS_IN_A_SECOND 1000L
+#define MILLISECONDS_IN_A_MINUTE (SECONDS_IN_A_MINUTE * MILLISECONDS_IN_A_SECOND)
+#define MILLISECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * MILLISECONDS_IN_A_MINUTE)
+#define MILLISECONDS_IN_A_DAY (HOURS_IN_A_DAY * MILLISECONDS_IN_AN_HOUR)
+
+#define SECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * SECONDS_IN_A_MINUTE)
+#define SECONDS_IN_A_DAY (HOURS_IN_A_DAY * SECONDS_IN_AN_HOUR)
+
+//----------------------------------------
+// RTK support routines
+//----------------------------------------
+
+#define rtkFree(data, string)       free(data)
+#define rtkMalloc(length, string)   malloc(length)
+
+//----------------------------------------
+// Buffers and settings for device update support
+//----------------------------------------
+
+DFU_STM32_CONTEXT stm32Context;
+uint8_t writeBuffer[DFU_STM32_BYTES];
+
+typedef struct _SETTINGS
+{
+    bool debugFirmwareUpdate;
+} SETTINGS;
+
+SETTINGS settings;
+bool debugVerbose;
+
+//----------------------------------------
+// Platform hardware support
+//----------------------------------------
+
 SFE_PCA95XX io(PCA95XX_PCA9534); // Create a PCA9534
 SFE_PCA95XX *gpioExpanderSwitches = nullptr;
 
@@ -42,7 +86,8 @@ const int gpioExpanderSwitch_S5 = 7;         // Controls U61 switch 5: connect G
 const int gpioExpanderNumSwitches = 8;
 
 // Communication Port
-HardwareSerial SerialForLoRa(2);
+HardwareSerial uart2(2);
+HardwareSerial * SerialForLoRa = &uart2;
 #define pin_IMU_TX 17
 #define pin_IMU_RX 14
 const int loraBaud = 115200; // Increasing the baud rate does not decrease the programming time. Programming time is
@@ -52,14 +97,6 @@ const int loraBaud = 115200; // Increasing the baud rate does not decrease the p
 extern void gpioExpanderLoraBootEnable();
 extern void gpioExpanderLoraEnable();
 extern void gpioExpanderLoraDisable();
-
-// Timer for firmware update duration
-unsigned long firmwareUpdateStartTime = 0;
-unsigned long firmwareUpdateElapsed = 0;
-
-// Global variables used by firmwareUpdateProgressCallback, called by all firmware update procedures
-uint32_t firmwareUpdateBytesToProcess = 0;
-uint32_t firmwareUpdateBytesProcessed = 0;
 
 void setup()
 {
@@ -72,20 +109,33 @@ void setup()
 
     beginGpioExpanderSwitches();
 
-    SerialForLoRa.begin(loraBaud, SERIAL_8E1, pin_IMU_RX, pin_IMU_TX); // STM32 bootloader requires Even parity
+    SerialForLoRa->setRxBufferSize(1024 * 2);
+    SerialForLoRa->setTimeout(1); // Requires serial traffic on the UART pins for detection
+    SerialForLoRa->begin(loraBaud, SERIAL_8E1, pin_IMU_RX, pin_IMU_TX); // STM32 bootloader requires Even parity
 
     // Connect ESP32 UART2 to LoRa UART2 via SW3 for configuration and bootloading/firmware updates
     gpioExpanderSelectLoraConfigure();
 
     Serial.println("Serial LoRa started");
+    displayMenu();
 }
 
 void loop()
 {
+    DEVICE_FIRMWARE_CTX * ctx;
+    DFU_BUFFER_DATA temp;
+    bool success;
+
     if (Serial.available())
     {
         byte incoming = Serial.read();
-        if (incoming == 'r')
+        Serial.printf("%c\r\n", incoming);
+        if (incoming == 'd')
+        {
+            settings.debugFirmwareUpdate ^= 1;
+            debugVerbose = false;
+        }
+        else if (incoming == 'r')
         {
             ESP.restart();
         }
@@ -93,38 +143,61 @@ void loop()
         {
             Serial.println("Starting firmware update...");
 
-            // Start timer before erase
-            firmwareUpdateStartTime = millis();
-
-            stm32UpdateFirmwareBegin();
-
-            Serial.println("Loading new firmware...");
-
-            // We will be given bytes over WiFi so we need to parse the incoming
-            // stream to look for starting HEX lines and extract the data from those lines to send to stm32FirmwareUpdateParseHexLine().
-
-            uint32_t blobIndex = 0;
-
-            while (blobIndex < sizeof(lora_firmware))
+            do
             {
-                uint8_t c = lora_firmware[blobIndex++];
-                stm32UpdateFirmware(&c, 1, false);
-            }
+                // Enable debug output
+                success = deviceFirmwareUpdateBegin(false, debugVerbose, 32 * 1024);
+                if (success == false)
+                {
+                    Serial.println("Firmware Update Failed.");
+                    break;
+                }
 
-            // Send any remaining lines
-            stm32UpdateFirmware(NULL, 0, true);
+                // Initialize the device context
+                ctx = dfuContext;
+                if (ctx)
+                {
+                    ctx->_deviceInfo = &deviceFirmwareInfo[0];
+                    ctx->_outputDeviceType = DFU_ODT_DEVICE;
+                    ctx->_writeBuffer = writeBuffer;
+                    ctx->_devCtx = &stm32Context;
+                    ctx->_data = (uint8_t *)dataArray;
+                    ctx->_fileBytes = sizeof(dataArray);
+                    ctx->_bytesMax = DFU_STM32_MAX_PAYLOAD_SIZE;
+                    ctx->_validDataBytes = sizeof(dataArray);
+                    ctx->_reboot = true;
+                    stm32Context._stm32Serial = SerialForLoRa;
+                }
+                temp = dfuFirmwareData;
+                dfuFirmwareData._address = (uint8_t *)dataArray;
+                dfuFirmwareData._length = sizeof(dataArray);
 
-            if (stm32UpdateFirmwareEnd())
-                Serial.println("Firmware Updated Successfully.");
-            else
-                Serial.println("Firmware Update Failed.");
-
-            // Stop timer and print elapsed time
-            firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
-            Serial.print("Firmware update time: ");
-            Serial.print(firmwareUpdateElapsed / 1000.0, 3);
-            Serial.println(" seconds");
+                // Perform the firmware update
+                while (deviceFirmwareUpdate(millis()))
+                {
+                    if (dfuContext && (dfuContext->_state == DFUS_NEXT_DEVICE))
+                    {
+                        dfuFirmwareData = temp;
+                        ctx->_devCtx = nullptr;
+                        ctx->_writeBuffer = nullptr;
+                    }
+                }
+            } while (0);
         }
+        else if (settings.debugFirmwareUpdate && (incoming == 'v'))
+        {
+            debugVerbose ^= 1;
+        }
+        displayMenu();
     }
 }
 
+void displayMenu()
+{
+    Serial.println();
+    Serial.printf("d) %s firmware debug\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
+    Serial.printf("r) Reboot\r\n");
+    Serial.printf("u) Update firmware\r\n");
+    if (settings.debugFirmwareUpdate)
+        Serial.printf("v) %s verbose debug output\r\n", debugVerbose ? "Disable" : "Enable");
+}
