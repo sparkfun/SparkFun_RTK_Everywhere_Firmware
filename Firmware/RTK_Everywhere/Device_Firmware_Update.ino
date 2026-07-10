@@ -48,7 +48,7 @@ const int dfuStateNameCount = sizeof(dfuStateName) / sizeof(dfuStateName[0]);
 const char * dfuEqualSigns = "==================================================";
 
 //----------------------------------------
-// Constants
+// Locals
 //----------------------------------------
 
 static bool dfuLoopInUpdate;    // Loop in deviceFirmwareUpdate while set
@@ -60,7 +60,7 @@ void deviceFirmwareActionMenu(DEVICE_FIRMWARE_CTX * ctx)
 {
     if (ctx->_doAll == false)
     {
-        inMainMenu = true;
+//        inMainMenu = true;
         systemPrintf("\r\nAction:\r\n");
 
         // Display the menu
@@ -74,7 +74,7 @@ void deviceFirmwareActionMenu(DEVICE_FIRMWARE_CTX * ctx)
         systemPrintf("x) Exit\r\n");
 
         // Discard the input
-        serialInputClear();
+        serialInputClear(&Serial);
 
         // Output the prompt
         systemPrintf("Select an action: ");
@@ -114,11 +114,15 @@ bool deviceFirmwareBufferAllocate(DEVICE_FIRMWARE_CTX * ctx)
     }
 
     // Return buffer allocation status
-    return (dfuFirmwareData._address && dfuFirmwareFileNamesNet._address
+    return (dfuFirmwareData._address
+        && dfuFirmwareFileNamesNet._address
         && ((ctx->_doAll == true)
             || (dfuFirmwareFileNamesNvm._address
                 && ((present.microSd == false)
-                    || dfuFirmwareFileNamesSd._address))));
+                    || dfuFirmwareFileNamesSd._address)
+               )
+           )
+           );
 }
 
 //----------------------------------------
@@ -220,7 +224,7 @@ void deviceFirmwareCleanup(DEVICE_FIRMWARE_CTX * ctx)
         systemPrintf("Freeing device firmware update context, %d bytes\r\n", sizeof(*ctx));
     rtkFree(ctx, "Device firmware context");
     dfuContext = nullptr;
-    inMainMenu = false;
+//    inMainMenu = false;
 }
 
 //----------------------------------------
@@ -267,7 +271,7 @@ void deviceFirmwareClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
         // Programming a device
         else
-            deviceFirmwareStateSet(ctx, ctx->_reboot ? DFUS_REBOOT : DFUS_DONE);
+            deviceFirmwareStateSet(ctx, ctx->_reboot ? DFUS_REBOOT : DFUS_NEXT_DEVICE);
     }
 }
 
@@ -409,7 +413,7 @@ void deviceFirmwareDeviceListMenu(DEVICE_FIRMWARE_CTX * ctx)
 {
     if (ctx->_doAll == false)
     {
-        inMainMenu = true;
+//        inMainMenu = true;
         systemPrintf("\r\nDevice List:\r\n");
 
         // Walk the list of devices
@@ -426,7 +430,7 @@ void deviceFirmwareDeviceListMenu(DEVICE_FIRMWARE_CTX * ctx)
         systemPrintf("x) Exit\r\n");
 
         // Discard the input
-        serialInputClear();
+        serialInputClear(&Serial);
         ctx->_buffer[0] = 0;
         ctx->_validDataBytes = 0;
 
@@ -465,7 +469,7 @@ void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx)
 
     if (ctx->_doAll == false)
     {
-        inMainMenu = true;
+//        inMainMenu = true;
 
         // Display the firmware version
         if (ctx->_deviceInfo->_version)
@@ -492,7 +496,7 @@ void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx)
         systemPrintf("x) Exit\r\n");
 
         // Discard the input
-        serialInputClear();
+        serialInputClear(&Serial);
         ctx->_buffer[0] = 0;
         ctx->_validDataBytes = 0;
 
@@ -828,10 +832,6 @@ void deviceFirmwareOpenOutput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             // Determine if there is an open routine
             if (ctx->_deviceInfo->_open)
             {
-                // Yes, prepare the device for firmware updates
-                if (settings.debugFirmwareUpdate)
-                    systemPrintf("Preparing the %s for firmware update\r\n",
-                                 ctx->_deviceInfo->_deviceName);
                 result = ctx->_deviceInfo->_open(ctx);
                 if (result)
                     break;
@@ -839,6 +839,7 @@ void deviceFirmwareOpenOutput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                 // Display the error
                 systemPrintf("ERROR: %s firmware open failed!\r\n",
                              ctx->_deviceInfo->_deviceName);
+                rtkTaskList(&Serial);
             }
             else
             {
@@ -1615,60 +1616,59 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
     bool running;
     const char * stateName;
 
-    do
+    // Get the context instance
+    running = false;
+    ctx = dfuContext;
+    if (ctx)
     {
-        running = false;
-
-        // Get the context instance
-        ctx = dfuContext;
-        if (ctx == nullptr)
-            break;
-
-        running = true;
-
-        // Blink the LED
-        deviceFirmwareLedBlink(ctx, currentMsec);
-
-        // Perform the firmware update
-        switch (ctx->_state)
+        do
         {
-        case DFUS_INIT: deviceFirmwareInit(ctx, currentMsec); break;
-        case DFUS_WAIT_NETWORK: deviceFirmwareWaitForNetwork(ctx, currentMsec); break;
-        case DFUS_GET_DEVICE: deviceFirmwareSelectDevice(ctx, currentMsec); break;
-        case DFUS_GET_NETWORK_FILES: dfuNetworkFileListBuildUrl(ctx); break;
-        case DFUS_GET_HTTP_FILE_LIST_REQ: dfuNetworkFileListHtmlRequest(ctx, currentMsec); break;
-        case DFUS_GET_NETWORK_FILE_LIST: dfuNetworkFileListGetFileName(ctx, currentMsec); break;
-        case DFUS_GET_NVM_FILE_LIST: dfuNvmGetFiles(ctx, currentMsec); break;
-        case DFUS_GET_SD_FILE_LIST: dfuSdGetFiles(ctx, currentMsec); break;
-        case DFUS_SELECT_FILE: deviceFirmwareSelectFile(ctx, currentMsec); break;
-        case DFUS_SELECT_ACTION: deviceFirmwareSelectAction(ctx, currentMsec); break;
-        case DFUS_CRC_OPEN_INPUT: deviceFirmwareCrcOpen(ctx, currentMsec); break;
-        case DFUS_CRC_READ_DATA: deviceFirmwareCrcReadData(ctx, currentMsec); break;
-        case DFUS_CRC_CLOSE: deviceFirmwareCrcClose(ctx, currentMsec); break;
-        case DFUS_DEVICE_OPEN_INPUT: deviceFirmwareOpenFirmwareFile(ctx, currentMsec); break;
-        case DFUS_DEVICE_FILL_BUFFER: deviceFirmwareReadFillBuffer(ctx, currentMsec); break;
-        case DFUS_DEVICE_RESET: deviceFirmwareReset(ctx, currentMsec); break;
-        case DFUS_DEVICE_OPEN_OUTPUT: deviceFirmwareOpenOutput(ctx, currentMsec); break;
-        case DFUS_DEVICE_PROGRAM_FIRMWARE: deviceFirmwareWrite(ctx, currentMsec); break;
-        case DFUS_READ_FIRMWARE_DATA: deviceFirmwareReadFirmwareData(ctx, currentMsec); break;
-        case DFUS_DEVICE_CLOSE: deviceFirmwareClose(ctx, currentMsec); break;
-        case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
-        case DFUS_REBOOT: dfuEsp32Reboot(); break;
+            running = true;
 
-        case DFUS_DONE:
-            deviceFirmwareBufferFree(ctx, true);
-            deviceFirmwareCleanup(ctx);
-            running = false;
-            break;
+            // Blink the LED
+            deviceFirmwareLedBlink(ctx, currentMsec);
 
-        default:
-            stateName = deviceFirmwareStateGetName(ctx->_state);
-            systemPrintf("Device firmware update state: %d (%s)\r\n", ctx->_state, stateName);
-            reportFatalError("Device firmware update state not implemented!");
-            deviceFirmwareStateSet(ctx, DFUS_DONE);
-            break;
-        }
-    } while (dfuLoopInUpdate);
+            // Perform the firmware update
+            switch (ctx->_state)
+            {
+            case DFUS_INIT: deviceFirmwareInit(ctx, currentMsec); break;
+            case DFUS_WAIT_NETWORK: deviceFirmwareWaitForNetwork(ctx, currentMsec); break;
+            case DFUS_GET_DEVICE: deviceFirmwareSelectDevice(ctx, currentMsec); break;
+            case DFUS_GET_NETWORK_FILES: dfuNetworkFileListBuildUrl(ctx); break;
+            case DFUS_GET_HTTP_FILE_LIST_REQ: dfuNetworkFileListHtmlRequest(ctx, currentMsec); break;
+            case DFUS_GET_NETWORK_FILE_LIST: dfuNetworkFileListGetFileName(ctx, currentMsec); break;
+            case DFUS_GET_NVM_FILE_LIST: dfuNvmGetFiles(ctx, currentMsec); break;
+            case DFUS_GET_SD_FILE_LIST: dfuSdGetFiles(ctx, currentMsec); break;
+            case DFUS_SELECT_FILE: deviceFirmwareSelectFile(ctx, currentMsec); break;
+            case DFUS_SELECT_ACTION: deviceFirmwareSelectAction(ctx, currentMsec); break;
+            case DFUS_CRC_OPEN_INPUT: deviceFirmwareCrcOpen(ctx, currentMsec); break;
+            case DFUS_CRC_READ_DATA: deviceFirmwareCrcReadData(ctx, currentMsec); break;
+            case DFUS_CRC_CLOSE: deviceFirmwareCrcClose(ctx, currentMsec); break;
+            case DFUS_DEVICE_OPEN_INPUT: deviceFirmwareOpenFirmwareFile(ctx, currentMsec); break;
+            case DFUS_DEVICE_FILL_BUFFER: deviceFirmwareReadFillBuffer(ctx, currentMsec); break;
+            case DFUS_DEVICE_RESET: deviceFirmwareReset(ctx, currentMsec); break;
+            case DFUS_DEVICE_OPEN_OUTPUT: deviceFirmwareOpenOutput(ctx, currentMsec); break;
+            case DFUS_DEVICE_PROGRAM_FIRMWARE: deviceFirmwareWrite(ctx, currentMsec); break;
+            case DFUS_READ_FIRMWARE_DATA: deviceFirmwareReadFirmwareData(ctx, currentMsec); break;
+            case DFUS_DEVICE_CLOSE: deviceFirmwareClose(ctx, currentMsec); break;
+            case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
+            case DFUS_REBOOT: dfuEsp32Reboot(); break;
+
+            case DFUS_DONE:
+                deviceFirmwareBufferFree(ctx, true);
+                deviceFirmwareCleanup(ctx);
+                running = false;
+                break;
+
+            default:
+                stateName = deviceFirmwareStateGetName(ctx->_state);
+                systemPrintf("Device firmware update state: %d (%s)\r\n", ctx->_state, stateName);
+                reportFatalError("Device firmware update state not implemented!");
+                deviceFirmwareStateSet(ctx, DFUS_DONE);
+                break;
+            }
+        } while (dfuLoopInUpdate);
+    }
     return running;
 }
 
@@ -1798,7 +1798,8 @@ bool deviceFirmwareWaitForNetwork(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMse
 void deviceFirmwareWrite(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     size_t bytesToWrite;
-    size_t bytesWritten;
+    ssize_t bytesWritten;
+    bool done;
     int percentage;
     DEVICE_WRITE write;
 
@@ -1826,37 +1827,41 @@ void deviceFirmwareWrite(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             bytesWritten = dfuNvmWrite(ctx, ctx->_data, bytesToWrite);
         else if (ctx->_outputDeviceType == DFU_ODT_SD)
             bytesWritten = dfuSdWrite(ctx, ctx->_data, bytesToWrite);
-        if (bytesWritten >= 0)
-        {
-            // Account for the data written
-            ctx->_validDataBytes -= bytesWritten;
-            ctx->_data += bytesWritten;
-            ctx->_bytesWritten += bytesWritten;
-            if (ctx->_bytesWritten == ctx->_fileBytes)
-                ctx->_complete = true;
 
-            // Display the number of bytes written
-            if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
-                systemPrintf("bytesWritten: %d\r\n", bytesWritten);
+        // Handle the error case
+        if (bytesWritten <= 0)
+            break;
+
+        // Account for the data written
+        ctx->_validDataBytes -= bytesWritten;
+        ctx->_data += bytesWritten;
+        ctx->_bytesWritten += bytesWritten;
+        if (ctx->_bytesWritten == ctx->_fileBytes)
+            ctx->_complete = true;
+
+        // Display the number of bytes written
+        if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+            systemPrintf("bytesWritten: %d\r\n", bytesWritten);
+
+        // Display the percentage changes
+        percentage = ctx->_bytesWritten * 100 / ctx->_fileBytes;
+        if (percentage != ctx->_percentage)
+        {
+            ctx->_percentage = percentage;
+            displayFirmwareUpdateProgress(percentage);
+            systemPrintf("\r[%s %d%%%s",
+                         &dfuEqualSigns[strlen(dfuEqualSigns) - (percentage >> 1)],
+                         percentage,
+                         settings.debugFirmwareUpdate ? "\r\n" : "");
         }
     }
 
-    // Display the percentage changes
-    percentage = ctx->_bytesWritten * 100 / ctx->_fileBytes;
-    if (percentage != ctx->_percentage)
-    {
-        ctx->_percentage = percentage;
-        displayFirmwareUpdateProgress(percentage);
-        systemPrintf("\r[%s %d%%",
-                     &dfuEqualSigns[strlen(dfuEqualSigns) - (percentage >> 1)],
-                     percentage);
-    }
-
     // Read more data
-    if (ctx->_complete || settings.debugFirmwareUpdate)
+    done = ctx->_complete || (bytesWritten <= 0);
+    if (ctx->_complete && (settings.debugFirmwareUpdate == false))
         systemPrintln();
-    deviceFirmwareStateSet(ctx, ctx->_complete ? DFUS_DEVICE_CLOSE
-                                               : DFUS_READ_FIRMWARE_DATA);
+    deviceFirmwareStateSet(ctx, done ? DFUS_DEVICE_CLOSE
+                                     : DFUS_READ_FIRMWARE_DATA);
 }
 
 #endif  // COMPILE_MENU_FIRMWARE
