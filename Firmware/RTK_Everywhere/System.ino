@@ -93,7 +93,8 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
     const uint32_t badTail = 0; // E.g. 0x3f80135c which was being allocated to the oled
     if (badTail)
     {
-        union {
+        union
+        {
             void *ptr;
             uint32_t address;
         } ptr2address;
@@ -113,7 +114,8 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
     const uint32_t badHead = 0; // E.g. 0x3f808ff4 (identifed that 0x3f808048 was allocated to AuthCoPro)
     if (badHead)
     {
-        union {
+        union
+        {
             void *ptr;
             uint32_t address;
         } ptr2address;
@@ -538,7 +540,7 @@ void createNMEASentence(customNmeaType_e textID, char *nmeaMessage, size_t sizeO
 }
 
 // Get the default settings
-void getDefaultSettings(struct Settings * tempSettings)
+void getDefaultSettings(struct Settings *tempSettings)
 {
     static const Settings defaultSettings;
     memcpy(tempSettings, &defaultSettings, sizeof(defaultSettings));
@@ -1167,8 +1169,8 @@ bool gpioExpanderDetectGnssCommon(bool forceDetection)
 
             // Clock is ticking! Be quick!
             // Set GNSS Reset to INPUT as fast as possible
-            i2c_0->beginTransmission(0x21); // FacetFP TCA9534 is on address 0x21
-            i2c_0->write(0x03); // TCA9534 CONFIGURATION register
+            i2c_0->beginTransmission(0x21);                              // FacetFP TCA9534 is on address 0x21
+            i2c_0->write(0x03);                                          // TCA9534 CONFIGURATION register
             i2c_0->write((uint8_t)(1 << gpioExpanderSwitch_GNSS_Reset)); // Reset INPUT, all others OUTPUT
             i2c_0->endTransmission(true);
 
@@ -1186,7 +1188,7 @@ bool gpioExpanderDetectGnssCommon(bool forceDetection)
                 flexModuleDetected |= (gpioExpanderSwitches->digitalRead(gpioExpanderSwitch_GNSS_Reset) == 1);
                 if (settings.debugGnss)
                     systemPrintf("GNSS detection: GNSS %sdetected after %ldms\r\n",
-                        flexModuleDetected ? "" : "not ", timeStep );
+                                 flexModuleDetected ? "" : "not ", timeStep);
                 if (flexModuleDetected)
                     break;
             }
@@ -1309,6 +1311,6 @@ void firmwareUpdateProgressCallback(uint16_t bytesProcessed)
     systemPrint(progressPercent);
     systemPrintln("%");
 
-    //Update the display
+    // Update the display
     displayFirmwareUpdateProgress(progressPercent);
 }

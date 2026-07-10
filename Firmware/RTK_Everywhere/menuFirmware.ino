@@ -48,7 +48,7 @@ struct OtaTarget
     char filePath[256];
 };
 OtaTarget otaTargets[4];
-int otaTargetCount = 0;
+int otaTargetCount = -1; // -1 means we have not yet pulled the list of targets from the server
 
 #endif // COMPILE_OTA_AUTO
 
@@ -579,7 +579,7 @@ void microSDUpdateFirmware(const char *firmwareFileName)
             // Clear all settings from LittleFS
             LittleFS.format();
 
-            systemPrintln("Firmware updated successfully. Rebooting. Goodbye!");
+            systemPrintln("ESP32 updated successfully. Rebooting. Goodbye!");
 
             // If forced firmware is detected, do a full reset of config as well
             if (strcmp(forceFirmwareFileName, firmwareFileName) == 0)
@@ -681,12 +681,16 @@ void otaMenuDisplay(char *currentVersion)
         systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
     }
 
-    if (firmwareVersionIsReportedNewer(otaReportedVersion, &currentVersion[1]) == true ||
-        settings.debugFirmwareUpdate == true)
-    {
-        systemPrintf("u) Update to new firmware: v%s - %s\r\n", otaReportedVersion,
-                     otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
-    }
+    // Allow user to initiate a firmware update without checking for new firmware first
+    // If all systems are up to date, the process will exit
+    if (otaTargetCount == -1)
+        systemPrintf("u) Run system update: %s\r\n", otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
+    else if (otaTargetCount == 0)
+        systemPrintln("u) Run system update: No updates needed");
+    else if (otaTargetCount == 1)
+        systemPrintf("u) Run %d system update: %s\r\n", otaTargetCount, otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
+    else
+        systemPrintf("u) Run %d system updates: %s\r\n", otaTargetCount, otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
 }
 
 //----------------------------------------
@@ -723,7 +727,7 @@ bool otaMenuProcessInput(byte incoming)
         getUserInputString(otaFirmwareJsonUrl, sizeof(otaFirmwareJsonUrl) - 1);
     }
 
-    else if ((incoming == 'u') && (newOTAFirmwareAvailable || settings.debugFirmwareUpdate == true))
+    else if (incoming == 'u')
         otaRequestFirmwareUpdate ^= 1; // Tell network we need access, and otaUpdate() that we want to update
 
     // Input not associated with OTA menu items
@@ -994,8 +998,33 @@ void otaUpdate()
             break;
 
         case OTA_STATE_UPDATE_FIRMWARE_STM32:
+            // If the subsystem is not present, or there is not a new version, then move to the next subsystem
             if (present.radio_lora == false || otaSubsystemFilePath('L') == nullptr)
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980);
+            {
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // Move on
+            }
+
+            // Determine if the network has failed
+            else if (!connected)
+            {
+                otaUpdateStop();
+
+                // Report failure to interfaces
+                webServerSendString((char *)"gettingNewFirmware,ERROR,");
+
+                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
+                                                (char *)"Connection Error");
+            }
+
+            // Get binary file over the network and stream/update the target
+            else if (stm32StreamFirmware(otaSubsystemFilePath('L')) == false)
+            {
+                systemPrintln("Failed to update LoRa firmware");
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // If we get here, move on
+            }
+            else
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // If we get here, move on
+
             break;
 
         case OTA_STATE_UPDATE_FIRMWARE_UM980:
