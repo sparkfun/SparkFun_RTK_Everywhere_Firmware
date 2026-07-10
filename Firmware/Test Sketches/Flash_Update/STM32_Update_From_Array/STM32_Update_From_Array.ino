@@ -115,9 +115,9 @@ void loop()
             }
 
             if (stm32UpdateFirmwareEnd())
-                systemPrintln("Firmware Updated Successfully.");
+                systemPrintln("LoRa/STM32 updated successfully.");
             else
-                systemPrintln("Firmware Update Failed.");
+                systemPrintln("LoRa/STM32 update failed.");
 
             // Stop timer and print elapsed time
             firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;

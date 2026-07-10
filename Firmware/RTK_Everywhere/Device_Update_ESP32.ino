@@ -37,7 +37,7 @@ void dfuEsp32Close(DEVICE_FIRMWARE_CTX * ctx)
             // Clear all settings from LittleFS
             LittleFS.format();
 
-            systemPrintln("Firmware updated successfully.");
+            systemPrintln("ESP32 updated successfully.");
 
             if ((ctx->_inputDeviceType == DFU_IDT_SD) && ctx->_complete)
             {
