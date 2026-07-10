@@ -35,14 +35,16 @@ bool stm32UpdateFailed = false; // Set once a flash block write fails past its r
 // Given a chunk of raw binary firmware bytes, feed the STM32 firmware update machine.
 // The binary blob is contiguous, so bytes are simply appended to the page buffer and
 // flashed every time a full 256 byte page accumulates.
-void stm32UpdateFirmware(uint8_t *dataArray, uint16_t bytesToWrite)
+bool stm32UpdateFirmware(uint8_t *dataArray, uint16_t bytesToWrite)
 {
     if (stm32UpdateFailed)
-        return; // A prior block write failed - stop touching the page buffer/flash
+        return false; // A prior block write failed - stop touching the page buffer/flash
 
     stm32UpdatePageBuffer(dataArray, bytesToWrite);
 
     firmwareUpdateProgressCallback(bytesToWrite); // Notify callback
+
+    return true;
 }
 
 // Helper to send STM32 commands and wait for ACK (0x79)
@@ -130,7 +132,6 @@ void stm32UpdateFirmwareBegin()
     stm32BufferIndex = 0;
     stm32CurrentAddress = 0x08000000; // Reset to Flash start for this update
     firmwareUpdateBytesProcessed = 0;
-    firmwareUpdateBytesToProcess = sizeof(lora_firmware_3_0_1);
 }
 
 // Write a 256-byte chunk to the STM32 Flash
@@ -208,9 +209,7 @@ bool stm32UpdateFirmwareEnd()
     bool success = !stm32UpdateFailed;
     if (success && stm32BufferIndex > 0)
     {
-        // systemPrintf("Flushing final block: Addr=0x%08X, BufferIndex=%d\n\r", stm32CurrentAddress,
-        //  stm32BufferIndex);
-
+        // systemPrintf("Flushing final block: Addr=0x%08X, BufferIndex=%d\n\r", stm32CurrentAddress, stm32BufferIndex);
         success = stm32UpdateFirmwareFlashBlock(stm32CurrentAddress, stm32PageBuffer, stm32BufferIndex);
     }
 
@@ -223,4 +222,101 @@ bool stm32UpdateFirmwareEnd()
     loraReset();                   // Power cycle LoRa to reset into normal mode
 
     return success;
+}
+
+// Update the STM32 firmware
+bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
+{
+    if (relativeFirmwareFileLocation == nullptr)
+    {
+        systemPrintln("Firmware file location is null.");
+        return false;
+    }
+
+    systemPrintln("Starting STM32 firmware update...");
+
+    WiFiClientSecure client;
+    client.setCACert(GITHUB_RAW_PUBLIC_CERT);
+
+    // Preflight TLS handshake using the expected host name.
+    // With CA configured, connect() fails if certificate validation fails.
+    if (!client.connect(OTA_FIRMWARE_GITHUB_RAW, 443))
+    {
+        systemPrintln("TLS socket connect failed");
+        return false;
+    }
+
+    // if (settings.debugFirmwareUpdate)
+    systemPrintln("TLS certificate verified for raw.githubusercontent.com");
+
+    client.stop();
+
+    // The relative file location looks like "\imu\im19\20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc"
+    // We need to access "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc"
+
+    char firmwareFileLocation[256];
+    snprintf(firmwareFileLocation, sizeof(firmwareFileLocation), "https://%s/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main%s", OTA_FIRMWARE_GITHUB_RAW, relativeFirmwareFileLocation);
+
+    // Convert backslashes to forward slashes for URL formatting
+    for (char *c = firmwareFileLocation; *c != '\0'; c++)
+        if (*c == '\\')
+            *c = '/';
+
+    // if (settings.debugFirmwareUpdate)
+    systemPrintf("Starting HTTP GET for firmware: %s\r\n", firmwareFileLocation);
+
+    HTTPClient http;
+    if (!http.begin(client, firmwareFileLocation))
+    {
+        systemPrintln("Unable to begin HTTP request.");
+        return false;
+    }
+
+    int httpCode = http.GET();
+    if (httpCode != HTTP_CODE_OK)
+    {
+        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
+        http.end();
+        return false;
+    }
+
+    int contentLength = http.getSize();
+    if (contentLength > 0)
+        firmwareUpdateBytesToProcess = (uint32_t)contentLength;
+
+    WiFiClient *stream = http.getStreamPtr();
+    uint8_t buffer[256];
+    bool success = true;
+
+    while (http.connected() && (contentLength > 0 || contentLength == -1))
+    {
+        size_t available = stream->available();
+        if (available == 0)
+        {
+            if (!client.connected())
+                break;
+            delay(1);
+            continue;
+        }
+
+        size_t toRead = min(available, sizeof(buffer));
+        int bytesRead = stream->readBytes(buffer, toRead);
+        if (bytesRead <= 0)
+            break;
+
+        if (stm32UpdateFirmware(buffer, (uint16_t)bytesRead) == false)
+        {
+            systemPrintln("Firmware update failed during WiFi data upload.");
+            success = false;
+            break;
+        }
+
+        if (contentLength > 0)
+            contentLength -= bytesRead;
+    }
+
+    systemPrintln("Update successfully completed.");
+
+    http.end();
+    return true;
 }
