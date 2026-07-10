@@ -38,28 +38,18 @@ char *firmwareURL = "/gnss/zed-x20p/UBX_20_HPG_202_ZED_F20P.329facb56ce18631d607
 // ==================================================================
 //  RECEIVE BUFFER
 //  ACK / response payloads are tiny (2–5 bytes).  Only the first
-//  RX_PAYLOAD_MAX bytes of any incoming payload are stored.
+//  X20P_RX_PAYLOAD_MAX bytes of any incoming payload are stored.
 // ==================================================================
 
-#define RX_PAYLOAD_MAX 16u
+#define X20P_RX_PAYLOAD_MAX 16u
 
 struct UbxMsg
 {
     uint8_t cls;
     uint8_t id;
     uint16_t len;
-    uint8_t payload[RX_PAYLOAD_MAX];
+    uint8_t payload[X20P_RX_PAYLOAD_MAX];
 };
-
-// ==================================================================
-//  USER CONFIGURATION
-// ==================================================================
-
-// Baud rate used only during the firmware write (reference tool default: 115200).
-// #define UPDATE_BAUD 115200u  // Works
-#define UPDATE_BAUD 230400u // Works
-// #define UPDATE_BAUD 460800u     // Not working
-// #define UPDATE_BAUD 921600u
 
 #include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
 SFE_PCA95XX io(PCA95XX_PCA9534);                   // Create a PCA9534
@@ -101,10 +91,10 @@ void setup()
     Serial.begin(115200);
     delay(250);
 
-    Serial.println("=== ZED-X20P Firmware Updater ===");
+    systemPrintln("=== ZED-X20P Firmware Updater ===");
 
     SerialGNSS.begin(38400, SERIAL_8N1, pin_UART1_RX, pin_UART1_TX);
-    Serial.println("Serial GNSS started");
+    systemPrintln("Serial GNSS started");
 
     Wire.begin(pin_SDA, pin_SCL);
     beginGpioExpanderSwitches();
@@ -125,7 +115,7 @@ void loop()
         }
         else if (incoming == 'g')
         {
-            Serial.println("Resetting GNSS");
+            systemPrintln("Resetting GNSS");
             gpioExpanderGnssReset();
             delay(250);
             gpioExpanderGnssBoot();
@@ -144,9 +134,9 @@ void loop()
 
             // Stop timer and print elapsed time
             firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
-            Serial.print("Firmware update time: ");
-            Serial.print(firmwareUpdateElapsed / 1000.0, 3);
-            Serial.println(" seconds");
+            systemPrint("Firmware update time: ");
+            systemPrint(firmwareUpdateElapsed / 1000.0, 3);
+            systemPrintln(" seconds");
             displayMenu();
         }
     }
@@ -154,10 +144,10 @@ void loop()
 
 void displayMenu()
 {
-    Serial.println();
-    Serial.printf("g) Reset GNSS\r\n");
-    Serial.printf("u) Update GNSS\r\n");
-    Serial.printf("r) Reboot system\r\n");
+    systemPrintln();
+    systemPrintf("g) Reset GNSS\r\n");
+    systemPrintf("u) Update GNSS\r\n");
+    systemPrintf("r) Reboot system\r\n");
 }
 
 // Connects to the configured SSID and blocks until connected or the attempt times out.

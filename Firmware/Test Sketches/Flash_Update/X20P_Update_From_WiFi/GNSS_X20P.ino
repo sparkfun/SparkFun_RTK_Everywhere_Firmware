@@ -2,6 +2,16 @@
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // ==================================================================
+//  USER CONFIGURATION
+// ==================================================================
+
+// Baud rate used only during the firmware write (reference tool default: 115200).
+// #define X20P_FIRMWARE_UPDATE_BAUD 115200u  // Works
+#define X20P_FIRMWARE_UPDATE_BAUD 230400u // Works
+// #define X20P_FIRMWARE_UPDATE_BAUD 460800u     // Not working
+// #define X20P_FIRMWARE_UPDATE_BAUD 921600u
+
+// ==================================================================
 //  UBX PROTOCOL CONSTANTS
 // ==================================================================
 
@@ -134,7 +144,7 @@ void x20pSend(HardwareSerial &ser, uint8_t cls, uint8_t id, const uint8_t *paylo
 
 // Receive and validate one UBX frame, blocking until deadline.
 // Returns true on success; populates `out`.
-// Only the first RX_PAYLOAD_MAX payload bytes are stored; the rest
+// Only the first X20P_RX_PAYLOAD_MAX payload bytes are stored; the rest
 // are consumed from the stream but discarded.
 bool x20pReceive(HardwareSerial &ser, UbxMsg &out, uint32_t deadline)
 {
@@ -166,12 +176,12 @@ bool x20pReceive(HardwareSerial &ser, UbxMsg &out, uint32_t deadline)
     out.id = hdr[1];
     out.len = (uint16_t)hdr[2] | ((uint16_t)hdr[3] << 8);
 
-    // Payload (consume all, store up to RX_PAYLOAD_MAX)
+    // Payload (consume all, store up to X20P_RX_PAYLOAD_MAX)
     for (uint16_t i = 0; i < out.len; i++)
     {
         if ((b = x20pReadByte(ser, deadline)) < 0)
             return false;
-        if (i < RX_PAYLOAD_MAX)
+        if (i < X20P_RX_PAYLOAD_MAX)
             out.payload[i] = (uint8_t)b;
         ca += (uint8_t)b;
         cb += ca;
@@ -313,9 +323,9 @@ bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk,
                 {
                     eraseComplete = true;
                     eraseCompleteAt = millis();
-                    Serial.print("    [DBG] CERASE done, t=");
-                    Serial.print(eraseCompleteAt - sendTime);
-                    Serial.println(" ms after send");
+                    systemPrint("    [DBG] CERASE done, t=");
+                    systemPrint(eraseCompleteAt - sendTime);
+                    systemPrintln(" ms after send");
                     // Tighten deadline to a full TIMEOUT_WRITE window from *now* (erase-complete
                     // time), not from the original send time. Erase duration is unpredictable and
                     // routinely exceeds TIMEOUT_WRITE, so anchoring to sendTime could put fireAt in
@@ -325,7 +335,7 @@ bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk,
                 }
                 else if (m.len >= 1 && m.payload[0] != 1)
                 {
-                    Serial.println("    [DBG] CERASE reported failure");
+                    systemPrintln("    [DBG] CERASE reported failure");
                     return false;
                 }
             }
@@ -337,43 +347,42 @@ bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk,
             {
                 if (m.len != 5)
                 {
-                    Serial.print("    [DBG] Data ACK wrong length: ");
-                    Serial.println(m.len);
+                    systemPrint("    [DBG] Data ACK wrong length: ");
+                    systemPrintln(m.len);
                     return false;
                 }
                 if (m.payload[4] != 1)
                 {
                     uint32_t devAddr = (uint32_t)m.payload[0] | ((uint32_t)m.payload[1] << 8) |
                                        ((uint32_t)m.payload[2] << 16) | ((uint32_t)m.payload[3] << 24);
-                    Serial.print("    [DBG] Data NACK at 0x");
-                    Serial.println(devAddr, HEX);
+                    systemPrintf("    [DBG] Data NACK at 0x%08X\r\n", devAddr);
                     return false;
                 }
                 return true; // success
             }
             else
             {
-                Serial.print("    [DBG] rx cls=0x");
-                Serial.print(m.cls, HEX);
-                Serial.print(" id=0x");
-                Serial.print(m.id, HEX);
-                Serial.print(" len=");
-                Serial.println(m.len);
+                systemPrint("    [DBG] rx cls=0x");
+                systemPrint(m.cls, HEX);
+                systemPrint(" id=0x");
+                systemPrint(m.id, HEX);
+                systemPrint(" len=");
+                systemPrintln(m.len);
             }
         }
 
         // Deadline expired. If CERASE never came, we have a hard failure.
         if (!eraseComplete)
         {
-            Serial.println("    [DBG] CERASE did not complete within 45 s");
+            systemPrintln("    [DBG] CERASE did not complete within 45 s");
             return false;
         }
 
         // Erase done but no Data ACK — retry.
         if (retries < WRITE_RETRIES)
         {
-            Serial.print("    [DBG] write timeout, retry ");
-            Serial.println(retries + 1);
+            systemPrint("    [DBG] write timeout, retry ");
+            systemPrintln(retries + 1);
             x20pSendDataFrame(ser, address, chunk, chunkLen);
             ser.flush();
             sendTime = millis();
@@ -381,7 +390,7 @@ bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk,
         }
     }
 
-    Serial.println("    [DBG] write retries exhausted");
+    systemPrintln("    [DBG] write retries exhausted");
     return false;
 }
 
@@ -417,8 +426,7 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
             if (!x20pWriteChunk(ser, x20pCurrentAddress, x20pPageBuffer, PACKET_SIZE, x20pEraseComplete,
                                 x20pEraseCompleteAt))
             {
-                Serial.print("  ERROR: write failed at address 0x");
-                Serial.println(x20pCurrentAddress, HEX);
+                systemPrintf("  ERROR: write failed at address 0x%08X\r\n", x20pCurrentAddress);
                 x20pUpdateFailed = true;
                 return false;
             }
@@ -434,7 +442,7 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
  * x20pFirmwareUpdateBegin()
  *
  * Resets the GNSS into bootloader mode, finds its current baud rate,
- * starts the flash-loader task, switches UART1 to UPDATE_BAUD, kicks
+ * starts the flash-loader task, switches UART1 to X20P_FIRMWARE_UPDATE_BAUD, kicks
  * off the chip erase (fire-and-forget — its completion races the
  * first packet write, handled inside x20pWriteChunk), and allocates
  * the page-accumulation buffer used by x20pUpdateFirmware().
@@ -443,7 +451,7 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
  */
 bool x20pFirmwareUpdateBegin()
 {
-    Serial.println("Resetting GNSS");
+    systemPrintln("Resetting GNSS");
     gpioExpanderGnssReset();
     delay(25);
     gpioExpanderGnssBoot();
@@ -453,7 +461,7 @@ bool x20pFirmwareUpdateBegin()
     const uint32_t baudCandidates[] = {115200, 38400, 9600, 230400, 57600, 460800, 921600};
     for (uint8_t i = 0; i < (sizeof(baudCandidates) / sizeof(baudCandidates[0])); i++)
     {
-        Serial.printf("Checking communication at %d...\r\n", baudCandidates[i]);
+        systemPrintf("Checking communication at %d...\r\n", baudCandidates[i]);
 
         SerialGNSS.updateBaudRate(baudCandidates[i]);
 
@@ -470,11 +478,11 @@ bool x20pFirmwareUpdateBegin()
         UbxMsg monVer;
         if (x20pPollMsg(SerialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, monVer, TIMEOUT_POLL) == true)
         {
-            Serial.printf("  OK at %d baud.\r\n", baudCandidates[i]);
+            systemPrintf("  OK at %d baud.\r\n", baudCandidates[i]);
             foundBaud = true;
             break;
         }
-        Serial.printf("  No response at %d baud.\r\n", baudCandidates[i]);
+        systemPrintf("  No response at %d baud.\r\n", baudCandidates[i]);
     }
 
     if (!foundBaud)
@@ -485,28 +493,28 @@ bool x20pFirmwareUpdateBegin()
     //    Payload 0x01 tells the ROM to start the flash-loader
     //    task instead of entering full safeboot.
     // ----------------------------------------------------------
-    Serial.println("Starting flash loader task...");
+    systemPrintln("Starting flash loader task...");
     const uint8_t startLoaderPayload[] = {0x01};
     int ack = x20pSendAndWaitAck(SerialGNSS, UBX_CLASS_UPD, 0x07, startLoaderPayload, 1,
                                  TIMEOUT_POLL); // Enter safeboot, start loader task
     if (ack == -1)
     {
-        Serial.println("  ERROR: timed out");
+        systemPrintln("  ERROR: timed out");
         return false;
     }
-    Serial.print("  Loader ");
-    Serial.println(ack ? "ACK" : "NAK (continuing — normal on some ROM versions)");
+    systemPrint("  Loader ");
+    systemPrintln(ack ? "ACK" : "NAK (continuing — normal on some ROM versions)");
 
     // ----------------------------------------------------------
-    // Switch UART1 to UPDATE_BAUD for faster transfers.
+    // Switch UART1 to X20P_FIRMWARE_UPDATE_BAUD for faster transfers.
     //      We wait for the ACK at the old baud rate; the device sends the ACK
     //      then switches. A NAK means the loader rejected the requested rate.
     // ----------------------------------------------------------
-    Serial.print("Switching to ");
-    Serial.print(UPDATE_BAUD);
-    Serial.println(" baud...");
+    systemPrint("Switching to ");
+    systemPrint(X20P_FIRMWARE_UPDATE_BAUD);
+    systemPrintln(" baud...");
     {
-        const uint32_t nb = UPDATE_BAUD;
+        const uint32_t nb = X20P_FIRMWARE_UPDATE_BAUD;
         const uint8_t cfgPayload[32] = {0x00,
                                         0x01,
                                         0x00,
@@ -542,12 +550,12 @@ bool x20pFirmwareUpdateBegin()
         // Wait for ACK at old rate — device sends ACK then applies new baud.
         int cfgAck = x20pSendAndWaitAck(SerialGNSS, UBX_CLASS_CFG, UBX_CFG_VALSET, cfgPayload, sizeof(cfgPayload),
                                         TIMEOUT_POLL);
-        Serial.print("  [DBG] CFG-VALSET ");
-        Serial.println(cfgAck == 1 ? "ACK" : cfgAck == 0 ? "NAK"
+        systemPrint("  [DBG] CFG-VALSET ");
+        systemPrintln(cfgAck == 1 ? "ACK" : cfgAck == 0 ? "NAK"
                                                          : "no-ACK (timeout)");
         if (cfgAck == 0)
         {
-            Serial.println("  ERROR: device NAK'd baud rate change — rate unsupported in loader");
+            systemPrintln("  ERROR: device NAK'd baud rate change — rate unsupported in loader");
             return false;
         }
         SerialGNSS.flush();
@@ -555,7 +563,7 @@ bool x20pFirmwareUpdateBegin()
         // updateBaudRate() changes only the baud divisor — no GPIO re-init, no TX glitch.
         // ser.begin() briefly pulses TX low at high baud rates, causing a framing error on
         // the device (observed: bytes 2-3 of next response corrupted at 460800+).
-        SerialGNSS.updateBaudRate(UPDATE_BAUD);
+        SerialGNSS.updateBaudRate(X20P_FIRMWARE_UPDATE_BAUD);
         uint32_t drainEnd = millis() + 100; // timed drain catches FIFO stragglers
         while ((int32_t)(millis() - drainEnd) < 0)
         {
@@ -570,18 +578,18 @@ bool x20pFirmwareUpdateBegin()
         {
             uint32_t rawEnd = millis() + 500;
             uint8_t rawCount = 0;
-            Serial.print("  [DBG] raw rx:");
+            systemPrint("  [DBG] raw rx:");
             while ((int32_t)(millis() - rawEnd) < 0 && rawCount < 24)
             {
                 if (SerialGNSS.available())
                 {
                     uint8_t b = SerialGNSS.read();
-                    Serial.print(b < 0x10 ? " 0" : " ");
-                    Serial.print(b, HEX);
+                    systemPrint(b < 0x10 ? " 0" : " ");
+                    systemPrint(b, HEX);
                     rawCount++;
                 }
             }
-            Serial.println(rawCount ? "" : " (silence)");
+            systemPrintln(rawCount ? "" : " (silence)");
             while (SerialGNSS.available())
                 SerialGNSS.read();
         }
@@ -602,10 +610,10 @@ bool x20pFirmwareUpdateBegin()
         }
         if (!baudOk)
         {
-            Serial.println("  ERROR: baud rate switch failed — check UPDATE_BAUD");
+            systemPrintln("  ERROR: baud rate switch failed — check X20P_FIRMWARE_UPDATE_BAUD");
             return false;
         }
-        Serial.println("  Baud switch OK.");
+        systemPrintln("  Baud switch OK.");
     }
 
     // ----------------------------------------------------------
@@ -615,7 +623,7 @@ bool x20pFirmwareUpdateBegin()
     //    sent concurrently and the write loop handles the retry after
     //    the erase completes.
     // ----------------------------------------------------------
-    Serial.println("Starting chip erase...");
+    systemPrintln("Starting chip erase...");
     x20pSend(SerialGNSS, UBX_CLASS_UPD, 0x16, nullptr, 0);
     // Do NOT wait for chip erase ACK here — it arrives while packet 0 is in flight.
 
@@ -655,10 +663,7 @@ bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
         success = x20pWriteChunk(SerialGNSS, x20pCurrentAddress, x20pPageBuffer, x20pBufferIndex, x20pEraseComplete,
                                  x20pEraseCompleteAt);
         if (!success)
-        {
-            Serial.print("  ERROR: final chunk write failed at address 0x");
-            Serial.println(x20pCurrentAddress, HEX);
-        }
+            systemPrintf("  ERROR: final chunk write failed at address 0x%08X\r\n", x20pCurrentAddress);
     }
 
     free(x20pPageBuffer);
@@ -672,20 +677,20 @@ bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
         //    validate the written image in flash, returning ACK/NAK.
         //    Version field in payload must be 0.
         // ----------------------------------------------------------
-        Serial.println("Verifying image...");
+        systemPrintln("Verifying image...");
         const uint8_t verPayload[4] = {0, 0, 0, 0};
         int ack = x20pSendAndWaitAck(SerialGNSS, UBX_CLASS_UPD, 0x2B, verPayload, 4, TIMEOUT_VERIFY); // Verify
         if (ack != 1)
         {
-            Serial.print("  ERROR: verify ");
-            Serial.println(ack == 0 ? "NAK" : "timeout");
+            systemPrint("  ERROR: verify ");
+            systemPrintln(ack == 0 ? "NAK" : "timeout");
             success = false;
         }
         else
-            Serial.println("  Verify OK.");
+            systemPrintln("  Verify OK.");
     }
     else
-        Serial.println("Skipping verify - firmware upload did not complete successfully.");
+        systemPrintln("Skipping verify - firmware upload did not complete successfully.");
 
     // Reboot (fire-and-forget — device does not send a response)
     x20pSend(SerialGNSS, UBX_CLASS_UPD, 0x0E, nullptr, 0); // Reboot
