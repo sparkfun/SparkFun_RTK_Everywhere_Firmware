@@ -91,7 +91,7 @@ void loop()
             // Start timer before erase
             firmwareUpdateStartTime = millis();
 
-            if (espFirmwareStream(firmwareURL) == false)
+            if (espStreamFirmware(firmwareURL) == false)
             {
                 systemPrintln("ESP32 firmware update failed.");
                 return;

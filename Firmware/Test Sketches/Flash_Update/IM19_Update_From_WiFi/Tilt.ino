@@ -275,7 +275,7 @@ bool im19CheckLostFrame(uint32_t totalFrame)
 }
 
 // Resets the module and attempts to enter application update mode.
-bool im19FirmwareUpdateBegin()
+bool im19UpdateFirmwareBegin()
 {
     im19ResetFrameAssembly();
 
@@ -329,13 +329,13 @@ bool im19CheckFirmwareRunning()
 
 // Streams firmware bytes, assembling and sending a IM19_FRAME_PAYLOAD_SIZE
 // frame at a time. Frames already marked received in im19FrameMap (from a
-// previous pass) are skipped rather than resent. Call im19FirmwareUpdateEndPass()
+// previous pass) are skipped rather than resent. Call im19UpdateFirmwareEndPass()
 // once all bytes for a pass have been given.
-bool im19FirmwareUpdate(const uint8_t *data, uint32_t length)
+bool im19UpdateFirmware(const uint8_t *data, uint32_t length)
 {
     if (im19FrameMap == nullptr)
     {
-        systemPrintln("im19FrameMap not allocated. Call im19FirmwareUpdateBegin first.");
+        systemPrintln("im19FrameMap not allocated. Call im19UpdateFirmwareBegin first.");
         return false;
     }
 
@@ -344,7 +344,7 @@ bool im19FirmwareUpdate(const uint8_t *data, uint32_t length)
 
     if (data == nullptr)
     {
-        systemPrintln("im19FirmwareUpdate called with null data and non-zero length.");
+        systemPrintln("im19UpdateFirmware called with null data and non-zero length.");
         return false;
     }
 
@@ -377,11 +377,11 @@ bool im19FirmwareUpdate(const uint8_t *data, uint32_t length)
 // frame-assembly state is reset and the caller should re-stream the full
 // source data (already-received frames are tracked in im19FrameMap and will be
 // skipped, not resent).
-int im19FirmwareUpdateEndPass()
+int im19UpdateFirmwareEndPass()
 {
     if (im19FrameMap == nullptr)
     {
-        systemPrintln("im19FrameMap not allocated. Call im19FirmwareUpdateBegin first.");
+        systemPrintln("im19FrameMap not allocated. Call im19UpdateFirmwareBegin first.");
         return IM19_UPDATE_FAILED;
     }
 
@@ -432,8 +432,8 @@ int im19FirmwareUpdateEndPass()
     return IM19_UPDATE_RETRY;
 }
 
-// Frees buffers allocated by im19FirmwareUpdateBegin.
-void im19FirmwareUpdateEnd()
+// Frees buffers allocated by im19UpdateFirmwareBegin.
+void im19UpdateFirmwareEnd()
 {
     if (im19FrameMap != nullptr)
     {

@@ -1308,4 +1308,7 @@ void firmwareUpdateProgressCallback(uint16_t bytesProcessed)
     systemPrint("] ");
     systemPrint(progressPercent);
     systemPrintln("%");
+
+    //Update the display
+    displayFirmwareUpdateProgress(progressPercent);
 }

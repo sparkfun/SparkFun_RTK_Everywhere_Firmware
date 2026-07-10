@@ -85,7 +85,7 @@ bool im19StreamFirmwarePass()
     {
         // Test with 17-byte sized chunks
         uint32_t chunk = min((uint32_t)17, (uint32_t)(sizeof(im19_firmware) - blobIndex));
-        if (im19FirmwareUpdate(im19_firmware + blobIndex, chunk) == false)
+        if (im19UpdateFirmware(im19_firmware + blobIndex, chunk) == false)
         {
             systemPrintln("Firmware update failed during data upload.");
             return false;
@@ -123,9 +123,9 @@ bool wifiConnect()
     return true;
 }
 
-// Downloads the firmware file over HTTPS and feeds it to im19FirmwareUpdate() in chunks.
+// Downloads the firmware file over HTTPS and feeds it to im19UpdateFirmware() in chunks.
 // Issues a fresh GET request each time it is called, since a retry pass needs the
-// full source data re-streamed (already-received frames are skipped by im19FirmwareUpdate).
+// full source data re-streamed (already-received frames are skipped by im19UpdateFirmware).
 bool im19StreamFirmwarePass()
 {
     WiFiClientSecure client;
@@ -172,7 +172,7 @@ bool im19StreamFirmwarePass()
         if (bytesRead <= 0)
             break;
 
-        if (im19FirmwareUpdate(buffer, (uint32_t)bytesRead) == false)
+        if (im19UpdateFirmware(buffer, (uint32_t)bytesRead) == false)
         {
             systemPrintln("Firmware update failed during WiFi data upload.");
             success = false;
@@ -224,7 +224,7 @@ void loop()
             // We will be given bytes over WiFi so we need to be able to send indeterminate sized chunks
             // to the update tool.
 
-            if (im19FirmwareUpdateBegin() == false)
+            if (im19UpdateFirmwareBegin() == false)
             {
                 systemPrintln("Failed to enter update mode (AT+UPDATE_APP).");
                 return;
@@ -252,7 +252,7 @@ void loop()
                     break;
                 }
 
-                int result = im19FirmwareUpdateEndPass();
+                int result = im19UpdateFirmwareEndPass();
                 passesLeft--;
                 if (result == IM19_UPDATE_SUCCESS)
                 {
@@ -266,7 +266,7 @@ void loop()
                 // else IM19_UPDATE_RETRY: loop and re-stream the source
             }
 
-            im19FirmwareUpdateEnd();
+            im19UpdateFirmwareEnd();
 
             if (updateSuccess)
                 systemPrintln("Upgrade completed successfully.");

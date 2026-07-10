@@ -983,7 +983,7 @@ void otaUpdate()
             }
 
             // Get binary file over the network and stream/update the target
-            else if (im19FirmwareStream(otaSubsystemFilePath('I')) == false)
+            else if (im19StreamFirmware(otaSubsystemFilePath('I')) == false)
             {
                 systemPrintln("Failed to update IM19 firmware");
                 otaSetState(OTA_STATE_UPDATE_FIRMWARE_STM32); // If we get here, move on
@@ -1045,7 +1045,7 @@ void otaUpdate()
             else
             {
                 // Get binary file over the network and stream/update the target
-                if (espFirmwareStream(otaSubsystemFilePath('E')) == true)
+                if (espStreamFirmware(otaSubsystemFilePath('E')) == true)
                 {
                     systemPrintln("ESP32 update complete. Resetting. Good bye!");
                     ESP.restart();
@@ -1092,7 +1092,7 @@ char *otaSubsystemFilePath(char subsystemCode)
 }
 
 // Update the ESP32 firmware
-bool espFirmwareStream(char *relativeFirmwareFileLocation)
+bool espStreamFirmware(char *relativeFirmwareFileLocation)
 {
     if (relativeFirmwareFileLocation == nullptr)
     {

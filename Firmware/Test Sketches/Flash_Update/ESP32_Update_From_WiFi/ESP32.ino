@@ -1,5 +1,5 @@
 // Update the ESP32 firmware
-bool espFirmwareStream(char *relativeFirmwareFileLocation)
+bool espStreamFirmware(char *relativeFirmwareFileLocation)
 {
     if (relativeFirmwareFileLocation == nullptr)
     {
