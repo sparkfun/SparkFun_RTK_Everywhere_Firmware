@@ -1849,7 +1849,7 @@ bool im19StreamFirmware(char *relativeFirmwareFileLocation)
     if (settings.debugFirmwareUpdate)
         systemPrintln("TLS certificate verified for raw.githubusercontent.com");
 
-//    client.stop();
+    client.stop();
 
     // The relative file location looks like "\imu\im19\20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc"
     // We need to access "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc"

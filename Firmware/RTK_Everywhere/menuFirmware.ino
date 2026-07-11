@@ -962,7 +962,6 @@ void otaUpdate()
                     // state machine
 
                     otaSetState(OTA_STATE_UPDATE_FIRMWARE_IM19);
-                    return;
                 }
                 else
                 {
@@ -988,8 +987,8 @@ void otaUpdate()
                 otaUpdateStop();
             }
             break;
-        case OTA_STATE_UPDATE_FIRMWARE_IM19:
 
+        case OTA_STATE_UPDATE_FIRMWARE_IM19:
             // If the subsystem is not present, or there is not a new version, then move to the next subsystem
             if (present.imu_im19 == false || otaSubsystemFilePath('I') == nullptr)
             {
