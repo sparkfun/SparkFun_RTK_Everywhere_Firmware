@@ -1374,3 +1374,165 @@ void gpioExpanderDisplay()
         }
     }
 }
+
+void systemDisplayConfiguration()
+{
+    const char * brand;
+    const char * gnss;
+    int index;
+    const char * prefix;
+    const char * product;
+    const productProperties * properties;
+    const char * suffixGnss;
+    const char * suffixImu;
+
+    // Start with the product variant
+    // Look up the product properties
+    properties = nullptr;
+    for (index = 0; index < productPropertiesEntries; index++)
+    {
+        if (productPropertiesTable[index].productVariant == productVariant)
+        {
+            properties = &productPropertiesTable[index];
+            break;
+        }
+    }
+
+    // Verify that the product was found
+    if (properties == nullptr)
+    {
+        systemPrintf("Product not found, productVariant: %d\r\n", productVariant);
+        return;
+    }
+
+    // Get the GNSS
+    suffixGnss = "";
+    suffixImu = "";
+    gnss = "None";
+    if (present.gnss_zedx20p)       { gnss = "ZED-X20P"; suffixGnss = "X"; }
+    else if (present.gnss_lg290p)   { gnss = "LG290P"; suffixGnss = "L"; }
+    else if (present.gnss_mosaicX5) { gnss = "Mosaic X5"; suffixGnss = "M"; }
+    else if (present.gnss_um980)    { gnss = "UM980"; }
+    else if (present.gnss_zedf9p)   { gnss = "ZED-F9P"; }
+
+    // Display the registration page
+    systemPrintf("Registration: %s\r\n", properties->platformRegistration);
+
+
+    int pin_deviceID = 35;
+    uint16_t idValue = analogReadMilliVolts(pin_deviceID);
+    idValue = analogReadMilliVolts(pin_deviceID); // Read twice - just in case
+    uint16_t Volts = idValue / 1000;
+    idValue -= Volts * 1000;
+    systemPrintf("Board ADC ID, pin: %d: %d.%03d Volts\r\n", pin_deviceID, Volts, idValue);
+
+    // Get the product details
+    brand = RTKBrandAttributes[properties->brand].name;
+    prefix = properties->rtkPrefix ? "RTK " : "";
+    product = properties->name;
+    if (productVariant != RTK_FACET_FP)
+        systemPrintf("%s %s%s\r\n",
+                     brand, prefix, product);
+    else
+    {
+        if (present.imu_im19)           suffixImu = "-T";
+        systemPrintf("%s %s%s%s%s\r\n",
+                     brand, prefix, product, suffixGnss, suffixImu);
+    }
+
+    // Display the antenna phase center
+    for (index = 0; index < productHousingEntries; index++)
+    {
+        if (productHousingPropertiesTable[index].housing == properties->housing)
+        {
+            systemPrintf("Antenna Phase Center: %.1f mm\r\n",
+                         productHousingPropertiesTable[index].antennaPhaseCenter_mm);
+            break;
+        }
+    }
+
+    // Display the GNSS
+    systemPrintf("GNSS: %s\r\n", gnss);
+    systemPrintf("ESP32 UART%d --> GNSS, RX pin; %d, TX pin: %d\r\n",
+                 1, pin_GnssUart_RX, pin_GnssUart_TX);
+
+    // Display the tilt support
+    if (present.imu_im19 && productHousingPropertiesTable[index].tiltPossible)
+    {
+        systemPrintf("Tilt: %s%s%s\r\n",
+                     productHousingPropertiesTable[index].leverArm,
+                     strlen(productHousingPropertiesTable[index].installAngle) ? ", " : "",
+                     productHousingPropertiesTable[index].installAngle);
+        systemPrintf("Tilt: ESP32 UART%d --> GNSS, RX pin; %d, TX pin: %d\r\n",
+                     2, pin_IMU_RX, pin_IMU_TX);
+    }
+
+    // Display LoRa support
+    if (present.radio_lora)
+    {
+        systemPrintf("LoRa: ESP32 UART%d --> GNSS, RX pin; %d, TX pin: %d\r\n",
+                     2, pin_IMU_RX, pin_IMU_TX);
+    }
+
+    // Display the GPIO expander configuration
+    if (present.gpioExpanderSwitches)
+        gpioExpanderDisplay();
+
+    // Display the microSD support
+    if (present.microSd)
+    {
+        int cd = digitalRead(pin_microSD_CardDetect);
+        bool cardPresent = ((cd == false) && (present.microSdCardDetectLow == true)
+                         || (cd == true) && (present.microSdCardDetectLow == false));
+        systemPrintf("microSD Card: SCK: %d, PICO: %d, POCI: %d, CS: %d, CD: %d, %s, %s\r\n",
+                     pin_SCK, pin_PICO, pin_POCI, pin_microSD_CS,
+                     pin_microSD_CardDetect,
+                     cd ? "High" : "Low", cardPresent ? "Empty" : "Inserted");
+    }
+
+    // Display support
+    if (present.display_type == DISPLAY_128x64)
+        systemPrintf("Display: 128 x 64\r\n");
+    else if (present.display_type == DISPLAY_64x48)
+        systemPrintf("Display: 64 x 48\r\n");
+    else
+        systemPrintf("Display: None\r\n");
+
+    // Display the button support
+    if (pin_modeButton >= 0)
+        systemPrintf("Mode button: %d, %s\r\n", pin_modeButton,
+                     digitalRead(pin_modeButton) ? "High" : "Low");
+    if (pin_powerButton >= 0)
+        systemPrintf("Power button: %d, %s\r\n", pin_powerButton,
+                     digitalRead(pin_powerButton) ? "High" : "Low");
+    if (pin_powerFastOff >= 0)
+        systemPrintf("Fast Off: %d, %s\r\n", pin_powerFastOff,
+                     digitalRead(pin_powerFastOff) ? "High" : "Low");
+
+    // Display the Bluetooth status LED connection
+    if (pin_bluetoothStatusLED >= 0)
+        systemPrintf("Bluetooth Status LED: %d, %s\r\n",
+                     pin_bluetoothStatusLED, digitalRead(pin_bluetoothStatusLED) ? "On" : "Off");
+
+    // Display USB power detect
+    if (pin_powerAdapterDetect >= 0)
+        systemPrintf("USB power detect: %d, %s\r\n",
+                     pin_powerAdapterDetect, digitalRead(pin_powerAdapterDetect) ? "USB Power" : "Disconnected");
+
+    // Display USB power detect
+    if (pin_beeper >= 0)
+        systemPrintf("Beeper: %d\r\n", pin_beeper);
+
+    // Display the heap
+    reportHeapNow(true);
+
+    // Display the I2C bus configurations
+    if (pin_I2C0_SCL >= 0)
+    {
+        systemPrintf("I2C-0: SCL: %d, SDA: %d\r\n", pin_I2C0_SCL, pin_I2C0_SDA);
+        i2cBusEnumerate(i2c_0, 0);
+    }
+    if (present.i2c1 && (pin_I2C1_SCL >= 0))
+        systemPrintf("I2C-1: SCL: %d, SDA: %d\r\n", pin_I2C1_SCL, pin_I2C1_SDA);
+        i2cBusEnumerate(i2c_1, 1);
+}
