@@ -1595,7 +1595,7 @@ bool stm32UpdateFirmware(uint8_t *dataArray, uint16_t bytesToWrite)
 
     if (productVariant == RTK_TORCH)
     {
-        muxSelectUsb(); // Reconnect USB to print to terminal
+        muxSelectUsb();                               // Reconnect USB to print to terminal
         firmwareUpdateProgressCallback(bytesToWrite); // Notify callback
         Serial.flush();
         muxSelectLoRaCommunication(); // Disconnect USB, connect to LoRa
@@ -1904,6 +1904,8 @@ bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
         loraSharedPrintln("LoRa/STM32 updated successfully.");
     else
         loraSharedPrintln("LoRa/STM32 update failed.");
+
+    muxSelectUsb(); // Reconnect USB to print to terminal
 
     http.end();
     return true;
