@@ -42,6 +42,11 @@ static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[
 static uint32_t otaLastUpdateCheck;
 static uint8_t otaState;
 
+bool otaForceUpdateEsp = false;
+bool otaForceUpdateImu = false;
+bool otaForceUpdateLora = false;
+bool otaForceUpdateGnss = false;
+
 struct OtaTarget
 {
     char subsystemCode; // 'E'=ESP32, 'G'=GNSS, 'L'=LoRa, 'I'=IMU
@@ -691,6 +696,14 @@ void otaMenuDisplay(char *currentVersion)
         systemPrintf("u) Run %d system update: %s\r\n", otaTargetCount, otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
     else
         systemPrintf("u) Run %d system updates: %s\r\n", otaTargetCount, otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
+
+    if (settings.debugFirmwareUpdate == true)
+    {
+        systemPrintf("1) Force update ESP32: %s\r\n", otaForceUpdateEsp ? "True" : "False");
+        systemPrintf("2) Force update GNSS: %s\r\n", otaForceUpdateGnss ? "True" : "False");
+        systemPrintf("3) Force update LoRa: %s\r\n", otaForceUpdateLora ? "True" : "False");
+        systemPrintf("4) Force update IMU: %s\r\n", otaForceUpdateImu ? "True" : "False");
+    }
 }
 
 //----------------------------------------
@@ -729,6 +742,15 @@ bool otaMenuProcessInput(byte incoming)
 
     else if (incoming == 'u')
         otaRequestFirmwareUpdate ^= 1; // Tell network we need access, and otaUpdate() that we want to update
+
+    else if (incoming == 1 && settings.debugFirmwareUpdate)
+        otaForceUpdateEsp ^= 1;
+    else if (incoming == 2 && settings.debugFirmwareUpdate)
+        otaForceUpdateGnss ^= 1;
+    else if (incoming == 3 && settings.debugFirmwareUpdate)
+        otaForceUpdateLora ^= 1;
+    else if (incoming == 4 && settings.debugFirmwareUpdate)
+        otaForceUpdateImu ^= 1;
 
     // Input not associated with OTA menu items
     else
@@ -1031,7 +1053,7 @@ void otaUpdate()
             if (present.gnss_um980 == false || otaSubsystemFilePath('G') == nullptr)
                 otaSetState(OTA_STATE_UPDATE_FIRMWARE_LG290P);
 
-            // Currently there is no UM980 update path. Move on
+            // Currently there is no update path. Move on
             systemPrintln("No UM980 update path, moving on");
             otaSetState(OTA_STATE_UPDATE_FIRMWARE_LG290P);
             break;
@@ -1039,16 +1061,49 @@ void otaUpdate()
         case OTA_STATE_UPDATE_FIRMWARE_LG290P:
             if (present.gnss_lg290p == false || otaSubsystemFilePath('G') == nullptr)
                 otaSetState(OTA_STATE_UPDATE_FIRMWARE_MX5);
+
+            // Currently there is no update path. Move on
+            systemPrintln("No LG290P update path, moving on");
+            otaSetState(OTA_STATE_UPDATE_FIRMWARE_MX5);
             break;
 
         case OTA_STATE_UPDATE_FIRMWARE_MX5:
             if (present.gnss_mosaicX5 == false || otaSubsystemFilePath('G') == nullptr)
                 otaSetState(OTA_STATE_UPDATE_FIRMWARE_X20P);
+
+            // Currently there is no update path. Move on
+            systemPrintln("No mosaic-X5 update path, moving on");
+            otaSetState(OTA_STATE_UPDATE_FIRMWARE_X20P);
             break;
 
         case OTA_STATE_UPDATE_FIRMWARE_X20P:
+            // If the subsystem is not present, or there is not a new version, then move to the next subsystem
             if (present.gnss_zedx20p == false || otaSubsystemFilePath('G') == nullptr)
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP);
+            {
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP); // Move on
+            }
+
+            // Determine if the network has failed
+            else if (!connected)
+            {
+                otaUpdateStop();
+
+                // Report failure to interfaces
+                webServerSendString((char *)"gettingNewFirmware,ERROR,");
+
+                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
+                                                (char *)"Connection Error");
+            }
+
+            // Get binary file over the network and stream/update the target
+            else if (x20pStreamFirmware(otaSubsystemFilePath('G')) == false)
+            {
+                systemPrintln("Failed to update ZED-X20P firmware");
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP); // If we get here, move on
+            }
+            else
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP); // If we get here, move on
+
             break;
 
         // Update the firmware on the ESP32 - the last update path because it will end in a reset
@@ -1385,20 +1440,16 @@ bool otaGetSystemsToUpdate(char *modelType)
             if (compareResult == -1)
                 addTargetToUpdateList('E', remoteFilePath);
 
-            // If the remote version is older, we may still want to update if the local version
-            // is a release candidate
-            else if (compareResult == 1 && settings.debugFirmwareUpdate == true)
-            {
-                systemPrintln("The ESP32 local firmware version is newer than the remote version. Debug is on. "
-                              "Updating ESP32.");
+            // Force add if user selects it (only in debug mode)
+            if (otaForceUpdateEsp == true)
                 addTargetToUpdateList('E', remoteFilePath);
-            }
         }
         else if (otaIsGnssSubsystem(subsystem))
         {
             if (online.gnss == false)
             {
-                systemPrintf("GNSS is offline, skipping version check for %s\r\n", subsystem);
+                systemPrintf("GNSS is offline, forcing update for %s\r\n", subsystem);
+                addTargetToUpdateList('G', remoteFilePath);
                 continue;
             }
 
@@ -1413,6 +1464,10 @@ bool otaGetSystemsToUpdate(char *modelType)
             {
                 addTargetToUpdateList('G', remoteFilePath);
             }
+
+            // Force add if user selects it (only in debug mode)
+            if (otaForceUpdateGnss == true)
+                addTargetToUpdateList('G', remoteFilePath);
         }
         else if (strcasecmp(subsystem, "STM32WL") == 0)
         {
@@ -1435,14 +1490,16 @@ bool otaGetSystemsToUpdate(char *modelType)
                 addTargetToUpdateList('L', remoteFilePath);
             }
 
-            // Testing - force add. TODO - remove once path is tested
-            addTargetToUpdateList('L', remoteFilePath);
+            // Force add if user selects it (only in debug mode)
+            if (otaForceUpdateLora == true)
+                addTargetToUpdateList('L', remoteFilePath);
         }
         else if (strcasecmp(subsystem, "IM19") == 0)
         {
             if (online.imu_im19 == false)
             {
-                systemPrintf("IMU is offline, skipping version check for %s\r\n", subsystem);
+                systemPrintf("IMU is offline, forcing update for %s\r\n", subsystem);
+                addTargetToUpdateList('I', remoteFilePath);
                 continue;
             }
 
@@ -1455,6 +1512,10 @@ bool otaGetSystemsToUpdate(char *modelType)
             {
                 addTargetToUpdateList('I', remoteFilePath);
             }
+
+            // Force add if user selects it (only in debug mode)
+            if (otaForceUpdateImu == true)
+                addTargetToUpdateList('I', remoteFilePath);
         }
         else
         {
