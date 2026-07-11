@@ -526,17 +526,18 @@ void loraExitBootloader()
 
 void loraReset()
 {
+    // This timing is sensitive. Delay too long after the enable and the bootloader
+    // will exit due to timeout.
     if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
     {
-        digitalWrite(pin_loraRadio_reset, LOW); // Reset STM32/radio
-        delay(50);
+        digitalWrite(pin_loraRadio_reset, LOW);  // Reset STM32/radio
+        delay(50);                               // 50 ok, 100 ok
         digitalWrite(pin_loraRadio_reset, HIGH); // Run STM32/radio
+        delay(50);                               // 50 ok, 100 ok, 250 too long
     }
     else if (productVariant == RTK_FACET_FP)
     {
         // There is no reset, only a power cycle
-        // This timing is sensitive. Delay too long after the enable and the bootloader
-        // will exit due to timeout.
         gpioExpanderLoraDisable();
         delay(50); // 50 ok, 100 ok,
         gpioExpanderLoraEnable();
@@ -1495,12 +1496,37 @@ void loraWrite(uint8_t *data, uint16_t dataLength)
         SerialForLoRa->write(data, dataLength);
 }
 
+void loraWrite(uint8_t data)
+{
+    loraWrite(&data, 1);
+}
+
 void loraPrint(const char *data)
 {
     if (productVariant == RTK_TORCH)
         Serial.print(data);
     else if (productVariant == RTK_FACET_FP)
         SerialForLoRa->print(data);
+}
+
+// Print a message to the primary serial port
+// If the port is also being used for bootloader communication (ie on Torch)
+// then switch to USB, print a status update, then return to talking to the STM32.
+void loraSharedPrintln(char *toPrint)
+{
+    if (productVariant == RTK_TORCH)
+    {
+        Serial.flush(); // Finishing any pending prints to before switching
+
+        muxSelectUsb(); // Reconnect USB to print to terminal
+        Serial.println(toPrint);
+        Serial.flush();
+        muxSelectLoRaCommunication(); // Torch: Disconnect USB, connect to LoRa
+    }
+    else
+    {
+        Serial.println(toPrint);
+    }
 }
 
 void loraPrintf(const char *format, ...)
@@ -1567,8 +1593,17 @@ bool stm32UpdateFirmware(uint8_t *dataArray, uint16_t bytesToWrite)
 
     stm32UpdatePageBuffer(dataArray, bytesToWrite);
 
-    firmwareUpdateProgressCallback(bytesToWrite); // Notify callback
-
+    if (productVariant == RTK_TORCH)
+    {
+        muxSelectUsb(); // Reconnect USB to print to terminal
+        firmwareUpdateProgressCallback(bytesToWrite); // Notify callback
+        Serial.flush();
+        muxSelectLoRaCommunication(); // Disconnect USB, connect to LoRa
+    }
+    else
+    {
+        firmwareUpdateProgressCallback(bytesToWrite); // Notify callback
+    }
     return true;
 }
 
@@ -1578,9 +1613,9 @@ bool stm32UpdateFirmwareWaitForAck()
     uint32_t startTime = millis();
     while (millis() - startTime < 1000)
     {
-        if (SerialForLoRa->available())
+        if (loraAvailable())
         {
-            if (SerialForLoRa->read() == 0x79)
+            if (loraRead() == 0x79)
                 return true;
         }
         else
@@ -1592,43 +1627,56 @@ bool stm32UpdateFirmwareWaitForAck()
 // Function to put STM32 into bootload mode and initialize UART sync
 void stm32UpdateFirmwareBegin()
 {
-    beginUart2Serial(); // Init the UART if not already initialized.
-
     // UART baud rate is started at 115200bps.
     // Increasing the baud rate does not decrease the programming time. Programming time is
     // likely limited by STM32's internal flash write time.
-    SerialForLoRa->begin(115200, SERIAL_8E1, pin_IMU_RX, pin_IMU_TX); // STM32 bootloader requires Even parity
 
-    // (On FP) Connect ESP32 UART2 to LoRa UART2 via SW3 for configuration and bootloading/firmware updates
-    gpioExpanderSelectLoraConfigure();
+    // The STM32 bootloader requires even parity
+    if (productVariant == RTK_TORCH)
+    {
+        // The Torch is connected to the STM32 over ESP UART0 (Serial). There is not a separate UART connection.
+        Serial.begin(115200, SERIAL_8E1);
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        beginUart2Serial(); // Init the UART if not already initialized.
+
+        // Use UART2 to communicate with the LoRa radio
+        SerialForLoRa->begin(115200, SERIAL_8E1, pin_IMU_RX, pin_IMU_TX);
+
+        // (On FP) Connect ESP32 UART2 to LoRa UART2 via SW3 for configuration and bootloading/firmware updates
+        gpioExpanderSelectLoraConfigure();
+    }
+
+    loraPowerOn(); // Regardless of previous state, turn on the STM32
 
     loraEnterBootloader(); // Push boot pin high and reset STM32
 
     stm32UpdateFailed = false;
 
     // Send 0x7F for auto-baud detection
-    SerialForLoRa->write(0x7F);
+    loraWrite(0x7F);
     if (stm32UpdateFirmwareWaitForAck())
     {
-        systemPrintln("STM32 Bootloader Synced.");
+        loraSharedPrintln("STM32 Bootloader Synced.");
     }
     else
     {
-        systemPrintln("STM32 Bootloader failed to sync - aborting update.");
+        loraSharedPrintln("STM32 Bootloader failed to sync - aborting update.");
         stm32UpdateFailed = true;
         return;
     }
 
-    systemPrintln("Erasing flash...");
+    loraSharedPrintln("Erasing flash...");
 
     // Global Mass Erase Command (0x44 for extended erase)
-    SerialForLoRa->write(0x44);
-    SerialForLoRa->write(0xBB); // Checksum for 0x44
+    loraWrite(0x44);
+    loraWrite(0xBB); // Checksum for 0x44
     if (stm32UpdateFirmwareWaitForAck())
     {
-        SerialForLoRa->write(0xFF); // Special Mass Erase
-        SerialForLoRa->write(0xFF);
-        SerialForLoRa->write(0x00); // Checksum
+        loraWrite(0xFF); // Special Mass Erase
+        loraWrite(0xFF);
+        loraWrite(0x00); // Checksum
         // Mass erase of the whole chip can take much longer than a normal command ACK,
         // so poll well past the usual 1 second window before giving up.
         bool erased = false;
@@ -1644,17 +1692,17 @@ void stm32UpdateFirmwareBegin()
         }
 
         if (erased)
-            systemPrintln("STM32 Erased.");
+            loraSharedPrintln("STM32 Erased.");
         else
         {
-            systemPrintln("STM32 mass erase failed to ACK - aborting update.");
+            loraSharedPrintln("STM32 mass erase failed to ACK - aborting update.");
             stm32UpdateFailed = true;
             return;
         }
     }
     else
     {
-        systemPrintln("STM32 did not ACK erase command - aborting update.");
+        loraSharedPrintln("STM32 did not ACK erase command - aborting update.");
         stm32UpdateFailed = true;
         return;
     }
@@ -1677,30 +1725,30 @@ bool stm32UpdateFirmwareFlashBlock(uint32_t addr, uint8_t *data, uint16_t len)
     // systemPrintf("Flashing block: Addr=0x%08X, Len=%d\n\r", addr, len);
 
     // Write Memory Command
-    SerialForLoRa->write(0x31);
-    SerialForLoRa->write(0xCE);
+    loraWrite(0x31);
+    loraWrite(0xCE);
     if (stm32UpdateFirmwareWaitForAck() == false)
         return false;
 
     // Send Address + Checksum
     uint8_t addrBytes[4] = {(uint8_t)(addr >> 24), (uint8_t)(addr >> 16), (uint8_t)(addr >> 8), (uint8_t)addr};
     uint8_t checksum = addrBytes[0] ^ addrBytes[1] ^ addrBytes[2] ^ addrBytes[3];
-    SerialForLoRa->write(addrBytes, 4);
-    SerialForLoRa->write(checksum);
+    loraWrite(addrBytes, 4);
+    loraWrite(checksum);
 
     if (stm32UpdateFirmwareWaitForAck() == false)
         return false;
 
     // Send Number of bytes - 1 (STM32 protocol requirement)
     uint8_t n = len - 1;
-    SerialForLoRa->write(n);
+    loraWrite(n);
     checksum = n;
     for (uint16_t i = 0; i < len; i++)
     {
-        SerialForLoRa->write(data[i]);
+        loraWrite(data[i]);
         checksum ^= data[i];
     }
-    SerialForLoRa->write(checksum);
+    loraWrite(checksum);
 
     return stm32UpdateFirmwareWaitForAck();
 }
@@ -1751,10 +1799,9 @@ bool stm32UpdateFirmwareEnd()
     free(stm32PageBuffer);
     stm32PageBuffer = nullptr;
 
-    // systemPrintln("Update Complete. Resetting IC...");
+    // loraSharedPrintln("Update Complete. Resetting IC...");
 
-    gpioExpanderLoraBootDisable(); // Pull BOOT0 low to exit bootloader mode on reset
-    loraReset();                   // Power cycle LoRa to reset into normal mode
+    loraExitBootloader(); // Disables BOOT pin, then resets the STM32
 
     return success;
 }
@@ -1764,11 +1811,11 @@ bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
 {
     if (relativeFirmwareFileLocation == nullptr)
     {
-        systemPrintln("Firmware file location is null.");
+        loraSharedPrintln("Firmware file location is null.");
         return false;
     }
 
-    systemPrintln("Starting STM32 firmware update...");
+    loraSharedPrintln("Starting STM32 firmware update...");
 
     WiFiClientSecure client;
     client.setCACert(GITHUB_RAW_PUBLIC_CERT);
@@ -1777,12 +1824,12 @@ bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
     // With CA configured, connect() fails if certificate validation fails.
     if (!client.connect(OTA_FIRMWARE_GITHUB_RAW, 443))
     {
-        systemPrintln("TLS socket connect failed");
+        loraSharedPrintln("TLS socket connect failed");
         return false;
     }
 
     if (settings.debugFirmwareUpdate)
-        systemPrintln("TLS certificate verified for raw.githubusercontent.com");
+        loraSharedPrintln("TLS certificate verified for raw.githubusercontent.com");
 
     client.stop();
 
@@ -1803,7 +1850,7 @@ bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
     HTTPClient http;
     if (!http.begin(client, firmwareFileLocation))
     {
-        systemPrintln("Unable to begin HTTP request.");
+        loraSharedPrintln("Unable to begin HTTP request.");
         return false;
     }
 
@@ -1844,7 +1891,7 @@ bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
 
         if (stm32UpdateFirmware(buffer, (uint16_t)bytesRead) == false)
         {
-            systemPrintln("Firmware update failed during WiFi data upload.");
+            loraSharedPrintln("Firmware update failed during WiFi data upload.");
             success = false;
             break;
         }
@@ -1854,13 +1901,14 @@ bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
     }
 
     if (stm32UpdateFirmwareEnd())
-        systemPrintln("LoRa/STM32 updated successfully.");
+        loraSharedPrintln("LoRa/STM32 updated successfully.");
     else
-        systemPrintln("LoRa/STM32 update failed.");
+        loraSharedPrintln("LoRa/STM32 update failed.");
 
     http.end();
     return true;
 }
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End subsystem firmware update functions
 
