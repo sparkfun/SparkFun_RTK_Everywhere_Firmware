@@ -69,7 +69,7 @@ const int gpioExpanderSwitch_S5 = 7;         // Controls U61 switch 5: connect G
 const int gpioExpanderNumSwitches = 8;
 
 // Communication Port
-HardwareSerial SerialGNSS(1); // Use UART1 on the ESP32
+HardwareSerial *serialGNSS = nullptr; // Use UART1 on the ESP32
 
 int pin_UART1_TX = 27; // FP
 int pin_UART1_RX = 26;
@@ -93,7 +93,10 @@ void setup()
 
     systemPrintln("=== ZED-X20P Firmware Updater ===");
 
-    SerialGNSS.begin(38400, SERIAL_8N1, pin_UART1_RX, pin_UART1_TX);
+    if (serialGNSS == nullptr)
+        serialGNSS = new HardwareSerial(1);
+
+    serialGNSS->begin(38400, SERIAL_8N1, pin_UART1_RX, pin_UART1_TX);
     systemPrintln("Serial GNSS started");
 
     Wire.begin(pin_SDA, pin_SCL);

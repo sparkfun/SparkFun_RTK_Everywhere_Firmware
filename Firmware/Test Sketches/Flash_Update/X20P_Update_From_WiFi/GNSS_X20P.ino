@@ -458,25 +458,28 @@ bool x20pFirmwareUpdateBegin()
     delay(250);
 
     bool foundBaud = false;
+
+    // Candidates sorted in generally most common order.
     const uint32_t baudCandidates[] = {115200, 38400, 9600, 230400, 57600, 460800, 921600};
+    
     for (uint8_t i = 0; i < (sizeof(baudCandidates) / sizeof(baudCandidates[0])); i++)
     {
         systemPrintf("Checking communication at %d...\r\n", baudCandidates[i]);
 
-        SerialGNSS.updateBaudRate(baudCandidates[i]);
+        serialGNSS->updateBaudRate(baudCandidates[i]);
 
         delay(10);
-        while (SerialGNSS.available())
-            SerialGNSS.read();
+        while (serialGNSS->available())
+            serialGNSS->read();
 
         // Training sequence — helps the module's autobaud lock on
-        SerialGNSS.write(0x55);
-        SerialGNSS.write(0x55);
+        serialGNSS->write(0x55);
+        serialGNSS->write(0x55);
         delay(10);
 
         // Confirm UBX communication with a MON-VER poll
         UbxMsg monVer;
-        if (x20pPollMsg(SerialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, monVer, TIMEOUT_POLL) == true)
+        if (x20pPollMsg(*serialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, monVer, TIMEOUT_POLL) == true)
         {
             systemPrintf("  OK at %d baud.\r\n", baudCandidates[i]);
             foundBaud = true;
@@ -495,7 +498,7 @@ bool x20pFirmwareUpdateBegin()
     // ----------------------------------------------------------
     systemPrintln("Starting flash loader task...");
     const uint8_t startLoaderPayload[] = {0x01};
-    int ack = x20pSendAndWaitAck(SerialGNSS, UBX_CLASS_UPD, 0x07, startLoaderPayload, 1,
+    int ack = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_UPD, 0x07, startLoaderPayload, 1,
                                  TIMEOUT_POLL); // Enter safeboot, start loader task
     if (ack == -1)
     {
@@ -548,7 +551,7 @@ bool x20pFirmwareUpdateBegin()
                                         (uint8_t)(nb >> 16),
                                         (uint8_t)(nb >> 24)};
         // Wait for ACK at old rate — device sends ACK then applies new baud.
-        int cfgAck = x20pSendAndWaitAck(SerialGNSS, UBX_CLASS_CFG, UBX_CFG_VALSET, cfgPayload, sizeof(cfgPayload),
+        int cfgAck = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_CFG, UBX_CFG_VALSET, cfgPayload, sizeof(cfgPayload),
                                         TIMEOUT_POLL);
         systemPrint("  [DBG] CFG-VALSET ");
         systemPrintln(cfgAck == 1 ? "ACK" : cfgAck == 0 ? "NAK"
@@ -558,40 +561,40 @@ bool x20pFirmwareUpdateBegin()
             systemPrintln("  ERROR: device NAK'd baud rate change — rate unsupported in loader");
             return false;
         }
-        SerialGNSS.flush();
+        serialGNSS->flush();
         delay(200); // device applies new rate; ACK arrives at new baud
         // updateBaudRate() changes only the baud divisor — no GPIO re-init, no TX glitch.
         // ser.begin() briefly pulses TX low at high baud rates, causing a framing error on
         // the device (observed: bytes 2-3 of next response corrupted at 460800+).
-        SerialGNSS.updateBaudRate(X20P_FIRMWARE_UPDATE_BAUD);
+        serialGNSS->updateBaudRate(X20P_FIRMWARE_UPDATE_BAUD);
         uint32_t drainEnd = millis() + 100; // timed drain catches FIFO stragglers
         while ((int32_t)(millis() - drainEnd) < 0)
         {
-            if (SerialGNSS.available())
-                SerialGNSS.read();
+            if (serialGNSS->available())
+                serialGNSS->read();
         }
 
         // Raw diagnostic: send MON-VER poll and print first bytes received.
         // "silence" = device didn't switch; garbage = framing error; B5 62 = working.
-        x20pSend(SerialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0);
-        SerialGNSS.flush();
+        x20pSend(*serialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0);
+        serialGNSS->flush();
         {
             uint32_t rawEnd = millis() + 500;
             uint8_t rawCount = 0;
             systemPrint("  [DBG] raw rx:");
             while ((int32_t)(millis() - rawEnd) < 0 && rawCount < 24)
             {
-                if (SerialGNSS.available())
+                if (serialGNSS->available())
                 {
-                    uint8_t b = SerialGNSS.read();
+                    uint8_t b = serialGNSS->read();
                     systemPrint(b < 0x10 ? " 0" : " ");
                     systemPrint(b, HEX);
                     rawCount++;
                 }
             }
             systemPrintln(rawCount ? "" : " (silence)");
-            while (SerialGNSS.available())
-                SerialGNSS.read();
+            while (serialGNSS->available())
+                serialGNSS->read();
         }
 
         // Retry MON-VER — high baud rates may need a nudge before responding.
@@ -599,13 +602,13 @@ bool x20pFirmwareUpdateBegin()
         for (uint8_t attempt = 0; attempt < 3 && !baudOk; attempt++)
         {
             UbxMsg verCheck;
-            if (x20pPollMsg(SerialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, verCheck, TIMEOUT_POLL))
+            if (x20pPollMsg(*serialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, verCheck, TIMEOUT_POLL))
                 baudOk = true;
             else if (attempt < 2)
             {
                 delay(200);
-                while (SerialGNSS.available())
-                    SerialGNSS.read();
+                while (serialGNSS->available())
+                    serialGNSS->read();
             }
         }
         if (!baudOk)
@@ -624,7 +627,7 @@ bool x20pFirmwareUpdateBegin()
     //    the erase completes.
     // ----------------------------------------------------------
     systemPrintln("Starting chip erase...");
-    x20pSend(SerialGNSS, UBX_CLASS_UPD, 0x16, nullptr, 0);
+    x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x16, nullptr, 0);
     // Do NOT wait for chip erase ACK here — it arrives while packet 0 is in flight.
 
     // Allocate the page-accumulation buffer and reset streaming state for this update.
@@ -660,7 +663,7 @@ bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
 
     if (success && x20pBufferIndex > 0)
     {
-        success = x20pWriteChunk(SerialGNSS, x20pCurrentAddress, x20pPageBuffer, x20pBufferIndex, x20pEraseComplete,
+        success = x20pWriteChunk(*serialGNSS, x20pCurrentAddress, x20pPageBuffer, x20pBufferIndex, x20pEraseComplete,
                                  x20pEraseCompleteAt);
         if (!success)
             systemPrintf("  ERROR: final chunk write failed at address 0x%08X\r\n", x20pCurrentAddress);
@@ -679,7 +682,7 @@ bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
         // ----------------------------------------------------------
         systemPrintln("Verifying image...");
         const uint8_t verPayload[4] = {0, 0, 0, 0};
-        int ack = x20pSendAndWaitAck(SerialGNSS, UBX_CLASS_UPD, 0x2B, verPayload, 4, TIMEOUT_VERIFY); // Verify
+        int ack = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_UPD, 0x2B, verPayload, 4, TIMEOUT_VERIFY); // Verify
         if (ack != 1)
         {
             systemPrint("  ERROR: verify ");
@@ -693,7 +696,7 @@ bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
         systemPrintln("Skipping verify - firmware upload did not complete successfully.");
 
     // Reboot (fire-and-forget — device does not send a response)
-    x20pSend(SerialGNSS, UBX_CLASS_UPD, 0x0E, nullptr, 0); // Reboot
+    x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x0E, nullptr, 0); // Reboot
 
     return success;
 }
@@ -792,7 +795,7 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
                     if (bytesRead <= 0)
                         break;
 
-                    if (x20pUpdateFirmware(SerialGNSS, buffer, (uint32_t)bytesRead) == false)
+                    if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
                     {
                         systemPrintln("Firmware update failed during WiFi data upload.");
                         success = false;
