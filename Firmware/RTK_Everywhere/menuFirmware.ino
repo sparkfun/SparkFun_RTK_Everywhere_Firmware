@@ -1053,7 +1053,6 @@ void otaUpdate()
             if (present.gnss_um980 == false || otaSubsystemFilePath('G') == nullptr)
                 otaSetState(OTA_STATE_UPDATE_FIRMWARE_LG290P);
 
-            // Currently there is no UM980 update path. Move on
             // Currently there is no update path. Move on
             systemPrintln("No UM980 update path, moving on");
             otaSetState(OTA_STATE_UPDATE_FIRMWARE_LG290P);
@@ -1062,40 +1061,48 @@ void otaUpdate()
         case OTA_STATE_UPDATE_FIRMWARE_LG290P:
             if (present.gnss_lg290p == false || otaSubsystemFilePath('G') == nullptr)
                 otaSetState(OTA_STATE_UPDATE_FIRMWARE_MX5);
+
+            // Currently there is no update path. Move on
+            systemPrintln("No LG290P update path, moving on");
+            otaSetState(OTA_STATE_UPDATE_FIRMWARE_MX5);
             break;
 
         case OTA_STATE_UPDATE_FIRMWARE_MX5:
             if (present.gnss_mosaicX5 == false || otaSubsystemFilePath('G') == nullptr)
                 otaSetState(OTA_STATE_UPDATE_FIRMWARE_X20P);
+
+            // Currently there is no update path. Move on
+            systemPrintln("No mosaic-X5 update path, moving on");
+            otaSetState(OTA_STATE_UPDATE_FIRMWARE_X20P);
             break;
 
         case OTA_STATE_UPDATE_FIRMWARE_X20P:
+            // If the subsystem is not present, or there is not a new version, then move to the next subsystem
             if (present.gnss_zedx20p == false || otaSubsystemFilePath('G') == nullptr)
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP);
             {
                 otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP); // Move on
             }
 
-            // // Determine if the network has failed
-            // else if (!connected)
-            // {
-            //     otaUpdateStop();
+            // Determine if the network has failed
+            else if (!connected)
+            {
+                otaUpdateStop();
 
-            //     // Report failure to interfaces
-            //     webServerSendString((char *)"gettingNewFirmware,ERROR,");
+                // Report failure to interfaces
+                webServerSendString((char *)"gettingNewFirmware,ERROR,");
 
-            //     commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
-            //                                     (char *)"Connection Error");
-            // }
+                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
+                                                (char *)"Connection Error");
+            }
 
-            // // Get binary file over the network and stream/update the target
-            // else if (x20pStreamFirmware(otaSubsystemFilePath('G')) == false)
-            // {
-            //     systemPrintln("Failed to update ZED-X20P firmware");
-            //     otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP); // If we get here, move on
-            // }
-            // else
-            //     otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP); // If we get here, move on
+            // Get binary file over the network and stream/update the target
+            else if (x20pStreamFirmware(otaSubsystemFilePath('G')) == false)
+            {
+                systemPrintln("Failed to update ZED-X20P firmware");
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP); // If we get here, move on
+            }
+            else
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP); // If we get here, move on
 
             break;
 

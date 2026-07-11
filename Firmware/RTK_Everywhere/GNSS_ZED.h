@@ -279,6 +279,23 @@ const ubxCmd ubxCommands[] = {
 
 #define MAX_UBX_CMD (sizeof(ubxCommands) / sizeof(ubxCmd))
 
+// ==================================================================
+//  RECEIVE BUFFER
+//  ACK / response payloads are tiny (2–5 bytes).  Only the first
+//  X20P_RX_PAYLOAD_MAX bytes of any incoming payload are stored.
+// ==================================================================
+
+#define X20P_RX_PAYLOAD_MAX 16u
+
+struct UbxMsg
+{
+    uint8_t cls;
+    uint8_t id;
+    uint16_t len;
+    uint8_t payload[X20P_RX_PAYLOAD_MAX];
+};
+
+
 class GNSS_ZED : GNSS
 {
   private:
