@@ -38,6 +38,7 @@ typedef struct _DEVICE_FIRMWARE_CTX
     void * _devCtx;                     // Device specific context address
     const struct _DEVICE_FIRMWARE_INFO * _deviceInfo; // Selected device
     int _state;                         // Current device firmware update state
+    bool _useCsv;                       // Use CSV file to select firmware files
     bool _doAll;                        // Perform all of the device firmware updates
     bool _debugVerbose;                 // Display the most amount of data
 
@@ -83,6 +84,13 @@ typedef struct _DEVICE_FIRMWARE_CTX
     size_t _bufferLength;               // Length of the buffer
     size_t _validDataBytes;             // Length of the valid data
     size_t _bytesRead;                  // Total number of bytes read
+
+    // CSV file
+    uint8_t * _csvFileData;             // CSV file contents
+    size_t _csvFileBytes;               // Size of the CSV file
+    int _csvLineCount;                  // Number of lines in the CSV file
+    int _csvFieldCount;                 // Number of fields per line in the CSV file
+    const char * _csvDeviceEntry;       // Device entry in CSV file
 
     // File objects for input or output
     File _nvmFile;                      // NVM file object
@@ -141,6 +149,9 @@ enum _DEVICE_FIRMWARE_UPDATE_STATE
     DFUS_DONE = 0,
     DFUS_INIT,
     DFUS_WAIT_NETWORK,
+    DFUS_CSV_OPEN,
+    DFUS_CSV_READ,
+    DFUS_CSV_CLOSE,
     DFUS_GET_DEVICE,
     DFUS_GET_NETWORK_FILES,
     DFUS_GET_HTTP_FILE_LIST_REQ,
@@ -199,6 +210,12 @@ typedef ssize_t (* DFU_DEVICE_WRITE)(DEVICE_FIRMWARE_CTX * ctx,
                                      size_t bytesToWrite);
 typedef int (* DFU_GET_FIRMWARE_VERSION)(DEVICE_FIRMWARE_CTX * ctx);
 typedef bool (* DFU_INIT_DEV_CTX)(DEVICE_FIRMWARE_CTX * ctx);
+typedef int (* DFU_COMPARE_CSV_VERSION)(DEVICE_FIRMWARE_CTX * ctx,
+                                        int major,
+                                        int minor,
+                                        int patch,
+                                        int revision,
+                                        int releaseCandidate);
 
 //----------------------------------------
 // Describe a device that needs firmware updates
@@ -212,6 +229,7 @@ typedef struct _DEVICE_FIRMWARE_INFO
     const char * _nameData;     // Data in file name, may be nullptr
     const char * _extension;    // Data in file name (extension), may be nullptr
     DFU_GET_FIRMWARE_VERSION _version; // Firmware version display routine
+    DFU_COMPARE_CSV_VERSION _cmpVersion; // Compare firmware versions
     DFU_DEVICE_RESET _reset;    // Reset the device before loading firmware
     DFU_DEVICE_OPEN _open;      // Prepare for firmware updates
     DFU_DEVICE_WRITE _write;    // Perform the firmware writes
@@ -293,6 +311,20 @@ const int dfuBufferInfoCount = sizeof(dfuBufferInfo) / sizeof(dfuBufferInfo[0]);
 int dfuEsp32GetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx);
 int dfuGnssGetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx);
 
+// Compare the CSV version to the current version
+int dfuEsp32CompareCsvVersion(DEVICE_FIRMWARE_CTX * ctx,
+                              int major,
+                              int minor,
+                              int patch,
+                              int revision,
+                              int releaseCandidate);
+int dfuGnssCompareCsvVersion(DEVICE_FIRMWARE_CTX * ctx,
+                             int major,
+                             int minor,
+                             int patch,
+                             int revision,
+                             int releaseCandidate);
+
 // Device reset
 bool dfuLg290pReset(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
 
@@ -313,7 +345,8 @@ void dfuEsp32Close(DEVICE_FIRMWARE_CTX * ctx);
 void dfuLg290pClose(DEVICE_FIRMWARE_CTX * ctx);
 
 // Declare the begin routine
-bool deviceFirmwareUpdateBegin(bool doAll,
+bool deviceFirmwareUpdateBegin(const char * csvUrl,
+                               bool doAll,
                                bool debugVerbose,
                                size_t saveDataLength = 8 * 1024);
 
@@ -324,13 +357,13 @@ bool deviceFirmwareUpdateBegin(bool doAll,
 // Note: Use the JSON based OTA to get a new ESP32 image when the
 // parsing fails due to website changes on the servers below!
 const DEVICE_FIRMWARE_INFO deviceFirmwareInfo[] =
-{//  Name           present                 Directory                   NameData        Extension  Firmware version             Reset               Open                Write               Close           InitDevCtx          Context Bytes           CRC     useNvm  Buffer Bytes        Max Write Bytes                 Server     Branch      dPrefix1     dPrefix2  dirEnd      nPrefix  nameEnd     Raw Branch
-    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", dfuEsp32GetFirmwareVersion,  nullptr,            dfuEsp32Open,       dfuEsp32Write,      dfuEsp32Close,  nullptr,            0,                      false,  false,  0,                  0,                              dfuGithub, nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
+{//  Name           present                 Directory                   NameData        Extension  Firmware version             Compare CSV version         Reset               Open                Write               Close           InitDevCtx          Context Bytes           CRC     useNvm  Buffer Bytes        Max Write Bytes                 Server     Branch      dPrefix1     dPrefix2  dirEnd      nPrefix  nameEnd     Raw Branch
+    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", dfuEsp32GetFirmwareVersion,  dfuEsp32CompareCsvVersion,  nullptr,            dfuEsp32Open,       dfuEsp32Write,      dfuEsp32Close,  nullptr,            0,                      false,  false,  0,                  0,                              dfuGithub, nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
     // ESP32 must be the first entry in the list, p command does list in reverse
 
     // GNSS devices
 #ifdef  COMPILE_LG290P
-    {"LG290P",      &present.gnss_lg290p,   "/gnss/lg290p",             "LG290P",          ".pkg", dfuGnssGetFirmwareVersion,   dfuLg290pReset,     dfuLg290pOpen,      dfuLg290pWrite,     dfuLg290pClose, nullptr,            0,                      true,   false,  DFU_LG290P_BYTES,   DFU_LG290P_MAX_PAYLOAD_SIZE,    dfuGithub, dfuRawHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
+    {"GNSS",        &present.gnss_lg290p,   "/gnss/lg290p",             "LG290P",          ".pkg", dfuGnssGetFirmwareVersion,   dfuGnssCompareCsvVersion,   dfuLg290pReset,     dfuLg290pOpen,      dfuLg290pWrite,     dfuLg290pClose, nullptr,            0,                      true,   false,  DFU_LG290P_BYTES,   DFU_LG290P_MAX_PAYLOAD_SIZE,    dfuGithub, dfuRawHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
 #endif  // COMPILE_LG290P
 };
 const int deviceFirmwareInfoCount = sizeof(deviceFirmwareInfo) / sizeof(deviceFirmwareInfo[0]);

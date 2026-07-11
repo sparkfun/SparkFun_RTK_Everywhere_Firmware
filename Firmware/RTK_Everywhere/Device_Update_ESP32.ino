@@ -64,6 +64,35 @@ void dfuEsp32Close(DEVICE_FIRMWARE_CTX * ctx)
 }
 
 //----------------------------------------
+// Compare the CSV version to the current version
+//----------------------------------------
+int dfuEsp32CompareCsvVersion(DEVICE_FIRMWARE_CTX * ctx,
+                              int major,
+                              int minor,
+                              int patch,
+                              int revision,
+                              int releaseCandidate)
+{
+    // For debug builds, always return a negative value indicating to update
+    // to any release version
+    if ((FIRMWARE_VERSION_MAJOR == 99) && (FIRMWARE_VERSION_MINOR == 99))
+        return -1;
+
+    // Check if the current version is lower than the CSV version
+    if ((FIRMWARE_VERSION_MAJOR < major)
+        || ((FIRMWARE_VERSION_MAJOR == major) && (FIRMWARE_VERSION_MINOR  < minor)))
+        return -1;
+
+    // Check if the current version is higher than the CSV verison
+    if ((FIRMWARE_VERSION_MAJOR > major)
+        || ((FIRMWARE_VERSION_MAJOR == major) && (FIRMWARE_VERSION_MINOR > minor)))
+        return 1;
+
+    // The version number match
+    return 0;
+}
+
+//----------------------------------------
 // Get the current ESP32 firmware version
 //----------------------------------------
 int dfuEsp32GetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx)

@@ -499,6 +499,9 @@ char otaReportedVersion[50];
 bool otaRequestFirmwareVersionCheck = false;
 bool otaRequestFirmwareUpdate = false;
 
+//const char * csvUrl = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-Variants.csv";
+const char * csvUrl = "https://leahyjr.com/SparkFun/RTK-Everywhere-Variants.csv";
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // Connection settings to NTRIP Caster
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -1444,7 +1447,7 @@ void setup()
 
     DMW_b("imuFirmwareCheckUpdate");
     if (imuCheckPassthroughFile() == true) // Check if updateImuFirmware.txt exists
-        imuBeginFirmwareUpdate();         // 
+        imuBeginFirmwareUpdate();         //
 
     DMW_b("commandIndexFillActual");
     commandIndexFillActual(); // Shrink the commandIndex table now we're certain what GNSS we have

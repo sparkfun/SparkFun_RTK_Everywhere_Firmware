@@ -17,6 +17,9 @@ const char * dfuStateName[] =
     "DFUS_DONE",
     "DFUS_INIT",
     "DFUS_WAIT_NETWORK",
+    "DFUS_CSV_OPEN",
+    "DFUS_CSV_READ",
+    "DFUS_CSV_CLOSE",
     "DFUS_GET_DEVICE",
     "DFUS_GET_NETWORK_FILES",
     "DFUS_GET_HTTP_FILE_LIST_REQ",
@@ -47,7 +50,9 @@ const int dfuStateNameCount = sizeof(dfuStateName) / sizeof(dfuStateName[0]);
 #define DFU_USER_INPUT_OVERFLOWS_BUFFER -4
 #define DFU_USER_INPUT_NOT_A_NUMBER     -5
 
+const char * dfuDashes = "--------------------------------------------------";
 const char * dfuEqualSigns = "==================================================";
+const char * dfuSpaces = "                                                  ";
 
 //----------------------------------------
 // Locals
@@ -221,6 +226,15 @@ void deviceFirmwareCleanup(DEVICE_FIRMWARE_CTX * ctx)
         rtkFree(ctx->_saveData, "DFU: ctx->_saveData");
     }
 
+    // Done with the CSV file
+    if (ctx->_csvFileData)
+    {
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("Freeing CSV file buffer\r\n");
+        rtkFree(ctx->_csvFileData, "CSV file data");
+        ctx->_csvFileData = nullptr;
+    }
+
     // Done with the context
     if (settings.debugFirmwareUpdate)
         systemPrintf("Freeing device firmware update context, %d bytes\r\n", sizeof(*ctx));
@@ -256,11 +270,12 @@ void deviceFirmwareClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
     // Determine if all firmware was written
     dfuLoopInUpdate = false;
-    if (ctx->_doAll)
+    if (ctx->_doAll || ctx->_useCsv)
     {
         if (ctx->_complete == false)
             ctx->_reboot = false;
-        deviceFirmwareFileListReload(ctx);
+        if (ctx->_doAll)
+            deviceFirmwareFileListReload(ctx);
         deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
     }
     else
@@ -376,6 +391,543 @@ void deviceFirmwareCrcReadData(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         if (ctx->_bytesRead == ctx->_fileBytes)
             deviceFirmwareStateSet(ctx, DFUS_CRC_CLOSE);
     }
+}
+
+//----------------------------------------
+// Build the line array for the CSV file
+//----------------------------------------
+void deviceFirmwareCsvBuildLineArray(DEVICE_FIRMWARE_CTX * ctx,
+                                     char ** lineArray,
+                                     int * columnWidthArray)
+{
+    char * buffer;
+    char * bufferEnd;
+    int fieldCount;
+    int index;
+    int lineCount;
+    size_t length;
+
+    // Zero the column widths
+    for (index = 0; index < ctx->_csvFieldCount; index++)
+        columnWidthArray[index] = 0;
+
+    // Add each of the lines to the line array
+    buffer = (char *)ctx->_csvFileData;
+    bufferEnd = &buffer[ctx->_csvFileBytes];
+    lineCount = 0;
+    while (buffer < bufferEnd)
+    {
+        // Add this line to the array
+        lineArray[lineCount++] = buffer;
+
+        // Maximize the field width
+        fieldCount = 0;
+        while ((buffer < bufferEnd) && (fieldCount < ctx->_csvFieldCount))
+        {
+            length = strlen(buffer);
+            if (columnWidthArray[fieldCount] < length)
+                columnWidthArray[fieldCount] = length;
+
+            // Set the next field
+            buffer += length + 1;
+            fieldCount += 1;
+        }
+
+        // Skip over the end of the line
+        while (*buffer == 0)
+            buffer += 1;
+    }
+}
+
+//----------------------------------------
+// Close the CSV file
+//----------------------------------------
+void deviceFirmwareCsvClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    char * buffer;
+    char * bufferEnd;
+    uint8_t data;
+    int fieldCount;
+    int lineCount;
+    char * lineStart;
+    bool validFile;
+
+    dfuNetworkCleanup(ctx, nullptr);
+    validFile = (ctx->_bytesRead == ctx->_fileBytes);
+    if (validFile)
+    {
+        do
+        {
+            // Display the statistics
+            deviceFirmwarePerformUpdate(ctx);
+            ctx->_fileBytes = 0;
+
+            // Count the number of fields
+            buffer = (char *)ctx->_csvFileData;
+            bufferEnd = &buffer[ctx->_csvFileBytes];
+            if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+                dumpBuffer(0, ctx->_csvFileData, ctx->_csvFileBytes);
+            ctx->_csvFieldCount = 0;
+            while ((buffer < bufferEnd) && (*buffer != '\r') && (*buffer != '\n'))
+            {
+                if (*buffer == ',')
+                {
+                    *buffer = 0;
+                    ctx->_csvFieldCount += 1;
+                }
+                buffer += 1;
+            }
+            ctx->_csvFieldCount += 1;
+            if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+                systemPrintf("ctx->_csvFieldCount: %d\r\n", ctx->_csvFieldCount);
+
+            // Parse the reset of the file
+            while ((buffer < bufferEnd) && ((*buffer == '\r') || (*buffer == '\n')))
+                *buffer++ = 0;
+
+            // Count the number of lines
+            lineCount = 1;
+            validFile = true;
+            while (buffer < bufferEnd)
+            {
+                // Count the fields in this line
+                lineStart = buffer;
+                fieldCount = 0;
+                while ((buffer < bufferEnd) && (*buffer != '\r') && (*buffer != '\n'))
+                {
+                    if (*buffer == ',')
+                    {
+                        *buffer = 0;
+                        fieldCount += 1;
+                    }
+                    buffer += 1;
+                }
+                fieldCount += 1;
+
+                // Done with this line
+                while ((buffer < bufferEnd) && ((*buffer == '\r') || (*buffer == '\n')))
+                {
+                    *buffer = 0;
+                    buffer += 1;
+                }
+
+                // Validate the number of fields
+                if (fieldCount != ctx->_csvFieldCount)
+                {
+                    // Display the error
+                    systemPrintf("ERROR: CSV file line %d at offset 0x%08x has %d fields, expected %d fields!\r\n",
+                                 lineCount, buffer - lineStart, fieldCount, ctx->_csvFieldCount);
+                    validFile = false;
+                }
+
+                // Account for this line
+                lineCount += 1;
+            }
+            ctx->_csvLineCount = lineCount;
+            if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+                systemPrintf("ctx->_csvLineCount: %d\r\n", ctx->_csvLineCount);
+
+            // Check for error
+            if (validFile == false)
+                break;
+
+            // Display the CSV file contents
+            if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+            {
+                dumpBuffer(0, ctx->_csvFileData, ctx->_csvFileBytes);
+                deviceFirmwareCsvDisplay(ctx);
+            }
+
+            // Reduce the lines to those for the current product
+            if (deviceFirmwareCsvGetProductLines(ctx) == false)
+            {
+                systemPrintf("ERROR: Unable to locate firmware files for %s\r\n", platformPrefix);
+                validFile = false;
+                break;
+            }
+        } while (0);
+    }
+
+    // Handle error, failed to read in or parse the CSV file, force last state
+    if (validFile == false)
+    {
+        if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+            dumpBuffer(0, ctx->_csvFileData, ctx->_csvFileBytes);
+        ctx->_deviceInfo = &deviceFirmwareInfo[0];
+    }
+
+    // Continue processing
+    deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+}
+
+//----------------------------------------
+// Display the contents of the CSV file
+//----------------------------------------
+void deviceFirmwareCsvDisplay(DEVICE_FIRMWARE_CTX * ctx)
+{
+    char * buffer;
+    int columnWidth[ctx->_csvFieldCount];
+    int countLeft;
+    int countRight;
+    int countSpaces;
+    int index;
+    char * line[ctx->_csvLineCount];
+    int lineNumber;
+    size_t length;
+    int width;
+
+    // Locate the lines
+    deviceFirmwareCsvBuildLineArray(ctx, &line[0], &columnWidth[0]);
+
+    // Display the column widths
+    if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+    {
+        buffer = (char *)ctx->_csvFileData;
+        systemPrintf("Column Widths\r\n");
+        for (index = 0; index < ctx->_csvFieldCount; index++)
+        {
+            systemPrintf("    %2d: %s\r\n", columnWidth[index], buffer);
+            buffer += strlen(buffer) + 1;
+        }
+    }
+
+    // Display the header
+    deviceFirmwareCsvDisplayHeaderLine(ctx, &columnWidth[0]);
+    buffer = (char *)ctx->_csvFileData;
+    countSpaces = strlen(dfuSpaces);
+    systemPrintf("|");
+    for (index = 0; index < ctx->_csvFieldCount; index++)
+    {
+        // Center the field name
+        length = strlen(buffer);
+        width = 1 + columnWidth[index] + 1;
+        countRight = width - length;
+        countLeft = countRight >> 1;
+        countRight -= countLeft;
+        systemPrintf("%s%s%s|",
+                     &dfuSpaces[countSpaces - countLeft],
+                     buffer,
+                     &dfuSpaces[countSpaces - countRight]);
+        buffer += strlen(buffer) + 1;
+    }
+    systemPrintln();
+    deviceFirmwareCsvDisplayHeaderLine(ctx, &columnWidth[0]);
+
+    // Display each of the lines
+    for (lineNumber = 1; lineNumber < ctx->_csvLineCount; lineNumber++)
+    {
+        // Skip the end-of-line
+        while (*buffer == 0)
+            buffer += 1;
+
+        systemPrintf("|");
+        for (index = 0; index < ctx->_csvFieldCount; index++)
+        {
+            // Left justify the field
+            length = strlen(buffer);
+            width = 1 + columnWidth[index] + 1;
+            countLeft = 0;
+            countRight = 0;
+            if ((index < 2) || (index == 7))
+                countRight = width - length;
+
+            // Right justify the field
+            else
+                countLeft = width - length;
+            while (countLeft > countSpaces)
+            {
+                systemPrint(dfuSpaces);
+                countLeft -= countSpaces;
+            }
+            systemPrintf("%s%s%s|",
+                         &dfuSpaces[countSpaces - countLeft],
+                         buffer,
+                         &dfuSpaces[countSpaces - (countRight % countSpaces)]);
+            countRight -= countRight % countSpaces;
+            while (countRight > countSpaces)
+            {
+                systemPrint(dfuSpaces);
+                countLeft -= countRight;
+            }
+
+            // Set the next field
+            buffer += strlen(buffer) + 1;
+        }
+        systemPrintln();
+        deviceFirmwareCsvDisplayHeaderLine(ctx, &columnWidth[0]);
+    }
+}
+
+//----------------------------------------
+// Display the header line
+//----------------------------------------
+void deviceFirmwareCsvDisplayHeaderLine(DEVICE_FIRMWARE_CTX * ctx, int * columnWidth)
+{
+    char * buffer;
+    size_t dashesLength;
+    int index;
+    int width;
+
+    buffer = (char *)ctx->_csvFileData;
+    systemPrintf("+");
+    dashesLength = strlen(dfuDashes);
+    for (index = 0; index < ctx->_csvFieldCount; index++)
+    {
+        width = 1 + columnWidth[index] + 1;
+        while (width > dashesLength)
+        {
+            systemPrint(dfuDashes);
+            width -= dashesLength;
+        }
+        systemPrintf("%s+", &dfuDashes[dashesLength - width]);
+        buffer += strlen(buffer) + 1;
+    }
+    systemPrintln();
+}
+
+//----------------------------------------
+// Get the value from the specified field
+//----------------------------------------
+int deviceFirmwareCsvGetNumber(DEVICE_FIRMWARE_CTX * ctx,
+                               const char * fieldName)
+{
+    int value;
+    const char * string;
+
+    string = deviceFirmwareCsvLocateField(ctx, ctx->_csvDeviceEntry, fieldName);
+    if (string == nullptr)
+        return 0;
+    if (sscanf(string, "%d", &value) == 1)
+        return value;
+    return 0;
+}
+
+//----------------------------------------
+// Reduce the CSV file contents to the header line and product lines only
+//----------------------------------------
+bool deviceFirmwareCsvGetProductLines(DEVICE_FIRMWARE_CTX * ctx)
+{
+    char * buffer;
+    char * bufferEnd;
+    int fieldIndex;
+    int lineCount;
+    int lineIndex;
+    const char * product;
+    char * nextLine;
+
+    // Skip over the header line
+    buffer = (char *)ctx->_csvFileData;
+    bufferEnd = &buffer[ctx->_csvFileBytes];
+    buffer = deviceFirmwareCsvNextLine(ctx, buffer, bufferEnd);
+    lineCount = 1;
+    nextLine = buffer;
+
+    // Display the product
+    product = platformPrefix;
+    if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+        systemPrintf("Looking for product: %s\r\n", product);
+
+    // Locate the platform lines
+    for (lineIndex = 1; lineIndex < ctx->_csvLineCount; lineIndex++)
+    {
+        if (strcmp(product, buffer) != 0)
+            buffer = deviceFirmwareCsvNextLine(ctx, buffer, bufferEnd);
+        else
+        {
+            // Determine if the line needs to be moved
+            lineCount += 1;
+            if (buffer == nextLine)
+                // No, in correct position
+                buffer = deviceFirmwareCsvNextLine(ctx, buffer, bufferEnd);
+            else
+            {
+                // Copy the line to the beginning of the buffer
+                for (fieldIndex = 0; fieldIndex < ctx->_csvFieldCount; fieldIndex++)
+                {
+                    strcpy(nextLine, buffer);
+                    nextLine += strlen(nextLine) + 1;
+                    buffer += strlen(buffer) + 1;
+                }
+                while (*buffer == 0)
+                {
+                    *nextLine++ = 0;
+                    buffer += 1;
+                }
+            }
+        }
+    }
+
+    // Update the CSV contents
+    if (lineCount > 1)
+    {
+        ctx->_csvLineCount = lineCount;
+        ctx->_csvFileBytes = nextLine - (char *)ctx->_csvFileData;
+    }
+
+    // Display the entries in the table
+    deviceFirmwareCsvDisplay(ctx);
+    return (lineCount > 1);
+}
+
+//----------------------------------------
+// Locate a device entry in the CSV file
+//----------------------------------------
+const char * deviceFirmwareCsvLocateDevice(DEVICE_FIRMWARE_CTX * ctx)
+{
+    const char * bufferEnd;
+    const char * csvEntry;
+    const char * subsystem;
+
+    // Locate the device in the CSV file
+    csvEntry = (const char *)ctx->_csvFileData;
+    bufferEnd = &csvEntry[ctx->_csvFileBytes];
+    for (int index = 1; index < ctx->_csvLineCount; index++)
+    {
+        // Skip to the next entry
+        csvEntry = deviceFirmwareCsvNextLine(ctx, (char *)csvEntry, bufferEnd);
+
+        // Locate the field
+        subsystem = deviceFirmwareCsvLocateField(ctx, csvEntry, "subsystem");
+        if (subsystem == nullptr)
+            reportFatalError("Failed to locate subsystem field in CSV file!\r\n");
+
+        // Determine if this is the correct subsystem
+        if (strcmp(subsystem, ctx->_deviceInfo->_deviceName) == 0)
+            return csvEntry;
+    }
+
+    // No matching entry
+    return nullptr;
+}
+
+//----------------------------------------
+// Locate a field in an entry in the CSV file
+//----------------------------------------
+const char * deviceFirmwareCsvLocateField(DEVICE_FIRMWARE_CTX * ctx,
+                                          const char * csvEntry,
+                                          const char * fieldName)
+{
+    const char * buffer;
+    int columnNumber;
+    const char * field;
+
+    // Locate the field name
+    field = (const char *)ctx->_csvFileData;
+    for (columnNumber = 0; columnNumber < ctx->_csvFieldCount; columnNumber++)
+    {
+        if (strcmp(field, fieldName) == 0)
+            break;
+        field += strlen(field) + 1;
+    }
+
+    // Handle the error when the fieldName does not match any fields in the file
+    if (columnNumber >= ctx->_csvFieldCount)
+        return nullptr;
+
+    // Locate the specific field
+    for (int index = 0; index < columnNumber; index++)
+        csvEntry += strlen(csvEntry) + 1;
+    return csvEntry;
+}
+
+//----------------------------------------
+// Set the next line in the CSV file
+//----------------------------------------
+char * deviceFirmwareCsvNextLine(DEVICE_FIRMWARE_CTX * ctx,
+                                 char * buffer,
+                                 const char * bufferEnd)
+{
+    // Skip over the fields in the current line
+    for (int index = 0; (index < ctx->_csvFieldCount) && (buffer < bufferEnd); index++)
+    {
+        buffer += strlen(buffer) + 1;
+    }
+
+    // Skip over any extra zero's for \r or \n
+    while (*buffer == 0)
+        buffer += 1;
+    return buffer;
+}
+
+//----------------------------------------
+// Open the CSV file and allocate the CSV buffer
+//----------------------------------------
+void deviceFirmwareCsvOpen(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    do
+    {
+        // Open the CSV file
+        if (deviceFirmwareOpenUrl(ctx, currentMsec) == false)
+            break;
+
+        // Allocate space for the CSV file
+        ctx->_csvFileBytes = ctx->_fileBytes;
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("Allocating CSV file buffer, %d bytes\r\n", ctx->_csvFileBytes);
+        ctx->_csvFileData = (uint8_t *)rtkMalloc(ctx->_csvFileBytes, "CSV file data");
+        if (ctx->_csvFileData == nullptr)
+        {
+            systemPrintf("ERROR: Failed to allocate the CSV file buffer, %d bytes\r\n", ctx->_fileBytes);
+            break;
+        }
+        deviceFirmwareReadInit(ctx, ctx->_csvFileData, ctx->_csvFileBytes);
+        ctx->_inputDeviceType = DFU_IDT_NETWORK;
+        deviceFirmwareStateSet(ctx, DFUS_CSV_READ);
+        return;
+    } while (0);
+
+    // Failed to open or parse the CSV file, force last state
+    ctx->_deviceInfo = &deviceFirmwareInfo[0];
+    deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+}
+
+//----------------------------------------
+// Read the CSV file data into the CSV buffer
+//----------------------------------------
+void deviceFirmwareCsvRead(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+{
+    if (deviceFirmwareRead(ctx, currentMsec, DFUS_CSV_CLOSE))
+    {
+        // Empty the buffer
+        ctx->_validDataBytes = 0;
+
+        // Wait until done
+        if (ctx->_bytesRead == ctx->_csvFileBytes)
+            deviceFirmwareStateSet(ctx, DFUS_CSV_CLOSE);
+    }
+}
+
+//----------------------------------------
+// Does the device need an update
+//----------------------------------------
+bool deviceFirmwareCsvVersionNeedsUpdating(DEVICE_FIRMWARE_CTX * ctx)
+{
+    const DEVICE_FIRMWARE_INFO * deviceInfo;
+    int major;
+    int minor;
+    int patch;
+    int releaseCandidate;
+    int revision;
+
+    // Get the values from the CSV file
+    major = deviceFirmwareCsvGetNumber(ctx, "version_major");
+    minor = deviceFirmwareCsvGetNumber(ctx, "version_minor");
+    patch = deviceFirmwareCsvGetNumber(ctx, "version_patch");
+    revision = deviceFirmwareCsvGetNumber(ctx, "version_revision");
+    releaseCandidate = deviceFirmwareCsvGetNumber(ctx, "release_candidate");
+
+    // Determine if the device need updating
+    deviceInfo = ctx->_deviceInfo;
+
+    // Always upgrade if comparison routine is not specified
+    // Always upgrade if version does not match the CSV specified version
+    return ((deviceInfo->_cmpVersion == nullptr)
+        || (deviceInfo->_cmpVersion(ctx,
+                                    major,
+                                    minor,
+                                    patch,
+                                    revision,
+                                    releaseCandidate) != 0));
 }
 
 //----------------------------------------
@@ -752,8 +1304,8 @@ void deviceFirmwareNextDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     }
 
     // Handle the next device
-    deviceFirmwareStateSet(ctx, ctx->_doAll ? DFUS_GET_DEVICE :
-                               (ctx->_reboot ? DFUS_REBOOT : DFUS_DONE));
+    deviceFirmwareStateSet(ctx, (ctx->_doAll || ctx->_useCsv) ? DFUS_GET_DEVICE :
+                                (ctx->_reboot ? DFUS_REBOOT : DFUS_DONE));
 }
 
 //----------------------------------------
@@ -1208,7 +1760,7 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
         // Are all the devices being updated?
         deviceInfo = ctx->_deviceInfo;
-        if (ctx->_doAll)
+        if (ctx->_doAll || ctx->_useCsv)
         {
             // Performing the firmware update
             ctx->_outputDeviceType = DFU_ODT_DEVICE;
@@ -1305,8 +1857,10 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     const DEVICE_FIRMWARE_INFO * deviceInfo;
+    const char * fileName;
     int incoming;
     size_t length;
+    String url;
 
     do
     {
@@ -1352,6 +1906,71 @@ void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
                     // Program the next device
                     goto nextDevice;
+                }
+            }
+        }
+        else if (ctx->_useCsv)
+        {
+            // Start from the end of the device list
+            if (ctx->_deviceInfo == nullptr)
+                ctx->_deviceInfo = &deviceFirmwareInfo[deviceFirmwareInfoCount];
+
+            // Locate the next device
+            while (1)
+            {
+                // Determine if it is time to reboot
+                if (ctx->_deviceInfo == &deviceFirmwareInfo[0])
+                {
+                    if (ctx->_reboot)
+                        dfuEsp32Reboot();
+
+                    // Display the firmware update failure
+                    systemPrintf("%s\r\n", dfuEqualSigns);
+                    systemPrintf("HALTED: Firmware update failed!\r\n");
+                    systemPrintf("%s\r\n", dfuEqualSigns);
+                    reportFatalError("Firmware update failed!");
+                }
+
+                // Determine if the next device is in the system
+                ctx->_deviceInfo -= 1;
+                deviceInfo = ctx->_deviceInfo;
+                if ((deviceInfo->_present == nullptr)
+                    || (*deviceInfo->_present))
+                {
+                    // Attempt to locate this device in the CSV file
+                    ctx->_csvDeviceEntry = deviceFirmwareCsvLocateDevice(ctx);
+                    if (ctx->_csvDeviceEntry)
+                    {
+                        // Verify the version
+                        if (deviceFirmwareCsvVersionNeedsUpdating(ctx))
+                        {
+                            // Determine if the read buffer has been allocated
+                            if ((dfuBufferInfo[0]._bufferData == nullptr)
+                                || (dfuBufferInfo[0]._bufferData->_address == nullptr))
+                            {
+                                // Allocate the buffers
+                                if (deviceFirmwareBufferAllocate(ctx) == false)
+                                    reportFatalError("Failed buffer allocation!");
+                            }
+
+                            // Display the firmware version
+                            if (deviceInfo->_version)
+                                systemPrintf("Current firmware version: %d\r\n", deviceInfo->_version(ctx));
+
+                            // Program the next device
+                            goto nextDevice;
+                        }
+
+                        // No need to update, already at the correct version
+                        else
+                        {
+                            const char * separation = &dfuEqualSigns[strlen(dfuEqualSigns) - 40];
+
+                            systemPrintf("%s\r\n", separation);
+                            systemPrintf("%s is already up-to-date\r\n", deviceInfo->_deviceName);
+                            systemPrintf("%s\r\n", separation);
+                        }
+                    }
                 }
             }
         }
@@ -1434,6 +2053,39 @@ nextDevice:
             // Determine maximum bytes to write at a time
             ctx->_bytesMax = deviceInfo->_maxWriteBytes
                            ? deviceInfo->_maxWriteBytes : ctx->_bufferLength;
+
+            // When using the CSV file, build the URL and start the device programming
+            if (ctx->_useCsv)
+            {
+                // Get the file_path
+                fileName = deviceFirmwareCsvLocateField(ctx, ctx->_csvDeviceEntry, "file_name");
+                if (fileName == nullptr)
+                {
+                    systemPrintf("ERROR: Unable to locate file_path in CSV file for %s\r\n", ctx->_deviceInfo->_deviceName);
+                    deviceInfo = &deviceFirmwareInfo[0];
+                    deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+                    break;
+                }
+
+                // Build the file name
+                ctx->_fileName = "/";
+                ctx->_fileName += fileName;
+
+                // Build the raw URL
+                url = deviceInfo->_server;
+                if (deviceInfo->_rawBranch)
+                    url += deviceInfo->_rawBranch;
+                if (deviceInfo->_directory)
+                    url += deviceInfo->_directory;
+                url += ctx->_fileName;
+                ctx->_url = url;
+                ctx->_validDataBytes = 0;
+
+
+                // Determine what to do with this file
+                deviceFirmwareStateSet(ctx, DFUS_SELECT_ACTION);
+                break;
+            }
 
             // Get the files
             systemPrintf("Getting the file list...\r\n");
@@ -1659,6 +2311,9 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
             {
             case DFUS_INIT: deviceFirmwareInit(ctx, currentMsec); break;
             case DFUS_WAIT_NETWORK: deviceFirmwareWaitForNetwork(ctx, currentMsec); break;
+            case DFUS_CSV_OPEN: deviceFirmwareCsvOpen(ctx, currentMsec); break;
+            case DFUS_CSV_READ: deviceFirmwareCsvRead(ctx, currentMsec); break;
+            case DFUS_CSV_CLOSE: deviceFirmwareCsvClose(ctx, currentMsec); break;
             case DFUS_GET_DEVICE: deviceFirmwareSelectDevice(ctx, currentMsec); break;
             case DFUS_GET_NETWORK_FILES: dfuNetworkFileListBuildUrl(ctx); break;
             case DFUS_GET_HTTP_FILE_LIST_REQ: dfuNetworkFileListHtmlRequest(ctx, currentMsec); break;
@@ -1701,7 +2356,8 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
 //----------------------------------------
 // State machine to perform the device firmware update
 //----------------------------------------
-bool deviceFirmwareUpdateBegin(bool doAll,
+bool deviceFirmwareUpdateBegin(const char * csvUrl,
+                               bool doAll,
                                bool debugVerbose,
                                size_t saveDataLength)
 {
@@ -1739,6 +2395,12 @@ bool deviceFirmwareUpdateBegin(bool doAll,
         // Initialize the context
         memset(ctx, 0, length);
         ctx->_doAll = doAll;
+        if (csvUrl)
+        {
+            ctx->_useCsv = true;
+            ctx->_url = String(csvUrl);
+            ctx->_reboot = true;
+        }
         ctx->_debugVerbose = debugVerbose;
         if (doAll)
         {
@@ -1782,6 +2444,17 @@ void deviceFirmwareVerifyTables()
 }
 
 //----------------------------------------
+// Convert the version number into a string
+//----------------------------------------
+String deviceFirmwareVersion(int versionNumber)
+{
+    char line[32];
+
+    sprintf(line, "%d", versionNumber);
+    return String(line);
+}
+
+//----------------------------------------
 // Wait for a network connection
 //----------------------------------------
 bool deviceFirmwareWaitForNetwork(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
@@ -1811,9 +2484,15 @@ bool deviceFirmwareWaitForNetwork(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMse
         // Done timing out the network connection
         ctx->_timerMsec = 0;
 
-        // Display the menu
-        deviceFirmwareStateSet(ctx, DFUS_GET_DEVICE);
-        deviceFirmwareDeviceListMenu(ctx);
+        // Determine if CSV file is being used
+        if (ctx->_useCsv)
+            deviceFirmwareStateSet(ctx, DFUS_CSV_OPEN);
+        else
+        {
+            // Display the menu
+            deviceFirmwareStateSet(ctx, DFUS_GET_DEVICE);
+            deviceFirmwareDeviceListMenu(ctx);
+        }
     } while (0);
     return hasInternetAccess;
 }

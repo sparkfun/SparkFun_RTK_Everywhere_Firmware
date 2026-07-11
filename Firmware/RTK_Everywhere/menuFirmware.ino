@@ -95,6 +95,7 @@ void firmwareMenu()
         // Letters: a  c  e  i  r  s  u
         otaMenuDisplay(currentVersion);
         systemPrintf("D) %s developer options\r\n", developerOptions ? "Disable" : "Enable");
+        systemPrintf("p) Restore product to production firmware\r\n");
         if (developerOptions)
         {
             systemPrintf("d) %s firmware debugging\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
@@ -140,7 +141,17 @@ void firmwareMenu()
         // Perform the device firmware update
         else if (developerOptions && ((incoming == 'l') || (incoming == 'o')))
         {
-            deviceFirmwareUpdateBegin(incoming == 'l', debugVerbose);
+            deviceFirmwareUpdateBegin(nullptr, incoming == 'l', debugVerbose);
+            while (deviceFirmwareUpdate(millis()))
+            {
+                networkUpdate();
+            }
+        }
+
+        // Restore product to production firmware
+        else if (incoming == 'p')
+        {
+            deviceFirmwareUpdateBegin(csvUrl, false, debugVerbose);
             while (deviceFirmwareUpdate(millis()))
             {
                 networkUpdate();
