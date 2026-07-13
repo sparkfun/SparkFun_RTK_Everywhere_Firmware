@@ -1203,10 +1203,24 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
         systemPrintf("Compensated GNGGA:\r\n%s\r\n", nmeaSentence);
 }
 
+// Force tilt detection
+void tiltForceDetectionReboot()
+{
+    // Force the tilt detection
+    settings.detectedTilt = false;
+    settings.testedTilt = false;
+    recordSystemSettings();
+
+    // Reboot the system
+    systemReset();
+}
+
 // Determine if a tilt sensor is available or not
 // Records outcome to NVM
 void tiltDetect()
 {
+    int x;
+
     // Only test housings that may have a tilt sensor on board
     if (variantHousingProperties->tiltPossible == false)
         return;
@@ -1258,7 +1272,7 @@ void tiltDetect()
     // The library will try twice with a 250ms
     // If communication fails, retry after a 3s timeout
     uint8_t maxTries = 2;
-    for (int x = 0; x < maxTries; x++)
+    for (x = 0; x < maxTries; x++)
     {
         if (tiltSensor->begin(SerialTiltTest) == true)
         {
@@ -1270,6 +1284,13 @@ void tiltDetect()
 
         if (x < (maxTries - 1))
             delay(3000);
+    }
+
+    // Check for tilt sensor not detected
+    if (x == maxTries)
+    {
+        delete tiltSensor;
+        tiltSensor = nullptr;
     }
 
     SerialTiltTest.end(); // Release UART2 for reuse

@@ -699,21 +699,24 @@ static void pushGPGGA(char *ggaData)
 // using serial or other begin() methods
 // To reduce potential false ID's, record the ID to NVM
 // If we have a previous ID, use it
-void gnssDetectReceiverType()
+bool gnssDetectReceiverType()
 {
     int index;
+    bool ranDetection;
 
     // Currently only the Facet FP requires GNSS receiver detection
     if (productVariant != RTK_FACET_FP)
-        return;
+        return true;
 
     if (gpioExpanderDetectGnss() == true)
     {
         gnssBoot(); // Tell GNSS to run
 
         // Start auto-detect if NVM is not yet set
+        ranDetection = false;
         if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
         {
+            ranDetection = true;
             systemPrintln("Beginning GNSS autodetection");
             displayGNSSAutodetect(0);
 
@@ -765,7 +768,7 @@ void gnssDetectReceiverType()
                 {
                     if (gnssSupportRoutines[index]._newClass)
                         gnssSupportRoutines[index]._newClass();
-                    return;
+                    return ranDetection;
                 }
             }
         }
@@ -779,6 +782,7 @@ void gnssDetectReceiverType()
     systemPrintln("Failed to detect or identify a Flex module.");
     settings.enablePrintBatteryMessages = true; // Print _something_ to the console
     displayGNSSAutodetectFailed(2000);
+    return true;
 }
 
 // Based on the platform, put the GNSS receiver into run mode

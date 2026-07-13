@@ -1413,7 +1413,7 @@ void setup()
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
 
     DMW_b("gnssDetectReceiverType");
-    gnssDetectReceiverType(); // If we don't know the receiver from the platform, auto-detect it. Uses settings.
+    bool ranDetect = gnssDetectReceiverType(); // If we don't know the receiver from the platform, auto-detect it. Uses settings.
 
     // Check array defaults - after gnssDetectReceiverType() - before gnss->begin()
     DMW_b("checkArrayDefaults");
@@ -1459,6 +1459,14 @@ void setup()
 
     DMW_b("gnss->begin");
     gnss->begin(); // Requires settings - with array defaults
+
+    // Has the user switched the GNSS board in the Facet FP?
+    if ((online.gnss == false) && (ranDetect == false) && (productVariant == RTK_FACET_FP))
+    {
+        // Possibly, lets detect things again
+        settings.detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN;
+        tiltForceDetectionReboot();
+    }
 
     DMW_b("beginRtcmParse");
     beginRtcmParse();
