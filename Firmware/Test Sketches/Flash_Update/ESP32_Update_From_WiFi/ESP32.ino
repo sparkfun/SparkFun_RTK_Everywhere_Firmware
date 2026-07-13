@@ -10,37 +10,14 @@ bool espStreamFirmware(char *relativeFirmwareFileLocation)
     systemPrintln("Starting ESP32 firmware update...");
 
     WiFiClientSecure client;
-    client.setCACert(GITHUB_RAW_PUBLIC_CERT);
-
-    // Preflight TLS handshake using the expected host name.
-    // With CA configured, connect() fails if certificate validation fails.
-    if (!client.connect(OTA_FIRMWARE_GITHUB_RAW, 443))
+    if (!otaSecurelyConnectGitHub(client))
     {
-        systemPrintln("TLS socket connect failed");
+        systemPrintln("Failed to securely connect to GitHub.");
         return false;
     }
 
-    //if (settings.debugFirmwareUpdate)
-        systemPrintln("TLS certificate verified for raw.githubusercontent.com");
-
-    client.stop();
-
-    // The relative file location looks like "\imu\im19\20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc"
-    // We need to access "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc"
-
-    char firmwareFileLocation[256];
-    snprintf(firmwareFileLocation, sizeof(firmwareFileLocation), "https://%s/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main%s", OTA_FIRMWARE_GITHUB_RAW, relativeFirmwareFileLocation);
-
-    // Convert backslashes to forward slashes for URL formatting
-    for (char *c = firmwareFileLocation; *c != '\0'; c++)
-        if (*c == '\\')
-            *c = '/';
-
-    //if (settings.debugFirmwareUpdate)
-        systemPrintf("Starting HTTP GET for firmware: %s\r\n", firmwareFileLocation);
-
     HTTPClient http;
-    if (!http.begin(client, firmwareFileLocation))
+    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
     {
         systemPrintln("Unable to begin HTTP request.");
         return false;

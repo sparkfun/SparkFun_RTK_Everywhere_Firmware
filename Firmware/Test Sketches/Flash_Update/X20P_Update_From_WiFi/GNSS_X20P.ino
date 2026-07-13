@@ -244,8 +244,8 @@ int x20pSendAndWaitAck(HardwareSerial &ser, uint8_t cls, uint8_t id, const uint8
 }
 
 // Send a poll request and wait for the response with the same class/id.
-bool x20pPollMsg(HardwareSerial &ser, uint8_t cls, uint8_t id, const uint8_t *payload, uint16_t payloadLen,
-                 UbxMsg &out, uint32_t timeoutMs)
+bool x20pPollMsg(HardwareSerial &ser, uint8_t cls, uint8_t id, const uint8_t *payload, uint16_t payloadLen, UbxMsg &out,
+                 uint32_t timeoutMs)
 {
     x20pSend(ser, cls, id, payload, payloadLen);
     return x20pWaitForMsg(ser, cls, id, out, timeoutMs);
@@ -292,8 +292,8 @@ void x20pSendDataFrame(HardwareSerial &ser, uint32_t address, const uint8_t *chu
  * eraseComplete / eraseCompleteAt are in/out: once the CERASE response is
  * seen they are set and remain true for all subsequent packet calls.
  */
-bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk, uint16_t chunkLen,
-                    bool &eraseComplete, uint32_t &eraseCompleteAt)
+bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk, uint16_t chunkLen, bool &eraseComplete,
+                    uint32_t &eraseCompleteAt)
 {
     if (chunkLen == 0 || chunkLen > PACKET_SIZE)
         return false;
@@ -461,7 +461,7 @@ bool x20pFirmwareUpdateBegin()
 
     // Candidates sorted in generally most common order.
     const uint32_t baudCandidates[] = {115200, 38400, 9600, 230400, 57600, 460800, 921600};
-    
+
     for (uint8_t i = 0; i < (sizeof(baudCandidates) / sizeof(baudCandidates[0])); i++)
     {
         systemPrintf("Checking communication at %d...\r\n", baudCandidates[i]);
@@ -554,8 +554,7 @@ bool x20pFirmwareUpdateBegin()
         int cfgAck = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_CFG, UBX_CFG_VALSET, cfgPayload, sizeof(cfgPayload),
                                         TIMEOUT_POLL);
         systemPrint("  [DBG] CFG-VALSET ");
-        systemPrintln(cfgAck == 1 ? "ACK" : cfgAck == 0 ? "NAK"
-                                                         : "no-ACK (timeout)");
+        systemPrintln(cfgAck == 1 ? "ACK" : cfgAck == 0 ? "NAK" : "no-ACK (timeout)");
         if (cfgAck == 0)
         {
             systemPrintln("  ERROR: device NAK'd baud rate change - rate unsupported in loader");
@@ -713,6 +712,37 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
         return false;
     }
 
+    WiFiClientSecure client;
+    if (!otaSecurelyConnectGitHub(client))
+    {
+        systemPrintln("Failed to securely connect to GitHub.");
+        return false;
+    }
+
+    HTTPClient http;
+    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
+    {
+        systemPrintln("Unable to begin HTTP request.");
+        return false;
+    }
+
+    int httpCode = http.GET();
+    if (httpCode != HTTP_CODE_OK)
+    {
+        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
+        http.end();
+        return false;
+    }
+
+    int contentLength = http.getSize();
+    if (contentLength > 0)
+        firmwareUpdateBytesToProcess = (uint32_t)contentLength;
+
+    WiFiClient *stream = http.getStreamPtr();
+    uint8_t buffer[256];
+
+    bool success = true;
+
     systemPrintln("Starting X20P firmware update...");
 
     if (x20pFirmwareUpdateBegin() == false)
@@ -723,100 +753,40 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
 
     systemPrintln("Device is in bootloader mode.");
 
-    bool success = true;
-
-    WiFiClientSecure client;
-    client.setCACert(GITHUB_RAW_PUBLIC_CERT);
-
-    // Preflight TLS handshake using the expected host name.
-    // With CA configured, connect() fails if certificate validation fails.
-    if (!client.connect(OTA_FIRMWARE_GITHUB_RAW, 443))
+    while (http.connected() && (contentLength > 0 || contentLength == -1))
     {
-        systemPrintln("TLS socket connect failed");
-        success = false;
-    }
-    else
-    {
-        // if (settings.debugFirmwareUpdate)
-        systemPrintln("TLS certificate verified for raw.githubusercontent.com");
-
-        client.stop();
-
-        // The relative file location looks like "\imu\im19\20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc"
-        // We need to access "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc"
-
-        char firmwareFileLocation[256];
-        snprintf(firmwareFileLocation, sizeof(firmwareFileLocation), "https://%s/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main%s", OTA_FIRMWARE_GITHUB_RAW, relativeFirmwareFileLocation);
-
-        // Convert backslashes to forward slashes for URL formatting
-        for (char *c = firmwareFileLocation; *c != '\0'; c++)
-            if (*c == '\\')
-                *c = '/';
-
-        // if (settings.debugFirmwareUpdate)
-        systemPrintf("Starting HTTP GET for firmware: %s\r\n", firmwareFileLocation);
-
-        HTTPClient http;
-        if (!http.begin(client, firmwareFileLocation))
+        size_t available = stream->available();
+        if (available == 0)
         {
-            systemPrintln("Unable to begin HTTP request.");
+            if (!client.connected())
+                break;
+            delay(1);
+            continue;
+        }
+
+        size_t toRead = min(available, sizeof(buffer));
+        int bytesRead = stream->readBytes(buffer, toRead);
+        if (bytesRead <= 0)
+            break;
+
+        if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
+        {
+            systemPrintln("Firmware update failed during WiFi data upload.");
             success = false;
+            break;
         }
-        else
-        {
-            int httpCode = http.GET();
-            if (httpCode != HTTP_CODE_OK)
-            {
-                systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
-                success = false;
-            }
-            else
-            {
-                int contentLength = http.getSize();
-                if (contentLength > 0)
-                    firmwareUpdateBytesToProcess = (uint32_t)contentLength;
 
-                WiFiClient *stream = http.getStreamPtr();
-                uint8_t buffer[256];
+        firmwareUpdateProgressCallback(bytesRead);
 
-                while (http.connected() && (contentLength > 0 || contentLength == -1))
-                {
-                    size_t available = stream->available();
-                    if (available == 0)
-                    {
-                        if (!client.connected())
-                            break;
-                        delay(1);
-                        continue;
-                    }
-
-                    size_t toRead = min(available, sizeof(buffer));
-                    int bytesRead = stream->readBytes(buffer, toRead);
-                    if (bytesRead <= 0)
-                        break;
-
-                    if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
-                    {
-                        systemPrintln("Firmware update failed during WiFi data upload.");
-                        success = false;
-                        break;
-                    }
-
-                    firmwareUpdateProgressCallback(bytesRead);
-
-                    if (contentLength > 0)
-                        contentLength -= bytesRead;
-                }
-
-                if (success)
-                    systemPrintln("Update successfully completed.");
-            }
-
-            http.end();
-        }
+        if (contentLength > 0)
+            contentLength -= bytesRead;
     }
 
-    if (success == false)
+    http.end();
+
+    if (success)
+        systemPrintln("X20P update successfully completed.");
+    else
         systemPrintln("X20P firmware update failed.");
 
     // x20pFirmwareUpdateBegin() succeeded above, so End() must always run -

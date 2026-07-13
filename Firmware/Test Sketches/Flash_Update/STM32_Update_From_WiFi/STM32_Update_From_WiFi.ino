@@ -5,10 +5,10 @@
 
     This was written for FP hardware but should be adaptable to the Torch.
 
-    To test: load this sketch onto an FP. 
+    To test: load this sketch onto an FP.
     Press 'u' to start the update. Allow the update to complete.
-    Load RTK Everywhere and put the device into STM32 passthrough mode. 
-    Use STM32CubeProgrammer to read the flash and compare it against the contents of 'SparkPNT_LoRa_3.0.1.bin'. 
+    Load RTK Everywhere and put the device into STM32 passthrough mode.
+    Use STM32CubeProgrammer to read the flash and compare it against the contents of 'SparkPNT_LoRa_3.0.1.bin'.
     Files should be identical.
 
     All loaders should have similar structure:
@@ -23,9 +23,9 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 
 #include "settings.h"
 
+#include <HTTPClient.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
-#include <HTTPClient.h>
 
 const char *wifiSSID = "Roving";
 const char *wifiPassword = "sparkfun";
@@ -107,20 +107,7 @@ void loop()
             // Start timer before erase
             firmwareUpdateStartTime = millis();
 
-            stm32UpdateFirmwareBegin();
-
-            systemPrintln("Loading new firmware...");
-
-            if (stm32StreamFirmware(firmwareURL) == false)
-            {
-                systemPrintln("STM32 firmware update failed.");
-                return;
-            }
-
-            if (stm32UpdateFirmwareEnd())
-                systemPrintln("LoRa/STM32 updated successfully.");
-            else
-                systemPrintln("LoRa/STM32 update failed.");
+            stm32StreamFirmware(firmwareURL);
 
             // Stop timer and print elapsed time
             firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;

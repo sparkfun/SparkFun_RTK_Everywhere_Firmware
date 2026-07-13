@@ -30,9 +30,6 @@ char *firmwareURL = "/RTK_Everywhere_Firmware_v3_3.bin";
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
 
-// Reports firmware update progress to the shared system callback.
-void firmwareUpdateProgressCallback(uint16_t bytesProcessed);
-
 // Timer for firmware update duration
 unsigned long firmwareUpdateStartTime = 0;
 unsigned long firmwareUpdateElapsed = 0;
