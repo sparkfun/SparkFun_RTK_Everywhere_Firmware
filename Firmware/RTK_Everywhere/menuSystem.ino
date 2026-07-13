@@ -691,6 +691,8 @@ void menuDebugHardware()
         if (present.imu_im19)
             systemPrintln("28) IM19 direct connect for firmware upgrade"); // Torch / FP
 
+        systemPrintln("c) Display configuration");
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("r) Force system reset");
@@ -884,6 +886,8 @@ void menuDebugHardware()
                 ESP.restart();
             }
         }
+        else if (incoming == 'c')
+            systemDisplayConfiguration();
         else if (incoming == 'e')
         {
             systemPrintln("Erasing LittleFS and resetting");

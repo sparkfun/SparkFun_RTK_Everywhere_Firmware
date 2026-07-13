@@ -1764,7 +1764,7 @@ void pinI2CTask(void *pvParameters)
         bus0speed = 400;
 
     // Initialize I2C bus 0
-    if (i2cBusInitialization(i2c_0, pin_I2C0_SDA, pin_I2C0_SCL, bus0speed))
+    if (i2cBusInitialization(i2c_0, 0, pin_I2C0_SDA, pin_I2C0_SCL, bus0speed))
         // Update the I2C status
         online.i2c = true;
 
@@ -1777,7 +1777,7 @@ void pinI2CTask(void *pvParameters)
 
         if (pin_I2C1_SDA == PIN_UNDEFINED || pin_I2C1_SCL == PIN_UNDEFINED)
             reportFatalError("Illegal I2C1 pin assignment.");
-        i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, bus1speed);
+        i2cBusInitialization(i2c_1, 1, pin_I2C1_SDA, pin_I2C1_SCL, bus1speed);
     }
 
     // Stop notification
@@ -1788,13 +1788,10 @@ void pinI2CTask(void *pvParameters)
 }
 
 // Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
-bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
+bool i2cBusEnumerate(TwoWire *i2cBus, int i2cBusNumber)
 {
     bool deviceFound;
     uint32_t timer;
-
-    i2cBus->begin(sda, scl); // SDA, SCL - Start I2C on the core that was chosen when the task was started
-    i2cBus->setClock(clockKHz * 1000);
 
     // Display the device addresses
     deviceFound = false;
@@ -1818,7 +1815,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
             {
                 if (deviceFound == false)
                 {
-                    systemPrintln("I2C Devices:");
+                    systemPrintf("I2C-%d Devices:\r\n", i2cBusNumber);
                     deviceFound = true;
                 }
 
@@ -1830,7 +1827,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
         {
             if (deviceFound == false)
             {
-                systemPrintln("I2C Devices:");
+                systemPrintf("I2C-%d Devices:\r\n", i2cBusNumber);
                 deviceFound = true;
             }
 
@@ -1921,6 +1918,16 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
         return false;
     }
     return true;
+}
+
+// Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
+bool i2cBusInitialization(TwoWire *i2cBus, int i2cBusNumber, int sda, int scl, int clockKHz)
+{
+    i2cBus->begin(sda, scl); // SDA, SCL - Start I2C on the core that was chosen when the task was started
+    i2cBus->setClock(clockKHz * 1000);
+
+    // Display the device addresses
+    return i2cBusEnumerate(i2cBus, i2cBusNumber);
 }
 
 // Start task to determine SD card size
