@@ -1617,60 +1617,59 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
     bool running;
     const char * stateName;
 
-    do
+    // Get the context instance
+    running = false;
+    ctx = dfuContext;
+    if (ctx)
     {
-        running = false;
-
-        // Get the context instance
-        ctx = dfuContext;
-        if (ctx == nullptr)
-            break;
-
-        running = true;
-
-        // Blink the LED
-        deviceFirmwareLedBlink(ctx, currentMsec);
-
-        // Perform the firmware update
-        switch (ctx->_state)
+        do
         {
-        case DFUS_INIT: deviceFirmwareInit(ctx, currentMsec); break;
-        case DFUS_WAIT_NETWORK: deviceFirmwareWaitForNetwork(ctx, currentMsec); break;
-        case DFUS_GET_DEVICE: deviceFirmwareSelectDevice(ctx, currentMsec); break;
-        case DFUS_GET_NETWORK_FILES: dfuNetworkFileListBuildUrl(ctx); break;
-        case DFUS_GET_HTTP_FILE_LIST_REQ: dfuNetworkFileListHtmlRequest(ctx, currentMsec); break;
-        case DFUS_GET_NETWORK_FILE_LIST: dfuNetworkFileListGetFileName(ctx, currentMsec); break;
-        case DFUS_GET_NVM_FILE_LIST: dfuNvmGetFiles(ctx, currentMsec); break;
-        case DFUS_GET_SD_FILE_LIST: dfuSdGetFiles(ctx, currentMsec); break;
-        case DFUS_SELECT_FILE: deviceFirmwareSelectFile(ctx, currentMsec); break;
-        case DFUS_SELECT_ACTION: deviceFirmwareSelectAction(ctx, currentMsec); break;
-        case DFUS_CRC_OPEN_INPUT: deviceFirmwareCrcOpen(ctx, currentMsec); break;
-        case DFUS_CRC_READ_DATA: deviceFirmwareCrcReadData(ctx, currentMsec); break;
-        case DFUS_CRC_CLOSE: deviceFirmwareCrcClose(ctx, currentMsec); break;
-        case DFUS_DEVICE_OPEN_INPUT: deviceFirmwareOpenFirmwareFile(ctx, currentMsec); break;
-        case DFUS_DEVICE_FILL_BUFFER: deviceFirmwareReadFillBuffer(ctx, currentMsec); break;
-        case DFUS_DEVICE_RESET: deviceFirmwareReset(ctx, currentMsec); break;
-        case DFUS_DEVICE_OPEN_OUTPUT: deviceFirmwareOpenOutput(ctx, currentMsec); break;
-        case DFUS_DEVICE_PROGRAM_FIRMWARE: deviceFirmwareWrite(ctx, currentMsec); break;
-        case DFUS_READ_FIRMWARE_DATA: deviceFirmwareReadFirmwareData(ctx, currentMsec); break;
-        case DFUS_DEVICE_CLOSE: deviceFirmwareClose(ctx, currentMsec); break;
-        case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
-        case DFUS_REBOOT: dfuEsp32Reboot(); break;
+            running = true;
 
-        case DFUS_DONE:
-            deviceFirmwareBufferFree(ctx, true);
-            deviceFirmwareCleanup(ctx);
-            running = false;
-            break;
+            // Blink the LED
+            deviceFirmwareLedBlink(ctx, currentMsec);
 
-        default:
-            stateName = deviceFirmwareStateGetName(ctx->_state);
-            systemPrintf("Device firmware update state: %d (%s)\r\n", ctx->_state, stateName);
-            reportFatalError("Device firmware update state not implemented!");
-            deviceFirmwareStateSet(ctx, DFUS_DONE);
-            break;
-        }
-    } while (dfuLoopInUpdate);
+            // Perform the firmware update
+            switch (ctx->_state)
+            {
+            case DFUS_INIT: deviceFirmwareInit(ctx, currentMsec); break;
+            case DFUS_WAIT_NETWORK: deviceFirmwareWaitForNetwork(ctx, currentMsec); break;
+            case DFUS_GET_DEVICE: deviceFirmwareSelectDevice(ctx, currentMsec); break;
+            case DFUS_GET_NETWORK_FILES: dfuNetworkFileListBuildUrl(ctx); break;
+            case DFUS_GET_HTTP_FILE_LIST_REQ: dfuNetworkFileListHtmlRequest(ctx, currentMsec); break;
+            case DFUS_GET_NETWORK_FILE_LIST: dfuNetworkFileListGetFileName(ctx, currentMsec); break;
+            case DFUS_GET_NVM_FILE_LIST: dfuNvmGetFiles(ctx, currentMsec); break;
+            case DFUS_GET_SD_FILE_LIST: dfuSdGetFiles(ctx, currentMsec); break;
+            case DFUS_SELECT_FILE: deviceFirmwareSelectFile(ctx, currentMsec); break;
+            case DFUS_SELECT_ACTION: deviceFirmwareSelectAction(ctx, currentMsec); break;
+            case DFUS_CRC_OPEN_INPUT: deviceFirmwareCrcOpen(ctx, currentMsec); break;
+            case DFUS_CRC_READ_DATA: deviceFirmwareCrcReadData(ctx, currentMsec); break;
+            case DFUS_CRC_CLOSE: deviceFirmwareCrcClose(ctx, currentMsec); break;
+            case DFUS_DEVICE_OPEN_INPUT: deviceFirmwareOpenFirmwareFile(ctx, currentMsec); break;
+            case DFUS_DEVICE_FILL_BUFFER: deviceFirmwareReadFillBuffer(ctx, currentMsec); break;
+            case DFUS_DEVICE_RESET: deviceFirmwareReset(ctx, currentMsec); break;
+            case DFUS_DEVICE_OPEN_OUTPUT: deviceFirmwareOpenOutput(ctx, currentMsec); break;
+            case DFUS_DEVICE_PROGRAM_FIRMWARE: deviceFirmwareWrite(ctx, currentMsec); break;
+            case DFUS_READ_FIRMWARE_DATA: deviceFirmwareReadFirmwareData(ctx, currentMsec); break;
+            case DFUS_DEVICE_CLOSE: deviceFirmwareClose(ctx, currentMsec); break;
+            case DFUS_NEXT_DEVICE: deviceFirmwareNextDevice(ctx, currentMsec); break;
+            case DFUS_REBOOT: dfuEsp32Reboot(); break;
+
+            case DFUS_DONE:
+                deviceFirmwareBufferFree(ctx, true);
+                deviceFirmwareCleanup(ctx);
+                running = false;
+                break;
+
+            default:
+                stateName = deviceFirmwareStateGetName(ctx->_state);
+                systemPrintf("Device firmware update state: %d (%s)\r\n", ctx->_state, stateName);
+                reportFatalError("Device firmware update state not implemented!");
+                deviceFirmwareStateSet(ctx, DFUS_DONE);
+                break;
+            }
+        } while (dfuLoopInUpdate);
+    }
     return running;
 }
 
