@@ -1800,7 +1800,8 @@ bool deviceFirmwareWaitForNetwork(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMse
 void deviceFirmwareWrite(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     size_t bytesToWrite;
-    size_t bytesWritten;
+    ssize_t bytesWritten;
+    bool done;
     int percentage;
     DEVICE_WRITE write;
 
@@ -1828,19 +1829,21 @@ void deviceFirmwareWrite(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             bytesWritten = dfuNvmWrite(ctx, ctx->_data, bytesToWrite);
         else if (ctx->_outputDeviceType == DFU_ODT_SD)
             bytesWritten = dfuSdWrite(ctx, ctx->_data, bytesToWrite);
-        if (bytesWritten >= 0)
-        {
-            // Account for the data written
-            ctx->_validDataBytes -= bytesWritten;
-            ctx->_data += bytesWritten;
-            ctx->_bytesWritten += bytesWritten;
-            if (ctx->_bytesWritten == ctx->_fileBytes)
-                ctx->_complete = true;
 
-            // Display the number of bytes written
-            if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
-                systemPrintf("bytesWritten: %d\r\n", bytesWritten);
-        }
+        // Handle the error case
+        if (bytesWritten <= 0)
+            break;
+
+        // Account for the data written
+        ctx->_validDataBytes -= bytesWritten;
+        ctx->_data += bytesWritten;
+        ctx->_bytesWritten += bytesWritten;
+        if (ctx->_bytesWritten == ctx->_fileBytes)
+            ctx->_complete = true;
+
+        // Display the number of bytes written
+        if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+            systemPrintf("bytesWritten: %d\r\n", bytesWritten);
     }
 
     // Display the percentage changes
@@ -1855,10 +1858,11 @@ void deviceFirmwareWrite(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     }
 
     // Read more data
-    if (ctx->_complete || settings.debugFirmwareUpdate)
+    done = ctx->_complete || (bytesWritten <= 0);
+    if (ctx->_complete && (settings.debugFirmwareUpdate == false))
         systemPrintln();
-    deviceFirmwareStateSet(ctx, ctx->_complete ? DFUS_DEVICE_CLOSE
-                                               : DFUS_READ_FIRMWARE_DATA);
+    deviceFirmwareStateSet(ctx, done ? DFUS_DEVICE_CLOSE
+                                     : DFUS_READ_FIRMWARE_DATA);
 }
 
 #endif  // COMPILE_NETWORK
