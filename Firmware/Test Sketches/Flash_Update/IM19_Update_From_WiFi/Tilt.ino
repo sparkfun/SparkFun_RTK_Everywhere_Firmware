@@ -8,7 +8,7 @@ const uint16_t IM19_FRAME_TYPE_CPL = 0x03;
 const uint16_t IM19_FRAME_TYPE_RDY = 0x04;
 const int IM19_FRAME_PAYLOAD_SIZE = 256;
 const int IM19_FRAME_SIZE = 12 + IM19_FRAME_PAYLOAD_SIZE; // 12-byte frame header + 256-byte payload
-const int IM19_FRAME_MAP_SIZE = 256;                 // 2048 bits -> max 2048 frames (512KB firmware) we are able to track
+const int IM19_FRAME_MAP_SIZE = 256; // 2048 bits -> max 2048 frames (512KB firmware) we are able to track
 
 uint8_t *im19FrameMap = nullptr; // Tracks individual frames. Firmware completes when all frames are marked received.
 
@@ -33,8 +33,8 @@ int im19ReceiveTimeout(uint8_t *buffer, int size, int timeoutMs)
     int len = 0;
     while ((millis() - start) < (unsigned long)timeoutMs && len < size)
     {
-        if (uart2Serial.available())
-            buffer[len++] = uart2Serial.read();
+        if (uart2Serial->available())
+            buffer[len++] = uart2Serial->read();
     }
     return len > 0 ? len : -1;
 }
@@ -55,7 +55,7 @@ bool im19FindStr(const uint8_t *buf, int bufLen, const char *str)
 bool im19SendCommand(const char *cmd, const char *response)
 {
     uint8_t buf[128];
-    uart2Serial.write(cmd, strlen(cmd));
+    uart2Serial->write(cmd, strlen(cmd));
     delay(50);
 
     int retry = 5;
@@ -82,7 +82,7 @@ bool im19GetVersionString(char *versionOut, size_t versionOutSize)
     int retry = 3;
     while (retry--)
     {
-        uart2Serial.write(CMD_VERSION, strlen(CMD_VERSION));
+        uart2Serial->write(CMD_VERSION, strlen(CMD_VERSION));
         delay(50);
 
         int totalLen = 0;
@@ -131,7 +131,7 @@ bool im19GetVersionString(char *versionOut, size_t versionOutSize)
 void im19Reset()
 {
     const char CMD_RESET[] = "AT+SYSTEM_RESET\r\n";
-    uart2Serial.write(CMD_RESET, strlen(CMD_RESET));
+    uart2Serial->write(CMD_RESET, strlen(CMD_RESET));
 }
 
 // Decodes a little-endian uint16 from a byte buffer.
@@ -192,7 +192,7 @@ void im19SendCmdFrame(uint16_t cmd, uint32_t frameTotal)
     }
     im19BuildFrame(cmd, 0xFFFFFFFF, frame);
 
-    uart2Serial.write(frame, IM19_FRAME_SIZE);
+    uart2Serial->write(frame, IM19_FRAME_SIZE);
 
     delay(50);
 }
@@ -206,9 +206,10 @@ void im19SendFrameBytes(const uint8_t *payload, uint32_t payloadLen, uint32_t fr
 
     im19BuildFrame(IM19_FRAME_TYPE_BIN, frameID, frame);
 
-    uart2Serial.write(frame, IM19_FRAME_SIZE);
+    uart2Serial->write(frame, IM19_FRAME_SIZE);
 
     firmwareUpdateProgressCallback((uint16_t)payloadLen);
+    
     delay(50);
 }
 
@@ -428,6 +429,7 @@ int im19UpdateFirmwareEndPass()
     }
 
     systemPrintln(lostFrames ? "Resending missing frames" : "No response, retrying");
+    firmwareUpdateProgressCallback(0);
     im19ResetFrameAssembly();
     return IM19_UPDATE_RETRY;
 }
@@ -447,5 +449,210 @@ void im19UpdateFirmwareEnd()
     }
     im19ResetFrameAssembly();
 }
+
+// Connects to the configured SSID and blocks until connected or the attempt times out.
+bool wifiConnect()
+{
+    systemPrint("Connecting to WiFi SSID: ");
+    systemPrintln(wifiSSID);
+
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(wifiSSID, wifiPassword);
+
+    unsigned long start = millis();
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        if ((millis() - start) > 20000)
+        {
+            systemPrintln("WiFi connection timed out.");
+            return false;
+        }
+        delay(250);
+        systemPrint(".");
+    }
+
+    systemPrint("WiFi connected, IP address: ");
+    systemPrintln(WiFi.localIP());
+    return true;
+}
+
+// Downloads the firmware file over HTTPS and feeds it to im19UpdateFirmware() in chunks.
+// Issues a fresh GET request each time it is called, since a retry pass needs the
+// full source data re-streamed (already-received frames are skipped by im19UpdateFirmware).
+bool im19StreamFirmwareFromURL(const char *url)
+{
+    WiFiClientSecure client;
+    client.setInsecure(); // Skip certificate validation - test firmware only
+
+    systemPrintf("Starting HTTP GET for firmware from URL: %s\r\n", url);
+
+    HTTPClient http;
+    if (!http.begin(client, url))
+    {
+        systemPrintln("Unable to begin HTTP request.");
+        return false;
+    }
+
+    int httpCode = http.GET();
+    if (httpCode != HTTP_CODE_OK)
+    {
+        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
+        http.end();
+        return false;
+    }
+
+    int contentLength = http.getSize();
+    if (contentLength > 0)
+        firmwareUpdateBytesToProcess = (uint32_t)contentLength;
+
+    WiFiClient *stream = http.getStreamPtr();
+    uint8_t buffer[WIFI_DOWNLOAD_CHUNK_SIZE];
+    bool success = true;
+
+    // Frames already acknowledged by the IM19 (tracked in im19FrameMap)
+    // are skipped rather than resent.
+    bool updateSuccess = false;
+    bool uploadFailed = false;
+    int passesLeft = 5;
+    while (passesLeft > 0)
+    {
+        bool passOk = false;
+
+        while (http.connected() && (contentLength > 0 || contentLength == -1))
+        {
+            size_t available = stream->available();
+            if (available == 0)
+            {
+                if (!client.connected())
+                    break;
+                delay(1);
+                continue;
+            }
+
+            size_t toRead = min(available, sizeof(buffer));
+            int bytesRead = stream->readBytes(buffer, toRead);
+            if (bytesRead <= 0)
+                break;
+
+            if (im19UpdateFirmware(buffer, (uint32_t)bytesRead) == false)
+            {
+                systemPrintln("Firmware update failed during WiFi data upload.");
+                success = false;
+                break;
+            }
+
+            if (contentLength > 0)
+                contentLength -= bytesRead;
+        }
+
+        // We have received all the bytes we're going to get. Run end pass to verify all frames were received.
+        if (success == true)
+        {
+            int result = im19UpdateFirmwareEndPass();
+            passesLeft--;
+            if (result == IM19_UPDATE_SUCCESS)
+            {
+                break;
+            }
+            else if (result == IM19_UPDATE_FAILED)
+            {
+                break;
+            }
+            else // IM19_UPDATE_RETRY: loop and re-stream the source
+
+            {
+                systemPrintln("Firmware update pass failed, retrying...");
+            }
+        }
+    }
+
+    http.end();
+    return success;
+}
+
+// Runs the full IM19 firmware update: brings up the UART and WiFi (if needed),
+// enters bootloader mode, streams the firmware (retrying up to 5 passes, since
+// already-received frames are tracked in im19FrameMap and skipped on resend),
+// and verifies the new image boots.
+bool im19StreamFirmwarePass(char *relativeFirmwareFileLocation)
+{
+    beginUart2Serial();
+
+    pinMode(pin_GNSS_DR_Reset, OUTPUT);
+    digitalWrite(pin_GNSS_DR_Reset, HIGH); // Keep GNSS/DR out of reset
+
+    if (wifiConnect() == false)
+        return false;
+
+    systemPrintln("Starting IM19 firmware update...");
+
+    // Start timer before erase
+    firmwareUpdateStartTime = millis();
+
+    if (im19UpdateFirmwareBegin() == false)
+    {
+        systemPrintln("Failed to enter update mode (AT+UPDATE_APP).");
+        return false;
+    }
+    systemPrintln("IM19 is in update mode, sending firmware...");
+
+    firmwareUpdateBytesProcessed = 0;
+    firmwareUpdateBytesToProcess = 0; // Set once Content-Length is known from the HTTP response
+
+    // Frames already acknowledged by the IM19 (tracked in im19FrameMap)
+    // are skipped rather than resent.
+    bool updateSuccess = false;
+    bool uploadFailed = false;
+    int passesLeft = 5;
+    while (passesLeft > 0)
+    {
+        bool passOk = false;
+        passOk = im19StreamFirmwareFromURL(relativeFirmwareFileLocation);
+        if (passOk == false)
+        {
+            uploadFailed = true;
+            break;
+        }
+
+        int result = im19UpdateFirmwareEndPass();
+        passesLeft--;
+        if (result == IM19_UPDATE_SUCCESS)
+        {
+            updateSuccess = true;
+            break;
+        }
+        else if (result == IM19_UPDATE_FAILED)
+        {
+            break;
+        }
+        // else IM19_UPDATE_RETRY: loop and re-stream the source
+    }
+
+    im19UpdateFirmwareEnd();
+
+    if (updateSuccess)
+        systemPrintln("Upgrade completed successfully.");
+    else
+        systemPrintln("Upgrade failed.");
+
+    if (updateSuccess)
+    {
+        char versionLine[96];
+        systemPrint("Checking device version: ");
+        if (im19GetVersionString(versionLine, sizeof(versionLine)))
+            systemPrintln(versionLine);
+        else
+            systemPrintln("Version query failed.");
+    }
+
+    // Stop timer and print elapsed time
+    firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
+    systemPrint("Firmware update time: ");
+    systemPrint(firmwareUpdateElapsed / 1000.0, 3);
+    systemPrintln(" seconds");
+
+    return updateSuccess;
+}
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of IM19 firmware update functions.
