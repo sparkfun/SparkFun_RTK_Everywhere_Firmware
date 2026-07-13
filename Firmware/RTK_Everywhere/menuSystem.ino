@@ -1246,6 +1246,9 @@ void menuOperation()
         systemPrint("9) UART Receive Buffer Size: ");
         systemPrintln(settings.uartReceiveBufferSize);
 
+        // Tilt
+        systemPrintf("10) Force Tilt detect\r\n");
+
         // PPL Float Lock timeout
         systemPrint("11) Set PPL RTK Fix Timeout (seconds): ");
         if (settings.pplFixTimeoutS > 0)
@@ -1340,6 +1343,11 @@ void menuOperation()
                 ESP.restart();
             }
         }
+
+        // Allow the user to force tilt detection in case they switched the GNSS
+        // board in the Facet FP to one with the same GNSS but now has the tilt sensor
+        else if (incoming == 10)
+            tiltForceDetectionReboot();
         else if (incoming == 11)
         {
             getNewSetting("Enter number of seconds in RTK float using PPL, before reset", 0, 3600,
