@@ -719,6 +719,13 @@ enum
 typedef uint8_t NETCONSUMER_t;
 typedef uint16_t NETCONSUMER_MASK_t;
 
+enum Im19UpdateResult
+{
+    IM19_UPDATE_FAILED = 0,
+    IM19_UPDATE_SUCCESS,
+    IM19_UPDATE_RETRY, // lost frames (or no response) - caller should re-stream the source and call again
+};
+
 enum PP_NickName
 {
     PP_NICKNAME_DISABLED = 0,
