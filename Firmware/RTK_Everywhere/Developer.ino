@@ -577,5 +577,5 @@ void loraTxDirectConnect() {}
 void muxSelectUm980() {}
 void muxSelectUsb() {}
 void updateLora() {}
-bool stm32StreamFirmwareUpdate(char *relativeFirmwareFileLocation) {return false;}
+bool stm32StreamFirmware(char *relativeFirmwareFileLocation) {return false;}
 #endif  // COMPILE_LORA
