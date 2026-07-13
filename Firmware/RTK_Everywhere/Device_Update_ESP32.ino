@@ -97,8 +97,8 @@ void dfuEsp32Reboot()
 // ESP32 firmware write
 //----------------------------------------
 ssize_t dfuEsp32Write(DEVICE_FIRMWARE_CTX * ctx,
-                   uint8_t * buffer,
+                   const uint8_t * buffer,
                    size_t bytesToWrite)
 {
-    return Update.write(buffer, bytesToWrite);
+    return Update.write((uint8_t *)buffer, bytesToWrite);
 }
