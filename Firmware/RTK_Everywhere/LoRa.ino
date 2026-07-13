@@ -1512,7 +1512,7 @@ void loraPrint(const char *data)
 // Print a message to the primary serial port
 // If the port is also being used for bootloader communication (ie on Torch)
 // then switch to USB, print a status update, then return to talking to the STM32.
-void loraSharedPrintln(char *toPrint)
+void loraSharedPrintln(const char *toPrint)
 {
     if (productVariant == RTK_TORCH)
     {

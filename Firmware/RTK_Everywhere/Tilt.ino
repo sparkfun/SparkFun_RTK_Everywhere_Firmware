@@ -1298,7 +1298,7 @@ bool imuCheckPassthroughFile()
 }
 bool imuRemovePassthroughFile()
 {
-    removeFileLfs("/updateImuFirmware.txt");
+    return removeFileLfs("/updateImuFirmware.txt");
 }
 
 void imuBeginFirmwareUpdate()

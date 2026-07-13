@@ -969,7 +969,7 @@ void otaUpdate()
 
                     webServerSendString("newSubsystemFirmware,CURRENT,"); // Report systems are up to date
 
-                    commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware", "CURRENT");
+                    commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware", (char *)"CURRENT");
 
                     otaRequestFirmwareVersionCheck = false;
                     otaSetState(OTA_STATE_OFF);
