@@ -1203,6 +1203,18 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
         systemPrintf("Compensated GNGGA:\r\n%s\r\n", nmeaSentence);
 }
 
+// Force tilt detection
+void tiltForceDetectionReboot()
+{
+    // Force the tilt detection
+    settings.detectedTilt = false;
+    settings.testedTilt = false;
+    recordSystemSettings();
+
+    // Reboot the system
+    systemReset();
+}
+
 // Determine if a tilt sensor is available or not
 // Records outcome to NVM
 void tiltDetect()
