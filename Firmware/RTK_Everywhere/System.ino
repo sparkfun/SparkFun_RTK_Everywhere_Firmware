@@ -946,7 +946,7 @@ void reportFatalError(const char *errorMsg)
     displayHalt();
 
     // Empty the FIFO of any incoming data
-    serialInputClear();
+    serialInputClear(&Serial);
 
     lastDisplayMsec = millis() - MILLISECONDS_IN_A_DAY;
     while (1)
@@ -1276,4 +1276,64 @@ void gpioExpanderConnectGNSSToESP32()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S5, LOW);
+}
+
+// Read the switches value from the GPIO expander
+int gpioExpanderSwitchesRead()
+{
+    uint8_t data;
+
+    if (gpioExpanderSwitches->getInputRegister(&data) == PCA95XX_ERROR_SUCCESS)
+        return data;
+    systemPrintf("GPIO expander read failure!\r\n");
+    return -1;
+}
+
+void gpioExpanderDisplay()
+{
+    int data;
+
+    data = gpioExpanderSwitchesRead();
+    if (data < 0)
+        return;
+    if (productVariant == RTK_POSTCARD)
+    {
+        systemPrintf("GPIO Expander: 0x%02x", data);
+        if (data & 0x80) systemPrintf(", IO7");
+        if (data & 0x40) systemPrintf(", IO6");
+        if (data & 0x20) systemPrintf(", Card Detect");
+        if (data & 0x10) systemPrintf(", Center");
+        if (data & 0x08) systemPrintf(", Left");
+        if (data & 0x04) systemPrintf(", Right");
+        if (data & 0x02) systemPrintf(", Down");
+        if (data & 0x01) systemPrintf(", Up");
+        systemPrintln();
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        // ttyACM0 -> GNSS USB UART
+        //
+        // GNSS UART 1 -> SW5 (1) -> ttyACM1
+        //                 '->(0) -> ESP32 UART 1
+        //
+        //                             .->(1) -> GNSS UART 4
+        // ESP32 UART 0 -> SW1 (1) -> SW2 (0) -> RS232
+        //                  '->(0) ------------> ttyACM2
+        //
+
+        systemPrintf("GPIO Expander: 0x%02x\r\n", data);
+        systemPrintf("    GNSS UART 1 -> %s\r\n", (data & 0x80) ? "ttyASM1" :"ESP32 UART 1");
+        if (data & 0x40) systemPrintf("    LoRa BOOT\r\n");
+        systemPrintf("    GNSS: %s\r\n", (data & 0x20) ? "Run" : "Reset");
+        systemPrintf("    LoRa: %s\r\n", (data & 0x10) ? "Enable" : "Disable");
+        systemPrintf("    GNSS UART 2 -> %s\r\n", (data & 0x08) ? "LoRa UART 0" : "JST TTL Serial");
+        systemPrintf("    ESP32 UART 2 -> %s\r\n", (data & 0x04) ? "LoRa UART 2" : "GNSS UART 3");
+        switch (data & 3)
+        {
+        case 2:
+        case 0: systemPrintf("    ESP32 UART 0 -> ttyASM2\r\n"); break;
+        case 1: systemPrintf("    ESP32 UART 0 -> Serial Connector\r\n"); break;
+        case 3: systemPrintf("    ESP32 UART 0 -> GNSS UART 4\r\n"); break;
+        }
+    }
 }

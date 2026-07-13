@@ -7,7 +7,7 @@
             "label": "Compile and Upload",
             "type": "shell",
             // None level of error, no warnings, fast upload
-            "command": "arduino-cli --fqbn esp32:esp32:esp32:DebugLevel=none,UploadSpeed=921600 compile STM32_Update_From_Array.ino -p COM26 -u",
+            "command": "arduino-cli --fqbn esp32:esp32:esp32:DebugLevel=none,UploadSpeed=921600 compile STM32_Update_From_Array.ino -p COM16 -u",
 
             "group": {
                 "kind": "build",
@@ -27,7 +27,7 @@
         {
             "label": "Just Upload",
             "type": "shell",
-            "command": "arduino-cli upload -p COM26 --fqbn esp32:esp32:esp32:UploadSpeed=921600 STM32_Update_From_Array.ino",
+            "command": "arduino-cli upload -p COM16 --fqbn esp32:esp32:esp32:UploadSpeed=921600 STM32_Update_From_Array.ino",
             "group": {
                 "kind": "build",
                 "isDefault": true

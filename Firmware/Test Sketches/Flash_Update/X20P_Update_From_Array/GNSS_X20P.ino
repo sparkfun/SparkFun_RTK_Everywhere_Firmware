@@ -56,7 +56,6 @@
 
 #define PACKET_SIZE 2048u
 
-
 // Write one byte to ser, updating the running Fletcher-8 checksum.
 static inline void x20pWriteByte(HardwareSerial &s, uint8_t v, uint8_t &ca, uint8_t &cb)
 {
@@ -197,7 +196,7 @@ bool x20pWaitForMsg(HardwareSerial &ser, int wantCls, int wantId, UbxMsg &out, u
 // Send a message and wait for the standard UBX-ACK-ACK / UBX-ACK-NAK.
 // Returns  1 = ACK,  0 = NAK,  -1 = timeout.
 int x20pSendAndWaitAck(HardwareSerial &ser, uint8_t cls, uint8_t id, const uint8_t *payload, uint16_t payloadLen,
-                          uint32_t timeoutMs)
+                       uint32_t timeoutMs)
 {
     x20pSend(ser, cls, id, payload, payloadLen);
     uint32_t deadline = millis() + timeoutMs;
@@ -216,7 +215,7 @@ int x20pSendAndWaitAck(HardwareSerial &ser, uint8_t cls, uint8_t id, const uint8
 
 // Send a poll request and wait for the response with the same class/id.
 bool x20pPollMsg(HardwareSerial &ser, uint8_t cls, uint8_t id, const uint8_t *payload, uint16_t payloadLen,
-                    UbxMsg &out, uint32_t timeoutMs)
+                 UbxMsg &out, uint32_t timeoutMs)
 {
     x20pSend(ser, cls, id, payload, payloadLen);
     return x20pWaitForMsg(ser, cls, id, out, timeoutMs);
@@ -262,7 +261,7 @@ void x20pSendDataFrame(HardwareSerial &ser, uint32_t address, const uint8_t *chu
  * seen they are set and remain true for all subsequent packet calls.
  */
 bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk, uint16_t chunkLen,
-                     bool &eraseComplete, uint32_t &eraseCompleteAt)
+                    bool &eraseComplete, uint32_t &eraseCompleteAt)
 {
     if (chunkLen == 0 || chunkLen > PACKET_SIZE)
         return false;
@@ -395,7 +394,7 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
     Serial.println("Starting flash loader task...");
     const uint8_t startLoaderPayload[] = {0x01};
     ack = x20pSendAndWaitAck(ser, UBX_CLASS_UPD, 0x07, startLoaderPayload, 1,
-                         TIMEOUT_POLL); // Enter safeboot, start loader task
+                             TIMEOUT_POLL); // Enter safeboot, start loader task
     if (ack == -1)
     {
         Serial.println("  ERROR: timed out");
@@ -449,7 +448,8 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
         // Wait for ACK at old rate — device sends ACK then applies new baud.
         int cfgAck = x20pSendAndWaitAck(ser, UBX_CLASS_CFG, UBX_CFG_VALSET, cfgPayload, sizeof(cfgPayload), TIMEOUT_POLL);
         Serial.print("  [DBG] CFG-VALSET ");
-        Serial.println(cfgAck == 1 ? "ACK" : cfgAck == 0 ? "NAK" : "no-ACK (timeout)");
+        Serial.println(cfgAck == 1 ? "ACK" : cfgAck == 0 ? "NAK"
+                                                         : "no-ACK (timeout)");
         if (cfgAck == 0)
         {
             Serial.println("  ERROR: device NAK'd baud rate change — rate unsupported in loader");
@@ -588,22 +588,39 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
 
 bool x20pFirmwareUpdateBegin()
 {
-    // Training sequence — helps the module's autobaud lock on
-    SerialGNSS.write(0x55);
-    SerialGNSS.write(0x55);
-    delay(10);
+    Serial.println("Resetting GNSS");
+    gpioExpanderGnssReset();
+    delay(25);
+    gpioExpanderGnssBoot();
+    delay(250);
 
-    // Confirm UBX communication with a MON-VER poll
-    Serial.println("Checking communication...");
-    UbxMsg monVer;
-    if (!x20pPollMsg(SerialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, monVer, TIMEOUT_POLL))
+    const uint32_t baudCandidates[] = {115200, 38400, 9600, 230400, 57600, 460800, 921600};
+    for (uint8_t i = 0; i < (sizeof(baudCandidates) / sizeof(baudCandidates[0])); i++)
     {
-        Serial.println("ERROR: cannot communicate with ZED-X20P.");
-        Serial.println("       Check wiring and GPS_BAUD setting.");
-        return false;
+        Serial.printf("Checking communication at %d...\r\n", baudCandidates[i]);
+
+        SerialGNSS.updateBaudRate(baudCandidates[i]);
+        
+        delay(10);
+        while(SerialGNSS.available())
+            SerialGNSS.read();
+
+        // Training sequence — helps the module's autobaud lock on
+        SerialGNSS.write(0x55);
+        SerialGNSS.write(0x55);
+        delay(10);
+
+        // Confirm UBX communication with a MON-VER poll
+        UbxMsg monVer;
+        if (x20pPollMsg(SerialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, monVer, TIMEOUT_POLL) == true)
+        {
+            Serial.printf("  OK at %d baud.\r\n", baudCandidates[i]);
+            return true;
+        }
+        Serial.printf("  No response at %d baud.\r\n", baudCandidates[i]);
     }
-    Serial.println("Connected to ZED-X20P.");
-    return true;
+
+    return false;
 }
 
 void x20pFirmwareUpdateEnd()

@@ -15,12 +15,12 @@ void firmwareUpdateProgressCallback(uint16_t bytesProcessed)
 
     uint8_t filled = (progressPercent * progressBarWidth) / 100;
 
-        // Don't update unless there is a change
+    // Don't update unless there is a change
     if (progressPercent == lastUpdatePercent)
         return;
 
     lastUpdatePercent = progressPercent;
-    
+
     Serial.print("Update Progress: [");
     for (uint8_t i = 0; i < progressBarWidth; i++)
         Serial.print(i < filled ? '#' : '-');
