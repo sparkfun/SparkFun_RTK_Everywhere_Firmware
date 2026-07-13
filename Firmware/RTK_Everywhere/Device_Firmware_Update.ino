@@ -50,7 +50,7 @@ const int dfuStateNameCount = sizeof(dfuStateName) / sizeof(dfuStateName[0]);
 const char * dfuEqualSigns = "==================================================";
 
 //----------------------------------------
-// Constants
+// Locals
 //----------------------------------------
 
 static bool dfuLoopInUpdate;    // Loop in deviceFirmwareUpdate while set
