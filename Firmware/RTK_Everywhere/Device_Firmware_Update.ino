@@ -273,7 +273,7 @@ void deviceFirmwareClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
         // Programming a device
         else
-            deviceFirmwareStateSet(ctx, ctx->_reboot ? DFUS_REBOOT : DFUS_DONE);
+            deviceFirmwareStateSet(ctx, ctx->_reboot ? DFUS_REBOOT : DFUS_NEXT_DEVICE);
     }
 }
 
