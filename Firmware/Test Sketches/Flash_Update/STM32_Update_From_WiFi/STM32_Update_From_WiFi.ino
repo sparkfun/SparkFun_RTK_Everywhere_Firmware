@@ -51,7 +51,7 @@ const int gpioExpanderSwitch_S5 = 7;         // Controls U61 switch 5: connect G
 const int gpioExpanderNumSwitches = 8;
 
 // Communication Port
-HardwareSerial SerialForLoRa(2);
+HardwareSerial *SerialForLoRa;
 #define pin_IMU_TX 17
 #define pin_IMU_RX 14
 const int loraBaud = 115200; // Increasing the baud rate does not decrease the programming time. Programming time is
@@ -81,7 +81,9 @@ void setup()
 
     beginGpioExpanderSwitches();
 
-    SerialForLoRa.begin(loraBaud, SERIAL_8E1, pin_IMU_RX, pin_IMU_TX); // STM32 bootloader requires Even parity
+    SerialForLoRa = new HardwareSerial(2);
+
+    SerialForLoRa->begin(loraBaud, SERIAL_8E1, pin_IMU_RX, pin_IMU_TX); // STM32 bootloader requires Even parity
 
     // Connect ESP32 UART2 to LoRa UART2 via SW3 for configuration and bootloading/firmware updates
     gpioExpanderSelectLoraConfigure();

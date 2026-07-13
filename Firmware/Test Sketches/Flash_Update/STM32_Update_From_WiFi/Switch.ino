@@ -77,3 +77,26 @@ void beginGpioExpanderSwitches()
     systemPrintln("GPIO Expander for switches configuration complete");
   //}
 }
+
+void loraEnterBootloader()
+{
+    gpioExpanderLoraBootEnable();
+
+    // loraReset();
+}
+
+void loraExitBootloader()
+{
+    gpioExpanderLoraBootDisable();
+
+    // loraReset();
+}
+
+// There is not a hardware reset pin exposed. Power cycle the device.
+void loraReset()
+{
+    gpioExpanderLoraDisable(); // Power off
+    delay(100);
+    gpioExpanderLoraEnable(); // Power on
+    delay(100);
+}

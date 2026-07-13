@@ -1,26 +1,3 @@
-void loraEnterBootloader()
-{
-    gpioExpanderLoraBootEnable();
-
-    // loraReset();
-}
-
-void loraExitBootloader()
-{
-    gpioExpanderLoraBootDisable();
-
-    // loraReset();
-}
-
-// There is not a hardware reset pin exposed. Power cycle the device.
-void loraReset()
-{
-    gpioExpanderLoraDisable(); // Power off
-    delay(100);
-    gpioExpanderLoraEnable(); // Power on
-    delay(100);
-}
-
 // The following functions are for the STM32 firmware update process.
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -54,9 +31,9 @@ bool stm32UpdateFirmwareWaitForAck()
     uint32_t startTime = millis();
     while (millis() - startTime < 1000)
     {
-        if (SerialForLoRa.available())
+        if (SerialForLoRa->available())
         {
-            if (SerialForLoRa.read() == 0x79)
+            if (SerialForLoRa->read() == 0x79)
                 return true;
         }
         else
@@ -74,7 +51,7 @@ void stm32UpdateFirmwareBegin()
     stm32UpdateFailed = false;
 
     // Send 0x7F for auto-baud detection
-    SerialForLoRa.write(0x7F);
+    SerialForLoRa->write(0x7F);
     if (stm32UpdateFirmwareWaitForAck())
     {
         systemPrintln("STM32 Bootloader Synced.");
@@ -89,13 +66,13 @@ void stm32UpdateFirmwareBegin()
     systemPrintln("Erasing flash...");
 
     // Global Mass Erase Command (0x44 for extended erase)
-    SerialForLoRa.write(0x44);
-    SerialForLoRa.write(0xBB); // Checksum for 0x44
+    SerialForLoRa->write(0x44);
+    SerialForLoRa->write(0xBB); // Checksum for 0x44
     if (stm32UpdateFirmwareWaitForAck())
     {
-        SerialForLoRa.write(0xFF); // Special Mass Erase
-        SerialForLoRa.write(0xFF);
-        SerialForLoRa.write(0x00); // Checksum
+        SerialForLoRa->write(0xFF); // Special Mass Erase
+        SerialForLoRa->write(0xFF);
+        SerialForLoRa->write(0x00); // Checksum
         // Mass erase of the whole chip can take much longer than a normal command ACK,
         // so poll well past the usual 1 second window before giving up.
         bool erased = false;
@@ -144,30 +121,30 @@ bool stm32UpdateFirmwareFlashBlock(uint32_t addr, uint8_t *data, uint16_t len)
     // systemPrintf("Flashing block: Addr=0x%08X, Len=%d\n\r", addr, len);
 
     // Write Memory Command
-    SerialForLoRa.write(0x31);
-    SerialForLoRa.write(0xCE);
+    SerialForLoRa->write(0x31);
+    SerialForLoRa->write(0xCE);
     if (stm32UpdateFirmwareWaitForAck() == false)
         return false;
 
     // Send Address + Checksum
     uint8_t addrBytes[4] = {(uint8_t)(addr >> 24), (uint8_t)(addr >> 16), (uint8_t)(addr >> 8), (uint8_t)addr};
     uint8_t checksum = addrBytes[0] ^ addrBytes[1] ^ addrBytes[2] ^ addrBytes[3];
-    SerialForLoRa.write(addrBytes, 4);
-    SerialForLoRa.write(checksum);
+    SerialForLoRa->write(addrBytes, 4);
+    SerialForLoRa->write(checksum);
 
     if (stm32UpdateFirmwareWaitForAck() == false)
         return false;
 
     // Send Number of bytes - 1 (STM32 protocol requirement)
     uint8_t n = len - 1;
-    SerialForLoRa.write(n);
+    SerialForLoRa->write(n);
     checksum = n;
     for (uint16_t i = 0; i < len; i++)
     {
-        SerialForLoRa.write(data[i]);
+        SerialForLoRa->write(data[i]);
         checksum ^= data[i];
     }
-    SerialForLoRa.write(checksum);
+    SerialForLoRa->write(checksum);
 
     return stm32UpdateFirmwareWaitForAck();
 }
