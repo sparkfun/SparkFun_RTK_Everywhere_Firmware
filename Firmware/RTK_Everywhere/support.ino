@@ -1568,10 +1568,10 @@ int countAppPartitions()
 //----------------------------------------
 // Discard any input data
 //----------------------------------------
-void serialInputClear()
+void serialInputClear(Stream * stream)
 {
-    while (Serial.available())
-        Serial.read();
+    while (stream->available())
+        stream->read();
 }
 
 // Returns true if a file exists on LittleFS, false if not or if LittleFS is not mounted
