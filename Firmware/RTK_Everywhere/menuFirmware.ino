@@ -1440,7 +1440,7 @@ bool otaGetSystemsToUpdate(char *modelType)
                 addTargetToUpdateList('E', remoteFilePath);
 
             // Force add if user selects it (only in debug mode)
-            if (otaForceUpdateEsp == true)
+            else if (otaForceUpdateEsp == true)
                 addTargetToUpdateList('E', remoteFilePath);
         }
         else if (otaIsGnssSubsystem(subsystem))
@@ -1465,7 +1465,7 @@ bool otaGetSystemsToUpdate(char *modelType)
             }
 
             // Force add if user selects it (only in debug mode)
-            if (otaForceUpdateGnss == true)
+            else if (otaForceUpdateGnss == true)
                 addTargetToUpdateList('G', remoteFilePath);
         }
         else if (strcasecmp(subsystem, "STM32WL") == 0)
@@ -1490,7 +1490,7 @@ bool otaGetSystemsToUpdate(char *modelType)
             }
 
             // Force add if user selects it (only in debug mode)
-            if (otaForceUpdateLora == true)
+            else if (otaForceUpdateLora == true)
                 addTargetToUpdateList('L', remoteFilePath);
         }
         else if (strcasecmp(subsystem, "IM19") == 0)
@@ -1513,7 +1513,7 @@ bool otaGetSystemsToUpdate(char *modelType)
             }
 
             // Force add if user selects it (only in debug mode)
-            if (otaForceUpdateImu == true)
+            else if (otaForceUpdateImu == true)
                 addTargetToUpdateList('I', remoteFilePath);
         }
         else
