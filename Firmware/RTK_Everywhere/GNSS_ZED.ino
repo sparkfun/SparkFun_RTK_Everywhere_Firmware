@@ -298,7 +298,7 @@ bool GNSS_ZED::setPPS()
         response &= _zed->addCfgValset(UBLOX_CFG_TP_PULSE_LENGTH_DEF, 1); // Define timepulse by length (not ratio)
         response &=
             _zed->addCfgValset(UBLOX_CFG_TP_USE_LOCKED_TP1,
-                               1);                                                          // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
+                               1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
         response &= _zed->addCfgValset(UBLOX_CFG_TP_TP1_ENA, settings.enableExternalPulse); // Enable/disable timepulse
         response &=
             _zed->addCfgValset(UBLOX_CFG_TP_POL_TP1, settings.externalPulsePolarity); // 0 = falling, 1 = rising edge
@@ -584,7 +584,7 @@ bool GNSS_ZED::configureNtpMode()
         response &= _zed->addCfgValset(UBLOX_CFG_TP_PULSE_LENGTH_DEF, 1); // Define timepulse by length (not ratio)
         response &=
             _zed->addCfgValset(UBLOX_CFG_TP_USE_LOCKED_TP1,
-                               1);                               // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
+                               1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
         response &= _zed->addCfgValset(UBLOX_CFG_TP_TP1_ENA, 1); // Enable timepulse
         response &= _zed->addCfgValset(UBLOX_CFG_TP_POL_TP1, 1); // 1 = rising edge
 
@@ -1558,8 +1558,7 @@ void GNSS_ZED::menuConstellations()
         if (present.pppCapable)
         {
             systemPrintf("%d) PPP Mode: %s\r\n", MAX_UBX_CONSTELLATIONS + 1,
-                         settings.pppMode == PPP_MODE_DISABLE ? "Disabled"
-                                                              : "E6/HAS");
+                         settings.pppMode == PPP_MODE_DISABLE ? "Disabled" : "E6/HAS");
         }
 
         systemPrintln("x) Exit");
@@ -2083,8 +2082,12 @@ bool GNSS_ZED::setPppService()
     {
         bool setValueSuccess = true;
         setValueSuccess &= _zed->newCfgValset(VAL_LAYER_ALL);
-        setValueSuccess &= _zed->addCfgValset(UBLOX_CFG_NAVCOR_ENABLE_HOST, (settings.pppMode == PPP_MODE_DISABLE) ? 1 : 0);    // Enable/Disable HOST corrections
-        setValueSuccess &= _zed->addCfgValset(UBLOX_CFG_NAVCOR_ENABLE_GAL_HAS, (settings.pppMode == PPP_MODE_DISABLE) ? 0 : 1); // Disable/Enable Galileo HAS corrections
+        setValueSuccess &=
+            _zed->addCfgValset(UBLOX_CFG_NAVCOR_ENABLE_HOST,
+                               (settings.pppMode == PPP_MODE_DISABLE) ? 1 : 0); // Enable/Disable HOST corrections
+        setValueSuccess &= _zed->addCfgValset(
+            UBLOX_CFG_NAVCOR_ENABLE_GAL_HAS,
+            (settings.pppMode == PPP_MODE_DISABLE) ? 0 : 1); // Disable/Enable Galileo HAS corrections
         setValueSuccess &= _zed->sendCfgValset();
         return setValueSuccess;
     }
@@ -3044,13 +3047,13 @@ void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros)
     t += (uint32_t)SFE_UBLOX_DAYS_SINCE_2020[gnss->getYear() - 2020]; // Add on the number of days since 2020
     t += (uint32_t)SFE_UBLOX_DAYS_SINCE_MONTH[gnss->getYear() % 4 == 0 ? 0 : 1]
                                              [gnss->getMonth() - 1]; // Add on the number of days since Jan 1st
-    t += (uint32_t)gnss->getDay() - 1;                               // Add on the number of days since the 1st of the month
-    t *= 24;                                                         // Convert to hours
-    t += (uint32_t)gnss->getHour();                                  // Add on the hour
-    t *= 60;                                                         // Convert to minutes
-    t += (uint32_t)gnss->getMinute();                                // Add on the minute
-    t *= 60;                                                         // Convert to seconds
-    t += (uint32_t)gnss->getSecond();                                // Add on the second
+    t += (uint32_t)gnss->getDay() - 1; // Add on the number of days since the 1st of the month
+    t *= 24;                           // Convert to hours
+    t += (uint32_t)gnss->getHour();    // Add on the hour
+    t *= 60;                           // Convert to minutes
+    t += (uint32_t)gnss->getMinute();  // Add on the minute
+    t *= 60;                           // Convert to seconds
+    t += (uint32_t)gnss->getSecond();  // Add on the second
 
     int32_t us = gnss->getNanosecond() / 1000; // Convert nanos to micros
     uint32_t micro;
@@ -3113,8 +3116,7 @@ bool zedCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands,
     default:
         return false;
 
-    case tUbxConst:
-    {
+    case tUbxConst: {
         // Record constellation settings
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -3126,8 +3128,7 @@ bool zedCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands,
         }
     }
     break;
-    case tUbxMsgRt:
-    {
+    case tUbxMsgRt: {
         // Record message settings
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -3139,8 +3140,7 @@ bool zedCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands,
         }
     }
     break;
-    case tUbMsgRtb:
-    {
+    case tUbMsgRtb: {
         // Record message settings
         GNSS_ZED *zed = (GNSS_ZED *)gnss;
         int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
@@ -3218,8 +3218,7 @@ bool zedCreateString(RTK_Settings_Types type, int settingsIndex, char *newSettin
     default:
         return false;
 
-    case tUbxConst:
-    {
+    case tUbxConst: {
         // Record constellation settings
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -3234,8 +3233,7 @@ bool zedCreateString(RTK_Settings_Types type, int settingsIndex, char *newSettin
         }
     }
     break;
-    case tUbxMsgRt:
-    {
+    case tUbxMsgRt: {
         // Record message settings
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -3246,8 +3244,7 @@ bool zedCreateString(RTK_Settings_Types type, int settingsIndex, char *newSettin
         }
     }
     break;
-    case tUbMsgRtb:
-    {
+    case tUbMsgRtb: {
         // Locate the first record
         GNSS_ZED *zed = (GNSS_ZED *)gnss;
         int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
@@ -3274,8 +3271,7 @@ bool zedGetSettingValue(RTK_Settings_Types type, const char *suffix, int setting
 {
     switch (type)
     {
-    case tUbxConst:
-    {
+    case tUbxConst: {
         for (int x = 0; x < qualifier; x++)
         {
             if ((suffix[0] == ubxConstellations[x].textName[0]) && (strcmp(suffix, ubxConstellations[x].textName) == 0))
@@ -3286,8 +3282,7 @@ bool zedGetSettingValue(RTK_Settings_Types type, const char *suffix, int setting
         }
     }
     break;
-    case tUbxMsgRt:
-    {
+    case tUbxMsgRt: {
         for (int x = 0; x < qualifier; x++)
         {
             if ((suffix[0] == ubxMessages[x].msgTextName[0]) && (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
@@ -3298,8 +3293,7 @@ bool zedGetSettingValue(RTK_Settings_Types type, const char *suffix, int setting
         }
     }
     break;
-    case tUbMsgRtb:
-    {
+    case tUbMsgRtb: {
         GNSS_ZED *zed = (GNSS_ZED *)gnss;
         int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
@@ -3374,18 +3368,14 @@ bool zedNewSettingValue(struct Settings *tempSettings, RTK_Settings_Types type, 
 //----------------------------------------
 // Called by gnssSettingsToFile to save ZED specific settings
 //----------------------------------------
-bool zedSettingsToFile(char *line,
-                       size_t lineSize,
-                       RTK_Settings_Types type,
-                       int settingsIndex)
+bool zedSettingsToFile(char *line, size_t lineSize, RTK_Settings_Types type, int settingsIndex)
 {
     switch (type)
     {
     default:
         return false;
 
-    case tUbxConst:
-    {
+    case tUbxConst: {
         // Record constellation settings
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -3400,20 +3390,18 @@ bool zedSettingsToFile(char *line,
         }
     }
     break;
-    case tUbxMsgRt:
-    {
+    case tUbxMsgRt: {
         // Record message settings
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
             // ubxMessageRate_UBX_NMEA_DTM=5
-            snprintf(line, lineSize, "%s%s=%d\r\n", rtkSettingsEntries[settingsIndex].name,
-                     ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
+            snprintf(line, lineSize, "%s%s=%d\r\n", rtkSettingsEntries[settingsIndex].name, ubxMessages[x].msgTextName,
+                     settings.ubxMessageRates[x]);
             nvmRecordStringToFile(line);
         }
     }
     break;
-    case tUbMsgRtb:
-    {
+    case tUbMsgRtb: {
         // Record message settings
 
         GNSS_ZED *zed = (GNSS_ZED *)gnss;
@@ -3749,8 +3737,8 @@ int x20pSendAndWaitAck(HardwareSerial &ser, uint8_t cls, uint8_t id, const uint8
 }
 
 // Send a poll request and wait for the response with the same class/id.
-bool x20pPollMsg(HardwareSerial &ser, uint8_t cls, uint8_t id, const uint8_t *payload, uint16_t payloadLen,
-                 UbxMsg &out, uint32_t timeoutMs)
+bool x20pPollMsg(HardwareSerial &ser, uint8_t cls, uint8_t id, const uint8_t *payload, uint16_t payloadLen, UbxMsg &out,
+                 uint32_t timeoutMs)
 {
     x20pSend(ser, cls, id, payload, payloadLen);
     return x20pWaitForMsg(ser, cls, id, out, timeoutMs);
@@ -3797,8 +3785,8 @@ void x20pSendDataFrame(HardwareSerial &ser, uint32_t address, const uint8_t *chu
  * eraseComplete / eraseCompleteAt are in/out: once the CERASE response is
  * seen they are set and remain true for all subsequent packet calls.
  */
-bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk, uint16_t chunkLen,
-                    bool &eraseComplete, uint32_t &eraseCompleteAt)
+bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk, uint16_t chunkLen, bool &eraseComplete,
+                    uint32_t &eraseCompleteAt)
 {
     if (chunkLen == 0 || chunkLen > PACKET_SIZE)
         return false;
@@ -4059,8 +4047,7 @@ bool x20pFirmwareUpdateBegin()
         int cfgAck = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_CFG, UBX_CFG_VALSET, cfgPayload, sizeof(cfgPayload),
                                         TIMEOUT_POLL);
         systemPrint("  [DBG] CFG-VALSET ");
-        systemPrintln(cfgAck == 1 ? "ACK" : cfgAck == 0 ? "NAK"
-                                                        : "no-ACK (timeout)");
+        systemPrintln(cfgAck == 1 ? "ACK" : cfgAck == 0 ? "NAK" : "no-ACK (timeout)");
         if (cfgAck == 0)
         {
             systemPrintln("  ERROR: device NAK'd baud rate change - rate unsupported in loader");
@@ -4231,97 +4218,75 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
 
     systemPrintln("Device is in bootloader mode.");
 
+    WiFiClientSecure client;
+    if (!otaSecurelyConnectGitHub(client))
+    {
+        systemPrintln("Failed to securely connect to GitHub.");
+        return false;
+    }
+
     bool success = true;
 
-    WiFiClientSecure client;
-    client.setCACert(GITHUB_RAW_PUBLIC_CERT);
+    // if (settings.debugFirmwareUpdate)
+    systemPrintf("Starting HTTP GET for firmware: %s\r\n", otaGetGithubFileLocation(relativeFirmwareFileLocation));
 
-    // Preflight TLS handshake using the expected host name.
-    // With CA configured, connect() fails if certificate validation fails.
-    if (!client.connect(OTA_FIRMWARE_GITHUB_RAW, 443))
+    HTTPClient http;
+    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
     {
-        systemPrintln("TLS socket connect failed");
+        systemPrintln("Unable to begin HTTP request.");
         success = false;
     }
     else
     {
-        // if (settings.debugFirmwareUpdate)
-        systemPrintln("TLS certificate verified for raw.githubusercontent.com");
-
-        client.stop();
-
-        // The relative file location looks like "\imu\im19\20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc"
-        // We need to access "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc"
-
-        char firmwareFileLocation[256];
-        snprintf(firmwareFileLocation, sizeof(firmwareFileLocation), "https://%s/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main%s", OTA_FIRMWARE_GITHUB_RAW, relativeFirmwareFileLocation);
-
-        // Convert backslashes to forward slashes for URL formatting
-        for (char *c = firmwareFileLocation; *c != '\0'; c++)
-            if (*c == '\\')
-                *c = '/';
-
-        // if (settings.debugFirmwareUpdate)
-        systemPrintf("Starting HTTP GET for firmware: %s\r\n", firmwareFileLocation);
-
-        HTTPClient http;
-        if (!http.begin(client, firmwareFileLocation))
+        int httpCode = http.GET();
+        if (httpCode != HTTP_CODE_OK)
         {
-            systemPrintln("Unable to begin HTTP request.");
+            systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
             success = false;
         }
         else
         {
-            int httpCode = http.GET();
-            if (httpCode != HTTP_CODE_OK)
-            {
-                systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
-                success = false;
-            }
-            else
-            {
-                int contentLength = http.getSize();
-                if (contentLength > 0)
-                    firmwareUpdateBytesToProcess = (uint32_t)contentLength;
+            int contentLength = http.getSize();
+            if (contentLength > 0)
+                firmwareUpdateBytesToProcess = (uint32_t)contentLength;
 
-                WiFiClient *stream = http.getStreamPtr();
-                uint8_t buffer[256];
+            WiFiClient *stream = http.getStreamPtr();
+            uint8_t buffer[256];
 
-                while (http.connected() && (contentLength > 0 || contentLength == -1))
+            while (http.connected() && (contentLength > 0 || contentLength == -1))
+            {
+                size_t available = stream->available();
+                if (available == 0)
                 {
-                    size_t available = stream->available();
-                    if (available == 0)
-                    {
-                        if (!client.connected())
-                            break;
-                        delay(1);
-                        continue;
-                    }
-
-                    size_t toRead = min(available, sizeof(buffer));
-                    int bytesRead = stream->readBytes(buffer, toRead);
-                    if (bytesRead <= 0)
+                    if (!client.connected())
                         break;
-
-                    if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
-                    {
-                        systemPrintln("Firmware update failed during WiFi data upload.");
-                        success = false;
-                        break;
-                    }
-
-                    firmwareUpdateProgressCallback(bytesRead);
-
-                    if (contentLength > 0)
-                        contentLength -= bytesRead;
+                    delay(1);
+                    continue;
                 }
 
-                if (success)
-                    systemPrintln("Update successfully completed.");
+                size_t toRead = min(available, sizeof(buffer));
+                int bytesRead = stream->readBytes(buffer, toRead);
+                if (bytesRead <= 0)
+                    break;
+
+                if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
+                {
+                    systemPrintln("Firmware update failed during WiFi data upload.");
+                    success = false;
+                    break;
+                }
+
+                firmwareUpdateProgressCallback(bytesRead);
+
+                if (contentLength > 0)
+                    contentLength -= bytesRead;
             }
 
-            http.end();
+            if (success)
+                systemPrintln("Update successfully completed.");
         }
+
+        http.end();
     }
 
     if (success == false)

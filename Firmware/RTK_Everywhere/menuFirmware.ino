@@ -28,11 +28,16 @@ enum OtaState
     OTA_STATE_MAX
 };
 
-static const char *const otaStateNames[] = {"OTA_STATE_OFF", "OTA_STATE_WAIT_FOR_NETWORK",
-                                            "OTA_STATE_GET_SYSTEMS_TO_UPDATE", "OTA_STATE_UPDATE_FIRMWARE_IM19",
-                                            "OTA_STATE_UPDATE_FIRMWARE_STM32", "OTA_STATE_UPDATE_FIRMWARE_UM980",
-                                            "OTA_STATE_UPDATE_FIRMWARE_LG290P", "OTA_STATE_UPDATE_FIRMWARE_MX5",
-                                            "OTA_STATE_UPDATE_FIRMWARE_X20P", "OTA_STATE_UPDATE_FIRMWARE_ESP32"};
+static const char *const otaStateNames[] = {"OTA_STATE_OFF",
+                                            "OTA_STATE_WAIT_FOR_NETWORK",
+                                            "OTA_STATE_GET_SYSTEMS_TO_UPDATE",
+                                            "OTA_STATE_UPDATE_FIRMWARE_IM19",
+                                            "OTA_STATE_UPDATE_FIRMWARE_STM32",
+                                            "OTA_STATE_UPDATE_FIRMWARE_UM980",
+                                            "OTA_STATE_UPDATE_FIRMWARE_LG290P",
+                                            "OTA_STATE_UPDATE_FIRMWARE_MX5",
+                                            "OTA_STATE_UPDATE_FIRMWARE_X20P",
+                                            "OTA_STATE_UPDATE_FIRMWARE_ESP32"};
 static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[0]);
 
 //----------------------------------------
@@ -693,9 +698,11 @@ void otaMenuDisplay(char *currentVersion)
     else if (otaTargetCount == 0)
         systemPrintln("u) Run system update: No updates needed");
     else if (otaTargetCount == 1)
-        systemPrintf("u) Run %d system update: %s\r\n", otaTargetCount, otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
+        systemPrintf("u) Run %d system update: %s\r\n", otaTargetCount,
+                     otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
     else
-        systemPrintf("u) Run %d system updates: %s\r\n", otaTargetCount, otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
+        systemPrintf("u) Run %d system updates: %s\r\n", otaTargetCount,
+                     otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
 
     if (settings.debugFirmwareUpdate == true)
     {
@@ -935,7 +942,8 @@ void otaUpdate()
                     for (int i = 0; i < otaTargetCount; i++)
                     {
                         systemPrintf("  %c: %s\r\n", otaTargets[i].subsystemCode, otaTargets[i].filePath);
-                        otaSystemsToUpdate[otaSystemsToUpdateSpot++] = otaTargets[i].subsystemCode; // Add this letter to the list
+                        otaSystemsToUpdate[otaSystemsToUpdateSpot++] =
+                            otaTargets[i].subsystemCode; // Add this letter to the list
                     }
                     otaSystemsToUpdate[otaSystemsToUpdateSpot] = '\0'; // Null-terminate the string
 
@@ -950,8 +958,7 @@ void otaUpdate()
                                  otaSystemsToUpdate);
                         webServerSendString(systemsToUpdate); // Report systems that have new firmware available
 
-                        commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware",
-                                                  otaSystemsToUpdate);
+                        commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware", otaSystemsToUpdate);
 
                         otaUpdateStop(); // Nothing to update.
 
@@ -981,8 +988,7 @@ void otaUpdate()
                 systemPrintln("Failed to get version number from server.");
                 webServerSendString((char *)"newSubsystemFirmware,NO_SERVER,");
 
-                commandSendExecuteErrorResponse((char *)"SPGET", (char *)"newSubsystemFirmware",
-                                                (char *)"No Server");
+                commandSendExecuteErrorResponse((char *)"SPGET", (char *)"newSubsystemFirmware", (char *)"No Server");
 
                 otaUpdateStop();
             }
@@ -1003,8 +1009,7 @@ void otaUpdate()
                 // Report failure to interfaces
                 webServerSendString((char *)"gettingNewFirmware,ERROR,");
 
-                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
-                                                (char *)"Connection Error");
+                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"Connection Error");
             }
 
             // Get binary file over the network and stream/update the target
@@ -1033,8 +1038,7 @@ void otaUpdate()
                 // Report failure to interfaces
                 webServerSendString((char *)"gettingNewFirmware,ERROR,");
 
-                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
-                                                (char *)"Connection Error");
+                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"Connection Error");
             }
 
             // Get binary file over the network and stream/update the target
@@ -1090,8 +1094,7 @@ void otaUpdate()
                 // Report failure to interfaces
                 webServerSendString((char *)"gettingNewFirmware,ERROR,");
 
-                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
-                                                (char *)"Connection Error");
+                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"Connection Error");
             }
 
             // Get binary file over the network and stream/update the target
@@ -1123,8 +1126,7 @@ void otaUpdate()
                 // Report failure to interfaces
                 webServerSendString((char *)"gettingNewFirmware,ERROR,");
 
-                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE",
-                                                (char *)"Connection Error");
+                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"Connection Error");
             }
             else
             {
@@ -1187,37 +1189,14 @@ bool espStreamFirmware(char *relativeFirmwareFileLocation)
     systemPrintln("Starting ESP32 firmware update...");
 
     WiFiClientSecure client;
-    client.setCACert(GITHUB_RAW_PUBLIC_CERT);
-
-    // Preflight TLS handshake using the expected host name.
-    // With CA configured, connect() fails if certificate validation fails.
-    if (!client.connect(OTA_FIRMWARE_GITHUB_RAW, 443))
+    if (!otaSecurelyConnectGitHub(client))
     {
-        systemPrintln("TLS socket connect failed");
+        systemPrintln("Failed to securely connect to GitHub.");
         return false;
     }
 
-    if (settings.debugFirmwareUpdate)
-        systemPrintln("TLS certificate verified for raw.githubusercontent.com");
-
-    client.stop();
-
-    // The relative file location looks like "\imu\im19\20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc"
-    // We need to access "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc"
-
-    char firmwareFileLocation[256];
-    snprintf(firmwareFileLocation, sizeof(firmwareFileLocation), "https://%s/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main%s", OTA_FIRMWARE_GITHUB_RAW, relativeFirmwareFileLocation);
-
-    // Convert backslashes to forward slashes for URL formatting
-    for (char *c = firmwareFileLocation; *c != '\0'; c++)
-        if (*c == '\\')
-            *c = '/';
-
-    if (settings.debugFirmwareUpdate)
-        systemPrintf("Starting HTTP GET for firmware: %s\r\n", firmwareFileLocation);
-
     HTTPClient http;
-    if (!http.begin(client, firmwareFileLocation))
+    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
     {
         systemPrintln("Unable to begin HTTP request.");
         return false;
@@ -1307,13 +1286,12 @@ bool espStreamFirmware(char *relativeFirmwareFileLocation)
         http.end();
         return false;
     }
-
+    
     systemPrintln("Update successfully completed.");
 
     http.end();
     return true;
 }
-
 //----------------------------------------
 // Stop the automatic OTA firmware update
 //----------------------------------------

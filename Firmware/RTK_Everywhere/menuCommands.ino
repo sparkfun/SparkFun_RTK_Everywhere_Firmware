@@ -1315,8 +1315,6 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         snprintf(newProfileName, sizeof(newProfileName), "profile%dName,%d: %s,", profileNumber, profileNumber + 1,
                  settings.profileName);
 
-        Serial.printf("Sending newProfilename: %s\r\n", newProfileName);
-
         webServerSendString(newProfileName);
 
         knownSetting = true;
