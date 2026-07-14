@@ -76,15 +76,15 @@ const unsigned long LORA_CMD_SAVE_TIMEOUT_MS = 200;
 // Define the NTRIP client states
 enum LoraState
 {
-    LORA_NOT_PRESENT = 0,       // Start. If present, power on, start serial interface, and check version.
-    LORA_DISABLED,              // Radio is powered off, but serial interface remains.
-    LORA_IDLE,                  // Radio is ready, now determine if we are TXing or RXing
-    LORA_TX_SETTLING,           // Do not transmit while surveying in to avoid RF cross-talk
-    LORA_TX,                    // Send RTCM over LoRa when it's received from the GNSS (share UART0 with prints)
-    LORA_RX_DEDICATED,          // For platforms with separate/dedicated connections to the the LoRa radio.
-    LORA_RX_SHARED,             // USB cable connected so share UART0 between prints and data
-    LORA_RX_SHARED_USB_IGNORE,  // For platforms with shared connection to the LoRa radio. No USB cable detected, so stop
-                                // monitoring USB.
+    LORA_NOT_PRESENT = 0,      // Start. If present, power on, start serial interface, and check version.
+    LORA_DISABLED,             // Radio is powered off, but serial interface remains.
+    LORA_IDLE,                 // Radio is ready, now determine if we are TXing or RXing
+    LORA_TX_SETTLING,          // Do not transmit while surveying in to avoid RF cross-talk
+    LORA_TX,                   // Send RTCM over LoRa when it's received from the GNSS (share UART0 with prints)
+    LORA_RX_DEDICATED,         // For platforms with separate/dedicated connections to the the LoRa radio.
+    LORA_RX_SHARED,            // USB cable connected so share UART0 between prints and data
+    LORA_RX_SHARED_USB_IGNORE, // For platforms with shared connection to the LoRa radio. No USB cable detected, so stop
+                               // monitoring USB.
     LORA_RX_SHARED_USB_TIMEOUT, // USB cable has been connected for more than loraSerialInteractionTimeout_s so ignore
                                 // USB. Insert new states here
     LORA_STATE_MAX              // Last entry in the state list
@@ -98,6 +98,8 @@ int loraBytesSent = 0;
 // Control incoming/outgoing RTCM data from STM32 based LoRa radio (if supported by platform)
 void updateLora()
 {
+    const size_t loraRtcmBufferSize = 512;
+
     if (settings.enableLora == false && (loraState >= LORA_IDLE && loraState < LORA_STATE_MAX))
     {
         loraPowerOff(); // Leave serial inteface in place
@@ -277,40 +279,42 @@ void updateLora()
         // *** THIS IS SPECIFIC TO TORCH ***
         if (loraAvailable())
         {
-            uint8_t rtcmData[512];
-            int rtcmCount = 0;
-
-            rtcmCount = Serial.readBytes(rtcmData, sizeof(rtcmData));
-
-            // We've just received data. We assume this is RTCM and push it directly to the GNSS.
-            if (correctionLastSeen(CORR_RADIO_LORA))
+            uint8_t *rtcmData = (uint8_t *)rtkMalloc(loraRtcmBufferSize, "loraRtcmData");
+            if (rtcmData)
             {
-                // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
-                gnss->pushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
+                int rtcmCount = Serial.readBytes(rtcmData, loraRtcmBufferSize);
 
-                if (((settings.debugCorrections == true) || (settings.debugLora == true)) && !inMainMenu)
+                // We've just received data. We assume this is RTCM and push it directly to the GNSS.
+                if (correctionLastSeen(CORR_RADIO_LORA))
                 {
-                    systemFlush();  // Complete prints
-                    muxSelectUsb(); // Connect USB
+                    // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
+                    gnss->pushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
 
-                    systemPrintf("LoRa received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
-                    systemFlush(); // Allow print to complete
+                    if (((settings.debugCorrections == true) || (settings.debugLora == true)) && !inMainMenu)
+                    {
+                        systemFlush();  // Complete prints
+                        muxSelectUsb(); // Connect USB
 
-                    muxSelectLoRaCommunication(); // Disconnect from USB
+                        systemPrintf("LoRa received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
+                        systemFlush(); // Allow print to complete
+
+                        muxSelectLoRaCommunication(); // Disconnect from USB
+                    }
                 }
-            }
-            else
-            {
-                if ((settings.debugCorrections == true) && !inMainMenu)
+                else
                 {
-                    systemFlush();  // Complete prints
-                    muxSelectUsb(); // Connect USB
+                    if ((settings.debugCorrections == true) && !inMainMenu)
+                    {
+                        systemFlush();  // Complete prints
+                        muxSelectUsb(); // Connect USB
 
-                    systemPrintf("LoRa received %d RTCM bytes, NOT pushed due to priority\r\n", rtcmCount);
-                    systemFlush(); // Allow print to complete
+                        systemPrintf("LoRa received %d RTCM bytes, NOT pushed due to priority\r\n", rtcmCount);
+                        systemFlush(); // Allow print to complete
 
-                    muxSelectLoRaCommunication(); // Disconnect from USB
+                        muxSelectLoRaCommunication(); // Disconnect from USB
+                    }
                 }
+                rtkFree(rtcmData, "loraRtcmData");
             }
         }
 
@@ -327,40 +331,42 @@ void updateLora()
         // *** THIS IS SPECIFIC TO TORCH ***
         if (loraAvailable())
         {
-            uint8_t rtcmData[512];
-            int rtcmCount = 0;
-
-            rtcmCount = Serial.readBytes(rtcmData, sizeof(rtcmData));
-
-            // We've just received data. We assume this is RTCM and push it directly to the GNSS.
-            if (correctionLastSeen(CORR_RADIO_LORA))
+            uint8_t *rtcmData = (uint8_t *)rtkMalloc(loraRtcmBufferSize, "loraRtcmData");
+            if (rtcmData)
             {
-                // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
-                gnss->pushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
+                int rtcmCount = Serial.readBytes(rtcmData, loraRtcmBufferSize);
 
-                if (((settings.debugCorrections == true) || (settings.debugLora == true)) && !inMainMenu)
+                // We've just received data. We assume this is RTCM and push it directly to the GNSS.
+                if (correctionLastSeen(CORR_RADIO_LORA))
                 {
-                    systemFlush();  // Complete prints
-                    muxSelectUsb(); // Connect USB
+                    // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
+                    gnss->pushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
 
-                    systemPrintf("LoRa received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
-                    systemFlush(); // Allow print to complete
+                    if (((settings.debugCorrections == true) || (settings.debugLora == true)) && !inMainMenu)
+                    {
+                        systemFlush();  // Complete prints
+                        muxSelectUsb(); // Connect USB
 
-                    muxSelectLoRaCommunication(); // Disconnect from USB
+                        systemPrintf("LoRa received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
+                        systemFlush(); // Allow print to complete
+
+                        muxSelectLoRaCommunication(); // Disconnect from USB
+                    }
                 }
-            }
-            else
-            {
-                if ((settings.debugCorrections == true) && !inMainMenu)
+                else
                 {
-                    systemFlush();  // Complete prints
-                    muxSelectUsb(); // Connect USB
+                    if ((settings.debugCorrections == true) && !inMainMenu)
+                    {
+                        systemFlush();  // Complete prints
+                        muxSelectUsb(); // Connect USB
 
-                    systemPrintf("LoRa received %d RTCM bytes, NOT pushed due to priority\r\n", rtcmCount);
-                    systemFlush(); // Allow print to complete
+                        systemPrintf("LoRa received %d RTCM bytes, NOT pushed due to priority\r\n", rtcmCount);
+                        systemFlush(); // Allow print to complete
 
-                    muxSelectLoRaCommunication(); // Disconnect from USB
+                        muxSelectLoRaCommunication(); // Disconnect from USB
+                    }
                 }
+                rtkFree(rtcmData, "loraRtcmData");
             }
         }
 
@@ -435,7 +441,7 @@ void muxSelectUsb()
     {
         pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
         digitalWrite(pin_muxA,
-                     LOW);           // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
+                     LOW); // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
         digitalWrite(pin_muxB, LOW); // Control U18: Connect ESP UART0 to CH340 Serial
 
         usbSerialIsSelected = true; // Let other print operations know we are connected to the CH34x
@@ -450,7 +456,7 @@ void muxSelectLoRaCommunication()
     {
         pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
         digitalWrite(pin_muxA,
-                     LOW);            // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
+                     LOW); // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
         digitalWrite(pin_muxB, HIGH); // Control U18: Connect ESP UART0 to U11
 
         usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
@@ -730,8 +736,14 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
 {
     if (loraEnterCommandMode() == true)
     {
-        char response[512];
-        int responseLength = sizeof(response);
+        const size_t responseSize = 512;
+        char *response = (char *)rtkMalloc(responseSize, "loraSetupResponse");
+        if (!response)
+        {
+            systemPrintln("ERROR: Failed to allocate loraSetupResponse");
+            return;
+        }
+        int responseLength = responseSize;
 
         char command[100];
 
@@ -745,11 +757,11 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
             // Enable transmit mode
             // response and responseLength are modified
             // Response typically takes ~5ms
-            responseLength = sizeof(response);
+            responseLength = responseSize;
             configureSuccess &= loraSendCommand("AT+MODE=0", response, &responseLength, LORA_CMD_DEFAULT_TIMEOUT_MS,
                                                 false); // 0 - Transmit, 1 - Receive
 
-            responseLength = sizeof(response);
+            responseLength = responseSize;
             snprintf(command, sizeof(command), "AT+PWR=%d", settings.loraTransmitGain_dB);
             configureSuccess &= loraSendCommand(command, response, &responseLength, LORA_CMD_DEFAULT_TIMEOUT_MS, false);
         }
@@ -757,7 +769,7 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
         {
             // Enable receive mode
             // response and responseLength are modified
-            responseLength = sizeof(response);
+            responseLength = responseSize;
             configureSuccess &= loraSendCommand("AT+MODE=1", response, &responseLength, LORA_CMD_DEFAULT_TIMEOUT_MS,
                                                 false); // 0 - Transmit, 1 - Receive
         }
@@ -766,7 +778,7 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
         {
             if (productVariant == RTK_FACET_FP)
             {
-                responseLength = sizeof(response);
+                responseLength = responseSize;
                 if (regularDataPort)
                     // On Facet FP, we need to send AT+DPRT=0 to set the data port to UART1
                     configureSuccess &=
@@ -778,7 +790,7 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
             }
             else
             {
-                responseLength = sizeof(response);
+                responseLength = responseSize;
                 if (regularDataPort)
                     // On Torch, let's make sure DPRT is set to 1. This should be the default
                     configureSuccess &=
@@ -792,7 +804,7 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
 
         if (loraFirmwareVersionInt >= 301) // AT+SAVE was added at v3.0.1
         {
-            responseLength = sizeof(response);
+            responseLength = responseSize;
             if (settings.loraSaveSettingsToFlash)
             {
                 configureSuccess &=
@@ -806,13 +818,13 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
         }
 
         // Set frequency
-        responseLength = sizeof(response);
+        responseLength = responseSize;
         snprintf(command, sizeof(command), "AT+FRQ=%0.3f %0.3f", settings.loraCoordinationFrequency,
                  settings.loraCoordinationFrequency);
         configureSuccess &= loraSendCommand(command, response, &responseLength, LORA_CMD_DEFAULT_TIMEOUT_MS, false);
 
         // Enter TRANSfer
-        responseLength = sizeof(response);
+        responseLength = responseSize;
         unsigned long timeout = LORA_CMD_TRANS_TIMEOUT_MS;
         if (settings.loraSaveSettingsToFlash)
             timeout += LORA_CMD_SAVE_TIMEOUT_MS;
@@ -827,6 +839,7 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
             else
                 systemPrintln("LoRa radio configured for receiving");
         }
+        rtkFree(response, "loraSetupResponse");
     }
     else
         systemPrintln("LoRa radio failed to enter command mode");
@@ -1092,17 +1105,23 @@ bool loraGetVersion()
                 systemPrintln("Getting LoRa radio attributes");
                 systemFlush(); // Complete prints
 
-                char response[512];
-                int responseLength = sizeof(response);
-
-                loraSendCommand("AT+ATTR?", response, &responseLength, LORA_CMD_ATTR_TIMEOUT_MS, true);
-
-                if ((responseLength > 0) && (strlen(response) > 0))
-                    systemPrint(response);
+                const size_t responseSize = 512;
+                char *response = (char *)rtkMalloc(responseSize, "loraGetVersionResponse");
+                if (!response)
+                {
+                    systemPrintln("ERROR: Failed to allocate loraGetVersionResponse");
+                }
                 else
-                    systemPrintln("loraGetVersion : could not get radio attributes");
-
-                systemFlush(); // Complete prints
+                {
+                    int responseLength = responseSize;
+                    loraSendCommand("AT+ATTR?", response, &responseLength, LORA_CMD_ATTR_TIMEOUT_MS, true);
+                    if ((responseLength > 0) && (strlen(response) > 0))
+                        systemPrint(response);
+                    else
+                        systemPrintln("loraGetVersion : could not get radio attributes");
+                    systemFlush(); // Complete prints
+                    rtkFree(response, "loraGetVersionResponse");
+                }
             }
         }
         return (true);

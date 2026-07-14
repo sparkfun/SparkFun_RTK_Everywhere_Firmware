@@ -1004,8 +1004,14 @@ void ntripServerUpdate(int serverIndex)
         else
         {
             // NTRIP caster's authorization response received
-            char response[512];
-            ntripServerResponse(serverIndex, response, sizeof(response));
+            const size_t responseSize = 512;
+            char *response = (char *)rtkMalloc(responseSize, "ntripServerResponse");
+            if (!response)
+            {
+                systemPrintln("ERROR: Failed to allocate ntripServerResponse buffer");
+                break;
+            }
+            ntripServerResponse(serverIndex, response, responseSize);
 
             if (settings.debugNtripServerState)
                 systemPrintf("Server %d - %s Response: %s\r\n", serverIndex,
@@ -1079,6 +1085,7 @@ void ntripServerUpdate(int serverIndex)
                         "NTRIP Server %d retry limit reached; do you have your caster address and port correct?\r\n",
                         serverIndex);
             }
+            rtkFree(response, "ntripServerResponse");
         }
         break;
 
