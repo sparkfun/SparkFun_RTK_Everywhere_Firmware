@@ -2800,33 +2800,42 @@ bool tasksStartGnssUart()
 
     // Reads data from GNSS and stores data into circular buffer
     if (!task.gnssReadTaskRunning)
-        xTaskCreatePinnedToCore(gnssReadTask,                  // Function to call
-                                "gnssRead",                    // Just for humans
-                                gnssReadTaskStackSize,         // Stack Size
-                                nullptr,                       // Task input parameter
-                                settings.gnssReadTaskPriority, // Priority
-                                &taskHandle,                   // Task handle
-                                settings.gnssReadTaskCore);    // Core where task should run, 0=core, 1=Arduino
+    {
+        if (xTaskCreatePinnedToCore(gnssReadTask,                  // Function to call
+                                    "gnssRead",                    // Just for humans
+                                    gnssReadTaskStackSize,         // Stack Size
+                                    nullptr,                       // Task input parameter
+                                    settings.gnssReadTaskPriority, // Priority
+                                    &taskHandle,                   // Task handle
+                                    settings.gnssReadTaskCore) != pdPASS) // Core where task should run
+            systemPrintln("ERROR: Failed to create gnssRead task");
+    }
 
     // Reads data from circular buffer and sends data to SD, SPP, or network clients
     if (!task.handleGnssDataTaskRunning)
-        xTaskCreatePinnedToCore(handleGnssDataTask,                  // Function to call
-                                "handleGNSSData",                    // Just for humans
-                                handleGnssDataTaskStackSize,         // Stack Size
-                                nullptr,                             // Task input parameter
-                                settings.handleGnssDataTaskPriority, // Priority
-                                &taskHandle,                         // Task handle
-                                settings.handleGnssDataTaskCore);    // Core where task should run, 0=core, 1=Arduino
+    {
+        if (xTaskCreatePinnedToCore(handleGnssDataTask,                  // Function to call
+                                    "handleGNSSData",                    // Just for humans
+                                    handleGnssDataTaskStackSize,         // Stack Size
+                                    nullptr,                             // Task input parameter
+                                    settings.handleGnssDataTaskPriority, // Priority
+                                    &taskHandle,                         // Task handle
+                                    settings.handleGnssDataTaskCore) != pdPASS) // Core where task should run
+            systemPrintln("ERROR: Failed to create handleGNSSData task");
+    }
 
     // Reads data from BT and sends to GNSS
     if (!task.btReadTaskRunning)
-        xTaskCreatePinnedToCore(btReadTask,                  // Function to call
-                                "btRead",                    // Just for humans
-                                btReadTaskStackSize,         // Stack Size
-                                nullptr,                     // Task input parameter
-                                settings.btReadTaskPriority, // Priority
-                                &taskHandle,                 // Task handle
-                                settings.btReadTaskCore);    // Core where task should run, 0=core, 1=Arduino
+    {
+        if (xTaskCreatePinnedToCore(btReadTask,                  // Function to call
+                                    "btRead",                    // Just for humans
+                                    btReadTaskStackSize,         // Stack Size
+                                    nullptr,                     // Task input parameter
+                                    settings.btReadTaskPriority, // Priority
+                                    &taskHandle,                 // Task handle
+                                    settings.btReadTaskCore) != pdPASS) // Core where task should run
+            systemPrintln("ERROR: Failed to create btRead task");
+    }
     return true;
 }
 

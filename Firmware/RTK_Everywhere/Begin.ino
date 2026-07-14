@@ -1069,14 +1069,18 @@ void beginGnssUart()
             task.gnssUartPinnedTaskRunning = true; // The xTaskCreate runs and completes nearly immediately. Mark start
                                                    // here and check for completion.
 
-            xTaskCreatePinnedToCore(
-                pinGnssUartTask,
-                "GnssUartStart", // Just for humans
-                2000,            // Stack Size
-                nullptr,         // Task input parameter
-                0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                &taskHandle, // Task handle
-                settings.gnssUartInterruptsCore); // Core where task should run, 0=core, 1=Arduino
+            if (xTaskCreatePinnedToCore(
+                    pinGnssUartTask,
+                    "GnssUartStart", // Just for humans
+                    2000,            // Stack Size
+                    nullptr,         // Task input parameter
+                    0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                    &taskHandle, // Task handle
+                    settings.gnssUartInterruptsCore) != pdPASS) // Core where task should run, 0=core, 1=Arduino
+            {
+                systemPrintln("ERROR: Failed to create GnssUartStart task");
+                task.gnssUartPinnedTaskRunning = false;
+            }
         }
 
         while (task.gnssUartPinnedTaskRunning == true) // Wait for task to complete run
@@ -1524,12 +1528,15 @@ void beginButtons()
     {
         // Starts task for monitoring button presses
         if (!task.buttonCheckTaskRunning)
-            xTaskCreate(buttonCheckTask,
-                        "BtnCheck",          // Just for humans
-                        buttonTaskStackSize, // Stack Size
-                        nullptr,             // Task input parameter
-                        buttonCheckTaskPriority,
-                        &taskHandle); // Task handle
+        {
+            if (xTaskCreate(buttonCheckTask,
+                            "BtnCheck",          // Just for humans
+                            buttonTaskStackSize, // Stack Size
+                            nullptr,             // Task input parameter
+                            buttonCheckTaskPriority,
+                            &taskHandle) != pdPASS) // Task handle
+                systemPrintln("ERROR: Failed to create BtnCheck task");
+        }
     }
 }
 
@@ -1595,14 +1602,17 @@ void beginIdleTasks()
         {
             snprintf(taskName, sizeof(taskName), "IdleTask%d", index);
             if (idleTaskHandle[index] == nullptr)
-                xTaskCreatePinnedToCore(
-                    idleTask,
-                    taskName, // Just for humans
-                    2000,     // Stack Size
-                    nullptr,  // Task input parameter
-                    0,        // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                    &idleTaskHandle[index], // Task handle
-                    index);                 // Core where task should run, 0=core, 1=Arduino
+            {
+                if (xTaskCreatePinnedToCore(
+                        idleTask,
+                        taskName, // Just for humans
+                        2000,     // Stack Size
+                        nullptr,  // Task input parameter
+                        0,        // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                        &idleTaskHandle[index], // Task handle
+                        index) != pdPASS)       // Core where task should run, 0=core, 1=Arduino
+                    systemPrintf("ERROR: Failed to create %s task\r\n", taskName);
+            }
         }
     }
 }
@@ -1626,18 +1636,23 @@ void testI2cDevices()
 
     if (task.i2cDetectTaskRunning == false)
     {
-        xTaskCreatePinnedToCore(
-            pinI2CDetectTask,
-            "I2CDetect",  // Just for humans
-            2000,        // Stack Size
-            nullptr,     // Task input parameter
-            0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-            &taskHandle, // Task handle
-            settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
-
-        // Wait for task to start running
-        while (task.i2cDetectTaskRunning == false)
-            delay(1);
+        if (xTaskCreatePinnedToCore(
+                pinI2CDetectTask,
+                "I2CDetect",  // Just for humans
+                2000,        // Stack Size
+                nullptr,     // Task input parameter
+                0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                &taskHandle, // Task handle
+                settings.i2cInterruptsCore) != pdPASS) // Core where task should run, 0=core, 1=Arduino
+        {
+            systemPrintln("ERROR: Failed to create I2CDetect task");
+        }
+        else
+        {
+            // Wait for task to start running
+            while (task.i2cDetectTaskRunning == false)
+                delay(1);
+        }
     }
 
     // Wait for task to complete
@@ -1747,18 +1762,23 @@ void beginI2C()
 
     if (task.i2cPinnedTaskRunning == false)
     {
-        xTaskCreatePinnedToCore(
-            pinI2CTask,
-            "I2CStart",  // Just for humans
-            2000,        // Stack Size
-            nullptr,     // Task input parameter
-            0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-            &taskHandle, // Task handle
-            settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
-
-        // Wait for task to start running
-        while (task.i2cPinnedTaskRunning == false)
-            delay(1);
+        if (xTaskCreatePinnedToCore(
+                pinI2CTask,
+                "I2CStart",  // Just for humans
+                2000,        // Stack Size
+                nullptr,     // Task input parameter
+                0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                &taskHandle, // Task handle
+                settings.i2cInterruptsCore) != pdPASS) // Core where task should run, 0=core, 1=Arduino
+        {
+            systemPrintln("ERROR: Failed to create I2CStart task");
+        }
+        else
+        {
+            // Wait for task to start running
+            while (task.i2cPinnedTaskRunning == false)
+                delay(1);
+        }
     }
 
     // Wait for task to complete run
@@ -1952,12 +1972,13 @@ bool i2cBusInitialization(TwoWire *i2cBus, int i2cBusNumber, int sda, int scl, i
 // Start task to determine SD card size
 void beginSDSizeCheckTask()
 {
-    xTaskCreate(sdSizeCheckTask,         // Function to call
-                "SDSizeCheck",           // Just for humans
-                sdSizeCheckStackSize,    // Stack Size
-                nullptr,                 // Task input parameter
-                sdSizeCheckTaskPriority, // Priority
-                nullptr); // Task handle
+    if (xTaskCreate(sdSizeCheckTask,         // Function to call
+                    "SDSizeCheck",           // Just for humans
+                    sdSizeCheckStackSize,    // Stack Size
+                    nullptr,                 // Task input parameter
+                    sdSizeCheckTaskPriority, // Priority
+                    nullptr) != pdPASS)      // Task handle
+        systemPrintln("ERROR: Failed to create SDSizeCheck task");
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
