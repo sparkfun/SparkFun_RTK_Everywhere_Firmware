@@ -1581,16 +1581,11 @@ uint16_t stm32BufferIndex = 0;
 
 uint32_t stm32CurrentAddress = 0x08000000; // Next flash address to write; advances as pages are flashed
 
-bool stm32UpdateFailed = false; // Set once a flash block write fails past its retries; halts further processing
-
 // Given a chunk of raw binary firmware bytes, feed the STM32 firmware update machine.
 // The binary blob is contiguous, so bytes are simply appended to the page buffer and
 // flashed every time a full 256 byte page accumulates.
 bool stm32UpdateFirmware(uint8_t *dataArray, uint16_t bytesToWrite)
 {
-    if (stm32UpdateFailed)
-        return false; // A prior block write failed - stop touching the page buffer/flash
-
     stm32UpdatePageBuffer(dataArray, bytesToWrite);
 
     if (productVariant == RTK_TORCH)
@@ -1625,7 +1620,7 @@ bool stm32UpdateFirmwareWaitForAck()
 }
 
 // Function to put STM32 into bootload mode and initialize UART sync
-void stm32UpdateFirmwareBegin()
+bool stm32UpdateFirmwareBegin()
 {
     // UART baud rate is started at 115200bps.
     // Increasing the baud rate does not decrease the programming time. Programming time is
@@ -1652,8 +1647,6 @@ void stm32UpdateFirmwareBegin()
 
     loraEnterBootloader(); // Push boot pin high and reset STM32
 
-    stm32UpdateFailed = false;
-
     // Send 0x7F for auto-baud detection
     loraWrite(0x7F);
     if (stm32UpdateFirmwareWaitForAck())
@@ -1663,8 +1656,7 @@ void stm32UpdateFirmwareBegin()
     else
     {
         loraSharedPrintln("STM32 Bootloader failed to sync - aborting update.");
-        stm32UpdateFailed = true;
-        return;
+        return false;
     }
 
     loraSharedPrintln("Erasing flash...");
@@ -1696,15 +1688,13 @@ void stm32UpdateFirmwareBegin()
         else
         {
             loraSharedPrintln("STM32 mass erase failed to ACK - aborting update.");
-            stm32UpdateFailed = true;
-            return;
+            return false;
         }
     }
     else
     {
         loraSharedPrintln("STM32 did not ACK erase command - aborting update.");
-        stm32UpdateFailed = true;
-        return;
+        return false;
     }
 
     // Allocate page buffer if not already allocated
@@ -1714,6 +1704,8 @@ void stm32UpdateFirmwareBegin()
     stm32BufferIndex = 0;
     stm32CurrentAddress = 0x08000000; // Reset to Flash start for this update
     firmwareUpdateBytesProcessed = 0;
+
+    return true;
 }
 
 // Write a 256-byte chunk to the STM32 Flash
@@ -1756,7 +1748,7 @@ bool stm32UpdateFirmwareFlashBlock(uint32_t addr, uint8_t *data, uint16_t len)
 // Add data to the stm32PageBuffer. Write to STM32 when we hit 256 bytes.
 // The binary blob is contiguous, so bytes are always appended at stm32CurrentAddress,
 // which advances by one page every time a full 256 byte block is flashed.
-void stm32UpdatePageBuffer(uint8_t *dataArray, uint16_t bytesToWrite)
+bool stm32UpdatePageBuffer(uint8_t *dataArray, uint16_t bytesToWrite)
 {
     for (uint16_t i = 0; i < bytesToWrite; i++)
     {
@@ -1779,17 +1771,17 @@ void stm32UpdatePageBuffer(uint8_t *dataArray, uint16_t bytesToWrite)
             else
             {
                 systemPrintf("Flash write failed at address 0x%08X - aborting update.\n\r", stm32CurrentAddress);
-                stm32UpdateFailed = true;
-                return;
+                return false;
             }
         }
     }
+    return true;
 }
 
 // Flushes remaining bytes, cleans up memory, and resets the STM32
 bool stm32UpdateFirmwareEnd()
 {
-    bool success = !stm32UpdateFailed;
+    bool success = true;
     if (success && stm32BufferIndex > 0)
     {
         // systemPrintf("Flushing final block: Addr=0x%08X, BufferIndex=%d\n\r", stm32CurrentAddress, stm32BufferIndex);
@@ -1809,46 +1801,23 @@ bool stm32UpdateFirmwareEnd()
 // Update the STM32 firmware
 bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
 {
+    muxSelectLoRaCommunication(); // Mandatory for Torch: Connect ESP32 to LoRa for communication
+
     if (relativeFirmwareFileLocation == nullptr)
     {
         loraSharedPrintln("Firmware file location is null.");
         return false;
     }
 
-    loraSharedPrintln("Starting STM32 firmware update...");
-
     WiFiClientSecure client;
-    client.setCACert(GITHUB_RAW_PUBLIC_CERT);
-
-    // Preflight TLS handshake using the expected host name.
-    // With CA configured, connect() fails if certificate validation fails.
-    if (!client.connect(OTA_FIRMWARE_GITHUB_RAW, 443))
+    if (!otaSecurelyConnectGitHub(client))
     {
-        loraSharedPrintln("TLS socket connect failed");
+        loraSharedPrintln("Failed to securely connect to GitHub.");
         return false;
     }
 
-    if (settings.debugFirmwareUpdate)
-        loraSharedPrintln("TLS certificate verified for raw.githubusercontent.com");
-
-    client.stop();
-
-    // The relative file location looks like "\imu\im19\20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc"
-    // We need to access "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc"
-
-    char firmwareFileLocation[256];
-    snprintf(firmwareFileLocation, sizeof(firmwareFileLocation), "https://%s/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main%s", OTA_FIRMWARE_GITHUB_RAW, relativeFirmwareFileLocation);
-
-    // Convert backslashes to forward slashes for URL formatting
-    for (char *c = firmwareFileLocation; *c != '\0'; c++)
-        if (*c == '\\')
-            *c = '/';
-
-    if (settings.debugFirmwareUpdate)
-        systemPrintf("Starting HTTP GET for firmware: %s\r\n", firmwareFileLocation);
-
     HTTPClient http;
-    if (!http.begin(client, firmwareFileLocation))
+    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
     {
         loraSharedPrintln("Unable to begin HTTP request.");
         return false;
@@ -1857,6 +1826,7 @@ bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
     int httpCode = http.GET();
     if (httpCode != HTTP_CODE_OK)
     {
+        muxSelectUsb(); // Reconnect USB to print to terminal
         systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
         http.end();
         return false;
@@ -1867,11 +1837,17 @@ bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
         firmwareUpdateBytesToProcess = (uint32_t)contentLength;
 
     WiFiClient *stream = http.getStreamPtr();
-    uint8_t buffer[STM32_WRITE_BLOCK_MAX];
+    uint8_t buffer[256];
+
     bool success = true;
 
-    // Setup the serial connection and put STM32 into bootloader mode
-    stm32UpdateFirmwareBegin();
+    loraSharedPrintln("Starting STM32 firmware update...");
+
+    if (stm32UpdateFirmwareBegin() == false)
+    {
+        http.end();
+        return false;
+    }
 
     while (http.connected() && (contentLength > 0 || contentLength == -1))
     {
@@ -1900,18 +1876,18 @@ bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
             contentLength -= bytesRead;
     }
 
-    if (stm32UpdateFirmwareEnd())
+    if (success == true && stm32UpdateFirmwareEnd() == false)
+        success = false;
+
+    if (success)
         loraSharedPrintln("LoRa/STM32 updated successfully.");
     else
         loraSharedPrintln("LoRa/STM32 update failed.");
 
-    muxSelectUsb(); // Reconnect USB to print to terminal
-
     http.end();
-    return true;
+    return success;
 }
-
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-// End subsystem firmware update functions
+// End of LoRa/STM32 firmware update functions.
 
 #endif // COMPILE_LORA
