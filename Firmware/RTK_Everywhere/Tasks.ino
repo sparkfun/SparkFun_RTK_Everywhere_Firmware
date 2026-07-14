@@ -1243,8 +1243,13 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         return;
 
     // Use a semaphore to prevent handleGnssDataTask from gatecrashing
-    if (ringBufferSemaphore == NULL)
-        ringBufferSemaphore = xSemaphoreCreateMutex(); // Create the mutex
+    if (ringBufferSemaphore == nullptr)
+        ringBufferSemaphore = xSemaphoreCreateMutex();
+    if (ringBufferSemaphore == nullptr)
+    {
+        systemPrintln("ERROR: Failed to create ringBufferSemaphore");
+        return;
+    }
 
     // Take the semaphore. Long wait. handleGnssDataTask could block
     // Enable printing of the ring buffer offsets (s d 10) and the SD buffer sizes (s h 7)
@@ -1615,8 +1620,13 @@ void handleGnssDataTask(void *e)
         usedSpace = 0;
 
         // Use a semaphore to prevent handleGnssDataTask from gatecrashing
-        if (ringBufferSemaphore == NULL)
-            ringBufferSemaphore = xSemaphoreCreateMutex(); // Create the mutex
+        if (ringBufferSemaphore == nullptr)
+            ringBufferSemaphore = xSemaphoreCreateMutex();
+        if (ringBufferSemaphore == nullptr)
+        {
+            systemPrintln("ERROR: Failed to create ringBufferSemaphore");
+            continue;
+        }
 
         // Take the semaphore. Short wait. processUart1Message shouldn't block for long
         if (xSemaphoreTake(ringBufferSemaphore, ringBuffer_shortWait_ms) == pdPASS)

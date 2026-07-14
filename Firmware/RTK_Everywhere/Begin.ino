@@ -894,8 +894,15 @@ void beginSD()
     while (settings.enableSD == true) // Note: settings.enableSD is never set to false
     {
         // Setup SD card access semaphore
-        if (sdCardSemaphore == NULL)
+        if (sdCardSemaphore == nullptr)
+        {
             sdCardSemaphore = xSemaphoreCreateMutex();
+            if (sdCardSemaphore == nullptr)
+            {
+                systemPrintln("ERROR: Failed to create sdCardSemaphore");
+                break;
+            }
+        }
         else if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_shortWait_ms) != pdPASS)
         {
             // This is OK since a retry will occur next loop
@@ -1144,6 +1151,13 @@ void pinGnssUartTask(void *pvParameters)
     // Not specified on EVK, Postcard and Facet mosaic-X5
     if (serialGNSS == nullptr)
         serialGNSS = new HardwareSerial(1);
+    if (serialGNSS == nullptr)
+    {
+        systemPrintln("ERROR: Failed to allocate serialGNSS");
+        task.gnssUartPinnedTaskRunning = false;
+        vTaskDelete(nullptr);
+        return;
+    }
 
     serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
@@ -1180,6 +1194,11 @@ void beginGnssUart2()
     // Use UART2 on the ESP32 to communicate with the mosaic
     // (UART1 is already allocated to serialGNSS)
     serial2GNSS = new HardwareSerial(2);
+    if (serial2GNSS == nullptr)
+    {
+        systemPrintln("ERROR: Failed to allocate serial2GNSS");
+        return;
+    }
 
     serial2GNSS->setRxBufferSize(1024 * 1);
 
