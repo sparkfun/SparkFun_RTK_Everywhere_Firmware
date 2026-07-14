@@ -1,3 +1,19 @@
+// Product Variant used as part of device ID and whitelists. Do not reorder.
+typedef enum
+{
+    RTK_EVK = 0, // 0x00
+    // RTK_FACET_V2 = 1, // 0x01 - No L-Band
+    RTK_FACET_MOSAIC = 2, // 0x02
+    RTK_TORCH = 3, // 0x03
+    // RTK_FACET_V2_LBAND = 4, // 0x04
+    RTK_POSTCARD = 5, // 0x05
+    RTK_FACET_FP = 6, // 0x06
+    RTK_TORCH_X2 = 7, // 0x07
+    // Add new values above this line
+    RTK_UNKNOWN
+} ProductVariant;
+ProductVariant productVariant = RTK_UNKNOWN;
+
 // ISRG Root X1 (Let's Encrypt). Used to validate raw.githubusercontent.com's server cert chain.
 static const char GITHUB_RAW_PUBLIC_CERT[] PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----

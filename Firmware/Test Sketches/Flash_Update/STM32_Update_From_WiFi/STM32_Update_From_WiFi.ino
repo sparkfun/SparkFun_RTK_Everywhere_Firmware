@@ -51,16 +51,17 @@ const int gpioExpanderSwitch_S5 = 7;         // Controls U61 switch 5: connect G
 const int gpioExpanderNumSwitches = 8;
 
 // Communication Port
-HardwareSerial *SerialForLoRa;
-#define pin_IMU_TX 17
-#define pin_IMU_RX 14
-const int loraBaud = 115200; // Increasing the baud rate does not decrease the programming time. Programming time is
-                             // likely limited by STM32's internal flash write time.
+HardwareSerial *uart2Serial = nullptr;
 
-// External GPIO functions (provided by your hardware abstraction)
-extern void gpioExpanderLoraBootEnable();
-extern void gpioExpanderLoraEnable();
-extern void gpioExpanderLoraDisable();
+#define SerialForLoRa uart2Serial
+
+int pin_muxA = -1;
+int pin_muxB = -1;
+int pin_IMU_TX = 17;
+int pin_IMU_RX = 14;
+int pin_loraRadio_power = -1;
+int pin_loraRadio_boot = -1;
+int pin_loraRadio_reset = -1;
 
 // Timer for firmware update duration
 unsigned long firmwareUpdateStartTime = 0;
@@ -79,18 +80,56 @@ void setup()
 
     Wire.begin(pin_SDA, pin_SCL);
 
-    beginGpioExpanderSwitches();
+    // Basic test to tell platform
+    if (i2cIsDevicePresent(0x21))
+    {
+        systemPrintln("FP detected");
+        productVariant = RTK_FACET_FP;
+    }
+    else
+    {
+        systemPrintln("Torch detected");
+        productVariant = RTK_TORCH;
+    }
 
-    SerialForLoRa = new HardwareSerial(2);
+    if (productVariant == RTK_TORCH)
+    {
+        pin_muxA = 18; // Controls U12 switch between ESP UART1 to UM980 UART3 or LoRa UART0
+        pin_muxB = 12; // Controls U18 switch between ESP UART0 to LoRa UART2 or UM980 UART1
+        pinMode(pin_muxA, OUTPUT);
+        pinMode(pin_muxB, OUTPUT);
 
-    SerialForLoRa->begin(loraBaud, SERIAL_8E1, pin_IMU_RX, pin_IMU_TX); // STM32 bootloader requires Even parity
+        pin_loraRadio_power = 19; // LoRa_EN
+        pin_loraRadio_boot = 23;  // LoRa_BOOT0
+        pin_loraRadio_reset = 5;  // LoRa_NRST
 
-    // Connect ESP32 UART2 to LoRa UART2 via SW3 for configuration and bootloading/firmware updates
-    gpioExpanderSelectLoraConfigure();
+        pinMode(pin_loraRadio_power, OUTPUT);
+        loraPowerOff(); // Keep LoRa powered down for now
 
-    systemPrintln("Serial LoRa started");
+        pinMode(pin_loraRadio_boot, OUTPUT);
+        digitalWrite(pin_loraRadio_boot, LOW); // Exit bootloader, run program
+
+        pinMode(pin_loraRadio_reset, OUTPUT);
+        digitalWrite(pin_loraRadio_reset, LOW); // Reset STM32/radio
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        beginGpioExpanderSwitches();
+        
+        // Connect ESP32 UART2 to LoRa UART2 via SW3 for configuration and bootloading/firmware updates
+        gpioExpanderSelectLoraConfigure();
+    }
+    else
+    {
+        Serial.println("Unknown product variant. Freezing...");
+        while (true)
+            delay(1000);
+    }
 
     wifiConnect();
+
+    systemPrintln("u) Start update");
+    systemPrintln("r) Restart");
 }
 
 void loop()
@@ -110,6 +149,8 @@ void loop()
             firmwareUpdateStartTime = millis();
 
             stm32StreamFirmware(firmwareURL);
+
+            muxSelectUsb(); // Mandatory for Torch. Reconnect USB to print to terminal
 
             // Stop timer and print elapsed time
             firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;

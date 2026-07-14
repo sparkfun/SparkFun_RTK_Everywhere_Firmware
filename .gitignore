@@ -70,3 +70,6 @@ RTK_Reset
 Split_Messages
 X.509_crt_bundle_bin_to_c
 File_to_Hex_Data_Array
+
+# Claude workspace metadata
+**/.claude/

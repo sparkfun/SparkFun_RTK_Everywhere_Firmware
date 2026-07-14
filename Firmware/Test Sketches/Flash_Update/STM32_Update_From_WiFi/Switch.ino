@@ -1,43 +1,43 @@
 // Drive GPIO pin high to enable LoRa Radio
 void gpioExpanderLoraEnable()
 {
-    //if (online.gpioExpanderSwitches == true)
+    if (productVariant == RTK_FACET_FP)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraEnable, HIGH);
 }
 void gpioExpanderLoraDisable()
 {
-    //if (online.gpioExpanderSwitches == true)
+    if (productVariant == RTK_FACET_FP)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraEnable, LOW);
 }
 void gpioExpanderLoraBootEnable()
 {
-    //if (online.gpioExpanderSwitches == true)
+    if (productVariant == RTK_FACET_FP)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraBoot, HIGH);
 }
 void gpioExpanderLoraBootDisable()
 {
-    //if (online.gpioExpanderSwitches == true)
+    if (productVariant == RTK_FACET_FP)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraBoot, LOW);
 }
 
 // The IMU is on UART3 of the Flex module connected to switch 3
 void gpioExpanderSelectImu()
 {
-    //if (online.gpioExpanderSwitches == true)
+    if (productVariant == RTK_FACET_FP)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, LOW);
 }
 
 // Connect ESP32 UART2 to LoRa UART2 for configuration and bootloading/firmware updates
 void gpioExpanderSelectLoraConfigure()
 {
-    //if (online.gpioExpanderSwitches == true)
+    if (productVariant == RTK_FACET_FP)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, HIGH);
 }
 
 // Connect Flex GNSS UART2 to LoRa UART0 for normal TX/RX of corrections and data
 void gpioExpanderSelectLoraCommunication()
 {
-    //if (online.gpioExpanderSwitches == true)
+    if (productVariant == RTK_FACET_FP)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S4, HIGH);
 }
 
@@ -78,25 +78,3 @@ void beginGpioExpanderSwitches()
   //}
 }
 
-void loraEnterBootloader()
-{
-    gpioExpanderLoraBootEnable();
-
-    // loraReset();
-}
-
-void loraExitBootloader()
-{
-    gpioExpanderLoraBootDisable();
-
-    // loraReset();
-}
-
-// There is not a hardware reset pin exposed. Power cycle the device.
-void loraReset()
-{
-    gpioExpanderLoraDisable(); // Power off
-    delay(100);
-    gpioExpanderLoraEnable(); // Power on
-    delay(100);
-}
