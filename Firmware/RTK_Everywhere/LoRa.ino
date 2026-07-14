@@ -971,17 +971,17 @@ bool loraEnterCommandMode()
                     while ((versionPtr[versionSpot] >= '0' && versionPtr[versionSpot] <= '9') ||
                            (versionPtr[versionSpot] == '.'))
                     {
-                        if (versionSpot >= (int)(sizeof(loraFirmwareVersion) - 1))
+                        if (versionSpot >= (int)(sizeof(loraFirmwareVersionStr) - 1))
                             break;
-                        loraFirmwareVersion[versionSpot] = versionPtr[versionSpot];
+                        loraFirmwareVersionStr[versionSpot] = versionPtr[versionSpot];
                         versionSpot++;
                     }
-                    loraFirmwareVersion[versionSpot] = 0;
+                    loraFirmwareVersionStr[versionSpot] = 0;
 
                     int verMajor = 0;
                     int verMinor = 0;
                     int verPatch = 0;
-                    if (sscanf(loraFirmwareVersion, "%d.%d.%d", &verMajor, &verMinor, &verPatch) == 3)
+                    if (sscanf(loraFirmwareVersionStr, "%d.%d.%d", &verMajor, &verMinor, &verPatch) == 3)
                         loraFirmwareVersionInt = (verMajor * 100) + (verMinor * 10) + (verPatch);
                 }
 
@@ -1036,17 +1036,17 @@ bool loraEnterCommandMode()
                     while ((versionPtr[versionSpot] >= '0' && versionPtr[versionSpot] <= '9') ||
                            (versionPtr[versionSpot] == '.'))
                     {
-                        if (versionSpot >= (int)(sizeof(loraFirmwareVersion) - 1))
+                        if (versionSpot >= (int)(sizeof(loraFirmwareVersionStr) - 1))
                             break;
-                        loraFirmwareVersion[versionSpot] = versionPtr[versionSpot];
+                        loraFirmwareVersionStr[versionSpot] = versionPtr[versionSpot];
                         versionSpot++;
                     }
-                    loraFirmwareVersion[versionSpot] = 0;
+                    loraFirmwareVersionStr[versionSpot] = 0;
 
                     int verMajor = 0;
                     int verMinor = 0;
                     int verPatch = 0;
-                    if (sscanf(loraFirmwareVersion, "%d.%d.%d", &verMajor, &verMinor, &verPatch) == 3)
+                    if (sscanf(loraFirmwareVersionStr, "%d.%d.%d", &verMajor, &verMinor, &verPatch) == 3)
                         loraFirmwareVersionInt = (verMajor * 100) + (verMinor * 10) + (verPatch);
                 }
 
@@ -1069,7 +1069,7 @@ bool loraEnterCommandMode()
 bool loraGetVersion()
 {
     // Get the firmware version only once
-    if (strlen(loraFirmwareVersion) > 3)
+    if (strlen(loraFirmwareVersionStr) > 3)
         return (true);
 
     if (loraIsOn() == false)
@@ -1080,7 +1080,7 @@ bool loraGetVersion()
 
     if (loraEnterCommandMode() == true)
     {
-        systemPrintf("LoRa firmware: %s\r\n", loraFirmwareVersion);
+        systemPrintf("LoRa firmware: %s\r\n", loraFirmwareVersionStr);
 
         if (settings.debugLora == true)
         {
@@ -1360,7 +1360,7 @@ void loraTxDirectConnectTorch()
                 espFirmwareVersionGet(versionString, sizeof(versionString), true);
             snprintf(nmeaTxt, sizeof(nmeaTxt), "$GNTXT,%s,%s,%s,%s,%s,%09ld*",
                      getBrandAttributeFromProductVariant(productVariant)->name, platformPrefix, serialNumber,
-                     versionString, loraFirmwareVersion, lastTx);
+                     versionString, loraFirmwareVersionStr, lastTx);
 
             // From: http://engineeringnotes.blogspot.com/2015/02/generate-crc-for-nmea-strings-arduino.html
             byte CRC = 0; // XOR chars between '$' and '*'
@@ -1432,7 +1432,7 @@ void loraTxDirectConnectFacetFP()
                 espFirmwareVersionGet(versionString, sizeof(versionString), true);
             snprintf(nmeaTxt, sizeof(nmeaTxt), "$GNTXT,%s,%s,%s,%s,%s,%09ld*",
                      getBrandAttributeFromProductVariant(productVariant)->name, platformPrefix, serialNumber,
-                     versionString, loraFirmwareVersion, lastTx);
+                     versionString, loraFirmwareVersionStr, lastTx);
 
             // From: http://engineeringnotes.blogspot.com/2015/02/generate-crc-for-nmea-strings-arduino.html
             byte CRC = 0; // XOR chars between '$' and '*'

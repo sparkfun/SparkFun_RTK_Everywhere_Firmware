@@ -1537,10 +1537,10 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "espFirmwareVersion", (char *)printEspFirmwareVersion());
     stringRecord(newSettings, "gnssFirmwareVersion", (char *)printGnssModuleInfo());
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
-    if (strlen(imuFirmwareVersion) > 3)
-        stringRecord(newSettings, "imuFirmwareVersion", (char *)imuFirmwareVersion);
-    if (strlen(loraFirmwareVersion) > 3)
-        stringRecord(newSettings, "loraFirmwareVersion", (char *)loraFirmwareVersion);
+    if (strlen(imuFirmwareVersionStr) > 3)
+        stringRecord(newSettings, "imuFirmwareVersionStr", (char *)imuFirmwareVersionStr);
+    if (strlen(loraFirmwareVersionStr) > 3)
+        stringRecord(newSettings, "loraFirmwareVersionStr", (char *)loraFirmwareVersionStr);
 
     // Pass extra setting so that web config can show/hide tilt enable check box
     // We can't depend on enableTiltCompensation setting because all FP platforms transmit it.

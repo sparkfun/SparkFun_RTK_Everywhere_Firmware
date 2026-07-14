@@ -1481,8 +1481,8 @@ bool otaGetSystemsToUpdate(char *modelType)
             }
 
             // TODO imu->getVersion(major/minor/patch/revision)
-            localMajor = imuAppVersionInt / 100;
-            localMinor = imuAppVersionInt % 100;
+            localMajor = imuFirmwareVersionInt / 100;
+            localMinor = imuFirmwareVersionInt % 100;
             snprintf(localVersionText, sizeof(localVersionText), "v%d.%d", localMajor, localMinor);
             if (otaCompareVersionsPrint(subsystem, localVersionText, remoteVersionText, localMajor, localMinor, 0, 0,
                                         remoteMajor, remoteMinor, remotePatch, remoteRevision, remoteFilePath) == -1)

@@ -790,8 +790,8 @@ bool tiltFailedBegin;          // Goes true if IMU fails beginTilt()
 unsigned long lastTiltBeepMs;  // Emit a beep every 10s if tilt is active
 #endif                         // COMPILE_IM19_IMU
 
-int imuAppVersionInt;
-char imuFirmwareVersion[32];    // Ex: IM19_H2_B2.2_A11.4.1
+int imuFirmwareVersionInt;
+char imuFirmwareVersionStr[32];    // Ex: IM19_H2_B2.2_A11.4.1
 
 HardwareSerial *uart2Serial;   // Shared serial port between LoRa and Tilt
 
@@ -1025,7 +1025,7 @@ int16_t *commandIndex;
 
 bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved from CH34x to LoRa
 unsigned long loraLastIncomingSerial; // Last time a user sent a serial command. Used in LoRa timeouts.
-char loraFirmwareVersion[25] = {'\0'};
+char loraFirmwareVersionStr[25] = {'\0'};
 int loraFirmwareVersionInt = 0;
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

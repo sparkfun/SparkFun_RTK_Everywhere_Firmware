@@ -835,13 +835,13 @@ function parseIncoming(msg) {
                 hide("shutdownNoChargeTimeoutMinutesDetails");
             }
         }
-        else if (id.includes("imuFirmwareVersion")) {
-            ge("imuFirmwareVersion").innerHTML = val;
-            show("imuFirmwareVersionPresent");
+        else if (id.includes("imuFirmwareVersionStr")) {
+            ge("imuFirmwareVersionStr").innerHTML = val;
+            show("imuFirmwareVersionStrPresent");
         }
-        else if (id.includes("loraFirmwareVersion")) {
-            ge("loraFirmwareVersion").innerHTML = val;
-            show("loraFirmwareVersionPresent");
+        else if (id.includes("loraFirmwareVersionStr")) {
+            ge("loraFirmwareVersionStr").innerHTML = val;
+            show("loraFirmwareVersionStrPresent");
         }
 
         //Convert incoming mm to local meters
