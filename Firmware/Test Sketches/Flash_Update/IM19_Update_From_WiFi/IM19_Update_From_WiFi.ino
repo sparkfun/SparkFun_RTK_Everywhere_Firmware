@@ -21,25 +21,27 @@
 
 bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local BT TLS patch
 
+#include <HTTPClient.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
-#include <HTTPClient.h>
 
 const char *wifiSSID = "Roving";
 const char *wifiPassword = "sparkfun";
 
 // v11.4.1
-// const char *firmwareURL = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc";
+// const char *firmwareURL =
+// "/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc";
 
 // v11.1
-//const char *firmwareURL = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc";
+// const char *firmwareURL =
+// "/imu/im19/20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc";
 
 // v6.1
-const char *firmwareURL = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20230419111130_VH2_B2.2_A6.1_2eea4d4c024538bf5ed52.enc";
+const char *firmwareURL = "/imu/im19/20230419111130_VH2_B2.2_A6.1_2eea4d4c024538bf5ed52.enc";
 
-const size_t WIFI_DOWNLOAD_CHUNK_SIZE = 512;
+#define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
 
-#include "Tilt.h"
+#include "settings.h"
 
 // #define PLATFORM_TORCH
 #define PLATFORM_FP
@@ -82,7 +84,43 @@ void loop()
         }
         else if (incoming == 'u')
         {
-            im19StreamFirmwarePass((char *)firmwareURL);
+            wifiConnect();
+
+            firmwareUpdateBytesProcessed = 0;
+            firmwareUpdateBytesToProcess = 0;
+            firmwareUpdateStartTime = millis();
+
+            if (im19StreamFirmware((char *)firmwareURL) == true)
+            {
+                firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
+                systemPrintf("IM19 firmware update complete in %0.2f s.\r\n", firmwareUpdateElapsed / 1000.0);
+            }
         }
     }
+}
+
+// Connects to the configured SSID and blocks until connected or the attempt times out.
+bool wifiConnect()
+{
+    systemPrint("Connecting to WiFi SSID: ");
+    systemPrintln(wifiSSID);
+
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(wifiSSID, wifiPassword);
+
+    unsigned long start = millis();
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        if ((millis() - start) > 20000)
+        {
+            systemPrintln("WiFi connection timed out.");
+            return false;
+        }
+        delay(250);
+        systemPrint(".");
+    }
+
+    systemPrint("WiFi connected, IP address: ");
+    systemPrintln(WiFi.localIP());
+    return true;
 }
