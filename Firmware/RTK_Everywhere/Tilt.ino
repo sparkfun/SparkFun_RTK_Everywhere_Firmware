@@ -338,7 +338,7 @@ void beginTilt()
     if (settings.enableImuDebug == true)
         systemPrintf("IM19 Full Version: %s\r\n", rawFirmwareVersionStr);
     else
-        systemPrintf("IMU version: %s\r\n", imuFirmwareVersionStr);
+        systemPrintf("IMU firmware: %s\r\n", imuFirmwareVersionStr);
 
     // The filter has a set of default parameters, which can be loaded when setting an error.
     result &= tiltSensor->sendCommand("LOAD_DEFAULT");
@@ -413,7 +413,6 @@ void beginTilt()
     {
         if (tiltSensor->saveConfiguration() == true)
         {
-            systemPrintf("IM19 firmware: %d\r\n", imuFirmwareVersionInt);
             systemPrintln("Tilt sensor configuration complete");
             online.imu_im19 = true;
             return; // Success

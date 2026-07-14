@@ -1693,7 +1693,7 @@ void menuInstrument()
         systemPrintln("Menu: Instrument Setup");
 
         if (online.imu_im19 == true)
-            systemPrintf("IM19 firmware: %d\r\n", imuFirmwareVersionInt);
+            systemPrintf("IMU firmware: %s\r\n", imuFirmwareVersionStr);
 
         // Print the combined APC
         systemPrintf("Combined Height of Instrument: %0.3fm\r\n",
