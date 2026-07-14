@@ -422,6 +422,33 @@ void beginTilt()
     tiltStop(); // Stop serial inteface. Mark IMU offline.
 }
 
+// Based on the imuFirmwareVersionStr, modify major, minor, and patch to reflect the IM19 firmware version. Ex: 11.4.1 -> 11, 4, 1, 11.4 -> 11, 4, 0
+// Gracefully handle missing patch version
+void tiltGetVersion(uint16_t &major, uint8_t &minor, uint8_t &patch)
+{
+    major = 0;
+    minor = 0;
+    patch = 0;
+
+    if (strlen(imuFirmwareVersionStr) == 0)
+        return;
+
+    char versionCopy[32];
+    snprintf(versionCopy, sizeof(versionCopy), "%s", imuFirmwareVersionStr);
+
+    char *token = strtok(versionCopy, ".");
+    if (token != nullptr)
+        major = atoi(token);
+
+    token = strtok(nullptr, ".");
+    if (token != nullptr)
+        minor = atoi(token);
+
+    token = strtok(nullptr, ".");
+    if (token != nullptr)
+        patch = atoi(token);
+}
+
 // Stops serial inteface. Marks tilt offline.
 void tiltStop()
 {

@@ -1395,10 +1395,10 @@ bool otaGetSystemsToUpdate(char *modelType)
         int remoteRevision = found["version_revision"] | 0;
 
         char localVersionText[50];
-        int localMajor = 0;
-        int localMinor = 0;
-        int localPatch = 0;
-        int localRevision = 0;
+        uint16_t localMajor = 0;
+        uint8_t localMinor = 0;
+        uint8_t localPatch = 0;
+        uint8_t localRevision = 0;
 
         if (settings.debugFirmwareUpdate)
             systemPrintln("=================================================");
@@ -1430,11 +1430,9 @@ bool otaGetSystemsToUpdate(char *modelType)
                 continue;
             }
 
-            // TODO gnss->getVersion(major/minor/patch/revision)
-            // gnss->getVersionString()
-            localMajor = gnssFirmwareVersionInt / 100;
-            localMinor = gnssFirmwareVersionInt % 100;
-            snprintf(localVersionText, sizeof(localVersionText), "v%d.%d", localMajor, localMinor);
+            gnss->getVersion(localMajor, localMinor, localPatch, localRevision);
+
+            snprintf(localVersionText, sizeof(localVersionText), "v%d.%d.%d.%d", localMajor, localMinor, localPatch, localRevision);
 
             if (otaCompareVersionsPrint(subsystem, localVersionText, remoteVersionText, localMajor, localMinor, 0, 0,
                                         remoteMajor, remoteMinor, remotePatch, remoteRevision, remoteFilePath) == -1)
@@ -1455,7 +1453,8 @@ bool otaGetSystemsToUpdate(char *modelType)
                 continue;
             }
 
-            // TODO lora->getVersion(major/minor/patch/revision)
+            // The LoRa version is under our control (our code) so we can assume
+            // a x.y.z format.
             localMajor = loraFirmwareVersionInt / 100;
             localMinor = (loraFirmwareVersionInt / 10) % 10;
             localPatch = loraFirmwareVersionInt % 10;
@@ -1480,11 +1479,11 @@ bool otaGetSystemsToUpdate(char *modelType)
                 continue;
             }
 
-            // TODO imu->getVersion(major/minor/patch/revision)
-            localMajor = imuFirmwareVersionInt / 100;
-            localMinor = imuFirmwareVersionInt % 100;
-            snprintf(localVersionText, sizeof(localVersionText), "v%d.%d", localMajor, localMinor);
-            if (otaCompareVersionsPrint(subsystem, localVersionText, remoteVersionText, localMajor, localMinor, 0, 0,
+            //IM19 version may be x.y or x.y.z
+            tiltGetVersion(localMajor, localMinor, localPatch);
+
+            snprintf(localVersionText, sizeof(localVersionText), "v%d.%d.%d", localMajor, localMinor, localPatch);
+            if (otaCompareVersionsPrint(subsystem, localVersionText, remoteVersionText, localMajor, localMinor, localPatch, 0,
                                         remoteMajor, remoteMinor, remotePatch, remoteRevision, remoteFilePath) == -1)
             {
                 addTargetToUpdateList('I', remoteFilePath);
