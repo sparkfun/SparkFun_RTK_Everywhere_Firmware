@@ -190,14 +190,14 @@ enum DFU_OUTPUT_DEVICE_TYPE
 //----------------------------------------
 // Declare the generic device firmware update routines
 //----------------------------------------
-typedef void (* DEVICE_CLOSE)(DEVICE_FIRMWARE_CTX * ctx);
-typedef bool (* DEVICE_OPEN)(DEVICE_FIRMWARE_CTX * ctx);
-typedef bool (* DEVICE_RESET)(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
-typedef ssize_t (* DEVICE_WRITE)(DEVICE_FIRMWARE_CTX * ctx,
-                                 const uint8_t * buffer,
-                                 size_t bytesToWrite);
-typedef String (* GET_FIRMWARE_VERSION)(DEVICE_FIRMWARE_CTX * ctx);
-typedef bool (* INIT_DEV_CTX)(DEVICE_FIRMWARE_CTX * ctx);
+typedef void (* DFU_DEVICE_CLOSE)(DEVICE_FIRMWARE_CTX * ctx);
+typedef bool (* DFU_DEVICE_OPEN)(DEVICE_FIRMWARE_CTX * ctx);
+typedef bool (* DFU_DEVICE_RESET)(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);
+typedef ssize_t (* DFU_DEVICE_WRITE)(DEVICE_FIRMWARE_CTX * ctx,
+                                     const uint8_t * buffer,
+                                     size_t bytesToWrite);
+typedef String (* DFU_GET_FIRMWARE_VERSION)(DEVICE_FIRMWARE_CTX * ctx);
+typedef bool (* DFU_INIT_DEV_CTX)(DEVICE_FIRMWARE_CTX * ctx);
 
 //----------------------------------------
 // Describe a device that needs firmware updates
@@ -210,12 +210,12 @@ typedef struct _DEVICE_FIRMWARE_INFO
     const char * _directory;    // Firmware directory
     const char * _nameData;     // Data in file name, may be nullptr
     const char * _extension;    // Data in file name (extension), may be nullptr
-    GET_FIRMWARE_VERSION _version;  // Firmware version display routine
-    DEVICE_RESET _reset;        // Reset the device before loading firmware
-    DEVICE_OPEN _open;          // Prepare for firmware updates
-    DEVICE_WRITE _write;        // Perform the firmware writes
-    DEVICE_CLOSE _close;        // Perform firmware write cleanup
-    INIT_DEV_CTX _initDevCtx;   // Initialize the device specific context
+    DFU_GET_FIRMWARE_VERSION _version; // Firmware version display routine
+    DFU_DEVICE_RESET _reset;    // Reset the device before loading firmware
+    DFU_DEVICE_OPEN _open;      // Prepare for firmware updates
+    DFU_DEVICE_WRITE _write;    // Perform the firmware writes
+    DFU_DEVICE_CLOSE _close;    // Perform firmware write cleanup
+    DFU_INIT_DEV_CTX _initDevCtx; // Initialize the device specific context
     size_t _devContextBytes;    // Size of device specific context buffer
     bool _crcNeeded;            // Is file CRC needed to do firmware update
     bool _useNvm;               // Allow copy to NVM

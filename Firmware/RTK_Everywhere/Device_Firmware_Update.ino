@@ -1803,7 +1803,7 @@ void deviceFirmwareWrite(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     ssize_t bytesWritten;
     bool done;
     int percentage;
-    DEVICE_WRITE write;
+    DFU_DEVICE_WRITE write;
 
     // Determine if there is enough data to write
     write = ctx->_deviceInfo->_write;
