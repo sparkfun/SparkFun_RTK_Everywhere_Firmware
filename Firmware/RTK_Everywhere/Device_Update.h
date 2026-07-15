@@ -56,6 +56,7 @@ typedef struct _DEVICE_FIRMWARE_CTX
     size_t _fileBytes;                  // Length of the file in bytes
     bool _crcNeeded;                    // Does CRC need to be computed
     uint32_t _crc;                      // CRC value
+    size_t _crcBytes;                   // Number of bytes used to compute the CRC
     uint32_t _crcSave;                  // CRC computed during deviceFirmwareCrcReadData
 
     // Buffer support

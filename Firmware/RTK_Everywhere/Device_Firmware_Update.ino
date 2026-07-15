@@ -236,7 +236,8 @@ void deviceFirmwareClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     // Display the CRC
     if (ctx->_complete)
-        systemPrintf("CRC: 0x%08x\r\n", ctx->_crc);
+        systemPrintf("CRC: 0x%08x, %d (0x%08x) bytes\r\n",
+                     ctx->_crc, ctx->_crcBytes, ctx->_crcBytes);
 
     // Display complete
     systemPrintf("%s\r\n", dfuEqualSigns);
@@ -331,13 +332,13 @@ void deviceFirmwareCrcClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     {
         // Display the statistics
         deviceFirmwarePerformUpdate(ctx);
-        systemPrintf("CRC: 0x%08x\r\n", ctx->_crc);
+        systemPrintf("CRC: 0x%08x, %d (0x%08x) bytes\r\n",
+                     ctx->_crc, ctx->_crcBytes, ctx->_crcBytes);
         ctx->_crcSave = ctx->_crc;
         deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_INPUT);
     }
     else
         deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
-    ctx->_crc = 0;
 }
 
 //----------------------------------------
@@ -346,6 +347,7 @@ void deviceFirmwareCrcClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 void deviceFirmwareCrcOpen(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     // Give user a hint as to what is taking so long
+    deviceFirmwareReadInit(ctx, dfuFirmwareData._address, dfuFirmwareData._length);
     if (settings.debugFirmwareUpdate)
     {
         if (ctx->_inputDeviceType == DFU_IDT_NETWORK)
@@ -367,9 +369,6 @@ void deviceFirmwareCrcReadData(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     if (deviceFirmwareRead(ctx, currentMsec, DFUS_CRC_CLOSE))
     {
-        // Compute the CRC across these bytes
-        ctx->_crc = crc32Compute(ctx->_crc, ctx->_buffer, ctx->_validDataBytes);
-
         // Empty the buffer
         ctx->_validDataBytes = 0;
 
@@ -999,8 +998,11 @@ bool deviceFirmwareRead(DEVICE_FIRMWARE_CTX * ctx,
             return false;
         }
         else if (bytesRead)
+        {
             // Compute the CRC
             ctx->_crc = crc32Compute(ctx->_crc, ctx->_data, bytesRead);
+            ctx->_crcBytes += bytesRead;
+        }
     }
 
     // Remaining data starts at the beginning of the buffer
@@ -1065,6 +1067,8 @@ void deviceFirmwareReadInit(DEVICE_FIRMWARE_CTX * ctx, uint8_t * buffer, size_t 
     ctx->_data = buffer;
     ctx->_bufferLength = length;
     ctx->_bytesRead = 0;
+    ctx->_crc = 0;
+    ctx->_crcBytes = 0;
     ctx->_validDataBytes = 0;
 }
 
