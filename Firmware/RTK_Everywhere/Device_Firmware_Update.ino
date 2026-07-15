@@ -725,7 +725,11 @@ void deviceFirmwareNextDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     // Done with the web server
     if (ctx->_https)
     {
-        ctx->_networkClient;
+        if (ctx->_networkClient)
+        {
+            ctx->_networkClient->stop();
+            ctx->_networkClient = nullptr;
+        }
         ctx->_https->end();
         delete ctx->_https;
         ctx->_https = nullptr;
