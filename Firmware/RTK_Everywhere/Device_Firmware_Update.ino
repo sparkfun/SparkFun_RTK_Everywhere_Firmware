@@ -1300,6 +1300,7 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 //----------------------------------------
 void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
+    const DEVICE_FIRMWARE_INFO * deviceInfo;
     int incoming;
     size_t length;
 
@@ -1329,8 +1330,9 @@ void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
                 // Determine if the next device is in the system
                 ctx->_deviceInfo -= 1;
-                if ((ctx->_deviceInfo->_present == nullptr)
-                    || (*ctx->_deviceInfo->_present))
+                deviceInfo = ctx->_deviceInfo;
+                if ((deviceInfo->_present == nullptr)
+                    || (*deviceInfo->_present))
                 {
                     if ((dfuBufferInfo[0]._bufferData == nullptr)
                         || (dfuBufferInfo[0]._bufferData->_address == nullptr))
@@ -1341,8 +1343,8 @@ void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                     }
 
                     // Display the firmware version
-                    if (ctx->_deviceInfo->_version)
-                        systemPrintf("Current firmware version: %d\r\n", ctx->_deviceInfo->_version(ctx));
+                    if (deviceInfo->_version)
+                        systemPrintf("Current firmware version: %d\r\n", deviceInfo->_version(ctx));
 
                     // Program the next device
                     goto nextDevice;
@@ -1374,10 +1376,11 @@ void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
 nextDevice:
             // Display the menu choice
-            systemPrintf("Selected device: %s\r\n", ctx->_deviceInfo->_deviceName);
+            deviceInfo = ctx->_deviceInfo;
+            systemPrintf("Selected device: %s\r\n", deviceInfo->_deviceName);
 
             // Allocate the necessary write buffer
-            length = ctx->_deviceInfo->_writeBufferBytes;
+            length = deviceInfo->_writeBufferBytes;
             if (length)
             {
                 // Allocate the write buffer for this device
@@ -1394,7 +1397,7 @@ nextDevice:
             }
 
             // Allocate the device specific context
-            length = ctx->_deviceInfo->_devContextBytes;
+            length = deviceInfo->_devContextBytes;
             if (length)
             {
                 // Allocate the device specific context
@@ -1411,12 +1414,12 @@ nextDevice:
 
                 // Initialize the device specific context
                 memset(ctx->_devCtx, 0, length);
-                if (ctx->_deviceInfo->_initDevCtx)
+                if (deviceInfo->_initDevCtx)
                 {
-                    if (ctx->_deviceInfo->_initDevCtx(ctx) == false)
+                    if (deviceInfo->_initDevCtx(ctx) == false)
                     {
                         systemPrintf("ERROR: Failed to initialize the %s device specific context\r\n",
-                                     ctx->_deviceInfo->_deviceName);
+                                     deviceInfo->_deviceName);
                         if (ctx->_doAll)
                             ctx->_reboot = false;
                         deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
@@ -1425,8 +1428,8 @@ nextDevice:
             }
 
             // Determine maximum bytes to write at a time
-            ctx->_bytesMax = ctx->_deviceInfo->_maxWriteBytes
-                           ? ctx->_deviceInfo->_maxWriteBytes : ctx->_bufferLength;
+            ctx->_bytesMax = deviceInfo->_maxWriteBytes
+                           ? deviceInfo->_maxWriteBytes : ctx->_bufferLength;
 
             // Get the files
             systemPrintf("Getting the file list...\r\n");
