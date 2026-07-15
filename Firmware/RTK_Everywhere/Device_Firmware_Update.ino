@@ -827,6 +827,7 @@ void deviceFirmwareOpenOutput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     {
         ctx->_bytesWritten = 0;
         ctx->_packetNumber = 0;
+        ctx->_percentage = -1;
         result = false;
 
         // Network write data path
