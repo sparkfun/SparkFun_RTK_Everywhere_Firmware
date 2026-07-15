@@ -792,7 +792,7 @@ bool deviceFirmwareOpenInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     if (ctx->_outputDeviceType == DFU_ODT_NONE)
         reportFatalError("Output device type is DFU_ODT_NONE!");
 
-    ctx->_bytesRead = 0;
+    deviceFirmwareReadInit(ctx, dfuFirmwareData._address, dfuFirmwareData._length);
     ctx->_complete = false;
     ctx->_startMsec = millis();
 
@@ -1053,6 +1053,18 @@ void deviceFirmwareReadFirmwareData(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentM
 {
     if (deviceFirmwareRead(ctx, currentMsec, DFUS_CRC_CLOSE))
         deviceFirmwareStateSet(ctx, DFUS_DEVICE_PROGRAM_FIRMWARE);
+}
+
+//----------------------------------------
+// Initialize the read operation
+//----------------------------------------
+void deviceFirmwareReadInit(DEVICE_FIRMWARE_CTX * ctx, uint8_t * buffer, size_t length)
+{
+    ctx->_buffer = buffer;
+    ctx->_data = buffer;
+    ctx->_bufferLength = length;
+    ctx->_bytesRead = 0;
+    ctx->_validDataBytes = 0;
 }
 
 //----------------------------------------
