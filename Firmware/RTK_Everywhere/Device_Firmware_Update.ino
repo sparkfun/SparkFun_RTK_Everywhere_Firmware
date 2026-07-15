@@ -361,6 +361,38 @@ void deviceFirmwareCrcClose(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 //----------------------------------------
 void deviceFirmwareCrcOpen(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
+    const char * crcString;
+    uint32_t fileCrc;
+    size_t fileBytes;
+
+    // Determine if the CRC was specified
+    if (ctx->_useCsv)
+    {
+        // Verify that a file length was specified
+        fileBytes = deviceFirmwareCsvGetNumber(ctx, "file_bytes");
+        if (fileBytes)
+        {
+            // Verify that the CRC was specified
+            crcString = deviceFirmwareCsvLocateField(ctx, ctx->_csvDeviceEntry, "file_crc32");
+            if (strlen(crcString) > 0)
+            {
+                // Get the CRC
+                fileCrc = deviceFirmwareCsvGetNumber(ctx, "file_crc32");
+
+                // Use the CRC32 and file bytes specified by the CSV file
+                ctx->_crc = fileCrc;
+                ctx->_crcSave = fileCrc;
+                ctx->_crcBytes = fileBytes;
+
+                // Display the CRC
+                systemPrintf("CRC: 0x%08x, %d (0x%08x) bytes\r\n",
+                             ctx->_crc, ctx->_crcBytes, ctx->_crcBytes);
+                deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_INPUT);
+                return;
+            }
+        }
+    }
+
     // Give user a hint as to what is taking so long
     deviceFirmwareReadInit(ctx, dfuFirmwareData._address, dfuFirmwareData._length);
     if (settings.debugFirmwareUpdate)
@@ -375,6 +407,51 @@ void deviceFirmwareCrcOpen(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         deviceFirmwareStateSet(ctx, DFUS_CRC_READ_DATA);
     else
         deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
+}
+
+//----------------------------------------
+// Determine if the file must be read to compute the CRC
+//----------------------------------------
+bool deviceFirmwareCrcMustReadFile(DEVICE_FIRMWARE_CTX * ctx)
+{
+    const char * crcString;
+    size_t fileBytes;
+    uint32_t fileCrc;
+
+    do
+    {
+        // Determine if the CRC was specified
+        if (ctx->_useCsv == false)
+            // Read the file to determine the CRC
+            break;
+
+        // Verify that a file length was specified
+        fileBytes = deviceFirmwareCsvGetNumber(ctx, "file_bytes");
+        if (fileBytes == 0)
+            // Read the file to determine the CRC
+            break;
+
+        // Verify that the CRC was specified
+        crcString = deviceFirmwareCsvLocateField(ctx, ctx->_csvDeviceEntry, "file_crc32");
+        if (strlen(crcString) == 0)
+            // Read the flie to determine the crc
+            break;
+
+        // Get the CRC
+        fileCrc = (uint32_t)deviceFirmwareCsvGetNumber(ctx, "file_crc32");
+
+        // Use the CRC32 and file bytes specified by the CSV file
+        ctx->_crc = fileCrc;
+        ctx->_crcSave = fileCrc;
+        ctx->_crcBytes = fileBytes;
+
+        // Display the CRC
+        systemPrintf("CRC: 0x%08x, %d (0x%08x) bytes\r\n",
+                     ctx->_crc, ctx->_crcBytes, ctx->_crcBytes);
+        deviceFirmwareStateSet(ctx, DFUS_DEVICE_OPEN_INPUT);
+        return false;
+    } while (0);
+    return ctx->_deviceInfo->_crcNeeded;
 }
 
 //----------------------------------------
@@ -697,6 +774,8 @@ int deviceFirmwareCsvGetNumber(DEVICE_FIRMWARE_CTX * ctx,
     string = deviceFirmwareCsvLocateField(ctx, ctx->_csvDeviceEntry, fieldName);
     if (string == nullptr)
         return 0;
+    if (sscanf(string, "0x%x", &value) == 1)
+        return value;
     if (sscanf(string, "%d", &value) == 1)
         return value;
     return 0;
@@ -1444,6 +1523,8 @@ void deviceFirmwareOpenOutput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 bool deviceFirmwareOpenUrl(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     int attempt;
+    const char * crcString;
+    size_t fileBytes;
     int httpResponseCode;
 
     if (settings.debugFirmwareUpdate)
@@ -1478,6 +1559,26 @@ bool deviceFirmwareOpenUrl(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     ctx->_fileBytes = ctx->_https->getSize();
     if (settings.debugFirmwareUpdate)
         systemPrintf("File size: %d bytes\r\n", ctx->_fileBytes);
+
+    // Determine if the file size is valid
+    if (ctx->_useCsv && ctx->_csvDeviceEntry)
+    {
+        fileBytes = deviceFirmwareCsvGetNumber(ctx, "file_bytes");
+        if (fileBytes != ctx->_fileBytes)
+        {
+            systemPrintf("CSV File size does not match, CSV bytes: %d, Actual bytes: %d\r\n",
+                         fileBytes, ctx->_fileBytes);
+            return false;
+        }
+
+        // Verify that the CRC string was specified
+        crcString = deviceFirmwareCsvLocateField(ctx, ctx->_csvDeviceEntry, "file_crc32");
+        if (strlen(crcString) == 0)
+        {
+            systemPrintf("CVS file missing CRC32 value!\r\n");
+            return false;
+        }
+    }
 
     // Get TCP stream
     ctx->_networkClient = ctx->_https->getStreamPtr();
@@ -1593,6 +1694,22 @@ void deviceFirmwareReadFillBuffer(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMse
 {
     if (deviceFirmwareRead(ctx, currentMsec, DFUS_DEVICE_CLOSE))
     {
+        // Verify the file CRC
+        if (ctx->_bytesRead == ctx->_fileBytes)
+        {
+            if (ctx->_useCsv || ctx->_deviceInfo->_crcNeeded)
+            {
+                if (ctx->_crc != ctx->_crcSave)
+                {
+                    systemPrintf("CRC verification failed, expected: 0x%08x, actual: 0x%08x\r\n",
+                                 ctx->_crcSave, ctx->_crc);
+                    deviceFirmwareStateSet(ctx, DFUS_DEVICE_CLOSE);
+                    return;
+                }
+            }
+        }
+
+        // Start the firmware update processing
         if (ctx->_outputDeviceType == DFU_ODT_DEVICE)
             deviceFirmwareStopTasks(ctx);
         if (ctx->_doAll == false)
@@ -1606,8 +1723,29 @@ void deviceFirmwareReadFillBuffer(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMse
 //----------------------------------------
 void deviceFirmwareReadFirmwareData(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
-    if (deviceFirmwareRead(ctx, currentMsec, DFUS_CRC_CLOSE))
+    // Read more firmware data into the buffer
+    if (deviceFirmwareRead(ctx, currentMsec, DFUS_DEVICE_CLOSE))
+    {
+        // Verify the file CRC
+        if (ctx->_bytesRead == ctx->_fileBytes)
+        {
+            // The last few bytes are in the buffer and need to be programmed
+            if (ctx->_useCsv || ctx->_deviceInfo->_crcNeeded)
+            {
+                // The expected CRC is available, verify it
+                if (ctx->_crc != ctx->_crcSave)
+                {
+                    systemPrintf("\r\nCRC verification failed, expected: 0x%08x, actual: 0x%08x\r\n",
+                                 ctx->_crcSave, ctx->_crc);
+                    deviceFirmwareStateSet(ctx, DFUS_DEVICE_CLOSE);
+                    return;
+                }
+            }
+        }
+
+        // More firmware to program
         deviceFirmwareStateSet(ctx, DFUS_DEVICE_PROGRAM_FIRMWARE);
+    }
 }
 
 //----------------------------------------
@@ -1764,7 +1902,7 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         {
             // Performing the firmware update
             ctx->_outputDeviceType = DFU_ODT_DEVICE;
-            deviceFirmwareStateSet(ctx, ctx->_deviceInfo->_crcNeeded
+            deviceFirmwareStateSet(ctx, deviceFirmwareCrcMustReadFile(ctx)
                                         ? DFUS_CRC_OPEN_INPUT
                                         : DFUS_DEVICE_OPEN_INPUT);
             break;
@@ -1837,7 +1975,7 @@ void deviceFirmwareSelectAction(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
             // Start the programming process
             ctx->_outputDeviceType = DFU_ODT_DEVICE;
-            deviceFirmwareStateSet(ctx, ctx->_deviceInfo->_crcNeeded
+            deviceFirmwareStateSet(ctx, deviceFirmwareCrcMustReadFile(ctx)
                                         ? DFUS_CRC_OPEN_INPUT
                                         : DFUS_DEVICE_OPEN_INPUT);
         }
