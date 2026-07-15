@@ -64,12 +64,13 @@ Firmware/Test\ Sketches/?/*
 
 # Executables
 Compare
+File_CRC
+File_to_Hex_Data_Array
 NMEA_Client
 Read_Map_File
 RTK_Reset
 Split_Messages
 X.509_crt_bundle_bin_to_c
-File_to_Hex_Data_Array
 
 # Claude workspace metadata
 **/.claude/
