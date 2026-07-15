@@ -196,7 +196,7 @@ typedef bool (* DFU_DEVICE_RESET)(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMse
 typedef ssize_t (* DFU_DEVICE_WRITE)(DEVICE_FIRMWARE_CTX * ctx,
                                      const uint8_t * buffer,
                                      size_t bytesToWrite);
-typedef String (* DFU_GET_FIRMWARE_VERSION)(DEVICE_FIRMWARE_CTX * ctx);
+typedef int (* DFU_GET_FIRMWARE_VERSION)(DEVICE_FIRMWARE_CTX * ctx);
 typedef bool (* DFU_INIT_DEV_CTX)(DEVICE_FIRMWARE_CTX * ctx);
 
 //----------------------------------------
@@ -289,8 +289,8 @@ const int dfuBufferInfoCount = sizeof(dfuBufferInfo) / sizeof(dfuBufferInfo[0]);
 //----------------------------------------
 
 // Get firmware version
-String dfuEsp32GetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx);
-String dfuGnssGetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx);
+int dfuEsp32GetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx);
+int dfuGnssGetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx);
 
 // Device reset
 bool dfuLg290pReset(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec);

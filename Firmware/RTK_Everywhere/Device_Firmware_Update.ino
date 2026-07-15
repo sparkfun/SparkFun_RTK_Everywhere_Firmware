@@ -475,7 +475,7 @@ void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx)
 
         // Display the firmware version
         if (ctx->_deviceInfo->_version)
-            systemPrintf("\r\nCurrent firmware version: %s\r\n", ctx->_deviceInfo->_version(ctx).c_str());
+            systemPrintf("\r\nCurrent firmware version: %d\r\n", ctx->_deviceInfo->_version(ctx));
 
         // Display the files
         offset = 0;
@@ -1325,7 +1325,7 @@ void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
                     // Display the firmware version
                     if (ctx->_deviceInfo->_version)
-                        systemPrintf("Current firmware version: %s\r\n", ctx->_deviceInfo->_version(ctx).c_str());
+                        systemPrintf("Current firmware version: %d\r\n", ctx->_deviceInfo->_version(ctx));
 
                     // Program the next device
                     goto nextDevice;

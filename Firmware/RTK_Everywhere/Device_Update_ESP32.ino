@@ -66,11 +66,9 @@ void dfuEsp32Close(DEVICE_FIRMWARE_CTX * ctx)
 //----------------------------------------
 // Get the current ESP32 firmware version
 //----------------------------------------
-String dfuEsp32GetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx)
+int dfuEsp32GetFirmwareVersion(DEVICE_FIRMWARE_CTX * ctx)
 {
-    char version[128];
-    //firmwareVersionGet(version, sizeof(version), true);
-    return String(version);
+    return RTK_IDENTIFIER;
 }
 
 //----------------------------------------
