@@ -94,15 +94,15 @@ void firmwareMenu()
         // fails in deviceFirmwareUpdate due to server website changes!
         // Letters: a  c  e  i  r  s  u
         otaMenuDisplay(currentVersion);
-        systemPrintf("D) %s developer options\r\n", developerOptions ? "Disable" : "Enable");
+        systemPrintf("d) %s developer options\r\n", developerOptions ? "Disable" : "Enable");
         systemPrintf("p) Restore product to production firmware\r\n");
         if (developerOptions)
         {
-            systemPrintf("d) %s firmware debugging\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
-            systemPrintf("l) Update all devices to latest released firmware\r\n");
-            systemPrintf("o) Update one device's firmware\r\n");
+            systemPrintf("D) %s firmware debugging\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
+            systemPrintf("L) Update all devices to latest released firmware\r\n");
+            systemPrintf("O) Update one device's firmware\r\n");
             if (settings.debugFirmwareUpdate)
-                systemPrintf("v) %s verbose firmware debugging\r\n", debugVerbose ? "Disable" : "Enable");
+                systemPrintf("V) %s verbose firmware debugging\r\n", debugVerbose ? "Disable" : "Enable");
         }
 
         for (int x = 0; x < binCount; x++)
@@ -127,11 +127,11 @@ void firmwareMenu()
         }
 
         // Enable / disable developer options
-        else if (incoming == 'D')
+        else if (incoming == 'd')
             developerOptions ^= 1;
 
         // Toggle firmware debugging
-        else if (developerOptions && (incoming == 'd'))
+        else if (developerOptions && (incoming == 'D'))
         {
             settings.debugFirmwareUpdate ^= 1;
             if (settings.debugFirmwareUpdate == false)
@@ -139,9 +139,9 @@ void firmwareMenu()
         }
 
         // Perform the device firmware update
-        else if (developerOptions && ((incoming == 'l') || (incoming == 'o')))
+        else if (developerOptions && ((incoming == 'L') || (incoming == 'O')))
         {
-            deviceFirmwareUpdateBegin(nullptr, incoming == 'l', debugVerbose);
+            deviceFirmwareUpdateBegin(nullptr, incoming == 'L', debugVerbose);
             while (deviceFirmwareUpdate(millis()))
             {
                 networkUpdate();
@@ -159,7 +159,7 @@ void firmwareMenu()
         }
 
         // Toggle verbose firmware debugging
-        else if (developerOptions && settings.debugFirmwareUpdate && (incoming == 'v'))
+        else if (developerOptions && settings.debugFirmwareUpdate && (incoming == 'V'))
             debugVerbose ^= 1;
 
         else if (incoming == 'x')
@@ -1307,7 +1307,7 @@ bool espStreamFirmware(char *relativeFirmwareFileLocation)
         http.end();
         return false;
     }
-    
+
     systemPrintln("Update successfully completed.");
 
     http.end();
