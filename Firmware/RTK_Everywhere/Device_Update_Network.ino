@@ -29,13 +29,6 @@ void dfuNetworkCleanup(DEVICE_FIRMWARE_CTX *ctx,
         ctx->_https = nullptr;
     }
 
-    // Done with the secure client
-    if (ctx->_httpsClient)
-    {
-        delete ctx->_httpsClient;
-        ctx->_httpsClient = nullptr;
-    }
-
     // Display the transfer data
     if (settings.debugFirmwareUpdate && bufferData && bufferData->_offset)
     {
@@ -62,11 +55,18 @@ void dfuNetworkFileListBuildUrl(DEVICE_FIRMWARE_CTX * ctx)
 {
     const DEVICE_FIRMWARE_INFO * deviceInfo;
 
+    // https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries
+    // /raw/refs/heads/main
+    // /imu/im19
+    // /20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc
+    //
     // Build the URL
     deviceInfo = ctx->_deviceInfo;
-    ctx->_url = deviceInfo->_server;
-    if (deviceInfo->_branch)
-        ctx->_url += deviceInfo->_branch;
+    ctx->_url = deviceInfo->_dirServer;
+    ctx->_cert = deviceInfo->_dirCert;
+    ctx->_server = deviceFirmwareGetServer(ctx, ctx->_url);
+    if (deviceInfo->_dirBranch)
+        ctx->_url += deviceInfo->_dirBranch;
     if (deviceInfo->_directory)
         ctx->_url += deviceInfo->_directory;
     if (settings.debugFirmwareUpdate)

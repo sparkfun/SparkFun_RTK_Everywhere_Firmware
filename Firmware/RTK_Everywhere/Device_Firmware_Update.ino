@@ -1228,6 +1228,33 @@ int deviceFirmwareGetNumber(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 }
 
 //----------------------------------------
+// Extract the web server from the URL
+//----------------------------------------
+String deviceFirmwareGetServer(DEVICE_FIRMWARE_CTX *ctx, String &url)
+{
+    int index;
+    size_t length = url.length();
+    char server[length + 1];
+    int slashCount;
+
+    // Locate the third slash
+    strcpy(server, url.c_str());
+    slashCount = 0;
+    for (index = 0; index < length; index++)
+    {
+        if (server[index] == 0)
+            break;
+        if (server[index] == '/')
+        {
+            if (++slashCount == 3)
+                break;
+        }
+    }
+    server[index] = 0;
+    return String(server);
+}
+
+//----------------------------------------
 // Get a value from the user
 //----------------------------------------
 int deviceFirmwareGetUserInput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
@@ -1523,6 +1550,7 @@ void deviceFirmwareOpenOutput(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 bool deviceFirmwareOpenUrl(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     int attempt;
+    NetworkClientSecure * client;
     const char * crcString;
     size_t fileBytes;
     int httpResponseCode;
@@ -1530,18 +1558,70 @@ bool deviceFirmwareOpenUrl(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     if (settings.debugFirmwareUpdate)
         systemPrintf("URL: %s\r\n", ctx->_url.c_str());
 
+    // Locate the server
+    ctx->_server = deviceFirmwareGetServer(ctx, ctx->_url);
+
     // Send HTTP GET request
     attempt = 0;
     do
     {
+        // Allocate the HTTP client
+        ctx->_https = new HTTPClient;
+        if (ctx->_https == nullptr)
+        {
+            systemPrintf("ERROR: Failed to allocate the HTTP client\r\n");
+            return false;
+        }
+
+        // Use an encrypted connection when possible
+        if (ctx->_cert == nullptr)
+            ctx->_https->begin(ctx->_url);
+        else
+        {
+            // Initialize the secure client
+            client = new NetworkClientSecure;
+            if (client == nullptr)
+            {
+                systemPrintf("ERROR: Failed to allocate network client!\r\n");
+                delete ctx->_https;
+                ctx->_https = nullptr;
+                return false;
+            }
+
+            // Set the certificate
+            client->setCACert(ctx->_cert);
+
+            // Preflight TLS handshake using the expected host name.
+            // With CA configured, connect() fails if certificate validation fails.
+            if (!client->connect(ctx->_server.c_str(), 443))
+            {
+                systemPrintf("ERROR: TLS socket connect to %s failed!\r\n", ctx->_server.c_str());
+                delete ctx->_https;
+                ctx->_https = nullptr;
+                delete client;
+                return false;
+            }
+
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("TLS certificate verified for %s\r\n", ctx->_server.c_str());
+            client->stop();
+
+            // Initialize the HTTP client
+            ctx->_https->begin(*client, ctx->_url);
+        }
+
         // Open the connection to the web server
         ctx->_startMsec = currentMsec;
-        ctx->_https = new HTTPClient;
-        ctx->_https->begin(ctx->_url);
         ctx->_https->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
         httpResponseCode = ctx->_https->GET();
         if (httpResponseCode == -1)
+        {
             ctx->_https->end();
+            delete ctx->_https;
+            ctx->_https = nullptr;
+            delete client;
+            client = nullptr;
+        }
 
         // Display the error
         if ((httpResponseCode != 200) || (settings.debugFirmwareUpdate))
@@ -1552,6 +1632,10 @@ bool deviceFirmwareOpenUrl(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     if (httpResponseCode != 200)
     {
         systemPrintf("ERROR: Failed to open url: %s\r\n", ctx->_url.c_str());
+        delete ctx->_https;
+        ctx->_https = nullptr;
+        delete client;
+        client = nullptr;
         return false;
     }
 
@@ -2209,8 +2293,14 @@ nextDevice:
                 ctx->_fileName = "/";
                 ctx->_fileName += fileName;
 
+                // https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries
+                // /main
+                // /imu/im19
+                // /20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc
+                //
                 // Build the raw URL
-                url = deviceInfo->_server;
+                url = deviceInfo->_rawServer;
+                ctx->_cert = deviceInfo->_rawCert;
                 if (deviceInfo->_rawBranch)
                     url += deviceInfo->_rawBranch;
                 if (deviceInfo->_directory)
@@ -2218,7 +2308,6 @@ nextDevice:
                 url += ctx->_fileName;
                 ctx->_url = url;
                 ctx->_validDataBytes = 0;
-
 
                 // Determine what to do with this file
                 deviceFirmwareStateSet(ctx, DFUS_SELECT_ACTION);
@@ -2258,6 +2347,13 @@ void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             // Yes, does this device have some firmware?
             if (ctx->_fileCountNet)
             {
+                // Display the file list
+                if (settings.debugFirmwareUpdate)
+                    deviceFirmwareFileList(bufferGetIndex(&dfuFirmwareFileNamesNet),
+                                           ctx->_fileCountNet,
+                                           deviceFirmwareGetDevicePrefix(DFU_IDT_NETWORK),
+                                           0);
+
                 // Yes, use the most recent network firmware file
                 ctx->_inputDeviceType = DFU_IDT_NETWORK;
                 fileNumber = 0;
@@ -2342,8 +2438,14 @@ void deviceFirmwareSelectFile(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     ctx->_fileName = "/";
     ctx->_fileName += nameArray[sortArray[fileNumber]];
 
+    // https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries
+    // /main
+    // /imu/im19
+    // /20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc
+    //
     // Build the raw URL
-    url = deviceInfo->_server;
+    url = deviceInfo->_rawServer;
+    ctx->_cert = deviceInfo->_rawCert;
     if (deviceInfo->_rawBranch)
         url += deviceInfo->_rawBranch;
     if (deviceInfo->_directory)
@@ -2537,6 +2639,7 @@ bool deviceFirmwareUpdateBegin(const char * csvUrl,
         {
             ctx->_useCsv = true;
             ctx->_url = String(csvUrl);
+            ctx->_cert = csvCert;
             ctx->_reboot = true;
         }
         ctx->_debugVerbose = debugVerbose;

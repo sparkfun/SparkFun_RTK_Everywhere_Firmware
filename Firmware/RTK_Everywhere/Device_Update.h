@@ -48,11 +48,12 @@ typedef struct _DEVICE_FIRMWARE_CTX
 
 #ifdef COMPILE_NETWORK
     HTTPClient * _https;                // HTTPS object connected to web server
-    NetworkClientSecure * _httpsClient; // Secure HTTPS client
     NetworkClient * _networkClient;     // Network client object connected to web server
 #endif  // COMPILE_NETWORK
 
     String _url;                        // URL for network access
+    String _server;                     // Server for test connection
+    const char * _cert;                 // Certificate for the connection
     String _fileName;                   // File name for SD and NVM
     size_t _fileBytes;                  // Length of the file in bytes
     bool _crcNeeded;                    // Does CRC need to be computed
@@ -246,13 +247,16 @@ typedef struct _DEVICE_FIRMWARE_INFO
     //
     // Note: Use the JSON based OTA to get a new ESP32 image when the
     // parsing fails due to website changes on the servers below!
-    const char * _server;       // Firmware server
-    const char * _branch;       // Firmware branch
+    const char * _dirServer;    // Firmware directory server
+    const char * _dirCert;      // Certificate for directory server
+    const char * _dirBranch;    // Firmware directory branch
     const char * _dirPrefix;    // Data before directory listing, may be nullptr
     const char * _dirPrefix2;   // Data before directory listing, may be nullptr
     const char * _dirSuffix;    // Data after directory listing
     const char * _entryPrefix;  // Data before file name, may be nullptr
     const char * _entrySuffix;  // Data after file name
+    const char * _rawServer;    // Firmware raw server
+    const char * _rawCert;      // Certificate for raw server
     const char * _rawBranch;    // Firmware raw tree branch
 } DEVICE_FIRMWARE_INFO;
 
@@ -265,7 +269,10 @@ const char * forceFirmwareFileName = "RTK_Everywhere_Firmware_Force.bin";
 
 // GitHub web-page parsing for file lists
 const char * dfuGithub = "https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries";
-const char * dfuRawHead = "/raw/refs/heads/main";
+const char * dfuGithubRaw = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries";
+const char * dfuGhRawCert = GITHUB_RAW_PUBLIC_CERT;
+const char * dfuDirHead = "/raw/refs/heads/main";
+const char * dfuRawHead = "/main";
 const char * dfuTree = "},\"tree";
 const char * dfuFileTree = ":{\"fileTree\":{\"";
 const char * dfuItems = "\":{\"items\":[";
@@ -273,6 +280,15 @@ const char * dfuListEnd = "]";
 const char * dfuName = "\"name\":\"";
 const char * dfuNameEnd = "\"";
 
+/*
+    // "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc"
+
+    static char firmwareFileLocation[256];
+    snprintf(firmwareFileLocation, sizeof(firmwareFileLocation),
+             "https://%s/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main%s",
+             OTA_FIRMWARE_GITHUB_RAW,
+             relativeFirmwareFileLocation);
+*/
 //----------------------------------------
 // Statically allocated buffers
 //----------------------------------------
@@ -357,13 +373,13 @@ bool deviceFirmwareUpdateBegin(const char * csvUrl,
 // Note: Use the JSON based OTA to get a new ESP32 image when the
 // parsing fails due to website changes on the servers below!
 const DEVICE_FIRMWARE_INFO deviceFirmwareInfo[] =
-{//  Name           present                 Directory                   NameData        Extension  Firmware version             Compare CSV version         Reset               Open                Write               Close           InitDevCtx          Context Bytes           CRC     useNvm  Buffer Bytes        Max Write Bytes                 Server     Branch      dPrefix1     dPrefix2  dirEnd      nPrefix  nameEnd     Raw Branch
-    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", dfuEsp32GetFirmwareVersion,  dfuEsp32CompareCsvVersion,  nullptr,            dfuEsp32Open,       dfuEsp32Write,      dfuEsp32Close,  nullptr,            0,                      false,  false,  0,                  0,                              dfuGithub, nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
+{//  Name           present                 Directory                   NameData        Extension  Firmware version             Compare CSV version         Reset               Open                Write               Close           InitDevCtx          Context Bytes           CRC     useNvm  Buffer Bytes        Max Write Bytes                 DirServer  DirCert      DirBranch   dPrefix1     dPrefix2  dirEnd      nPrefix  nameEnd     RawServer        RawCert         RawBranch
+    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", dfuEsp32GetFirmwareVersion,  dfuEsp32CompareCsvVersion,  nullptr,            dfuEsp32Open,       dfuEsp32Write,      dfuEsp32Close,  nullptr,            0,                      false,  false,  0,                  0,                              dfuGithub, nullptr,     nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuGithubRaw,    dfuGhRawCert,   dfuRawHead},
     // ESP32 must be the first entry in the list, p command does list in reverse
 
     // GNSS devices
 #ifdef  COMPILE_LG290P
-    {"GNSS",        &present.gnss_lg290p,   "/gnss/lg290p",             "LG290P",          ".pkg", dfuGnssGetFirmwareVersion,   dfuGnssCompareCsvVersion,   dfuLg290pReset,     dfuLg290pOpen,      dfuLg290pWrite,     dfuLg290pClose, nullptr,            0,                      true,   false,  DFU_LG290P_BYTES,   DFU_LG290P_MAX_PAYLOAD_SIZE,    dfuGithub, dfuRawHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
+    {"GNSS",        &present.gnss_lg290p,   "/gnss/lg290p",             "LG290P",          ".pkg", dfuGnssGetFirmwareVersion,   dfuGnssCompareCsvVersion,   dfuLg290pReset,     dfuLg290pOpen,      dfuLg290pWrite,     dfuLg290pClose, nullptr,            0,                      true,   false,  DFU_LG290P_BYTES,   DFU_LG290P_MAX_PAYLOAD_SIZE,    dfuGithub, nullptr,     dfuDirHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuGithubRaw,    dfuGhRawCert,   dfuRawHead},
 #endif  // COMPILE_LG290P
 };
 const int deviceFirmwareInfoCount = sizeof(deviceFirmwareInfo) / sizeof(deviceFirmwareInfo[0]);

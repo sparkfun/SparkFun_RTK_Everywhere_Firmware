@@ -500,7 +500,9 @@ bool otaRequestFirmwareVersionCheck = false;
 bool otaRequestFirmwareUpdate = false;
 
 //const char * csvUrl = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-Variants.csv";
+//const char * csvCert = GITHUB_RAW_PUBLIC_CERT;
 const char * csvUrl = "https://leahyjr.com/SparkFun/RTK-Everywhere-Variants.csv";
+const char * csvCert = nullptr;
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // Connection settings to NTRIP Caster
