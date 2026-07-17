@@ -18,14 +18,17 @@ int dfuGnssCompareCsvVersion(DEVICE_FIRMWARE_CTX * ctx,
     int gnssMajor = gnssVersion / 100;
     int gnssMinor = gnssVersion % 100;
 
-    // For debug builds, always return a negative value indicating to update
-    // to any release version
+    // For debug builds:
+    // When restoring production version, always return a negative value
+    // indicating to update to the latest production version
+    // When keeping the highest version, always return a positive non-zero
+    // value to keep the debug version
     if ((gnssMajor == 99) && (gnssMinor == 99))
-        return -1;
+        return ctx->_csvKeepHighestVersion ? 1 : -1;
 
     // Check if the current version is lower than the CSV version
     if ((gnssMajor < major)
-        || ((gnssMajor == major) && (gnssMinor  < minor)))
+        || ((gnssMajor == major) && (gnssMinor < minor)))
         return -1;
 
     // Check if the current version is higher than the CSV verison

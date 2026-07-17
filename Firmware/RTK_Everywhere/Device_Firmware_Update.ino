@@ -982,6 +982,7 @@ void deviceFirmwareCsvRead(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 bool deviceFirmwareCsvVersionNeedsUpdating(DEVICE_FIRMWARE_CTX * ctx)
 {
     const DEVICE_FIRMWARE_INFO * deviceInfo;
+    bool doUpdate;
     int major;
     int minor;
     int patch;
@@ -999,14 +1000,28 @@ bool deviceFirmwareCsvVersionNeedsUpdating(DEVICE_FIRMWARE_CTX * ctx)
     deviceInfo = ctx->_deviceInfo;
 
     // Always upgrade if comparison routine is not specified
-    // Always upgrade if version does not match the CSV specified version
-    return ((deviceInfo->_cmpVersion == nullptr)
-        || (deviceInfo->_cmpVersion(ctx,
-                                    major,
-                                    minor,
-                                    patch,
-                                    revision,
-                                    releaseCandidate) != 0));
+    doUpdate = (deviceInfo->_cmpVersion == nullptr);
+    if (doUpdate == false)
+    {
+        // Keeping highest: Update when current version less than the CSV version
+        if (ctx->_csvKeepHighestVersion)
+            doUpdate = (deviceInfo->_cmpVersion(ctx,
+                                                major,
+                                                minor,
+                                                patch,
+                                                revision,
+                                                releaseCandidate) < 0);
+
+        // For production: Update when current version does not match the CSV version
+        else
+            doUpdate = (deviceInfo->_cmpVersion(ctx,
+                                                major,
+                                                minor,
+                                                patch,
+                                                revision,
+                                                releaseCandidate) != 0);
+    }
+    return doUpdate;
 }
 
 //----------------------------------------
@@ -2189,7 +2204,12 @@ void deviceFirmwareSelectDevice(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                             const char * separation = &dfuEqualSigns[strlen(dfuEqualSigns) - 40];
 
                             systemPrintf("%s\r\n", separation);
-                            systemPrintf("%s is already up-to-date\r\n", deviceInfo->_deviceName);
+                            if (deviceInfo->_version)
+                                systemPrintf("%s is already up-to-date, version: %d\r\n",
+                                             deviceInfo->_deviceName,
+                                             deviceInfo->_version(ctx));
+                            else
+                                systemPrintf("%s is already up-to-date\r\n", deviceInfo->_deviceName);
                             systemPrintf("%s\r\n", separation);
                         }
                     }
@@ -2598,6 +2618,7 @@ bool deviceFirmwareUpdate(uint32_t currentMsec)
 //----------------------------------------
 bool deviceFirmwareUpdateBegin(const char * csvUrl,
                                bool doAll,
+                               bool keepHighestVersions,
                                bool debugVerbose,
                                size_t saveDataLength)
 {
@@ -2640,6 +2661,7 @@ bool deviceFirmwareUpdateBegin(const char * csvUrl,
             ctx->_useCsv = true;
             ctx->_url = String(csvUrl);
             ctx->_cert = csvCert;
+            ctx->_csvKeepHighestVersion = keepHighestVersions;
             ctx->_reboot = true;
         }
         ctx->_debugVerbose = debugVerbose;

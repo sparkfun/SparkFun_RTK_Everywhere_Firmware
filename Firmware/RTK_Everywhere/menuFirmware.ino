@@ -99,6 +99,7 @@ void firmwareMenu()
         if (developerOptions)
         {
             systemPrintf("D) %s firmware debugging\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
+            systemPrintf("K) Update any down revision devices to latest released firmware\r\n");
             systemPrintf("L) Update all devices to latest released firmware\r\n");
             systemPrintf("O) Update one device's firmware\r\n");
             if (settings.debugFirmwareUpdate)
@@ -141,7 +142,7 @@ void firmwareMenu()
         // Perform the device firmware update
         else if (developerOptions && ((incoming == 'L') || (incoming == 'O')))
         {
-            deviceFirmwareUpdateBegin(nullptr, incoming == 'L', debugVerbose);
+            deviceFirmwareUpdateBegin(nullptr, incoming == 'L', false, debugVerbose);
             while (deviceFirmwareUpdate(millis()))
             {
                 networkUpdate();
@@ -149,9 +150,9 @@ void firmwareMenu()
         }
 
         // Restore product to production firmware
-        else if (incoming == 'p')
+        else if ((incoming == 'p') || (developerOptions && (incoming == 'K')))
         {
-            deviceFirmwareUpdateBegin(csvUrl, false, debugVerbose);
+            deviceFirmwareUpdateBegin(csvUrl, false, incoming == 'K', debugVerbose);
             while (deviceFirmwareUpdate(millis()))
             {
                 networkUpdate();

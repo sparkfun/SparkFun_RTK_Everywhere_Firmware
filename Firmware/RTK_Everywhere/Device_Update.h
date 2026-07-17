@@ -92,6 +92,7 @@ typedef struct _DEVICE_FIRMWARE_CTX
     int _csvLineCount;                  // Number of lines in the CSV file
     int _csvFieldCount;                 // Number of fields per line in the CSV file
     const char * _csvDeviceEntry;       // Device entry in CSV file
+    bool _csvKeepHighestVersion;        // Keep the highest version
 
     // File objects for input or output
     File _nvmFile;                      // NVM file object
@@ -363,6 +364,7 @@ void dfuLg290pClose(DEVICE_FIRMWARE_CTX * ctx);
 // Declare the begin routine
 bool deviceFirmwareUpdateBegin(const char * csvUrl,
                                bool doAll,
+                               bool keepHighestVersions,
                                bool debugVerbose,
                                size_t saveDataLength = 8 * 1024);
 

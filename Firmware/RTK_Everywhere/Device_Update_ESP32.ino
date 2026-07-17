@@ -73,14 +73,17 @@ int dfuEsp32CompareCsvVersion(DEVICE_FIRMWARE_CTX * ctx,
                               int revision,
                               int releaseCandidate)
 {
-    // For debug builds, always return a negative value indicating to update
-    // to any release version
+    // For debug builds:
+    // When restoring production version, always return a negative value
+    // indicating to update to the latest production version
+    // When keeping the highest version, always return a positive non-zero
+    // value to keep the debug version
     if ((FIRMWARE_VERSION_MAJOR == 99) && (FIRMWARE_VERSION_MINOR == 99))
-        return -1;
+        return ctx->_csvKeepHighestVersion ? 1 : -1;
 
     // Check if the current version is lower than the CSV version
     if ((FIRMWARE_VERSION_MAJOR < major)
-        || ((FIRMWARE_VERSION_MAJOR == major) && (FIRMWARE_VERSION_MINOR  < minor)))
+        || ((FIRMWARE_VERSION_MAJOR == major) && (FIRMWARE_VERSION_MINOR < minor)))
         return -1;
 
     // Check if the current version is higher than the CSV verison
