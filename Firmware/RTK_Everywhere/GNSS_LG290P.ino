@@ -2905,7 +2905,7 @@ bool GNSS_LG290P::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msg
 
 // Given a sentence, determine if it is enabled in settings
 // This is used to signal to the processUart1Message() task to remove messages that are needed
-// by the library to function (ie, PQTMEPE, PQTMPVT, GNGSV) but have not been enabled by the user,
+// by the library to function (ie, PQTMEPE, PQTMPVT, PQTMSVINSTATUS, GNGSV) but have not been enabled by the user,
 // so should not be logged or passed to other consumers (Bluetooth, TCP, etc).
 // If the message is unknown, allow messages through - this assumes the user has configured the message outside
 // of the standard firmware settings.
@@ -2949,6 +2949,15 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
                     systemPrintf("Blocking PQTM sentenceHeader from entering circular buffer: %s\r\n", sentenceHeader);
                 return (false);
             }
+        }
+
+        // Process PQTMSVINSTATUS as a special case. Block messages generated during Base survey-in
+        // We can't easily add PQTMSVINSTATUS to lgMessagesPQTM[] since it is only available in Base Mode
+        if (strncmp("PQTMSVINSTATUS", sentenceHeader, sizeof(sentenceHeader)) == 0)
+        {
+            if (!inMainMenu && settings.debugGnssConfig)
+                systemPrintf("Blocking PQTM sentenceHeader from entering circular buffer: %s\r\n", sentenceHeader);
+            return (false);
         }
     }
     // else if (strnstr(sentenceHeader, "RTCM", sizeof(sentenceHeader)) != nullptr) // TODO
