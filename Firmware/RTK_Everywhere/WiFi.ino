@@ -11,7 +11,6 @@ Wifi.ino
 //****************************************
 
 #define WIFI_DEFAULT_CHANNEL 1
-#define WIFI_IP_ADDRESS_TIMEOUT_MSEC (15 * MILLISECONDS_IN_A_SECOND)
 #define WIFI_CONNECTION_STABLE_MSEC (15 * MILLISECONDS_IN_A_MINUTE)
 
 static const char *wifiAuthorizationName[] = {
@@ -52,8 +51,12 @@ enum WIFI_STATION_STATES
 uint8_t wifiStationState;
 
 const char *wifiStationStateName[] = {
-    "WIFI_STATION_STATE_OFF",      "WIFI_STATION_STATE_WAIT_NO_USERS", "WIFI_STATION_STATE_RESTART_DELAY",
-    "WIFI_STATION_STATE_STARTING", "WIFI_STATION_STATE_ONLINE",        "WIFI_STATION_STATE_STABLE",
+    "WIFI_STATION_STATE_OFF",
+    "WIFI_STATION_STATE_WAIT_NO_USERS",
+    "WIFI_STATION_STATE_RESTART_DELAY",
+    "WIFI_STATION_STATE_STARTING",
+    "WIFI_STATION_STATE_ONLINE",
+    "WIFI_STATION_STATE_STABLE",
 };
 const int wifiStationStateNameEntries = sizeof(wifiStationStateName) / sizeof(wifiStationStateName[0]);
 
@@ -319,27 +322,27 @@ const char *const wifiStartNames[] = {
 };
 const int wifiStartNamesEntries = sizeof(wifiStartNames) / sizeof(wifiStartNames[0]);
 
-#define WIFI_START_ESP_NOW                                                                                             \
-    (WIFI_EN_SET_MODE | WIFI_EN_SET_PROTOCOLS | WIFI_EN_SELECT_CHANNEL | WIFI_EN_SET_CHANNEL |                         \
+#define WIFI_START_ESP_NOW                                                                     \
+    (WIFI_EN_SET_MODE | WIFI_EN_SET_PROTOCOLS | WIFI_EN_SELECT_CHANNEL | WIFI_EN_SET_CHANNEL | \
      WIFI_EN_PROMISCUOUS_RX_CALLBACK | WIFI_EN_SET_PROMISCUOUS_MODE | WIFI_EN_START_ESP_NOW | WIFI_EN_ESP_NOW_ONLINE)
 
-#define WIFI_START_SOFT_AP                                                                                             \
-    (WIFI_AP_SET_MODE | WIFI_AP_SET_PROTOCOLS | WIFI_AP_SELECT_CHANNEL | WIFI_AP_SET_SSID_PASSWORD |                   \
+#define WIFI_START_SOFT_AP                                                                           \
+    (WIFI_AP_SET_MODE | WIFI_AP_SET_PROTOCOLS | WIFI_AP_SELECT_CHANNEL | WIFI_AP_SET_SSID_PASSWORD | \
      WIFI_AP_SET_IP_ADDR | WIFI_AP_SET_HOST_NAME | WIFI_AP_START_DNS_SERVER | WIFI_AP_ONLINE)
 
-#define WIFI_START_STATION                                                                                             \
-    (WIFI_STA_SET_MODE | WIFI_STA_SET_PROTOCOLS | WIFI_STA_START_SCAN | WIFI_STA_SELECT_CHANNEL |                      \
-     WIFI_STA_SELECT_REMOTE_AP | WIFI_STA_SET_HOST_NAME | WIFI_STA_DISABLE_AUTO_RECONNECT |                            \
+#define WIFI_START_STATION                                                                        \
+    (WIFI_STA_SET_MODE | WIFI_STA_SET_PROTOCOLS | WIFI_STA_START_SCAN | WIFI_STA_SELECT_CHANNEL | \
+     WIFI_STA_SELECT_REMOTE_AP | WIFI_STA_SET_HOST_NAME | WIFI_STA_DISABLE_AUTO_RECONNECT |       \
      WIFI_STA_CONNECT_TO_REMOTE_AP | WIFI_STA_ONLINE)
 
-#define WIFI_STA_RECONNECT                                                                                             \
-    (WIFI_STA_START_SCAN | WIFI_STA_SELECT_CHANNEL | WIFI_STA_SELECT_REMOTE_AP | WIFI_STA_SET_HOST_NAME |              \
+#define WIFI_STA_RECONNECT                                                                                \
+    (WIFI_STA_START_SCAN | WIFI_STA_SELECT_CHANNEL | WIFI_STA_SELECT_REMOTE_AP | WIFI_STA_SET_HOST_NAME | \
      WIFI_STA_DISABLE_AUTO_RECONNECT | WIFI_STA_CONNECT_TO_REMOTE_AP | WIFI_STA_ONLINE)
 
 #define WIFI_SELECT_CHANNEL (WIFI_AP_SELECT_CHANNEL | WIFI_EN_SELECT_CHANNEL | WIFI_STA_SELECT_CHANNEL)
 
-#define WIFI_STA_NO_REMOTE_AP                                                                                          \
-    (WIFI_STA_SELECT_CHANNEL | WIFI_STA_SET_HOST_NAME | WIFI_STA_DISABLE_AUTO_RECONNECT |                              \
+#define WIFI_STA_NO_REMOTE_AP                                                             \
+    (WIFI_STA_SELECT_CHANNEL | WIFI_STA_SET_HOST_NAME | WIFI_STA_DISABLE_AUTO_RECONNECT | \
      WIFI_STA_CONNECT_TO_REMOTE_AP | WIFI_STA_ONLINE)
 
 #define WIFI_STA_FAILED_SCAN (WIFI_STA_START_SCAN | WIFI_STA_SELECT_REMOTE_AP | WIFI_STA_NO_REMOTE_AP)
@@ -869,6 +872,14 @@ const char *wifiStationGetStateName(uint8_t state)
     if (state < wifiStationStateNameEntries)
         return wifiStationStateName[state];
     return "Unknown WiFi Station state";
+}
+
+//*********************************************************************
+// Determine if at least one set of remote access point credentials
+// (SSID, password) are available
+bool wifiStationIsSsidSet()
+{
+    return wifiStationSsidSet;
 }
 
 //*********************************************************************

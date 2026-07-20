@@ -369,7 +369,6 @@ void tcpServerClientUpdate(uint8_t index)
 {
     bool clientConnected;
     bool dataSent;
-    char response[512];
     int spot;
 
     static unsigned long tcpLastByteReceived = 0; // Track when the last TCP byte was received.
@@ -426,19 +425,27 @@ void tcpServerClientUpdate(uint8_t index)
             break;
 
         // Process the request from the NTRIP client
-        case TCP_SERVER_CLIENT_GET_REQUEST:
+        case TCP_SERVER_CLIENT_GET_REQUEST: {
+            const size_t responseSize = 512;
+            char *response = (char *)rtkMalloc(responseSize, "tcpServerResponse");
+            if (!response)
+            {
+                systemPrintln("ERROR: Failed to allocate tcpServerResponse");
+                tcpServerStopClient(index);
+                break;
+            }
             // Read response from client
             spot = 0;
             while (tcpServerClient[index]->available())
             {
                 response[spot++] = tcpServerClient[index]->read();
-                if (spot == sizeof(response))
+                if (spot == responseSize)
                     spot = 0; // Wrap
             }
             response[spot] = '\0'; // Terminate string
 
             // Handle the mount point table request
-            if (strnstr(response, "GET / ", sizeof(response)) != NULL) // No mount point in header
+            if (strnstr(response, "GET / ", responseSize) != NULL) // No mount point in header
             {
                 if (settings.debugTcpServer)
                     systemPrintln("Mount point table requested.");
@@ -456,7 +463,7 @@ void tcpServerClientUpdate(uint8_t index)
             }
 
             // Check for unknown request
-            else if (strnstr(response, "GET /", sizeof(response)) == NULL)
+            else if (strnstr(response, "GET /", responseSize) == NULL)
             {
                 // Unknown response
                 if (settings.debugTcpServer)
@@ -481,7 +488,9 @@ void tcpServerClientUpdate(uint8_t index)
                 tcpServerClientSendingData = tcpServerClientSendingData | (1 << index);
                 tcpServerClientState[index] = TCP_SERVER_CLIENT_SENDING_DATA;
             }
+            rtkFree(response, "tcpServerResponse");
             break;
+        }
 
         case TCP_SERVER_CLIENT_SENDING_DATA: {
             // Outgoing data is sent to connected clients from within the handleGnssDataTask.

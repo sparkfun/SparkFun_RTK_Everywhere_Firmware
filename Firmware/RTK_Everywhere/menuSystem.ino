@@ -187,9 +187,9 @@ void menuSystem()
 
         systemPrintln("h) Debug hardware");
 
-#ifdef  COMPILE_MENU_USER_PROFILES
+#ifdef COMPILE_MENU_USER_PROFILES
         systemPrintln("l) Debug LFS and SD card files");
-#endif  // COMPILE_MENU_USER_PROFILES
+#endif // COMPILE_MENU_USER_PROFILES
 
         systemPrintln("n) Debug network");
 
@@ -273,10 +273,10 @@ void menuSystem()
         else if (incoming == 'h')
             menuDebugHardware();
 
-#ifdef  COMPILE_MENU_USER_PROFILES
+#ifdef COMPILE_MENU_USER_PROFILES
         else if (incoming == 'l')
             menuDebugFiles();
-#endif  // COMPILE_MENU_USER_PROFILES
+#endif // COMPILE_MENU_USER_PROFILES
 
         else if (incoming == 'n')
             menuDebugNetwork();
@@ -406,7 +406,7 @@ void menuSystem()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-#ifdef  COMPILE_MENU_USER_PROFILES
+#ifdef COMPILE_MENU_USER_PROFILES
 
 // Debug LFS and SD card files
 void menuDebugFiles()
@@ -415,7 +415,7 @@ void menuDebugFiles()
     bool filePresent;
     bool gotSemaphore;
     uint8_t profile = profileNumber;
-    const char * profileNumberFileName = "/profileNumber.txt";
+    const char *profileNumberFileName = "/profileNumber.txt";
     bool sdActive = false;
     bool wasSdCardOnline = false;
     int x;
@@ -548,7 +548,7 @@ void menuDebugFiles()
 
         // Toggle the selection between NVM and the SD card
         else if (incoming == 't')
-            sdActive = ! sdActive;
+            sdActive = !sdActive;
 
         // Verify the file CRC
         else if (incoming == 'v')
@@ -573,7 +573,7 @@ void menuDebugFiles()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-#endif  // COMPILE_MENU_USER_PROFILES
+#endif // COMPILE_MENU_USER_PROFILES
 
 // Toggle debug settings for hardware
 void menuDebugHardware()
@@ -688,6 +688,10 @@ void menuDebugHardware()
             systemPrintln("26) STM32 direct connect for LoRa RX testing");
             systemPrintln("27) STM32 dedicated LoRa TX testing");
         }
+        if (present.imu_im19)
+            systemPrintln("28) IM19 direct connect for firmware upgrade"); // Torch / FP
+
+        systemPrintln("c) Display configuration");
 
         systemPrintln("e) Erase LittleFS");
 
@@ -734,7 +738,7 @@ void menuDebugHardware()
             if (productVariant == RTK_FACET_FP)
             {
                 // Create a file in LittleFS
-                if (createGNSSPassthrough() == true)
+                if (gnssCreatePassthroughFile() == true)
                 {
                     systemPrintln();
                     systemPrintln("GNSS passthrough mode has been recorded to LittleFS. Device will now reset.");
@@ -746,7 +750,7 @@ void menuDebugHardware()
             else if (present.gnss_um980)
             {
                 // Create a file in LittleFS
-                if (um980CreatePassthrough() == true)
+                if (um980CreatePassthroughFile() == true)
                 {
                     systemPrintln();
                     systemPrintln("UM980 passthrough mode has been recorded to LittleFS. Device will now reset.");
@@ -788,7 +792,7 @@ void menuDebugHardware()
         }
         else if (incoming == 17 && present.radio_lora)
         {
-            if (createLoRaPassthrough() == true)
+            if (loraCreatePassthroughFile() == true)
             {
                 systemPrintln();
                 systemPrintln("STM32 passthrough mode has been recorded to LittleFS. Device will now reset.");
@@ -849,7 +853,7 @@ void menuDebugHardware()
 
         else if (incoming == 26 && present.radio_lora)
         {
-            if (createLoraRxDirectFile() == true)
+            if (loraCreateRxDirectFile() == true)
             {
                 systemPrintln();
                 systemPrintln("STM32 RX passthrough mode has been recorded to LittleFS. Device will now reset.");
@@ -861,7 +865,7 @@ void menuDebugHardware()
 
         else if (incoming == 27 && present.radio_lora)
         {
-            if (createLoraTxDirectFile() == true)
+            if (loraCreateTxDirectFile() == true)
             {
                 systemPrintln();
                 systemPrintln("STM32 TX mode has been recorded to LittleFS. Device will now reset.");
@@ -871,6 +875,19 @@ void menuDebugHardware()
             }
         }
 
+        else if (incoming == 28 && present.imu_im19)
+        {
+            if (imuCreatePassthroughFile() == true)
+            {
+                systemPrintln();
+                systemPrintln("IM19 passthrough mode has been recorded to LittleFS. Device will now reset.");
+                systemFlush(); // Complete prints
+
+                ESP.restart();
+            }
+        }
+        else if (incoming == 'c')
+            systemDisplayConfiguration();
         else if (incoming == 'e')
         {
             systemPrintln("Erasing LittleFS and resetting");
@@ -1233,6 +1250,9 @@ void menuOperation()
         systemPrint("9) UART Receive Buffer Size: ");
         systemPrintln(settings.uartReceiveBufferSize);
 
+        // Tilt
+        systemPrintf("10) Force Tilt detect\r\n");
+
         // PPL Float Lock timeout
         systemPrint("11) Set PPL RTK Fix Timeout (seconds): ");
         if (settings.pplFixTimeoutS > 0)
@@ -1327,6 +1347,11 @@ void menuOperation()
                 ESP.restart();
             }
         }
+
+        // Allow the user to force tilt detection in case they switched the GNSS
+        // board in the Facet FP to one with the same GNSS but now has the tilt sensor
+        else if (incoming == 10)
+            tiltForceDetectionReboot();
         else if (incoming == 11)
         {
             getNewSetting("Enter number of seconds in RTK float using PPL, before reset", 0, 3600,
@@ -1667,8 +1692,8 @@ void menuInstrument()
         systemPrintln();
         systemPrintln("Menu: Instrument Setup");
 
-        if(online.imu_im19 == true)
-            systemPrintf("IM19 firmware: %d\r\n", imuAppVersionInt);
+        if (online.imu_im19 == true)
+            systemPrintf("IMU firmware: %s\r\n", imuFirmwareVersionStr);
 
         // Print the combined APC
         systemPrintf("Combined Height of Instrument: %0.3fm\r\n",

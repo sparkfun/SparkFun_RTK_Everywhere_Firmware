@@ -1992,13 +1992,13 @@
             <div class="card card-body">
 
                 <div id="uploadNewFirmwareDiv" class="mb-2">
-                    System Firmware: <span id="espFirmwareVersion" style="display:inline;">v0.0</span><br>
-                    <span id="gnssFirmwareVersion" style="display:inline;">GNSS Firmware: v0.0</span><br>
-                    <div id="imuFirmwareVersionPresent" style="display:none">
-                        IMU Firmware: <span id="imuFirmwareVersion" style="display:inline;">v0.0</span>
+                    System Firmware: <span id="espFirmwareVersion" style="display:inline;">0.0</span><br>
+                    <span id="gnssFirmwareVersion" style="display:inline;">GNSS Firmware: 0.0</span><br>
+                    <div id="imuFirmwareVersionStrPresent" style="display:none">
+                        IMU Firmware: <span id="imuFirmwareVersionStr" style="display:inline;">0.0</span>
                     </div>
-                    <div id="loraFirmwareVersionPresent" style="display:none">
-                        LoRa Firmware: <span id="loraFirmwareVersion" style="display:inline;">v0.0</span>
+                    <div id="loraFirmwareVersionStrPresent" style="display:none">
+                        LoRa Firmware: <span id="loraFirmwareVersionStr" style="display:inline;">0.0</span>
                     </div>
                 </div>
 
@@ -2013,10 +2013,10 @@
                         </span>
                         <p id="firmwareCheckNewMsg"></p>
 
-                        <div class="form-check mt-3" id="espFirmwareUpdateDiv" style="display:none;">
-                            System Update: <progress id="espFirmwareUpdateProgressBar" value="37" max="100"
+                        <div class="form-check mt-3" id="espUpdateFirmwareDiv" style="display:none;">
+                            System Update: <progress id="espUpdateFirmwareProgressBar" value="37" max="100"
                                     style="width:300px;"></progress>
-                                <p id="espFirmwareUpdateProgressMsg" class="inlineSuccess">37%</p>
+                                <p id="espUpdateFirmwareProgressMsg" class="inlineSuccess">37%</p>
                         </div>
 
                         <div class="form-check mt-3" id="gnssFirmwareUpdateDiv" style="display:none;">

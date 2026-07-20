@@ -7,7 +7,7 @@ Device_Update_SD.ino
 //----------------------------------------
 // Close the SD file
 //----------------------------------------
-bool deviceUpdateSdClose(DEVICE_FIRMWARE_CTX * ctx)
+bool dfuSdClose(DEVICE_FIRMWARE_CTX * ctx)
 {
     ctx->_sdFile.close();
     return true;
@@ -16,7 +16,7 @@ bool deviceUpdateSdClose(DEVICE_FIRMWARE_CTX * ctx)
 //----------------------------------------
 // Delete the SD card file
 //----------------------------------------
-void deviceUpdateSdDelete(const char * fileName)
+void dfuSdDelete(const char * fileName)
 {
     // Delete the file
     if (sd->exists(fileName) && (sd->remove(fileName) == false))
@@ -26,10 +26,10 @@ void deviceUpdateSdDelete(const char * fileName)
 //----------------------------------------
 // Scan the SD card for matching firmware files
 //----------------------------------------
-void deviceUpdateSdGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+void dfuSdGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     int bufferIndex;
-    BUFFER_DATA * bufferData;
+    DFU_BUFFER_DATA * bufferData;
     SdFile dir;
     const char * extension;
     SdFile file;
@@ -38,7 +38,7 @@ void deviceUpdateSdGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
     do
     {
-        bufferData = &firmwareFileNamesSd;
+        bufferData = &dfuFirmwareFileNamesSd;
         bufferIndex = bufferGetIndex(bufferData);
 
         // Get the firmware file name attributes
@@ -70,7 +70,10 @@ void deviceUpdateSdGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
                 // Make sure the end of the buffer (last entry) is terminated.
                 bufferData->_address[bufferData->_length - 1] = 0;
-systemPrintf("fileName: %s\r\n", fileName);
+
+                // Display the file name
+                if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+                    systemPrintf("File: SD:/%s\r\n", fileName);
 
                 // Determine if this file should be in the list
                 if (((namePart == nullptr) || strstr(fileName, namePart))
@@ -106,7 +109,7 @@ systemPrintf("fileName: %s\r\n", fileName);
 //----------------------------------------
 // Create an SD file for the firmware
 //----------------------------------------
-bool deviceUpdateSdOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
+bool dfuSdOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
 {
     if (createFile)
     {
@@ -130,6 +133,11 @@ bool deviceUpdateSdOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
 
         // Get the input file size
         ctx->_fileBytes = ctx->_sdFile.size();
+        if (ctx->_fileBytes == 0)
+        {
+            systemPrintf("ERROR: SD file size is zero bytes!\r\n");
+            return false;
+        }
     }
     return true;
 }
@@ -137,9 +145,9 @@ bool deviceUpdateSdOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
 //----------------------------------------
 // Read data from the SD file
 //----------------------------------------
-ssize_t deviceUpdateSdRead(DEVICE_FIRMWARE_CTX * ctx,
-                           uint8_t * buffer,
-                           size_t bytesToRead)
+ssize_t dfuSdRead(DEVICE_FIRMWARE_CTX * ctx,
+                  uint8_t * buffer,
+                  size_t bytesToRead)
 {
     ssize_t bytesRead;
 
@@ -152,9 +160,9 @@ ssize_t deviceUpdateSdRead(DEVICE_FIRMWARE_CTX * ctx,
 //----------------------------------------
 // Copy firmware into the file
 //----------------------------------------
-ssize_t deviceUpdateSdWrite(DEVICE_FIRMWARE_CTX * ctx,
-                            uint8_t * buffer,
-                            size_t bytesToWrite)
+ssize_t dfuSdWrite(DEVICE_FIRMWARE_CTX * ctx,
+                   uint8_t * buffer,
+                   size_t bytesToWrite)
 {
     return ctx->_sdFile.write(buffer, bytesToWrite);
 }

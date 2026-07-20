@@ -248,7 +248,7 @@ bool ntripClientConnect()
     snprintf(serverRequest, SERVER_BUFFER_SIZE, "GET /%s HTTP/1.0\r\nUser-Agent: NTRIP %s_",
              settings.ntripClient_MountPoint, deviceName);
     length = strlen(serverRequest);
-    firmwareVersionGet(&serverRequest[length], SERVER_BUFFER_SIZE - 2 - length, false);
+    espFirmwareVersionGet(&serverRequest[length], SERVER_BUFFER_SIZE - 2 - length, false);
     length = strlen(serverRequest);
     serverRequest[length++] = '\r';
     serverRequest[length++] = '\n';
@@ -772,8 +772,14 @@ void ntripClientUpdate()
         else
         {
             // Caster web service responded
-            char response[512];
-            ntripClientResponse(&response[0], sizeof(response));
+            const size_t responseSize = 512;
+            char *response = (char *)rtkMalloc(responseSize, "ntripClientResponse");
+            if (!response)
+            {
+                systemPrintln("ERROR: Failed to allocate ntripClientResponse buffer");
+                break;
+            }
+            ntripClientResponse(response, responseSize);
 
             if (settings.debugNtripClientState)
                 systemPrintf("Caster Response: %s\r\n", response);
@@ -884,6 +890,7 @@ void ntripClientUpdate()
                 // Stop NTRIP client operations
                 ntripClientForceShutdown();
             }
+            rtkFree(response, "ntripClientResponse");
         }
         break;
 

@@ -302,15 +302,11 @@ void beginTilt()
 {
     // Use UART2 on the ESP32 to receive IMU corrections
     // Shown as UART2 on these schematics: Torch, Facet FP
-    tiltSensor = new IM19();
+    beginUart2Serial();
     if (SerialForTilt == nullptr)
-        SerialForTilt = new HardwareSerial(2);
+        return;
 
-    SerialForTilt->setRxBufferSize(1024 * 1);
-
-    // We must start the serial port before handing it over to the library
-    SerialForTilt->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
-
+    tiltSensor = new IM19();
     if (settings.enableImuDebug == true)
         tiltSensor->enableDebugging(); // Print all debug to Serial
 
@@ -322,11 +318,27 @@ void beginTilt()
 
     bool result = true;
 
-    result &= tiltSensor->getAppVersion(imuAppVersionInt);
-    result &= tiltSensor->getVersion(imuFirmwareVersion, sizeof(imuFirmwareVersion));
+    result &= tiltSensor->getAppVersion(imuFirmwareVersionInt);
+
+    char rawFirmwareVersionStr[32]; // Ex: IM19_H2_B2.2_A11.4.1
+    result &= tiltSensor->getVersion(rawFirmwareVersionStr, sizeof(rawFirmwareVersionStr));
+
+    // Pull the pure number app version out of the full version string Ex: IM19_H2_B2.2_A11.4.1 -> 11.4.1
+    char *appVersionPtr = strstr(rawFirmwareVersionStr, "A");
+    if (appVersionPtr != nullptr)
+    {
+        snprintf(imuFirmwareVersionStr, sizeof(imuFirmwareVersionStr), "%s", appVersionPtr + 1);
+    }
+    else
+    {
+        systemPrintln("IM19 App Version not found in full version string");
+        imuFirmwareVersionStr[0] = '\0';
+    }
 
     if (settings.enableImuDebug == true)
-        systemPrintf("IM19 Full Version: %s\r\n", imuFirmwareVersion);
+        systemPrintf("IM19 Full Version: %s\r\n", rawFirmwareVersionStr);
+    else
+        systemPrintf("IMU firmware: %s\r\n", imuFirmwareVersionStr);
 
     // The filter has a set of default parameters, which can be loaded when setting an error.
     result &= tiltSensor->sendCommand("LOAD_DEFAULT");
@@ -380,9 +392,9 @@ void beginTilt()
     result &= tiltSensor->sendCommand("MEMS_OUTPUT=UART1,OFF");
 
     // The 'CORRECT_HOLDER' command is not supported on app versions 11.1 and later.
-    // The command *is* supported on older 6.1 and 9.2 firmware. The command is not documented in the IM19 datasheet, but was
-    // found in the Torch v2 example firmware.
-    if (imuAppVersionInt <= 920)
+    // The command *is* supported on older 6.1 and 9.2 firmware. The command is not documented in the IM19 datasheet,
+    // but was found in the Torch v2 example firmware.
+    if (imuFirmwareVersionInt <= 920)
     {
         result &=
             tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); // Unknown new command found in Torch v2 example firmware
@@ -401,7 +413,6 @@ void beginTilt()
     {
         if (tiltSensor->saveConfiguration() == true)
         {
-            systemPrintf("IM19 firmware: %d\r\n", imuAppVersionInt);
             systemPrintln("Tilt sensor configuration complete");
             online.imu_im19 = true;
             return; // Success
@@ -411,15 +422,36 @@ void beginTilt()
     tiltStop(); // Stop serial inteface. Mark IMU offline.
 }
 
+// Based on the imuFirmwareVersionStr, modify major, minor, and patch to reflect the IM19 firmware version. Ex: 11.4.1 -> 11, 4, 1, 11.4 -> 11, 4, 0
+// Gracefully handle missing patch version
+void tiltGetVersion(uint16_t &major, uint8_t &minor, uint8_t &patch)
+{
+    major = 0;
+    minor = 0;
+    patch = 0;
+
+    if (strlen(imuFirmwareVersionStr) == 0)
+        return;
+
+    char versionCopy[32];
+    snprintf(versionCopy, sizeof(versionCopy), "%s", imuFirmwareVersionStr);
+
+    char *token = strtok(versionCopy, ".");
+    if (token != nullptr)
+        major = atoi(token);
+
+    token = strtok(nullptr, ".");
+    if (token != nullptr)
+        minor = atoi(token);
+
+    token = strtok(nullptr, ".");
+    if (token != nullptr)
+        patch = atoi(token);
+}
+
 // Stops serial inteface. Marks tilt offline.
 void tiltStop()
 {
-    // Gracefully stop the UART before freeing resources
-    while (SerialForTilt->available())
-        SerialForTilt->read();
-
-    SerialForTilt->end();
-
     // Free the resources
     if (tiltSensor != nullptr)
     {
@@ -427,11 +459,9 @@ void tiltStop()
         tiltSensor = nullptr;
     }
 
-    if (SerialForTilt != nullptr)
-    {
-        delete SerialForTilt;
-        SerialForTilt = nullptr;
-    }
+    // Gracefully stop the UART before freeing resources
+    while (SerialForTilt->available())
+        SerialForTilt->read();
 
     // Beep to indicate we are going offline - but only from tiltRequestStop
     if (tiltState == TILT_REQUEST_STOP)
@@ -1208,10 +1238,24 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
         systemPrintf("Compensated GNGGA:\r\n%s\r\n", nmeaSentence);
 }
 
+// Force tilt detection
+void tiltForceDetectionReboot()
+{
+    // Force the tilt detection
+    settings.detectedTilt = false;
+    settings.testedTilt = false;
+    recordSystemSettings();
+
+    // Reboot the system
+    systemReset();
+}
+
 // Determine if a tilt sensor is available or not
 // Records outcome to NVM
 void tiltDetect()
 {
+    int x;
+
     // Only test housings that may have a tilt sensor on board
     if (variantHousingProperties->tiltPossible == false)
         return;
@@ -1263,7 +1307,7 @@ void tiltDetect()
     // The library will try twice with a 250ms
     // If communication fails, retry after a 3s timeout
     uint8_t maxTries = 2;
-    for (int x = 0; x < maxTries; x++)
+    for (x = 0; x < maxTries; x++)
     {
         if (tiltSensor->begin(SerialTiltTest) == true)
         {
@@ -1275,6 +1319,13 @@ void tiltDetect()
 
         if (x < (maxTries - 1))
             delay(3000);
+    }
+
+    // Check for tilt sensor not detected
+    if (x == maxTries)
+    {
+        delete tiltSensor;
+        tiltSensor = nullptr;
     }
 
     SerialTiltTest.end(); // Release UART2 for reuse
@@ -1291,5 +1342,613 @@ void tiltDetect()
     recordSystemSettings();
     return;
 }
+
+// Handle the file creation and tear down the for the firmware update process.
+bool imuCreatePassthroughFile()
+{
+    return createFileLfs("/updateImuFirmware.txt");
+}
+bool imuCheckPassthroughFile()
+{
+    return fileExistsLfs("/updateImuFirmware.txt");
+}
+bool imuRemovePassthroughFile()
+{
+    return removeFileLfs("/updateImuFirmware.txt");
+}
+
+void imuBeginFirmwareUpdate()
+{
+    // Flag that we are in direct connect mode
+    inDirectConnectMode = true;
+
+    // Paint IMU Update
+    paintImuUpdate();
+
+    systemPrintln();
+    systemPrintln("Entering IM19 direct connect for firmware update");
+    systemPrintln("Disconnect this terminal connection");
+    systemPrintln("Use the python tool to update the firmware:");
+    systemPrintln("Baudrate: 115200bps. Parity: None.");
+    systemPrintln("Press the power button to return to normal operation");
+
+    systemFlush(); // Complete prints
+
+    // Use UART2 on the ESP32 to communicate with the IMU
+    // Shown as UART2 on these schematics: Torch, Facet FP
+    beginUart2Serial();
+    if (SerialForTilt == nullptr)
+        return;
+
+    // The IM19 update relies on the AT+UPDATE_APP command which is only available during normal runtime.
+    // Don't enter the bootloader.
+    // imuEnterBootloader(); // Push DR_BOOT pin high and reset the IMU
+
+    delay(50);
+
+    // Clear out any data from the serial buffer before entering the echo mode
+    while (Serial.available())
+        Serial.read();
+
+    // Push any incoming ESP32 UART2 to the IM19 and vice versa
+    // Infinite loop until button is pressed
+    task.endDirectConnectMode = false;
+    while (task.endDirectConnectMode == false)
+    {
+        if (Serial.available()) // Note: use if, not while
+            SerialForTilt->write(Serial.read());
+
+        if (SerialForTilt->available()) // Note: use if, not while
+            Serial.write(SerialForTilt->read());
+
+        // Button task will set task.endDirectConnectMode true
+    }
+
+    // Remove the special file.
+    imuRemovePassthroughFile();
+
+    systemFlush(); // Complete prints
+
+    ESP.restart();
+}
+
+// Rest the IMU
+void imuReset()
+{
+    gnssReset();
+    delay(50);
+    gnssBoot();
+}
+
+// Below are the functions necessary for firmware upgrading the IM19
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// IM19 bootloader state.
+//
+// im19FrameMap is a small bitmap (one bit per 256 byte frame) that mirrors what the
+// IM19 last told us it received. It is required by the wire protocol itself, not an
+// optimization we chose to add: after every pass the IM19 replies to FRAME_TYPE_CPL
+// with a FRAME_TYPE_REQ frame whose payload IS that bitmap (see im19CheckResponse()
+// / FRAME_TYPE_REQ in code/upgrade.c). Without recording it we would have no way to
+// tell "fully received" from "still missing some frames", and no way to know which
+// bytes to send on a retry - we'd be forced to either trust an unverified flash (risk
+// of bricking the IM19) or blindly resend the whole file every retry.
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+// IM19 bootloader wire protocol (268 byte frames: 12 byte header + 256 byte payload).
+// Ported from the reference implementation in code/upgrade.c.
+#define IM19_FRAME_HEADER 0xAA55
+#define IM19_FRAME_TYPE_BIN 0x01 // host -> IM19 : one 256 byte chunk of the firmware image
+#define IM19_FRAME_TYPE_REQ 0x02 // IM19 -> host : bitmap of frames received so far (sent in response to CPL)
+#define IM19_FRAME_TYPE_CPL 0x03 // host -> IM19 : "that's every frame I have, tell me what you're missing"
+#define IM19_FRAME_TYPE_RDY 0x04 // host -> IM19 : "you have everything, boot it" / IM19 -> host : "already booting"
+#define IM19_FRAME_PAYLOAD_SIZE 256
+#define IM19_FRAME_TOTAL_SIZE 268
+#define IM19_FRAME_MAP_SIZE 256 // bitmap bytes -> supports up to 2048 frames (512KB firmware image)
+
+// Delay after each frame is put on the wire, giving the IM19 bootloader time to parse
+// and flash it before the next one arrives. The wire protocol has no per-frame ACK, so
+// this is a blind pacing value (ported from the vendor's SleepMs(50) in upgrade.c) -
+// tune it empirically on hardware: lower it, then watch how many frames the IM19
+// reports missing at the end. The existing retry path only re-fetches what's missing,
+// so occasional drops are safe; a delay set too low just means more retry passes.
+ static const uint32_t IM19_FRAME_PACING_MS = 100; // Works - 0.1% frame failure.
+// static const uint32_t IM19_FRAME_PACING_MS = 75; // Works - 42% frame failure.
+// static const uint32_t IM19_FRAME_PACING_MS = 50; // Original mfg timeout. 87% frame failure.
+//  static const uint32_t IM19_FRAME_PACING_MS = 30; // Works - 94% frame failure.
+// static const uint32_t IM19_FRAME_PACING_MS = 15; // Works in test sketch. Partial fail in RTK Everywhere.
+
+// How long to wait for the IM19 to reply after CPL. After the last frame lands, the
+// IM19 still has to finish flashing it and scan every received frame to build its
+// reply bitmap.
+static const uint32_t IM19_CPL_RESPONSE_TIMEOUT_MS = 500;
+static const int IM19_CPL_RESPONSE_RETRIES = 10; // up to IM19_CPL_RESPONSE_RETRIES * IM19_CPL_RESPONSE_TIMEOUT_MS total
+
+static uint8_t im19FrameMap[IM19_FRAME_MAP_SIZE]; // bit set = IM19 has confirmed receipt of that frame
+static uint32_t im19TotalFrames = 0;
+static uint32_t im19FileSize = 0;
+
+static uint8_t im19FrameAssembly[IM19_FRAME_PAYLOAD_SIZE]; // accumulates bytes until a full frame is ready
+static uint32_t im19FrameAssemblyLen = 0;
+static uint32_t im19NextFrameID = 0; // frame ID that the next assembled byte belongs to
+
+// Picks the UART the IM19 is wired to for this board.
+static HardwareSerial *im19Serial()
+{
+#ifdef PLATFORM_TORCH
+    return &Serial; // Torch: tilt shares UART0 with USB
+#else
+    beginUart2Serial();
+    return uart2Serial; // FP: tilt is on its own UART2
+#endif
+}
+
+static uint16_t im19BufToUint16(const uint8_t *buffer)
+{
+    return (uint16_t)(buffer[0] | (buffer[1] << 8));
+}
+
+static uint32_t im19BufToUint32(const uint8_t *buffer)
+{
+    return (uint32_t)(buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) | (buffer[3] << 24));
+}
+
+static uint32_t im19CheckSum(const uint8_t *frame)
+{
+    uint16_t type = im19BufToUint16(&frame[2]);
+    uint32_t id = im19BufToUint32(&frame[8]);
+    uint32_t check = type + id;
+    for (int i = 12; i < IM19_FRAME_TOTAL_SIZE; i++)
+        check += frame[i];
+    return check;
+}
+
+static void im19BuildFrame(uint16_t type, uint32_t id, uint8_t *frame)
+{
+    frame[0] = (IM19_FRAME_HEADER >> 0) & 0xFF;
+    frame[1] = (IM19_FRAME_HEADER >> 8) & 0xFF;
+
+    frame[2] = (type >> 0) & 0xFF;
+    frame[3] = (type >> 8) & 0xFF;
+
+    frame[8] = (id >> 0) & 0xFF;
+    frame[9] = (id >> 8) & 0xFF;
+    frame[10] = (id >> 16) & 0xFF;
+    frame[11] = (id >> 24) & 0xFF;
+
+    uint32_t check = im19CheckSum(frame);
+    frame[4] = (check >> 0) & 0xFF;
+    frame[5] = (check >> 8) & 0xFF;
+    frame[6] = (check >> 16) & 0xFF;
+    frame[7] = (check >> 24) & 0xFF;
+}
+
+// Sends one 256 byte firmware chunk as frame 'frameID'.
+static bool im19SendOneFrame(uint32_t frameID, const uint8_t *payload)
+{
+    uint8_t frame[IM19_FRAME_TOTAL_SIZE] = {0};
+    memcpy(&frame[12], payload, IM19_FRAME_PAYLOAD_SIZE);
+    im19BuildFrame(IM19_FRAME_TYPE_BIN, frameID, frame);
+    im19Serial()->write(frame, sizeof(frame));
+    im19Serial()->flush(); // Block until the frame is actually on the wire, not just queued
+    delay(IM19_FRAME_PACING_MS);
+    return true;
+}
+
+// Sends a command frame (CPL to ask what's missing, or RDY to tell the IM19 to boot).
+static void im19SendCmdFrame(uint16_t cmd, uint32_t frameTotal)
+{
+    uint8_t frame[IM19_FRAME_TOTAL_SIZE] = {0};
+    if (cmd == IM19_FRAME_TYPE_RDY)
+    {
+        uint32_t num = frameTotal / 8, mod = frameTotal % 8;
+        for (uint32_t i = 0; i < num; i++)
+            frame[12 + i] = 0xFF;
+        if (mod > 0)
+            frame[12 + num] = 0xFF >> (8 - mod);
+    }
+    im19BuildFrame(cmd, 0xFFFFFFFF, frame);
+    im19Serial()->write(frame, sizeof(frame));
+    im19Serial()->flush();
+    delay(IM19_FRAME_PACING_MS);
+}
+
+// Waits for a response frame from the IM19. On FRAME_TYPE_REQ, copies the IM19's
+// received-frame bitmap into frameMap. Returns the frame type, or -1 on timeout/garbage.
+static int im19CheckResponse(uint8_t *frameMap, uint32_t timeoutMs)
+{
+    uint8_t buf[350]; // a little slack past one frame (268B) in case of a leading garbage byte
+    im19Serial()->setTimeout(timeoutMs);
+    int buf_len = im19Serial()->readBytes(buf, sizeof(buf));
+    uint8_t *p = buf;
+
+    while (buf_len >= IM19_FRAME_TOTAL_SIZE)
+    {
+        if (im19BufToUint16(p + 0) != IM19_FRAME_HEADER || im19BufToUint32(p + 4) != im19CheckSum(p))
+        {
+            p++;
+            buf_len--;
+            continue;
+        }
+
+        switch (im19BufToUint16(p + 2))
+        {
+        case IM19_FRAME_TYPE_REQ:
+            memcpy(frameMap, p + 12, IM19_FRAME_MAP_SIZE);
+            return IM19_FRAME_TYPE_REQ;
+        case IM19_FRAME_TYPE_RDY:
+            return IM19_FRAME_TYPE_RDY;
+        default:
+            return -1;
+        }
+    }
+    return -1;
+}
+
+// True if every frame in [0, totalFrame) is marked present in frameMap.
+static bool im19AllFramesPresent(const uint8_t *frameMap, uint32_t totalFrame)
+{
+    for (uint32_t frame = 0; frame < totalFrame; frame++)
+    {
+        uint8_t bit = 0x01 << (frame % 8);
+        if ((frameMap[frame / 8] & bit) == 0)
+            return false;
+    }
+    return true;
+}
+
+static bool im19FindStr(const uint8_t *buf, int buf_len, const char *str)
+{
+    int str_len = strlen(str);
+    for (int i = 0; i <= buf_len - str_len; i++)
+    {
+        if (memcmp(buf + i, str, str_len) == 0)
+            return true;
+    }
+    return false;
+}
+
+// Sends an AT command and waits (with retries) for the expected response substring.
+static bool im19SendATCommand(const char *cmd, const char *response, int retries)
+{
+    uint8_t buf[128];
+    while (retries--)
+    {
+        im19Serial()->write((const uint8_t *)cmd, strlen(cmd));
+        delay(50);
+        im19Serial()->setTimeout(50);
+        int buf_len = im19Serial()->readBytes(buf, sizeof(buf));
+        if (buf_len > 0 && im19FindStr(buf, buf_len, response))
+            return true;
+    }
+    return false;
+}
+
+// Hardware-resets the GNSS/IMU module ahead of entering the bootloader.
+static void im19ResetImu()
+{
+    pinMode(pin_GNSS_DR_Reset, OUTPUT);
+    digitalWrite(pin_GNSS_DR_Reset, LOW);
+    delay(100);
+    digitalWrite(pin_GNSS_DR_Reset, HIGH);
+}
+
+// Puts the IM19 into its bootloader and gets ready to receive frames for a file of
+// 'fileSize' bytes. Mallocs nothing - the frame map is a fixed, small static buffer.
+bool im19UpdateFirmwareBegin(uint32_t fileSize)
+{
+    uint32_t totalFrames = (fileSize + IM19_FRAME_PAYLOAD_SIZE - 1) / IM19_FRAME_PAYLOAD_SIZE;
+    if (totalFrames > (uint32_t)IM19_FRAME_MAP_SIZE * 8)
+    {
+        systemPrintf("Firmware image too large for the IM19 update protocol (%lu bytes).\r\n", (unsigned long)fileSize);
+        return false;
+    }
+
+    memset(im19FrameMap, 0, sizeof(im19FrameMap));
+    im19TotalFrames = totalFrames;
+    im19FileSize = fileSize;
+    im19FrameAssemblyLen = 0;
+    im19NextFrameID = 0;
+
+    for (int retry = 0; retry < 3; retry++)
+    {
+        im19ResetImu();
+        delay(1000);
+        if (im19SendATCommand("AT+UPDATE_APP\r\n", "OK", 5))
+            return true;
+    }
+    return false;
+}
+
+// Repositions the frame-assembly cursor to a frame-aligned byte offset. Used before
+// streaming a retry range so its bytes land in the right frame IDs.
+void im19UpdateFirmwareSeek(uint32_t byteOffset)
+{
+    im19NextFrameID = byteOffset / IM19_FRAME_PAYLOAD_SIZE;
+    im19FrameAssemblyLen = 0;
+}
+
+// Feeds a chunk of firmware bytes (any length, any alignment) to the IM19. Internally
+// groups them into 256 byte protocol frames and sends each as it fills.
+bool im19UpdateFirmware(const uint8_t *data, uint32_t length)
+{
+    uint32_t consumed = 0;
+    while (consumed < length)
+    {
+        uint32_t copyLen = length - consumed;
+        uint32_t space = IM19_FRAME_PAYLOAD_SIZE - im19FrameAssemblyLen;
+        if (copyLen > space)
+            copyLen = space;
+
+        memcpy(im19FrameAssembly + im19FrameAssemblyLen, data + consumed, copyLen);
+        im19FrameAssemblyLen += copyLen;
+        consumed += copyLen;
+
+        if (im19FrameAssemblyLen == IM19_FRAME_PAYLOAD_SIZE)
+        {
+            if (!im19SendOneFrame(im19NextFrameID, im19FrameAssembly))
+                return false;
+            im19NextFrameID++;
+            im19FrameAssemblyLen = 0;
+        }
+    }
+    return true;
+}
+
+// Confirms the new firmware is running by polling for a response to AT+VERSION.
+static bool im19VerifyFirmwareRunning()
+{
+    delay(5000); // Give the IM19 time to flash and boot the new image
+    for (int retry = 0; retry < 3; retry++)
+    {
+        if (im19SendATCommand("AT+VERSION\r\n", "Version:", 1))
+            return true;
+        delay(100);
+    }
+    return false;
+}
+
+// Tells the IM19 "that's every frame I have" and handles its reply. Returns SUCCESS
+// once the IM19 confirms it received everything and has booted the new image, RETRY
+// if it reports missing frames (caller should re-request just those and call again),
+// or FAILED if the IM19 never responds.
+Im19UpdateResult im19UpdateFirmwareEnd()
+{
+    // The last frame of the file is usually short - zero-pad and send it now.
+    if (im19FrameAssemblyLen > 0)
+    {
+        memset(im19FrameAssembly + im19FrameAssemblyLen, 0, IM19_FRAME_PAYLOAD_SIZE - im19FrameAssemblyLen);
+        im19SendOneFrame(im19NextFrameID, im19FrameAssembly);
+        im19NextFrameID++;
+        im19FrameAssemblyLen = 0;
+    }
+
+    im19SendCmdFrame(IM19_FRAME_TYPE_CPL, im19TotalFrames);
+
+    int retry = IM19_CPL_RESPONSE_RETRIES;
+    while (retry--)
+    {
+        int response = im19CheckResponse(im19FrameMap, IM19_CPL_RESPONSE_TIMEOUT_MS);
+
+        if (response == IM19_FRAME_TYPE_RDY)
+            return im19VerifyFirmwareRunning() ? IM19_UPDATE_SUCCESS : IM19_UPDATE_FAILED;
+
+        if (response == IM19_FRAME_TYPE_REQ)
+        {
+            if (im19AllFramesPresent(im19FrameMap, im19TotalFrames))
+            {
+                im19SendCmdFrame(IM19_FRAME_TYPE_RDY, im19TotalFrames);
+                return im19VerifyFirmwareRunning() ? IM19_UPDATE_SUCCESS : IM19_UPDATE_FAILED;
+            }
+            return IM19_UPDATE_RETRY;
+        }
+    }
+    return IM19_UPDATE_FAILED;
+}
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// WiFi streaming: pulls bytes from the URL and feeds them to the IM19 update state
+// machine above. A retry only re-requests (via HTTP Range) the byte ranges the IM19
+// says it's still missing - the rest of the file is never re-downloaded or re-sent.
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+// Reads 'byteCount' bytes starting at 'startOffset' from an already-open HTTP stream
+// and feeds them to the IM19, reporting progress as it goes.
+static bool im19PumpStreamToDevice(WiFiClient *stream, WiFiClientSecure *client, HTTPClient *http, uint32_t startOffset,
+                                   uint32_t byteCount)
+{
+    im19UpdateFirmwareSeek(startOffset);
+
+    uint8_t buffer[512];
+    uint32_t received = 0;
+
+    while (http->connected() && received < byteCount)
+    {
+        size_t available = stream->available();
+        if (available == 0)
+        {
+            if (!client->connected())
+                break;
+            delay(1);
+            continue;
+        }
+
+        size_t toRead = min(available, (size_t)(byteCount - received));
+        toRead = min(toRead, sizeof(buffer));
+
+        int bytesRead = stream->readBytes(buffer, toRead);
+        if (bytesRead <= 0)
+            break;
+
+        if (!im19UpdateFirmware(buffer, (uint32_t)bytesRead))
+            return false;
+
+        received += bytesRead;
+        firmwareUpdateProgressCallback((uint16_t)bytesRead);
+    }
+
+    return received == byteCount;
+}
+
+// Re-downloads only [startByte, endByte] (inclusive) and streams it to the IM19.
+static bool im19StreamRange(const char *relativeFirmwareFileLocation, uint32_t startByte, uint32_t endByte)
+{
+    WiFiClientSecure client;
+    if (!otaSecurelyConnectGitHub(client))
+    {
+        systemPrintln("Failed to securely connect to GitHub.");
+        return false;
+    }
+
+    HTTPClient http;
+    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
+    {
+        systemPrintln("Unable to begin HTTP request.");
+        return false;
+    }
+
+    char rangeHeader[48];
+    snprintf(rangeHeader, sizeof(rangeHeader), "bytes=%lu-%lu", (unsigned long)startByte, (unsigned long)endByte);
+    http.addHeader("Range", rangeHeader);
+
+    int httpCode = http.GET();
+    if (httpCode != HTTP_CODE_PARTIAL_CONTENT)
+    {
+        // A 200 here means the server ignored our Range request and is about to send
+        // the whole file from byte 0 - streaming that into this offset would corrupt
+        // the image, so bail rather than guess.
+        systemPrintf("HTTP range request failed, code: %d\r\n", httpCode);
+        http.end();
+        return false;
+    }
+
+    bool success = im19PumpStreamToDevice(http.getStreamPtr(), &client, &http, startByte, endByte - startByte + 1);
+    http.end();
+    return success;
+}
+
+// Walks im19FrameMap for runs of missing frames and re-requests just those byte
+// ranges from the source URL, instead of re-streaming the entire firmware image.
+static bool im19StreamMissingRanges(const char *relativeFirmwareFileLocation)
+{
+    uint32_t frame = 0;
+    while (frame < im19TotalFrames)
+    {
+        uint8_t bit = 0x01 << (frame % 8);
+        if (im19FrameMap[frame / 8] & bit)
+        {
+            frame++;
+            continue;
+        }
+
+        uint32_t runStart = frame;
+        while (frame < im19TotalFrames && !(im19FrameMap[frame / 8] & (0x01 << (frame % 8))))
+            frame++;
+
+        uint32_t startByte = runStart * IM19_FRAME_PAYLOAD_SIZE;
+        uint32_t endByte = min(frame * IM19_FRAME_PAYLOAD_SIZE, im19FileSize) - 1;
+
+        systemPrintf("Requesting missing frames %lu-%lu (%lu bytes) from source.\r\n", (unsigned long)runStart,
+                     (unsigned long)(frame - 1), (unsigned long)(endByte - startByte + 1));
+
+        if (!im19StreamRange(relativeFirmwareFileLocation, startByte, endByte))
+            return false;
+    }
+    return true;
+}
+
+// Updates the IM19 module firmware from the given URL over WiFi.
+//
+// Structure (see the header comment at the top of the .ino for the general pattern):
+//   1. Connect to WiFi.
+//   2. im19UpdateFirmwareBegin() puts the IM19 into its bootloader.
+//   3. Stream the file once, feeding chunks to im19UpdateFirmware().
+//   4. im19UpdateFirmwareEnd() asks the IM19 what it's missing. If anything, re-request
+//      only those byte ranges (im19StreamMissingRanges) and ask again - up to a few
+//      attempts - rather than re-streaming the whole binary.
+bool im19StreamFirmware(const char *relativeFirmwareFileLocation)
+{
+    WiFiClientSecure client;
+    if (!otaSecurelyConnectGitHub(client))
+    {
+        systemPrintln("Failed to securely connect to GitHub.");
+        return false;
+    }
+
+    HTTPClient http;
+    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
+    {
+        systemPrintln("Unable to begin HTTP request.");
+        return false;
+    }
+
+    int httpCode = http.GET();
+    if (httpCode != HTTP_CODE_OK)
+    {
+        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
+        http.end();
+        return false;
+    }
+
+    int contentLength = http.getSize();
+    if (contentLength <= 0)
+    {
+        systemPrintln("Server did not report a firmware size.");
+        http.end();
+        return false;
+    }
+    uint32_t fileSize = (uint32_t)contentLength;
+    firmwareUpdateBytesToProcess = fileSize;
+
+    if (!im19UpdateFirmwareBegin(fileSize))
+    {
+        systemPrintln("IM19 did not respond to the bootloader entry command.");
+        http.end();
+        return false;
+    }
+
+    // Now that the IM19 is in its bootloader and waiting, stream the already-open
+    // response body straight to it.
+    bool streamed = im19PumpStreamToDevice(http.getStreamPtr(), &client, &http, 0, fileSize);
+    http.end();
+
+    if (!streamed)
+    {
+        systemPrintln("Firmware update failed during initial WiFi download.");
+        return false;
+    }
+
+    const int maxAttempts = 5;
+    for (int attempt = 1; attempt <= maxAttempts; attempt++)
+    {
+        Im19UpdateResult result = im19UpdateFirmwareEnd();
+
+        if (result == IM19_UPDATE_SUCCESS)
+        {
+            return true;
+        }
+
+        if (result == IM19_UPDATE_FAILED)
+        {
+            systemPrintln("IM19 firmware update failed: no response from IM19.");
+            return false;
+        }
+
+        // IM19_UPDATE_RETRY - the IM19 told us exactly which frames it's missing.
+        systemPrintf("Attempt %d: IM19 reports missing frames.\r\n", attempt);
+        if (!im19StreamMissingRanges(relativeFirmwareFileLocation))
+        {
+            systemPrintln("Firmware update failed while re-requesting missing frames.");
+            return false;
+        }
+    }
+
+    systemPrintln("IM19 firmware update failed: too many retries.");
+    return false;
+}
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// End of IM19 firmware update functions.
 
 #endif // COMPILE_IM19_IMU

@@ -67,7 +67,6 @@ RUN arduino-cli core install "esp32:esp32@${CORE_VERSION}"
 # Get Known Libraries
 RUN arduino-cli lib install ESP32Time@2.0.0
 #RUN arduino-cli lib install ESP32_BleSerial@3.0.0
-RUN arduino-cli lib install "ESP32-OTA-Pull"@1.0.0
 RUN arduino-cli lib install JC_Button@2.1.2
 RUN arduino-cli lib install PubSubClient@2.8.0
 RUN arduino-cli lib install "SdFat"@2.1.1

@@ -759,7 +759,7 @@ void createZtpRequest(String &str)
 
     // Get the firmware version string
     char versionString[9];
-    firmwareVersionGet(versionString, sizeof(versionString), false);
+    espFirmwareVersionGet(versionString, sizeof(versionString), false);
 
     // Build the givenName:   Name vxx.yy - deviceID
     char givenName[100];

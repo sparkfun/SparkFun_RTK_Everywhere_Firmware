@@ -874,7 +874,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     // Below are things not part of settings.h
 
     char firmwareVersion[30]; // v1.3 December 31 2021
-    firmwareVersionGet(firmwareVersion, sizeof(firmwareVersion), true);
+    espFirmwareVersionGet(firmwareVersion, sizeof(firmwareVersion), true);
     SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "espFirmwareVersion", firmwareVersion);
 
     SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "gnssFirmwareVersion", gnssFirmwareVersion);

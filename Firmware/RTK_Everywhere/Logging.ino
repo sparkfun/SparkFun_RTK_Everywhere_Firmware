@@ -391,7 +391,7 @@ bool beginLogging(const char *customFileName)
 
                 // SparkFun RTK Express v1.10-Feb 11 2022
                 char firmwareVersion[30]; // v1.3 December 31 2021
-                firmwareVersionGet(firmwareVersion, sizeof(firmwareVersion), true);
+                espFirmwareVersionGet(firmwareVersion, sizeof(firmwareVersion), true);
                 createNMEASentence(CUSTOM_NMEA_TYPE_SYSTEM_VERSION, nmeaMessage, sizeof(nmeaMessage),
                                    firmwareVersion); // textID, buffer, sizeOfBuffer, text
                 logFile->println(nmeaMessage);

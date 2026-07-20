@@ -279,6 +279,23 @@ const ubxCmd ubxCommands[] = {
 
 #define MAX_UBX_CMD (sizeof(ubxCommands) / sizeof(ubxCmd))
 
+// ==================================================================
+//  RECEIVE BUFFER
+//  ACK / response payloads are tiny (2–5 bytes).  Only the first
+//  X20P_RX_PAYLOAD_MAX bytes of any incoming payload are stored.
+// ==================================================================
+
+#define X20P_RX_PAYLOAD_MAX 16u
+
+struct UbxMsg
+{
+    uint8_t cls;
+    uint8_t id;
+    uint16_t len;
+    uint8_t payload[X20P_RX_PAYLOAD_MAX];
+};
+
+
 class GNSS_ZED : GNSS
 {
   private:
@@ -500,6 +517,9 @@ class GNSS_ZED : GNSS
 
     // Returns timing accuracy or zero if not online
     uint32_t getTimeAccuracy();
+
+    // Sets the pieces of the version number
+    bool getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, uint8_t &revision);
 
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();

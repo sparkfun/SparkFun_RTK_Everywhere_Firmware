@@ -7,7 +7,7 @@ Device_Update_NVM.ino
 //----------------------------------------
 // Close the NVM file
 //----------------------------------------
-bool deviceUpdateNvmClose(DEVICE_FIRMWARE_CTX * ctx)
+bool dfuNvmClose(DEVICE_FIRMWARE_CTX * ctx)
 {
     ctx->_nvmFile.close();
     return true;
@@ -16,7 +16,7 @@ bool deviceUpdateNvmClose(DEVICE_FIRMWARE_CTX * ctx)
 //----------------------------------------
 // Delete the NVM file
 //----------------------------------------
-void deviceUpdateNvmDelete(const char * fileName)
+void dfuNvmDelete(const char * fileName)
 {
     // Delete the file
     if (LittleFS.exists(fileName) && (LittleFS.remove(fileName) == false))
@@ -26,10 +26,10 @@ void deviceUpdateNvmDelete(const char * fileName)
 //----------------------------------------
 // Scan the NVM for matching firmware files
 //----------------------------------------
-void deviceUpdateNvmGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
+void dfuNvmGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 {
     int bufferIndex;
-    BUFFER_DATA * bufferData;
+    DFU_BUFFER_DATA * bufferData;
     bool directory;
     const char * extension;
     File file;
@@ -39,7 +39,7 @@ void deviceUpdateNvmGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 
     do
     {
-        bufferData = &firmwareFileNamesNvm;
+        bufferData = &dfuFirmwareFileNamesNvm;
         bufferIndex = bufferGetIndex(bufferData);
 
         // Start at the beginning of the directory
@@ -94,6 +94,10 @@ void deviceUpdateNvmGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
             if (directory)
                 continue;
 
+            // Display the file name
+            if (settings.debugFirmwareUpdate && ctx->_debugVerbose)
+                systemPrintf("File: NVM:/%s\r\n", fileName);
+
             // Determine if this file should be in the list
             if (((namePart == nullptr) || strstr(fileName, namePart))
                 && ((extension == nullptr) || strstr(fileName, extension)))
@@ -134,7 +138,7 @@ void deviceUpdateNvmGetFiles(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
 //----------------------------------------
 // Open the NVM file
 //----------------------------------------
-bool deviceUpdateNvmOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
+bool dfuNvmOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
 {
     const char * operation;
 
@@ -157,16 +161,23 @@ bool deviceUpdateNvmOpen(DEVICE_FIRMWARE_CTX * ctx, bool createFile)
 
     // Get the input file size
     if (createFile == false)
+    {
         ctx->_fileBytes = ctx->_nvmFile.size();
+        if (ctx->_fileBytes == 0)
+        {
+            systemPrintf("ERROR: NVM file size is zero bytes!\r\n");
+            return false;
+        }
+    }
     return true;
 }
 
 //----------------------------------------
 // Read data from the NVM file
 //----------------------------------------
-ssize_t deviceUpdateNvmRead(DEVICE_FIRMWARE_CTX * ctx,
-                            uint8_t * buffer,
-                            size_t bytesToRead)
+ssize_t dfuNvmRead(DEVICE_FIRMWARE_CTX * ctx,
+                   uint8_t * buffer,
+                   size_t bytesToRead)
 {
     ssize_t bytesRead;
 
@@ -179,9 +190,9 @@ ssize_t deviceUpdateNvmRead(DEVICE_FIRMWARE_CTX * ctx,
 //----------------------------------------
 // Write firmware data to an NVM file
 //----------------------------------------
-ssize_t deviceUpdateNvmWrite(DEVICE_FIRMWARE_CTX * ctx,
-                             uint8_t * buffer,
-                             size_t bytesToWrite)
+ssize_t dfuNvmWrite(DEVICE_FIRMWARE_CTX * ctx,
+                    uint8_t * buffer,
+                    size_t bytesToWrite)
 {
     return ctx->_nvmFile.write(buffer, bytesToWrite);
 }

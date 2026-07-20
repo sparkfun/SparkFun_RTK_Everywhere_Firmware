@@ -243,7 +243,9 @@ bool GNSS::setGnssSpecificConfiguration()
     return true; // Return true to clear GNSS_CONFIG_GNSS_SPECIFIC
 }
 
+//----------------------------------------
 // Antenna Short / Open detection
+//----------------------------------------
 bool GNSS::supportsAntennaShortOpen()
 {
     return false;
@@ -697,21 +699,24 @@ static void pushGPGGA(char *ggaData)
 // using serial or other begin() methods
 // To reduce potential false ID's, record the ID to NVM
 // If we have a previous ID, use it
-void gnssDetectReceiverType()
+bool gnssDetectReceiverType()
 {
     int index;
+    bool ranDetection;
 
     // Currently only the Facet FP requires GNSS receiver detection
     if (productVariant != RTK_FACET_FP)
-        return;
+        return true;
 
     if (gpioExpanderDetectGnss() == true)
     {
         gnssBoot(); // Tell GNSS to run
 
         // Start auto-detect if NVM is not yet set
+        ranDetection = false;
         if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
         {
+            ranDetection = true;
             systemPrintln("Beginning GNSS autodetection");
             displayGNSSAutodetect(0);
 
@@ -763,7 +768,7 @@ void gnssDetectReceiverType()
                 {
                     if (gnssSupportRoutines[index]._newClass)
                         gnssSupportRoutines[index]._newClass();
-                    return;
+                    return ranDetection;
                 }
             }
         }
@@ -777,6 +782,7 @@ void gnssDetectReceiverType()
     systemPrintln("Failed to detect or identify a Flex module.");
     settings.enablePrintBatteryMessages = true; // Print _something_ to the console
     displayGNSSAutodetectFailed(2000);
+    return true;
 }
 
 // Based on the platform, put the GNSS receiver into run mode
@@ -826,49 +832,22 @@ void gnssReset()
 }
 
 //----------------------------------------
-// Force UART connection to GNSS for firmware update on the next boot by special file in
-// LittleFS
+// Restore the GNSS to the factory settings
 //----------------------------------------
-bool createGNSSPassthrough()
+void gnssFactoryReset()
 {
-    return createPassthrough("/updateGnssFirmware.txt");
-}
-
-bool createPassthrough(const char *filename)
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugGnssConfig)
-            systemPrintf("LittleFS %s already exists\r\n", filename);
-        return true;
-    }
-
-    if (settings.debugGnssConfig)
-        systemPrintf("Creating passthrough file: %s \r\n", filename);
-
-    File simpleFile = LittleFS.open(filename, FILE_WRITE);
-    simpleFile.close();
-
-    if (LittleFS.exists(filename))
-        return true;
-
-    if (settings.debugGnssConfig)
-        systemPrintf("Unable to create %s on LittleFS\r\n", filename);
-    return false;
+    gnss->factoryReset();
 }
 
 //----------------------------------------
-void gnssFirmwareBeginUpdate()
+void gnssBeginFirmwareUpdate()
 {
     // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
 
     // Flag that we are in direct connect mode
     inDirectConnectMode = true;
 
-    // Note: we can't call gnssFirmwareRemoveUpdate() here as closing Tera Term will reset the ESP32,
+    // Note: we can't call gnssRemovePassthroughFile() here as closing Tera Term will reset the ESP32,
     //       returning the firmware to normal operation...
 
     // Paint GNSS Update
@@ -881,7 +860,7 @@ void gnssFirmwareBeginUpdate()
         gnssFirmwareDirectConnectSoftware();
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    gnssFirmwareRemoveUpdate();
+    gnssRemovePassthroughFile();
 
     systemFlush(); // Complete prints
 
@@ -893,7 +872,7 @@ void gnssFirmwareDirectConnectSoftware()
 {
     // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
 
-    // Note: gnssFirmwareBeginUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
+    // Note: gnssBeginFirmwareUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
     //  and display have all been initialized. But, importantly, the UARTs have not yet been started.
     //  This makes our job much easier...
 
@@ -1001,53 +980,19 @@ void gnssFirmwareDirectConnectHardware() // Facet FP only
     }
 }
 
-//----------------------------------------
-// Check if direct connection file exists
-//----------------------------------------
-bool gnssFirmwareCheckUpdate()
+// Handle the file creation and tear down the for the firmware update process.
+bool gnssCreatePassthroughFile()
 {
-    return gnssFirmwareCheckUpdateFile("/updateGnssFirmware.txt");
-}
-bool gnssFirmwareCheckUpdateFile(const char *filename)
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugGnss)
-            systemPrintf("LittleFS %s exists\r\n", filename);
-
-        // We do not remove the file here. See removeupdateUm980Firmware().
-
-        return true;
-    }
-
-    return false;
+    return createFileLfs("/updateGnssFirmware.txt");
 }
 
-//----------------------------------------
-// Remove direct connection file
-//----------------------------------------
-void gnssFirmwareRemoveUpdate()
+bool gnssCheckPassthroughFile()
 {
-    gnssFirmwareRemoveUpdateFile("/updateGnssFirmware.txt");
+    return fileExistsLfs("/updateGnssFirmware.txt");
 }
-
-void gnssFirmwareRemoveUpdateFile(const char *filename)
+void gnssRemovePassthroughFile()
 {
-    if (online.fs == false)
-        return;
-
-    if (settings.debugGnssConfig)
-        systemPrintf("Removing passthrough file: %s \r\n", filename);
-
-    if (LittleFS.exists(filename))
-    {
-        delay(50);
-
-        LittleFS.remove(filename);
-    }
+    removeFile("/updateGnssFirmware.txt");
 }
 
 //----------------------------------------
