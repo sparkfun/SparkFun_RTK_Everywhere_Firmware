@@ -1598,8 +1598,10 @@ void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
                 break;
             case MOSAIC_DYN_MODEL_AUTOMOTIVE:
             case MOSAIC_DYN_MODEL_RACECAR:
-            case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
                 prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type]; // Automotive
+                break;
+            case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
+                prop.icon = DynamicModel_Tractor_Props.iconDisplay[present.display_type]; // Tractor
                 break;
             case MOSAIC_DYN_MODEL_UAV:
                 prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type]; // Airborne1g
@@ -1620,14 +1622,16 @@ void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
                 break;
 
             case LG290P_NAV_MODE_NORMAL:
-            case LG290P_NAV_MODE_AGRICULTURE:
-                prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type]; // Automotive
+                prop.icon = DynamicModel_1_Properties.iconDisplay[present.display_type]; // Portable - or Automotive?
                 break;
             case LG290P_NAV_MODE_DYNAMIC:
                 prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type]; // Airborne1g
                 break;
             case LG290P_NAV_MODE_MOWER:
                 prop.icon = DynamicModel_11_Properties.iconDisplay[present.display_type]; // Mower
+                break;
+            case LG290P_NAV_MODE_AGRICULTURE:
+                prop.icon = DynamicModel_Tractor_Props.iconDisplay[present.display_type]; // Tractor
                 break;
             }
 #endif // COMPILE_LG290P

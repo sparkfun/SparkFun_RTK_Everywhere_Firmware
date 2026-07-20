@@ -101,6 +101,11 @@ const lg290pMsg lgMessagesPQTM[] = {
 enum lg290p_NavMode_e
 {
     // PQTMCFGNAVMODE - added at firmware v2.01
+    // 0 = Normal mode. (Basic mode applied to most scenarios, for example, driving scenario)
+    // 5 = Dynamic flight mode (applied to Dynamic flight mode with equivalent dynamics range
+    //             and vertical acceleration on different flight phase)
+    // 11 = Mower mode (applied to mower application) (*** Default value on LG290P ***)
+    // 14 = Agriculture mode (applied to agriculture application)
     LG290P_NAV_MODE_NORMAL = 0,
     LG290P_NAV_MODE_DYNAMIC = 5,
     LG290P_NAV_MODE_MOWER = 11,
