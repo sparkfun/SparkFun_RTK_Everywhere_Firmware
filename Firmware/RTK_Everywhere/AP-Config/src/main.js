@@ -99,6 +99,7 @@ var divTables = {
     loraSerialInteractionTimeoutConfig: ["loraSerialInteractionTimeout"],
     lg290pRtkDifferentialAgeConfig: ["lg290pRtkDifferentialAge"],
     lg290pRtkDifferentialSourceTypeConfig: ["lg290pRtkDifferentialSourceType"],
+    dynamicModelSettings: ["dynamicModel"],
 };
 
 function showHideDivs() {
@@ -272,8 +273,6 @@ function parseIncoming(msg) {
                 show("useEnableExtCorrRadio");
                 show("enableNmeaOnRadio");
 
-                hide("dynamicModelDropdown"); //Not supported on LG290P
-
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
                 select = ge("pppMode");
@@ -312,6 +311,18 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('921600', '921600');
                 select.add(newOption, undefined);
+
+                // nav mode - added at firmware v2.01
+                select = ge("dynamicModel");
+                select.options.length = 0; //Remove all from list
+                newOption = new Option('Normal', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Dynamic', '5');
+                select.add(newOption, undefined);
+                newOption = new Option('Mower', '11');
+                select.add(newOption, undefined);
+                newOption = new Option('Agriculture', '14');
+                select.add(newOption, undefined);
             }
             else if (platformPrefix == "TX2") {
                 show("baseConfig");
@@ -331,8 +342,6 @@ function parseIncoming(msg) {
                 hide("useEnableExtCorrRadio"); //No External Radio connector on Torch X2
                 hide("enableNmeaOnRadio");
 
-                hide("dynamicModelDropdown"); //Not supported on LG290P
-
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
                 select = ge("pppMode");
@@ -344,6 +353,18 @@ function parseIncoming(msg) {
                 newOption = new Option('E6/HAS', '2');
                 select.add(newOption, undefined);
                 newOption = new Option('Auto', '255');
+                select.add(newOption, undefined);
+
+                // nav mode - added at firmware v2.01
+                select = ge("dynamicModel");
+                select.options.length = 0; //Remove all from list
+                newOption = new Option('Normal', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Dynamic', '5');
+                select.add(newOption, undefined);
+                newOption = new Option('Mower', '11');
+                select.add(newOption, undefined);
+                newOption = new Option('Agriculture', '14');
                 select.add(newOption, undefined);
             }
         }
@@ -403,8 +424,6 @@ function parseIncoming(msg) {
                 show("useEnableExtCorrRadio");
                 show("enableNmeaOnRadio");
 
-                hide("dynamicModelDropdown"); //Not supported on LG290P
-
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
                 select = ge("pppMode");
@@ -442,6 +461,18 @@ function parseIncoming(msg) {
                 newOption = new Option('460800', '460800');
                 select.add(newOption, undefined);
                 newOption = new Option('921600', '921600');
+                select.add(newOption, undefined);
+
+                // nav mode - added at firmware v2.01
+                select = ge("dynamicModel");
+                select.options.length = 0; //Remove all from list
+                newOption = new Option('Normal', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Dynamic', '5');
+                select.add(newOption, undefined);
+                newOption = new Option('Mower', '11');
+                select.add(newOption, undefined);
+                newOption = new Option('Agriculture', '14');
                 select.add(newOption, undefined);
             }
             else if (facetFPGNSS.substring(0, 3) == "ZED") {

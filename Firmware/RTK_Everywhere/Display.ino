@@ -1610,6 +1610,28 @@ void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
             }
 #endif // COMPILE_MOSAICX5
         }
+        else if (present.gnss_lg290p && present.dynamicModel)
+        {
+#ifdef COMPILE_LG290P
+            // Display icon associated with current navigation mode
+            switch (settings.dynamicModel)
+            {
+            default:
+                break;
+
+            case LG290P_NAV_MODE_NORMAL:
+            case LG290P_NAV_MODE_AGRICULTURE:
+                prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type]; // Automotive
+                break;
+            case LG290P_NAV_MODE_DYNAMIC:
+                prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type]; // Airborne1g
+                break;
+            case LG290P_NAV_MODE_MOWER:
+                prop.icon = DynamicModel_11_Properties.iconDisplay[present.display_type]; // Mower
+                break;
+            }
+#endif // COMPILE_LG290P
+        }
 
         if (prop.icon.bitmap)
             iconList->push_back(prop);

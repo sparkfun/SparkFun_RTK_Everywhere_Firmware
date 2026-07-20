@@ -277,16 +277,18 @@
                         </div>
                     </div>
 
-                    <div class="form-group row" id="dynamicModelDropdown">
-                        <label for="dynamicModel" class="col-sm-4 col-6 col-form-label">Dynamic Model:
-                            <span class="tt" data-bs-placement="right"
-                                title="Adjusts the internal algorithm to match the expected application environment. This setting improves the receiver's interpretation of measurements and thus provides a more accurate position output. Setting the receiver to an unsuitable platform model for the given application environment is likely to result in a loss of receiver performance and position accuracy">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
-                        </label>
-                        <div class="col-sm-4 col-6">
-                            <select name="dynamicModel" id="dynamicModel" class="form-dropdown mb-2">
-                            </select>
+                    <div id="dynamicModelSettings" style="display:none">
+                        <div class="form-group row" id="dynamicModelDropdown">
+                            <label for="dynamicModel" class="col-sm-4 col-6 col-form-label">Dynamic Model:
+                                <span class="tt" data-bs-placement="right"
+                                    title="Adjusts the internal algorithm to match the expected application environment. This setting improves the receiver's interpretation of measurements and thus provides a more accurate position output. Setting the receiver to an unsuitable platform model for the given application environment is likely to result in a loss of receiver performance and position accuracy">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-4 col-6">
+                                <select name="dynamicModel" id="dynamicModel" class="form-dropdown mb-2">
+                                </select>
+                            </div>
                         </div>
                     </div>
 

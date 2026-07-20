@@ -166,10 +166,22 @@ void GNSS_LG290P::begin()
         systemPrintln("PPP trial firmware detected. PPP HAS/E6 settings will now be available.");
     }
 
-    // v2.1 officially supports E6 HAS
+    if (lg290pFirmwareVersionInt < 201)
+    {
+        systemPrintf(
+            "Current LG290P firmware: v%d.%d (full form: %s). Galileo E6 HAS and navigation mode require v2.01 or "
+            "newer. "
+            "Please "
+            "update the "
+            "firmware on your LG290P to allow for these features. Please see https://bit.ly/sfe-rtk-lg290p-update\r\n",
+            lg290pFirmwareVersionMajor, lg290pFirmwareVersionMinor, gnssFirmwareVersion);
+    }
+
+    // v2.01 officially supports E6 HAS and navigation mode
     if (lg290pFirmwareVersionInt >= 201)
     {
         present.pppCapable = true;
+        present.dynamicModel = true;
     }
 
     printModuleInfo();
@@ -221,6 +233,7 @@ bool GNSS_LG290P::checkPPPRates()
 
 //----------------------------------------
 // begin() has already established communication. There are no one-time config requirements for the LG290P
+// The dynamic model / navigation mode will be set by gnssConfigure(GNSS_CONFIG_MODEL) as needed
 //----------------------------------------
 bool GNSS_LG290P::configure()
 {
@@ -2660,8 +2673,18 @@ bool GNSS_LG290P::setMessagesRTCMRover()
 //----------------------------------------
 bool GNSS_LG290P::setModel(uint8_t modelNumber)
 {
-    // Not a feature on LG290p
-    return true;
+    // Added with firmware v2.01
+    if (!present.dynamicModel)
+        return true;
+
+    if (online.gnss == false)
+        return (false);
+
+    uint16_t navMode = modelNumber;
+    bool response = _lg290p->setNavMode(navMode, false); // resetAfter = false
+    if (response == true)
+        gnssConfigure(GNSS_CONFIG_RESET); // Reboot receiver to apply changes
+    return response;
 }
 
 //----------------------------------------
@@ -2728,7 +2751,7 @@ bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
                 systemPrintf("Modifying fix interval to %d\r\n", msBetweenSolutions);
 
             // Set the fix interval
-            response &= _lg290p->setFixInterval(msBetweenSolutions);
+            response &= _lg290p->setFixInterval(msBetweenSolutions, false); // resetAfter = false
 
             if (response == true)
                 gnssConfigure(GNSS_CONFIG_RESET); // Reboot receiver to apply changes
@@ -3481,6 +3504,32 @@ bool lg290pSettingsToFile(char * line,
     break;
     }
     return true;
+}
+
+//----------------------------------------
+// Verify tables and index into the tables have the same lengths
+// This routine is called during boot and only continues execution when
+// the table lengths match
+//----------------------------------------
+void lg290pVerifyTables()
+{
+    // Verify the table lengths
+    if (LG290P_NUM_NAV_MODES != MAX_LG290P_NAV_MODES)
+        reportFatalError("Fix lg290p_NavMode_e to match lg290PNavModes");
+}
+
+//----------------------------------------
+// Given a dynamic model, look up its name
+//----------------------------------------
+const char *lg290pGetNavModeNameFromModel(const uint8_t dynamicModel)
+{
+    static const char unknown[] = {"Unknown"};
+    for (uint8_t m = 0; m < MAX_LG290P_NAV_MODES; m++)
+    {
+        if (lg290pNavModes[m].navMode == dynamicModel)
+            return lg290pNavModes[m].name;
+    }
+    return unknown;
 }
 
 #endif // COMPILE_LG290P
