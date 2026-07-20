@@ -2120,6 +2120,10 @@ bool GNSS_LG290P::setElevation(uint8_t elevationDegrees)
 //----------------------------------------
 bool GNSS_LG290P::setGnssSpecificConfiguration()
 {
+    // setRtkDifferentialSourceType fails with firmware 1.05
+    if (lg290pFirmwareVersionInt <= 105)
+        return true;
+
     bool response = true;
 
     if (online.gnss)
