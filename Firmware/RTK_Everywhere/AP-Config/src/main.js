@@ -99,6 +99,7 @@ var divTables = {
     loraSerialInteractionTimeoutConfig: ["loraSerialInteractionTimeout"],
     lg290pRtkDifferentialAgeConfig: ["lg290pRtkDifferentialAge"],
     lg290pRtkDifferentialSourceTypeConfig: ["lg290pRtkDifferentialSourceType"],
+    lg290pRtkReliabilityLevelConfig: ["lg290pRtkReliabilityLevel"],
     dynamicModelSettings: ["dynamicModel"],
 };
 

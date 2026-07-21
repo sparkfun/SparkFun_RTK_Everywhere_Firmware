@@ -1534,6 +1534,19 @@ void GNSS_LG290P::menuGnssSpecificConfiguration()
                 settings.lg290pRtkDifferentialSourceType == 1 ? "Normal" : "Wide Lane");
         }
 
+        // setRtkReliabilityLevel fails with firmware 1.05
+        if (lg290pFirmwareVersionInt <= 105)
+            systemPrintln("\r\n*** RTK Reliability settings not available. Please upgrade your LG290P firmware ***\r\n");
+        else
+        {
+            systemPrintf("3) RTK Reliability Level: %s\r\n",
+                settings.lg290pRtkReliabilityLevel == 1 ? "Very relax" :
+                settings.lg290pRtkReliabilityLevel == 2 ? "Relax" :
+                settings.lg290pRtkReliabilityLevel == 3 ? "Medium" :
+                settings.lg290pRtkReliabilityLevel == 4 ? "Strict" :
+                settings.lg290pRtkReliabilityLevel == 5 ? "Very strict" : "Undefined");
+        }
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -1551,6 +1564,13 @@ void GNSS_LG290P::menuGnssSpecificConfiguration()
         {
             settings.lg290pRtkDifferentialSourceType += 1;
             settings.lg290pRtkDifferentialSourceType %= 3;
+            gnssConfigure(GNSS_CONFIG_GNSS_SPECIFIC); // Request receiver to use new settings
+        }
+        else if ((lg290pFirmwareVersionInt > 105) && (incoming == 3))
+        {
+            settings.lg290pRtkReliabilityLevel += 1;
+            if (settings.lg290pRtkReliabilityLevel == 6)
+                settings.lg290pRtkReliabilityLevel = 1;
             gnssConfigure(GNSS_CONFIG_GNSS_SPECIFIC); // Request receiver to use new settings
         }
 
@@ -2136,6 +2156,7 @@ bool GNSS_LG290P::setGnssSpecificConfiguration()
     {
         response &= _lg290p->setRtkDifferentialAge(settings.lg290pRtkDifferentialAge);
         response &= _lg290p->setRtkDifferentialSourceType(settings.lg290pRtkDifferentialSourceType);
+        response &= _lg290p->setRtkReliabilityLevel(settings.lg290pRtkReliabilityLevel);
     }
 
     gnssConfigure(GNSS_CONFIG_RESET); // Changes require device save/restart
