@@ -1523,16 +1523,22 @@ void GNSS_LG290P::menuGnssSpecificConfiguration()
         systemPrintln();
         systemPrintln("Menu: GNSS-Specific Configuration");
 
-        systemPrintf("1) RTK Differential Age: %ds\r\n", settings.lg290pRtkDifferentialAge);
-        systemPrintf("2) RTK Differential Source Type: %s\r\n",
-            settings.lg290pRtkDifferentialSourceType == 0 ? "Auto" :
-            settings.lg290pRtkDifferentialSourceType == 1 ? "Normal" : "Wide Lane");
+        // setRtkDifferentialSourceType fails with firmware 1.05
+        if (lg290pFirmwareVersionInt <= 105)
+            systemPrintln("\r\n*** RTK Differential settings not available. Please upgrade your LG290P firmware ***\r\n");
+        else
+        {
+            systemPrintf("1) RTK Differential Age: %ds\r\n", settings.lg290pRtkDifferentialAge);
+            systemPrintf("2) RTK Differential Source Type: %s\r\n",
+                settings.lg290pRtkDifferentialSourceType == 0 ? "Auto" :
+                settings.lg290pRtkDifferentialSourceType == 1 ? "Normal" : "Wide Lane");
+        }
 
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
-        if (incoming == 1)
+        if ((lg290pFirmwareVersionInt > 105) && (incoming == 1))
         {
             uint16_t newAge = 120;
             if (getNewSetting("Enter RTK Differential Age", 1, 600, &newAge) == INPUT_RESPONSE_VALID)
@@ -1541,7 +1547,7 @@ void GNSS_LG290P::menuGnssSpecificConfiguration()
                 gnssConfigure(GNSS_CONFIG_GNSS_SPECIFIC); // Request receiver to use new settings
             }
         }
-        else if (incoming == 2)
+        else if ((lg290pFirmwareVersionInt > 105) && (incoming == 2))
         {
             settings.lg290pRtkDifferentialSourceType += 1;
             settings.lg290pRtkDifferentialSourceType %= 3;
