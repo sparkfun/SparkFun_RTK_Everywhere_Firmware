@@ -341,7 +341,7 @@ void displayUpdate()
                 else
                     displayRTKAccuracy(&iconPropertyList, &CrossHairDualProperties, false); // Dual crosshair, blink
 
-                    paintLogging(&iconPropertyList);
+                paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
