@@ -1225,10 +1225,6 @@ void gpioExpanderSelectLoraCommunication()
 }
 
 // Connect Facet FP GNSS UART2 to 4-pin JST RADIO port via SW4 (Default)
-// Currently never called... But that is probably OK. SW4 defaults to JST RADIO.
-// Selecting LoRa TX or RX will switch SW4 to LoRa, and leave it there.
-// If LoRa is enabled and then disabled, we should then gpioExpanderSelectRadioPort
-// to select JST RADIO again. And reset the baud rate to settings.radioPortBaud
 void gpioExpanderSelectRadioPort()
 {
     if (online.gpioExpanderSwitches == true)
