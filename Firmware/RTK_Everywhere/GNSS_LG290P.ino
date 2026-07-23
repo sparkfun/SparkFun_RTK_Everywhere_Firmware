@@ -177,12 +177,6 @@ void GNSS_LG290P::begin()
     snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", getId());
 
     gnssFirmwareVersionInt = lg290pFirmwareVersionInt; // Tell Web Config what version to use
-
-    // On Facet FP: set UART2 (Radio) protocol(s)
-    // Both Ext Radio and LoRa need RTCM on UART2
-    // Note: this is probably redundant? I only added it because I added it on mosaic...
-    if (productVariant == RTK_FACET_FP)
-        setCorrRadioExtPort((settings.enableExtCorrRadio || settings.enableLora), true); // Force the setting
 }
 
 //----------------------------------------
@@ -1201,16 +1195,6 @@ bool GNSS_LG290P::isConfirmedTime()
     return isValidTime();
 }
 
-// Returns true if data is arriving on the Radio Ext port
-bool GNSS_LG290P::isCorrRadioExtPortActive()
-{
-    // On LG290P, we don't have access to the UART RX byte counts
-    // We have to assume data is arriving if ext radio is enabled...
-    // And on Facet FP, we also have to fake the arrival of LoRa traffic
-    // to maintain the Radio Ext protocols...
-    return (settings.enableExtCorrRadio || ((productVariant == RTK_FACET_FP) && settings.enableLora));
-}
-
 //----------------------------------------
 // Return true if GNSS receiver has a higher quality DGPS fix than 3D
 //----------------------------------------
@@ -1229,6 +1213,19 @@ bool GNSS_LG290P::isDgpsFixed()
             return (true);
     }
     return false;
+}
+
+//----------------------------------------
+// Returns true if data is arriving on the Radio Ext port
+//----------------------------------------
+bool GNSS_LG290P::isExternalCorrectionActive(uint8_t port)
+{
+    if ((port < 1) || (port > 3))
+        return false;
+
+    // On LG290P, we don't have access to the UART RX byte counts
+    // We have to assume data is arriving if corrections are enabled...
+    return (_externalCorrectionsEnabled[port - 1] > 0);
 }
 
 //----------------------------------------
@@ -2034,54 +2031,51 @@ bool GNSS_LG290P::setConstellations()
     return (response);
 }
 
-// Enable / disable corrections protocol(s) on the Radio External port
+// Enable / disable external corrections protocol(s) on the chosen port
 // Always update if force is true. Otherwise, only update if enable has changed state
-bool GNSS_LG290P::setCorrRadioExtPort(bool enable, bool force)
+bool GNSS_LG290P::setExternalCorrections(uint8_t port, bool enable, bool force, const char *debug)
 {
+    // LG290P has UARTs 1-3
+    if ((port < 1) || (port > 3))
+    {
+        systemPrintf("setExternalCorrections: invalid port %d\r\n", port);
+        return false;
+    }
+
     if (online.gnss)
     {
         // Someday, read/modify/write setPortInputProtocols
 
-        if (force || (enable != _corrRadioExtPortEnabled))
+        if (force || (enable != _externalCorrectionsEnabled[port - 1]))
         {
-            uint8_t radioUart = 0;
-            if (productVariant == RTK_POSTCARD)
-            {
-                // UART3 of the LG290P is connected to the locking JST connector labled RADIO
-                radioUart = 3;
-            }
-            else if (productVariant == RTK_FACET_FP)
-            {
-                // UART2 of the LG290P is connected to SW4, which is connected to LoRa UART0
-                radioUart = 2;
-            }
-            else if (productVariant == RTK_TORCH_X2)
-            {
-                // UART1 of the LG290P is connected to SW, which is connected to ESP32 UART0
-                // Not really used at this time but available for configuration
-                radioUart = 1;
-            }
-            else
-                systemPrintln("setCorrRadioExtPort: Uncaught platform");
-
             // Set port InputProt: RTCM3 (4) vs NMEA (1)
-            if (_lg290p->setPortInputProtocols(radioUart, enable ? 4 : 1))
+            if (_lg290p->setPortInputProtocols(port, enable ? 4 : 1))
             {
                 if ((settings.debugCorrections == true) && !inMainMenu)
                 {
-                    systemPrintf("Radio Ext corrections: %s -> %s%s\r\n",
-                                 _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled",
-                                 force ? " (Forced)" : "");
+                    systemPrintf("setExternalCorrections: %s -> %s%s%s%s%s\r\n",
+                                 _externalCorrectionsEnabled[port - 1] == -1 ? "not set" :
+                                 _externalCorrectionsEnabled[port - 1] ? "enabled" : "disabled",
+                                 enable ? "enabled" : "disabled",
+                                 force ? " (Forced)" : "",
+                                 debug ? " (" : "",
+                                 debug ? debug : "",
+                                 debug ? ")" : "");
                 }
 
-                _corrRadioExtPortEnabled = enable;
+                _externalCorrectionsEnabled[port - 1] = enable;
                 return true;
             }
             else
             {
-                systemPrintf("Radio Ext corrections FAILED: %s -> %s%s\r\n",
-                             _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled",
-                             force ? " (Forced)" : "");
+                systemPrintf("setExternalCorrections FAILED: %s -> %s%s%s%s%s\r\n",
+                                 _externalCorrectionsEnabled[port - 1] == -1 ? "not set" :
+                                 _externalCorrectionsEnabled[port - 1] ? "enabled" : "disabled",
+                                 enable ? "enabled" : "disabled",
+                                 force ? " (Forced)" : "",
+                                 debug ? " (" : "",
+                                 debug ? debug : "",
+                                 debug ? ")" : "");
             }
         }
     }
@@ -2858,8 +2852,11 @@ void GNSS_LG290P::update()
 
 //----------------------------------------
 // Check if given baud rate is allowed
+// According to the protocol specification, only 9600, 115200, 230400, 460800 and 921600
+// are supported. But we know the LG290P also supports 57600 - which is convenient for
+// SiK radios. What to do? Include it, or not? Let's include it - to improve the user experience.
 //----------------------------------------
-const uint32_t lg290pAllowedRates[] = {9600, 115200, 230400, 460800, 921600};
+const uint32_t lg290pAllowedRates[] = {9600, 57600, 115200, 230400, 460800, 921600};
 const int lg290pAllowedRatesCount = sizeof(lg290pAllowedRates) / sizeof(lg290pAllowedRates[0]);
 
 bool GNSS_LG290P::baudIsAllowed(uint32_t baudRate)

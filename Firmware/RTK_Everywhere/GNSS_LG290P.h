@@ -111,6 +111,8 @@ class GNSS_LG290P : GNSS
   private:
     LG290P *_lg290p; // Library class instance
 
+    int _externalCorrectionsEnabled[3] = { -1, -1, -1 }; // LG290P has UARTS 1-3
+
   protected:
     bool configureOnce();
 
@@ -360,11 +362,11 @@ class GNSS_LG290P : GNSS
     // Date is confirmed once we have GNSS fix
     bool isConfirmedTime();
 
-    // Returns true if data is arriving on the Radio Ext port
-    bool isCorrRadioExtPortActive();
-
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed();
+
+    // Returns true if corrections are arriving on the selected port
+    bool isExternalCorrectionActive(uint8_t port);
 
     // Some functions merely need to know if we have an RTK Float.
     // This function checks to see if the given platform has reached sufficient
@@ -451,9 +453,9 @@ class GNSS_LG290P : GNSS
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
 
-    // Enable / disable corrections protocol(s) on the Radio External port
+    // Enable / disable external corrections protocol(s) on the chosen port
     // Always update if force is true. Otherwise, only update if enable has changed state
-    bool setCorrRadioExtPort(bool enable, bool force);
+    bool setExternalCorrections(uint8_t port, bool enable, bool force, const char *debug = nullptr);
 
     // Set the elevation in degrees
     // Inputs:

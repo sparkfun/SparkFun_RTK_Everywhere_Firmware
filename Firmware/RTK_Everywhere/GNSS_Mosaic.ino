@@ -311,10 +311,7 @@ void GNSS_MOSAIC::begin()
         if (isPresent() == false) // Detect if the module is present
             return;
 
-        // Set COM2 (Radio) protocol(s)
-        // Both Ext Radio and LoRa need RTCM on UART2
-        // Note: this is probably redundant? I'm now not sure why I added it...
-        setCorrRadioExtPort((settings.enableExtCorrRadio || settings.enableLora), true); // Force the setting
+        // Set COM2 (Radio) protocol(s) is handled by correctionUpdateSource()
 
         updateSD(); // Check card size and free space
 
@@ -633,7 +630,7 @@ bool GNSS_MOSAIC::configureOnce()
     // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format
     response &= configureGNSSCOM(pointPerfectLbandNeeded());
 
-    // COM2 is configured by setCorrRadioExtPort
+    // COM2 is configured by setExternalCorrections
 
     // Configure USB1 for NMEA and RTCMv3. No L-Band. Not encapsulated.
     response &= sendWithResponse("sdio,USB1,auto,RTCMv3+NMEA\n\r", "DataInOut");
@@ -1382,10 +1379,24 @@ bool GNSS_MOSAIC::isConfirmedTime()
     return _validTime;
 }
 
-// Returns true if data is arriving on the Radio Ext port
-bool GNSS_MOSAIC::isCorrRadioExtPortActive()
+//----------------------------------------
+// Return true if GNSS receiver has a higher quality DGPS fix than 3D
+//----------------------------------------
+bool GNSS_MOSAIC::isDgpsFixed()
 {
-    if (!settings.enableExtCorrRadio)
+    // 2: Differential PVT
+    // 6: SBAS aided PVT
+    if ((_fixType == 2) || (_fixType == 6))
+        return (true);
+    return (false);
+}
+
+//----------------------------------------
+// Returns true if data is arriving on the selected port
+//----------------------------------------
+bool GNSS_MOSAIC::isExternalCorrectionActive(uint8_t port)
+{
+    if (_externalCorrectionsEnabled < 1)
         return false;
 
     if (_radioExtBytesReceived_millis > 0) // Avoid a false positive
@@ -1397,18 +1408,6 @@ bool GNSS_MOSAIC::isCorrRadioExtPortActive()
     }
 
     return false;
-}
-
-//----------------------------------------
-// Return true if GNSS receiver has a higher quality DGPS fix than 3D
-//----------------------------------------
-bool GNSS_MOSAIC::isDgpsFixed()
-{
-    // 2: Differential PVT
-    // 6: SBAS aided PVT
-    if ((_fixType == 2) || (_fixType == 6))
-        return (true);
-    return (false);
 }
 
 //----------------------------------------
@@ -2180,42 +2179,65 @@ bool GNSS_MOSAIC::setConstellations()
     return (sendWithResponse(setting, "SatelliteTracking", 1000, 200));
 }
 
-// Enable / disable corrections protocol(s) on the Radio External port
+// Enable / disable external corrections protocol(s) on the chosen port
 // Always update if force is true. Otherwise, only update if enable has changed state
 // Notes:
 //   NrBytesReceived is reset when sdio,COM2 is sent. This causes  NrBytesReceived to
 //   be less than previousNrBytesReceived, which in turn causes a corrections timeout.
 //   So, we need to reset previousNrBytesReceived and firstTimeNrBytesReceived here.
-bool GNSS_MOSAIC::setCorrRadioExtPort(bool enable, bool force)
+bool GNSS_MOSAIC::setExternalCorrections(uint8_t port, bool enable, bool force, const char *debug)
 {
-    if (force || (enable != _corrRadioExtPortEnabled))
+    // mosaic has UARTs 1-4, but we will only ever use 2 for corrections
+    if ((port < 2) || (port > 2))
     {
-        String setting = String("sdio,COM2,");
-        if (enable)
-            setting += String("RTCMv3,");
-        else
-            setting += String("none,");
-        // Configure COM2 for NMEA and RTCMv3 output. No L-Band. Not encapsulated.
-        setting += String("RTCMv3+NMEA\n\r");
+        systemPrintf("setExternalCorrections: invalid port %d\r\n", port);
+        return false;
+    }
 
-        if (sendWithResponse(setting, "DataInOut"))
+    if (online.gnss)
+    {
+        // Someday, read/modify/write setPortInputProtocols
+
+        if (force || (enable != _externalCorrectionsEnabled))
         {
-            if ((settings.debugCorrections == true) && !inMainMenu)
+            String setting = String("sdio,COM2,");
+            if (enable)
+                setting += String("RTCMv3,");
+            else
+                setting += String("none,");
+            // Configure COM2 for NMEA and RTCMv3 output. No L-Band. Not encapsulated.
+            setting += String("RTCMv3+NMEA\n\r");
+
+            if (sendWithResponse(setting, "DataInOut"))
             {
-                systemPrintf("Radio Ext corrections: %s -> %s%s\r\n", _corrRadioExtPortEnabled ? "enabled" : "disabled",
-                             enable ? "enabled" : "disabled", force ? " (Forced)" : "");
-            }
+                if ((settings.debugCorrections == true) && !inMainMenu)
+                {
+                    systemPrintf("setExternalCorrections: %s -> %s%s%s%s%s\r\n",
+                                 _externalCorrectionsEnabled == -1 ? "not set" :
+                                 _externalCorrectionsEnabled ? "enabled" : "disabled",
+                                 enable ? "enabled" : "disabled",
+                                 force ? " (Forced)" : "",
+                                 debug ? " (" : "",
+                                 debug ? debug : "",
+                                 debug ? ")" : "");
+                }
 
-            _corrRadioExtPortEnabled = enable;
-            previousNrBytesReceived = 0;
-            firstTimeNrBytesReceived = true;
-            return true;
-        }
-        else
-        {
-            systemPrintf("Radio Ext corrections FAILED: %s -> %s%s\r\n",
-                         _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled",
-                         force ? " (Forced)" : "");
+                _externalCorrectionsEnabled = enable;
+                previousNrBytesReceived = 0;
+                firstTimeNrBytesReceived = true;
+                return true;
+            }
+            else
+            {
+                systemPrintf("setExternalCorrections FAILED: %s -> %s%s%s%s%s\r\n",
+                                 _externalCorrectionsEnabled == -1 ? "not set" :
+                                 _externalCorrectionsEnabled ? "enabled" : "disabled",
+                                 enable ? "enabled" : "disabled",
+                                 force ? " (Forced)" : "",
+                                 debug ? " (" : "",
+                                 debug ? debug : "",
+                                 debug ? ")" : "");
+            }
         }
     }
 

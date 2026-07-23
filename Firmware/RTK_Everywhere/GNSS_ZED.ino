@@ -230,11 +230,7 @@ void GNSS_ZED::begin()
 
             present.dynamicModel = true; // EVK and FPX ZED modules support dynamic model configuration
 
-            // On Facet FP: set UART2 (Radio) protocol(s)
-            // Both Ext Radio and LoRa need RTCM on UART2
-            // Note: this is probably redundant? I only added it because I added it on mosaic...
-            if (productVariant == RTK_FACET_FP)
-                setCorrRadioExtPort((settings.enableExtCorrRadio || settings.enableLora), true); // Force the setting
+            // On Facet FP: UART2 (Radio) protocol(s) are set by correctionUpdateSource()
 
             return;
         }
@@ -406,7 +402,7 @@ bool GNSS_ZED::configure()
     if (commandSupported(UBLOX_CFG_UART2OUTPROT_RTCM3X))
         response &= _zed->addCfgValset(UBLOX_CFG_UART2OUTPROT_RTCM3X, 1);
 
-    // UART2INPROT is set by setCorrRadioExtPort
+    // UART2INPROT is set by setExternalCorrections
 
     // We don't want NMEA over I2C, but we will want to deliver RTCM, and UBX+RTCM is not an option
     response &= _zed->addCfgValset(UBLOX_CFG_I2COUTPROT_UBX, 1);
@@ -483,8 +479,7 @@ bool GNSS_ZED::configure()
     if (response == false)
         systemPrintln("Module failed config block 1");
 
-    // Enable RTCM3 if needed - if not enable NMEA IN to keep skipped updated
-    gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS); // Request receiver to use new settings
+    // Enable RTCM3 if needed on UART2 - handled by 
 
     if (response)
     {
@@ -1359,10 +1354,19 @@ bool GNSS_ZED::isConfirmedTime()
     return (_confirmedTime);
 }
 
-// Returns true if data is arriving on the Radio Ext port
-bool GNSS_ZED::isCorrRadioExtPortActive()
+//----------------------------------------
+// Return true if GNSS receiver has a higher quality DGPS fix than 3D
+//----------------------------------------
+bool GNSS_ZED::isDgpsFixed()
 {
-    if (!settings.enableExtCorrRadio)
+    // Not supported
+    return (false);
+}
+
+// Returns true if data is arriving on the selected port
+bool GNSS_ZED::isExternalCorrectionActive(uint8_t port)
+{
+    if (_externalCorrectionsEnabled < 1)
         return false;
 
     if (_radioExtBytesReceived_millis > 0) // Avoid a false positive
@@ -1374,15 +1378,6 @@ bool GNSS_ZED::isCorrRadioExtPortActive()
     }
 
     return false;
-}
-
-//----------------------------------------
-// Return true if GNSS receiver has a higher quality DGPS fix than 3D
-//----------------------------------------
-bool GNSS_ZED::isDgpsFixed()
-{
-    // Not supported
-    return (false);
 }
 
 //----------------------------------------
@@ -2020,40 +2015,63 @@ bool GNSS_ZED::setConstellations()
     return (overallResponse);
 }
 
-// Enable / disable corrections protocol(s) on the Radio External port
+// Enable / disable external corrections protocol(s) on the chosen port
 // Always update if force is true. Otherwise, only update if enable has changed state
-bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
+bool GNSS_ZED::setExternalCorrections(uint8_t port, bool enable, bool force, const char *debug)
 {
-    if (force || (enable != _corrRadioExtPortEnabled))
+    // ZED has UARTs 1-2, but we will only ever use 2 for corrections
+    if ((port < 2) || (port > 2))
     {
-        bool response = _zed->newCfgValset(VAL_LAYER_ALL);
+        systemPrintf("setExternalCorrections: invalid port %d\r\n", port);
+        return false;
+    }
 
-        // Leave NMEA IN (poll requests) enabled so MON-COMMS skipped keeps updating
-        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_NMEA, enable ? 0 : 1);
+    if (online.gnss)
+    {
+        // Someday, read/modify/write UART2INPROT
 
-        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_UBX, enable ? 1 : 0);
-        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_RTCM3X, enable ? 1 : 0);
-        if (commandSupported(UBLOX_CFG_UART2INPROT_SPARTN))
-            response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_SPARTN, enable ? 1 : 0);
-
-        response &= _zed->sendCfgValset(); // Closing
-
-        if (response)
+        if (force || (enable != _externalCorrectionsEnabled))
         {
-            if ((settings.debugCorrections == true) && !inMainMenu)
+            bool response = _zed->newCfgValset(VAL_LAYER_ALL);
+
+            // Leave NMEA IN (poll requests) enabled so MON-COMMS skipped keeps updating
+            response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_NMEA, enable ? 0 : 1);
+
+            response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_UBX, enable ? 1 : 0);
+            response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_RTCM3X, enable ? 1 : 0);
+            if (commandSupported(UBLOX_CFG_UART2INPROT_SPARTN))
+                response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_SPARTN, enable ? 1 : 0);
+
+            response &= _zed->sendCfgValset(); // Closing
+
+            if (response)
             {
-                systemPrintf("Radio Ext corrections: %s -> %s%s\r\n", _corrRadioExtPortEnabled ? "enabled" : "disabled",
-                             enable ? "enabled" : "disabled", force ? " (Forced)" : "");
-            }
+                if ((settings.debugCorrections == true) && !inMainMenu)
+                {
+                    systemPrintf("setExternalCorrections: %s -> %s%s%s%s%s\r\n",
+                                 _externalCorrectionsEnabled == -1 ? "not set" :
+                                 _externalCorrectionsEnabled ? "enabled" : "disabled",
+                                 enable ? "enabled" : "disabled",
+                                 force ? " (Forced)" : "",
+                                 debug ? " (" : "",
+                                 debug ? debug : "",
+                                 debug ? ")" : "");
+                }
 
-            _corrRadioExtPortEnabled = enable;
-            return true;
-        }
-        else
-        {
-            systemPrintf("Radio Ext corrections FAILED: %s -> %s%s\r\n",
-                         _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled",
-                         force ? " (Forced)" : "");
+                _externalCorrectionsEnabled = enable;
+                return true;
+            }
+            else
+            {
+                systemPrintf("setExternalCorrections FAILED: %s -> %s%s%s%s%s\r\n",
+                                 _externalCorrectionsEnabled == -1 ? "not set" :
+                                 _externalCorrectionsEnabled ? "enabled" : "disabled",
+                                 enable ? "enabled" : "disabled",
+                                 force ? " (Forced)" : "",
+                                 debug ? " (" : "",
+                                 debug ? debug : "",
+                                 debug ? ")" : "");
+            }
         }
     }
 

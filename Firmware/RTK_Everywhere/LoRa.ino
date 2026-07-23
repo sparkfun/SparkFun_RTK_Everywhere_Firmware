@@ -102,6 +102,7 @@ void updateLora()
 
     if (settings.enableLora == false && (loraState >= LORA_IDLE && loraState < LORA_STATE_MAX))
     {
+        loraHangup();   // On Facet FP, select external radio and restore baud rate
         loraPowerOff(); // Leave serial inteface in place
         loraState = LORA_DISABLED;
     }
@@ -121,6 +122,7 @@ void updateLora()
                          // mode.
             if (settings.enableLora == false)
             {
+                loraHangup();   // On Facet FP, select external radio and restore baud rate
                 loraPowerOff(); // Power off system. Leave serial inteface in place
                 loraState = LORA_DISABLED;
             }
@@ -698,11 +700,10 @@ void loraSetupTransmit()
     // If platform has a dedicated LoRa UART - i.e. Facet FP
     // Set the switch(es) to connect the GNSS to LoRa
     // And override the baud rate
-    // TODO: improve this so it works better with settings.radioPortBaud and GNSS_CONFIG_BAUD_RATE_RADIO
     if (present.loraDedicatedUart == true)
     {
-        gnss->setBaudRateRadio(115200);
         gpioExpanderSelectLoraCommunication();
+        gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO);
     }
 
     loraSetup(true);
@@ -713,14 +714,26 @@ void loraSetupReceive()
     // If platform has a dedicated LoRa UART - i.e. Facet FP
     // Set the switch(es) to connect the GNSS to LoRa
     // And override the baud rate
-    // TODO: improve this so it works better with settings.radioPortBaud and GNSS_CONFIG_BAUD_RATE_RADIO
     if (present.loraDedicatedUart == true)
     {
-        gnss->setBaudRateRadio(115200);
         gpioExpanderSelectLoraCommunication();
+        gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO);
     }
 
     loraSetup(false);
+}
+
+void loraHangup()
+{
+    // LoRa is no longer needed
+    // If platform has a dedicated LoRa UART - i.e. Facet FP
+    // Set the switch(es) to connect the GNSS to External radio
+    // And restore the baud rate
+    if (present.loraDedicatedUart == true)
+    {
+        gpioExpanderSelectRadioPort();
+        gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO);
+    }
 }
 
 // Setup LoRa radio for receiving or transmitting

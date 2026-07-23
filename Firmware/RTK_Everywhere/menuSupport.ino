@@ -225,7 +225,7 @@ void checkGNSSArrayDefaults()
                 // With LG290P on Facet FP:
                 // We do not know if ext radio / LoRa corrections are arriving
                 // because we don't have access to the UART2 byte counts. We have to assume
-                // that corrections are arriving. See GNSS_LG290P::isCorrRadioExtPortActive()
+                // that corrections are arriving. See GNSS_LG290P::isExternalCorrectionActive()
                 // We must set settings.enableExtCorrRadio to false to prevent this.
                 settings.enableExtCorrRadio = false;
             }

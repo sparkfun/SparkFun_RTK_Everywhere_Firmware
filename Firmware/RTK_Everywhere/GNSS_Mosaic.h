@@ -609,11 +609,11 @@ protected:
     // On the mosaic, we know that InputLink will arrive at 1Hz. But on the ZED, UBX-MON-COMMS
     // is tied to the navigation rate. To keep it simple, record the last time NrBytesReceived
     // was seen to increase and use that for corrections timeout. This is updated by the SBF
-    // InputLink message. isCorrRadioExtPortActive returns true if the bytes-received has
+    // InputLink message. isExternalCorrectionActive returns true if the bytes-received has
     // increased in the previous settings.correctionsSourcesLifetime_s
     uint32_t _radioExtBytesReceived_millis;
 
-    // See notes at GNSS_MOSAIC::setCorrRadioExtPort
+    // See notes at GNSS_MOSAIC::setExternalCorrections
     uint32_t previousNrBytesReceived = 0;
     bool firstTimeNrBytesReceived = true;
 
@@ -625,6 +625,8 @@ protected:
 
     // Set the minimum satellite signal level for navigation.
     bool setMinCN0(uint8_t cnoValue);
+
+    int _externalCorrectionsEnabled = -1; // mosaic has COM1-4 but only COM2 is used for corrections
 
 public:
     // Allow access from parser routines
@@ -901,11 +903,11 @@ public:
     // Date is confirmed once we have GNSS fix
     bool isConfirmedTime();
 
-    // Returns true if data is arriving on the Radio Ext port
-    bool isCorrRadioExtPortActive();
-
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed();
+
+    // Returns true if corrections are arriving on the selected port
+    bool isExternalCorrectionActive(uint8_t port);
 
     // Some functions merely need to know if we have an RTK Float.
     // This function checks to see if the given platform has reached sufficient
@@ -1082,9 +1084,9 @@ public:
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
 
-    // Enable / disable corrections protocol(s) on the Radio External port
+    // Enable / disable external corrections protocol(s) on the chosen port
     // Always update if force is true. Otherwise, only update if enable has changed state
-    bool setCorrRadioExtPort(bool enable, bool force);
+    bool setExternalCorrections(uint8_t port, bool enable, bool force, const char *debug = nullptr);
 
     // Set the elevation in degrees
     // Inputs:

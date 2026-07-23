@@ -391,14 +391,14 @@ public:
         return false;
     }
 
-    // Returns true if data is arriving on the Radio Ext port
-    bool isCorrRadioExtPortActive()
+    // Return true if GNSS receiver has a higher quality DGPS fix than 3D
+    bool isDgpsFixed()
     {
         return false;
     }
 
-    // Return true if GNSS receiver has a higher quality DGPS fix than 3D
-    bool isDgpsFixed()
+    // Returns true if corrections are arriving on the selected port
+    bool isExternalCorrectionActive(uint8_t port)
     {
         return false;
     }
@@ -554,8 +554,8 @@ public:
         return true;
     }
 
-    // Enable / disable corrections protocol(s) on the Radio External port
-    bool setCorrRadioExtPort(bool enable, bool force)
+    // Enable / disable external corrections protocol(s) on the chosen port
+    bool setExternalCorrections(uint8_t port, bool enable, bool force, const char *debug = nullptr)
     {
         return true;
     }
