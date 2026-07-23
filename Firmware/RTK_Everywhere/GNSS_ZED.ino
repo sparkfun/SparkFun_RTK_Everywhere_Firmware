@@ -479,7 +479,7 @@ bool GNSS_ZED::configure()
     if (response == false)
         systemPrintln("Module failed config block 1");
 
-    // Enable RTCM3 if needed on UART2 - handled by 
+    // Enable RTCM3 if needed on UART2 - handled by setExternalCorrections
 
     if (response)
     {
