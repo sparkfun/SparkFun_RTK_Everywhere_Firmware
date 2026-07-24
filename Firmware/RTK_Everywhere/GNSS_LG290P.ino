@@ -2416,11 +2416,11 @@ bool GNSS_LG290P::setMessagesOther()
                     if (strcmp(lgMessagesPQTM[messageNumber].msgTextName, "PQTMRTCMIS") == 0)
                         pqtmrtcmisEnabled = true;
                 }
-
-                // Capture the RTCMIS version
-                if (strcmp(lgMessagesPQTM[messageNumber].msgTextName, "PQTMRTCMIS") == 0)
-                    pqtmrtcmisMessageNumber = messageNumber;
             }
+
+            // Capture the RTCMIS version
+            if (strcmp(lgMessagesPQTM[messageNumber].msgTextName, "PQTMRTCMIS") == 0)
+                pqtmrtcmisMessageNumber = messageNumber;
         }
 
         portNumber++;
