@@ -1216,7 +1216,9 @@ bool GNSS_LG290P::isDgpsFixed()
 }
 
 //----------------------------------------
-// Returns true if data is arriving on the Radio Ext port
+// Should return true if corrections are arriving on the selected port
+// On LG290P, we don't know if corrections are arriving
+// Return true if corrections are enabled
 //----------------------------------------
 bool GNSS_LG290P::isExternalCorrectionActive(uint8_t port)
 {

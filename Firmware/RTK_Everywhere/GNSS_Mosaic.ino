@@ -1392,7 +1392,7 @@ bool GNSS_MOSAIC::isDgpsFixed()
 }
 
 //----------------------------------------
-// Returns true if data is arriving on the selected port
+// Returns true if corrections are enabled and data is arriving on the selected port
 //----------------------------------------
 bool GNSS_MOSAIC::isExternalCorrectionActive(uint8_t port)
 {

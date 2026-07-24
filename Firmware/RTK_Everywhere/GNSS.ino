@@ -492,6 +492,9 @@ void gnssUpdate()
             bool lora;
             bool enableExtCorrRadio = gnssExternalCorrectionsSelected(lora);
             // Set the protocols if either LoRa or External Radio _may_ need the port
+            // Note: this is probably redundant. correctionUpdateSource() will enable / disable
+            // the port protocols as needed, based on the priority of external radio (and LoRa)
+            // corrections
             if (gnss->setExternalCorrections(getGnssExternalCorrectionsPort(), enableExtCorrRadio,
                 true, "gnssUpdate GNSS_CONFIG_EXT_CORRECTIONS") == true) // Force the setting
             {

@@ -653,14 +653,15 @@ void correctionUpdateSource()
         // CORR_RADIO_EXT as appropriate
         // Call GNSS::isExternalCorrectionActive every correctionsCheckIntervalMsec
         // LG290P will return true if corrections are enabled
-        // ZED / mosaic will return true if corrections are enabled and the port is actually active.
-        // The GNSS does not know the source of the corrections
-        // gnssExternalCorrectionsSelected returns true if corrections have been selected
-        // and the type via the lora reference
+        // ZED / mosaic will return true if corrections are enabled and the port is actually active
+        // The GNSS does not know the source of the corrections (Facet FP: LoRa vs. Ext Radio);
+        // we get that from the gnssExternalCorrectionsSelected lora reference
+        // If the corrections are active, then update correctionLastSeen with the source
+        // If corrections are not active, don't update - allowing the source to timeout
         if (gnss->isExternalCorrectionActive(getGnssExternalCorrectionsPort()))
         {
-            // If the corrections are active, then update correctionLastSeen with the source
-            // If corrections are not active, don't update - allowing the source to timeout
+            // gnssExternalCorrectionsSelected returns true if corrections have been selected
+            // and returns the type via the lora reference
             bool lora;
             if(gnssExternalCorrectionsSelected(lora))
                 correctionLastSeen(lora ? CORR_RADIO_LORA : CORR_RADIO_EXT);

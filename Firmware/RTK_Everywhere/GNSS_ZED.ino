@@ -1363,7 +1363,9 @@ bool GNSS_ZED::isDgpsFixed()
     return (false);
 }
 
-// Returns true if data is arriving on the selected port
+//----------------------------------------
+// Returns true if corrections are enabled and data is arriving on the selected port
+//----------------------------------------
 bool GNSS_ZED::isExternalCorrectionActive(uint8_t port)
 {
     if (_externalCorrectionsEnabled < 1)

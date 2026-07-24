@@ -906,7 +906,7 @@ public:
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed();
 
-    // Returns true if corrections are arriving on the selected port
+    // Returns true if corrections are enabled and arriving on the selected port
     bool isExternalCorrectionActive(uint8_t port);
 
     // Some functions merely need to know if we have an RTK Float.
