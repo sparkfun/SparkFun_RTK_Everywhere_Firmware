@@ -1092,10 +1092,17 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 
         if (type == RTK_NMEA_PARSER_INDEX)
         {
+            if (strstr(sempNmeaGetSentenceName(parse), "PQTMRTCMIS") != nullptr)
+            {
+                // Extract correction port RTCM count from PQTMRTCMIS
+                lg290pProcessRTCMIS(parse->buffer, parse->length);
+            }
+
             // Suppress PQTM/NMEA messages as needed
             if (lg290pMessageEnabled((char *)parse->buffer, parse->length) == false)
             {
-                if (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true)
+                if ((strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
+                    && settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true)
                 {
                     // GGA is disabled, but the user has enabled the NTRIP Client.
                     // Allow GGA to get through, unmodified.

@@ -11,6 +11,11 @@ GNSS_LG290P.h
 
 #include <SparkFun_LG290P_GNSS.h> //http://librarymanager/All#SparkFun_LG290P
 
+// Keep count of the number of RTCM messages received on the correction port
+// so we can tell if the port is receiving corrections
+uint32_t lg290pRTCMCorrectionCountPrevious = 0;
+uint32_t lg290pRTCMCorrectionCountCurrent = 0;
+
 // Constellations monitored/used for fix
 // Available constellations: GPS, BDS, GLO, GAL, QZSS, NavIC
 const char *lg290pConstellationNames[] = {
@@ -365,9 +370,9 @@ class GNSS_LG290P : GNSS
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed();
 
-    // Should return true if corrections are arriving on the selected port
-    // On LG290P, we don't know if corrections are arriving
-    // Return true if corrections are enabled
+    // Should return true if corrections are enabled and arriving on the selected port
+    // On LG290P, we can check the PQTMRTCMIS MsgNum
+    // Return true if corrections are enabled and being received
     bool isExternalCorrectionActive(uint8_t port);
 
     // Some functions merely need to know if we have an RTK Float.
