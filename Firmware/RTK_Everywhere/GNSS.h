@@ -273,8 +273,10 @@ class GNSS
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     virtual bool isDgpsFixed();
 
-    // Returns true if corrections are arriving on the selected port
-    virtual bool isExternalCorrectionActive(uint8_t port);
+    // Returns 0 if corrections can not be arriving on the selected port
+    // Returns 1 if corrections are assumed to be arriving on the selected port
+    // Returns 2 if corrections truly are arriving on the selected port
+    virtual int isExternalCorrectionActive(uint8_t port);
 
     // Some functions merely need to know if we have an RTK Float.
     // This function checks to see if the given platform has reached sufficient

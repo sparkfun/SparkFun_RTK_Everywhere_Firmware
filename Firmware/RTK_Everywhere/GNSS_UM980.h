@@ -333,10 +333,10 @@ class GNSS_UM980 : GNSS
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed();
 
-    // Returns true if corrections are arriving on the selected port
-    bool isExternalCorrectionActive(uint8_t port)
+    // Returns 0 since corrections can not be arriving on the selected port
+    int isExternalCorrectionActive(uint8_t port)
     {
-        return false; // Torch has no Radio port...
+        return 0; // Torch has no Radio port...
     }
 
     // Some functions merely need to know if we have an RTK Float.

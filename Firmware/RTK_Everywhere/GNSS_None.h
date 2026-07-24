@@ -397,10 +397,10 @@ public:
         return false;
     }
 
-    // Returns true if corrections are arriving on the selected port
-    bool isExternalCorrectionActive(uint8_t port)
+    // Returns 0 since corrections can not be arriving on the selected port
+    int isExternalCorrectionActive(uint8_t port)
     {
-        return false;
+        return 0;
     }
 
     // Some functions merely need to know if we have an RTK Float.

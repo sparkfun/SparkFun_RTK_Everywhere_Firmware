@@ -1216,29 +1216,32 @@ bool GNSS_LG290P::isDgpsFixed()
 }
 
 //----------------------------------------
-// Should return true if corrections are enabled and arriving on the selected port
-// On LG290P, we can check the PQTMRTCMIS MsgNum
-// Return true if corrections are enabled and being received
+// Returns 0 if corrections can not be arriving on the selected port
+// Returns 1 if corrections are assumed to be arriving on the selected port
+// Returns 2 if corrections truly are arriving on the selected port
+// On LG290P, we can check the PQTMRTCMIS MsgNum with firmware >= v2.01
+// Firmware < v2.01 will return 0 or 1
+// Firmware >= v2.01 will return 0 or 2
 //----------------------------------------
-bool GNSS_LG290P::isExternalCorrectionActive(uint8_t port)
+int GNSS_LG290P::isExternalCorrectionActive(uint8_t port)
 {
     if ((port < 1) || (port > 3))
-        return false;
+        return 0;
 
     if (_externalCorrectionsEnabled[port - 1] < 1)
-        return false;
+        return 0;
 
     // PQTMRTCMIS is supported from firmware v2.01
     if (lg290pFirmwareVersionInt < 201)
-        return true;
+        return 1;
 
     if ((lg290pRTCMCorrectionCountCurrent - lg290pRTCMCorrectionCountPrevious) > 0)
     {
         lg290pRTCMCorrectionCountPrevious = lg290pRTCMCorrectionCountCurrent;
-        return true;
+        return 2;
     }
 
-    return false;
+    return 0;
 }
 
 //----------------------------------------

@@ -1392,24 +1392,25 @@ bool GNSS_MOSAIC::isDgpsFixed()
 }
 
 //----------------------------------------
-// Returns true if corrections are enabled and data is arriving on the selected port
+// Returns 0 if corrections can not be arriving on the selected port
+// Returns 2 if corrections truly are arriving on the selected port
 //----------------------------------------
-bool GNSS_MOSAIC::isExternalCorrectionActive(uint8_t port)
+int GNSS_MOSAIC::isExternalCorrectionActive(uint8_t port)
 {
     // FPM and Facet mosaic only support corrections on COM2
     // Ignore port
     if (_externalCorrectionsEnabled < 1)
-        return false;
+        return 0;
 
     if (_radioExtBytesReceived_millis > 0) // Avoid a false positive
     {
         // Return true if _radioExtBytesReceived_millis increased
         // in the last settings.correctionsSourcesLifetime_s
         if ((millis() - _radioExtBytesReceived_millis) < (settings.correctionsSourcesLifetime_s * 1000))
-            return true;
+            return 2;
     }
 
-    return false;
+    return 0;
 }
 
 //----------------------------------------

@@ -370,10 +370,12 @@ class GNSS_LG290P : GNSS
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed();
 
-    // Should return true if corrections are enabled and arriving on the selected port
-    // On LG290P, we can check the PQTMRTCMIS MsgNum
-    // Return true if corrections are enabled and being received
-    bool isExternalCorrectionActive(uint8_t port);
+    // Returns 0 if corrections can not be arriving on the selected port
+    // Returns 1 if corrections are assumed to be arriving on the selected port
+    // Returns 2 if corrections truly are arriving on the selected port
+    // Firmware < v2.01 will return 0 or 1
+    // Firmware >= v2.01 will return 0 or 2
+    int isExternalCorrectionActive(uint8_t port);
 
     // Some functions merely need to know if we have an RTK Float.
     // This function checks to see if the given platform has reached sufficient
