@@ -1368,6 +1368,8 @@ bool GNSS_ZED::isDgpsFixed()
 //----------------------------------------
 bool GNSS_ZED::isExternalCorrectionActive(uint8_t port)
 {
+    // ZED only supports corrections on UART2
+    // Ignore port
     if (_externalCorrectionsEnabled < 1)
         return false;
 

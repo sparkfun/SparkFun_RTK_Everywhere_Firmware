@@ -1396,6 +1396,8 @@ bool GNSS_MOSAIC::isDgpsFixed()
 //----------------------------------------
 bool GNSS_MOSAIC::isExternalCorrectionActive(uint8_t port)
 {
+    // FPM and Facet mosaic only support corrections on COM2
+    // Ignore port
     if (_externalCorrectionsEnabled < 1)
         return false;
 
