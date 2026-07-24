@@ -910,6 +910,15 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 usbSerialIncomingRtcm = false;
             }
 
+            if (gnssExternalIncomingRtcm)
+            {
+                // Download : Columns 74 - 81
+                prop.icon = DownloadArrow128x64;
+                prop.duty = 0b11111111;
+                iconList->push_back(prop);
+                gnssExternalIncomingRtcm = false;
+            }
+
             bool networkHasInternet = false;
 
 #ifdef COMPILE_ETHERNET

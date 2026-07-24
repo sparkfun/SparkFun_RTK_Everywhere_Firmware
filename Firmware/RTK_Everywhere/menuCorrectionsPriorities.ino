@@ -665,6 +665,9 @@ void correctionUpdateSource()
             bool lora;
             if(gnssExternalCorrectionsSelected(lora))
                 correctionLastSeen(lora ? CORR_RADIO_LORA : CORR_RADIO_EXT);
+            
+            // Tell the display about the incoming corrections
+            gnssExternalIncomingRtcm = true;
         }
 
         lastExternalCorrectionsCheck = millis();
