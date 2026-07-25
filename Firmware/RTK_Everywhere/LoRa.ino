@@ -240,10 +240,10 @@ void updateLora()
                     loraBytesSent = 0;
                 }
             }
-
-            if (inBaseMode() == false)
-                loraState = LORA_IDLE; // Force restart to move to other modes
         }
+
+        if (inBaseMode() == false)
+            loraState = LORA_IDLE; // Force restart to move to other modes
 
         break;
 
