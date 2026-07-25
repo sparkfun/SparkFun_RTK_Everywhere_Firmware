@@ -3041,8 +3041,7 @@ bool GNSS_LG290P::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msg
 
 // Given a sentence, determine if it is enabled in settings
 // This is used to signal to the processUart1Message() task to remove messages that are needed
-// by the library to function (ie, PQTMEPE, PQTMPVT, PQTMRTCMIS, GNGSV) but have not been enabled by the user,
-// by the library to function (ie, PQTMEPE, PQTMPVT, PQTMSVINSTATUS, GNGSV) but have not been enabled by the user,
+// by the library to function (ie, PQTMEPE, PQTMPVT, PQTMSVINSTATUS, PQTMRTCMIS, GNGSV) but have not been enabled by the user,
 // so should not be logged or passed to other consumers (Bluetooth, TCP, etc).
 // If the message is unknown, allow messages through - this assumes the user has configured the message outside
 // of the standard firmware settings.
