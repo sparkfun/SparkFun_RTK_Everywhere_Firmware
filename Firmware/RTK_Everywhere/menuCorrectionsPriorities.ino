@@ -767,15 +767,23 @@ void markPppCorrectionsPresent()
 {
     // The GNSS is reporting that PPP is detected/converged.
     // Determine if PPP is the correction source to use
+    // It's a lot of messages
+    static unsigned long lastPrint = 0;
     if (correctionLastSeen(CORR_PPP_HAS_B2B))
     {
-        if (settings.debugCorrections == true && !inMainMenu)
+        if (((millis() - lastPrint) > 2000) && (settings.debugCorrections == true) && !inMainMenu)
+        {
             systemPrintln("PPP Signal detected. Using corrections.");
+            lastPrint = millis();
+        }
     }
     else
     {
-        if (settings.debugCorrections == true && !inMainMenu)
+        if (((millis() - lastPrint) > 2000) && (settings.debugCorrections == true) && !inMainMenu)
+        {
             systemPrintln("PPP signal detected, but it is not the top priority");
+            lastPrint = millis();
+        }
     }    
 }
 
