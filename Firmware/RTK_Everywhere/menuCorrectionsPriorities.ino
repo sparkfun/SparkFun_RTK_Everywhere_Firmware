@@ -804,11 +804,23 @@ bool gnssExternalCorrectionsSelected(bool &lora)
 // Usually this is settings.radioPortBaud but on Facet FP we need to allow LoRa to override
 uint32_t getBaudRateForGnssRadio()
 {
-    if (present.loraDedicatedUart == true)
+    if (present.loraDedicatedUart == true) // Facet FP
     {
+        // Check for Base mode
+        if (inBaseMode())
+        {
+            if (settings.enableLora)
+                return 115200;
+            else
+                return settings.radioPortBaud;
+        }
+
+        // Rover mode
         bool lora;
         if (gnssExternalCorrectionsSelected(lora) && lora)
             return 115200; // Facet FP LoRa UART baud is fixed at 115200
+        else
+            return settings.radioPortBaud;
     }
 
     return settings.radioPortBaud;
