@@ -1499,6 +1499,25 @@ void loraProcessRTCM(uint8_t *rtcmData, uint16_t dataLength)
         // Only needed for Torch. Facet FP has GNSS tied directly to LoRa.
         if (productVariant == RTK_TORCH)
         {
+            // Check to see if the RTCM data conatins the "+++" escape sequence
+            // Will strnstr work on binary data? Probably not?
+            //if (strnstr(rtcmData, "+++", dataLength))
+            uint16_t ptr = 0;
+            uint8_t consecutivePlus = 0;
+            while ((ptr < dataLength) && (consecutivePlus < 3))
+            {
+                if (rtcmData[ptr++] == '+')
+                    consecutivePlus++;
+                else
+                    consecutivePlus = 0;
+            }
+            if (consecutivePlus == 3)
+            {
+                if (settings.debugLora == true)
+                    systemPrintln("loraProcessRTCM: RTCM for LoRa contains +++. Skipping...");
+                return;
+            }
+            
             // Send this data to the LoRa radio
             systemFlush();                // Complete prints
             muxSelectLoRaCommunication(); // Connect the LoRa radio to ESP32 UART0 (shared with USB)
