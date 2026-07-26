@@ -633,6 +633,7 @@ void menuRadio()
         {
             settings.enableLora ^= 1;
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // We may need to enable / disable NMEA
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_OTHER); // Make sure PQTMRTCMIS is enabled on LG290P
             gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS);   // We may need to enable RTCM input
             // Setting the GNSS baud rate for LoRa is handled by the loraState machine
 

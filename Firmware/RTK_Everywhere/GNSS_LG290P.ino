@@ -281,8 +281,9 @@ bool GNSS_LG290P::configureBase()
 
         reset();
 
-        // When a device is changed from Rover to Base, NMEA messages are disabled. Turn them back on.
+        // When a device is changed from Rover to Base, NMEA and PQTM messages are disabled. Turn them back on.
         gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_OTHER);
 
         // In Survey-In mode, configuring the RTCM Base will trigger a print warning because the survey-in
         // takes a few seconds to start during which gnssInBaseSurveyInMode() incorrectly reports false.
@@ -1622,6 +1623,7 @@ void GNSS_LG290P::menuMessages()
                 settings.lg290pMessageRatesPQTM[x] = lgMessagesPQTM[x].msgDefaultRate;
 
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_OTHER);
             if (inBaseMode()) // If the system is in Base mode
                 gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
             else
@@ -1665,6 +1667,8 @@ void GNSS_LG290P::menuMessages()
 
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);       // Request receiver to use new settings
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
+
+            // I think it is OK to skip gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_OTHER); here?
 
             if (incoming == 12)
                 systemPrintln("Reset to High-rate PPP Logging Defaults (NMEAx7 / RTCMx4 - 1Hz)");
