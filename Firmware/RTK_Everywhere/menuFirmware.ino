@@ -659,117 +659,121 @@ char *otaSubsystemFilePath(char subsystemCode)
 // Update the ESP32 firmware
 bool espStreamFirmware(char *relativeFirmwareFileLocation)
 {
-    if (relativeFirmwareFileLocation == nullptr)
+    size_t contentLength;
+    HTTPClient * http;
+    String server;
+    NetworkClient * stream;
+    char * url;
+
+    do
     {
-        systemPrintln("Firmware file location is null.");
-        return false;
-    }
-
-    systemPrintln("Starting ESP32 firmware update...");
-
-    WiFiClientSecure client;
-    if (!otaSecurelyConnectGitHub(client))
-    {
-        systemPrintln("Failed to securely connect to GitHub.");
-        return false;
-    }
-
-    HTTPClient http;
-    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
-    {
-        systemPrintln("Unable to begin HTTP request.");
-        return false;
-    }
-
-    int httpCode = http.GET();
-    if (httpCode != HTTP_CODE_OK)
-    {
-        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
-        http.end();
-        return false;
-    }
-
-    int contentLength = http.getSize();
-    if (contentLength > 0)
-        firmwareUpdateBytesToProcess = (uint32_t)contentLength;
-
-    WiFiClient *stream = http.getStreamPtr();
-
-    if (Update.begin(contentLength) == false)
-    {
-        systemPrintln("Not enough space to begin OTA");
-        http.end();
-        return false;
-    }
-
-    // Stream the firmware in chunks (rather than Update.writeStream(*stream) in one shot)
-    // so we can report progress via firmwareUpdateProgressCallback() along the way.
-    firmwareUpdateBytesProcessed = 0;
-
-    uint8_t buffer[512];
-    int bytesWritten = 0;
-    unsigned long lastDataTime = millis();
-    const unsigned long dataTimeoutMs = 15000;
-
-    while (http.connected() && (bytesWritten < contentLength))
-    {
-        size_t availableBytes = stream->available();
-        if (availableBytes == 0)
+        if (relativeFirmwareFileLocation == nullptr)
         {
-            if ((millis() - lastDataTime) > dataTimeoutMs)
+            systemPrintln("Firmware file location is null.");
+            break;
+        }
+
+        systemPrintln("Starting ESP32 firmware update...");
+        url = otaGetGithubFileLocation(relativeFirmwareFileLocation);
+        if (openUrl(url,
+                    GITHUB_RAW_PUBLIC_CERT,
+                    server,
+                    http,
+                    &contentLength,
+                    &stream,
+                    nullptr,
+                    settings.debugFirmwareUpdate) == false)
+        {
+            break;
+        }
+
+        if (contentLength > 0)
+            firmwareUpdateBytesToProcess = (uint32_t)contentLength;
+
+        if (Update.begin(contentLength) == false)
+        {
+            systemPrintln("Not enough space to begin OTA");
+            break;
+        }
+
+        // Stream the firmware in chunks (rather than Update.writeStream(*stream) in one shot)
+        // so we can report progress via firmwareUpdateProgressCallback() along the way.
+        firmwareUpdateBytesProcessed = 0;
+
+        uint8_t buffer[512];
+        int bytesWritten = 0;
+        unsigned long lastDataTime = millis();
+        const unsigned long dataTimeoutMs = 15000;
+        bool readError = false;
+
+        while (http->connected() && (bytesWritten < contentLength))
+        {
+            size_t availableBytes = stream->available();
+            if (availableBytes == 0)
             {
-                systemPrintln("OTA update timed out waiting for data");
-                http.end();
-                return false;
+                if ((millis() - lastDataTime) > dataTimeoutMs)
+                {
+                    systemPrintln("OTA update timed out waiting for data");
+                    readError = true;
+                    break;
+                }
+                delay(1);
+                continue;
             }
-            delay(1);
-            continue;
+
+            size_t bytesToRead = (availableBytes > sizeof(buffer)) ? sizeof(buffer) : availableBytes;
+            int bytesRead = stream->readBytes(buffer, bytesToRead);
+            if (bytesRead <= 0)
+                continue;
+
+            if (Update.write(buffer, bytesRead) != (size_t)bytesRead)
+            {
+                systemPrintln("OTA update failed during write");
+                readError = true;
+                break;
+            }
+
+            bytesWritten += bytesRead;
+            lastDataTime = millis();
+
+            firmwareUpdateProgressCallback((uint16_t)bytesRead);
         }
+        if (readError)
+            break;
 
-        size_t bytesToRead = (availableBytes > sizeof(buffer)) ? sizeof(buffer) : availableBytes;
-        int bytesRead = stream->readBytes(buffer, bytesToRead);
-        if (bytesRead <= 0)
-            continue;
-
-        if (Update.write(buffer, bytesRead) != (size_t)bytesRead)
+        if (bytesWritten != contentLength)
         {
-            systemPrintln("OTA update failed during write");
-            http.end();
-            return false;
+            systemPrintln("OTA update failed during writeStream");
+            break;
         }
 
-        bytesWritten += bytesRead;
-        lastDataTime = millis();
+        if (Update.end() == false)
+        {
+            systemPrintln("Error Occurred. Error #: " + String(Update.getError()));
+            break;
+        }
 
-        firmwareUpdateProgressCallback((uint16_t)bytesRead);
-    }
+        systemPrintln("OTA done!");
+        if (Update.isFinished() == false)
+        {
+            systemPrintln("Update not finished? Something went wrong!");
+            break;
+        }
 
-    if (bytesWritten != contentLength)
+        systemPrintln("Update successfully completed.");
+
+        http->end();
+        delete http;
+        return true;
+    } while (0);
+
+    // Done with the server connection
+    if (http)
     {
-        systemPrintln("OTA update failed during writeStream");
-        http.end();
-        return false;
+        http->end();
+        delete http;
     }
-
-    if (Update.end() == false)
-    {
-        systemPrintln("Error Occurred. Error #: " + String(Update.getError()));
-        http.end();
-        return false;
-    }
-
-    systemPrintln("OTA done!");
-    if (Update.isFinished() == false)
-    {
-        systemPrintln("Update not finished? Something went wrong!");
-        http.end();
-        return false;
-    }
-
-    systemPrintln("Update successfully completed.");
-
-    http.end();
-    return true;
+    return false;
 }
 
 // Parse JSON for the current product variant
@@ -998,44 +1002,32 @@ bool otaJsonFindSubsystem(JsonArray root, const char *modelType, const char *sub
 // Securely download the RTK-Everywhere-Variants.json file from GitHub and return it as a string
 bool otaGetSystemVariantsJson(String &payload)
 {
-    WiFiClientSecure client;
-    client.setCACert(GITHUB_RAW_PUBLIC_CERT);
+    HTTPClient * http;
+    String server;
+    const char * url;
 
-    // Preflight TLS handshake using the expected host name.
-    // With CA configured, connect() fails if certificate validation fails.
-    if (!client.connect(OTA_FIRMWARE_GITHUB_RAW, 443))
+    url = OTA_FIRMWARE_SYSTEM_VARIANTS_JSON;
+    if (openUrl(url,
+                GITHUB_RAW_PUBLIC_CERT,
+                server,
+                http,
+                nullptr,
+                nullptr,
+                nullptr,
+                settings.debugFirmwareUpdate) == false)
     {
-        systemPrintln("TLS socket connect failed");
+        http->end();
+        delete http;
         return false;
     }
 
-    if (settings.debugFirmwareUpdate)
-        systemPrintln("TLS certificate verified for raw.githubusercontent.com");
-
-    client.stop();
-
-    HTTPClient http;
-    if (!http.begin(client, OTA_FIRMWARE_SYSTEM_VARIANTS_JSON))
-
-    {
-        systemPrintln("HTTP begin failed");
-        return false;
-    }
-
-    const int httpCode = http.GET();
-    if (httpCode != HTTP_CODE_OK)
-    {
-        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
-        http.end();
-        return false;
-    }
-
-    payload = http.getString();
-    http.end();
+    payload = http->getString();
+    http->end();
+    delete http;
 
     if (payload.length() == 0)
     {
-        systemPrintln("Downloaded JSON is empty");
+        systemPrintln("Downloaded file is empty");
         return false;
     }
     return true;
