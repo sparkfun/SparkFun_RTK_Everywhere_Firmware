@@ -336,6 +336,15 @@ void otaUpdate()
 
     // Check if we need a scheduled check
     connected = networkConsumerIsConnected(NETCONSUMER_OTA_CLIENT);
+    if ((!connected) && (otaState >= OTA_STATE_GET_SYSTEMS_TO_UPDATE))
+    {
+        // Report failure to interfaces
+        webServerSendString((char *)"gettingNewFirmware,ERROR,");
+        commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"Connection Error");
+        otaUpdateStop();
+    }
+
+    // Check for auto firmware update
     if (settings.enableAutoFirmwareUpdate)
     {
         // Wait until it is time to check for a firmware update
@@ -417,12 +426,6 @@ void otaUpdate()
 
         // Create list of subsystems that need updating
         case OTA_STATE_GET_SYSTEMS_TO_UPDATE:
-            // Determine if the network has failed
-            if (!connected)
-            {
-                otaUpdateStop();
-                break;
-            }
             if (settings.debugFirmwareUpdate)
                 systemPrintln("Creating list of subsystems to update");
 
@@ -505,17 +508,6 @@ void otaUpdate()
                 otaSetState(OTA_STATE_UPDATE_FIRMWARE_STM32); // Move on
             }
 
-            // Determine if the network has failed
-            else if (!connected)
-            {
-                otaUpdateStop();
-
-                // Report failure to interfaces
-                webServerSendString((char *)"gettingNewFirmware,ERROR,");
-
-                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"Connection Error");
-            }
-
             // Get binary file over the network and stream/update the target
             else if (im19StreamFirmware(otaSubsystemFilePath('I')) == false)
             {
@@ -532,17 +524,6 @@ void otaUpdate()
             if (present.radio_lora == false || otaSubsystemFilePath('L') == nullptr)
             {
                 otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // Move on
-            }
-
-            // Determine if the network has failed
-            else if (!connected)
-            {
-                otaUpdateStop();
-
-                // Report failure to interfaces
-                webServerSendString((char *)"gettingNewFirmware,ERROR,");
-
-                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"Connection Error");
             }
 
             // Get binary file over the network and stream/update the target
@@ -590,17 +571,6 @@ void otaUpdate()
                 otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP); // Move on
             }
 
-            // Determine if the network has failed
-            else if (!connected)
-            {
-                otaUpdateStop();
-
-                // Report failure to interfaces
-                webServerSendString((char *)"gettingNewFirmware,ERROR,");
-
-                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"Connection Error");
-            }
-
             // Get binary file over the network and stream/update the target
             else if (x20pStreamFirmware(otaSubsystemFilePath('G')) == false)
             {
@@ -622,16 +592,6 @@ void otaUpdate()
                 ESP.restart();
             }
 
-            // Determine if the network has failed
-            else if (!connected)
-            {
-                otaUpdateStop();
-
-                // Report failure to interfaces
-                webServerSendString((char *)"gettingNewFirmware,ERROR,");
-
-                commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"Connection Error");
-            }
             else
             {
                 // Get binary file over the network and stream/update the target
