@@ -85,6 +85,29 @@ const char * otaGetRequestNameFromRequestType(uint8_t requestType)
 }
 
 //----------------------------------------
+// Get the firmware update request name from a subsystem
+//----------------------------------------
+const char * otaGetRequestNameFromSubsystem(uint8_t subsystem)
+{
+    return otaGetRequestNameFromRequestType(otaGetRequestTypeFromSubsystem(subsystem));
+}
+
+//----------------------------------------
+// Get the request type fromm a subsystem
+//----------------------------------------
+uint8_t otaGetRequestTypeFromSubsystem(uint8_t subsystem)
+{
+    if (subsystem >= OTA_SUBSYSTEM_MAX)
+    {
+        // This code should only be reached during call to otaVerifyTables
+        systemPrintf("ERROR: Unknown subsystem: %d\r\n", subsystem);
+        reportFatalError("Add missing subsystem to OTA_SUBSYSTEM");
+        return 0;
+    }
+    return otaSubsystemUpdateRequest[subsystem];
+}
+
+//----------------------------------------
 // Display the OTA portion of the firmware menu
 //----------------------------------------
 void otaMenuDisplay(bool developerOptions, char *currentVersion)
@@ -120,10 +143,10 @@ void otaMenuDisplay(bool developerOptions, char *currentVersion)
 
     if (developerOptions)
     {
-        systemPrintf("1) Force update ESP32: %s\r\n", otaForceUpdateEsp ? "True" : "False");
-        systemPrintf("2) Force update GNSS: %s\r\n", otaForceUpdateGnss ? "True" : "False");
-        systemPrintf("3) Force update LoRa: %s\r\n", otaForceUpdateLora ? "True" : "False");
-        systemPrintf("4) Force update IMU: %s\r\n", otaForceUpdateImu ? "True" : "False");
+        systemPrintf("1) ESP32: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_ESP32));
+        systemPrintf("2) GNSS: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_GNSS));
+        systemPrintf("3) LoRa: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_LORA));
+        systemPrintf("4) IMU: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_IMU));
     }
 }
 
@@ -163,14 +186,17 @@ bool otaMenuProcessInput(bool developerOptions, byte incoming)
     else if (incoming == 'u')
         otaRequestFirmwareUpdate ^= 1; // Tell network we need access, and otaUpdate() that we want to update
 
-    else if (incoming == 1 && developerOptions)
-        otaForceUpdateEsp ^= 1;
-    else if (incoming == 2 && developerOptions)
-        otaForceUpdateGnss ^= 1;
-    else if (incoming == 3 && developerOptions)
-        otaForceUpdateLora ^= 1;
-    else if (incoming == 4 && developerOptions)
-        otaForceUpdateImu ^= 1;
+    else if (((incoming >= 1) && (incoming <= 4)) // Check for legal subsystem
+        && developerOptions)
+    {
+        // Set the next value for this subsystem
+        uint8_t subsystem = incoming - 1;
+        otaSubsystemUpdateRequest[subsystem] += 1;
+
+        // Wrap the value as necessary
+        if (otaSubsystemUpdateRequest[subsystem] >= (OTA_REQUEST_MAX - 1))
+            otaSubsystemUpdateRequest[subsystem] = 0;
+    }
 
     // Input not associated with OTA menu items
     else

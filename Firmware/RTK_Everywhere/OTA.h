@@ -36,11 +36,6 @@ enum OTA_FIRMWARE_UPDATE_REQUEST
 // Globals
 //----------------------------------------
 
-bool otaForceUpdateEsp = false;
-bool otaForceUpdateImu = false;
-bool otaForceUpdateLora = false;
-bool otaForceUpdateGnss = false;
-
 uint8_t otaSubsystemUpdateRequest[OTA_SUBSYSTEM_MAX];
 
 //----------------------------------------
