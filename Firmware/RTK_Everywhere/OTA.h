@@ -26,8 +26,11 @@ enum OTA_SUBSYSTEM
 
 enum OTA_FIRMWARE_UPDATE_REQUEST
 {
-    OTA_REQUEST_CHECK_VERSION = 0,          // 0
-    OTA_REQUEST_ALWAYS_UPDATE,              // 1
+    OTA_REQUEST_PRODUCT_RELEASE = 0,    // 0, used by auto update
+    OTA_REQUEST_SKIP_UPDATE,            // 1
+    OTA_REQUEST_LATEST_VERSION,         // 2
+    OTA_REQUEST_USE_RC,                 // 3
+    OTA_REQUEST_ALWAYS_UPDATE,          // 4
     // Add new request types above this line
     OTA_REQUEST_MAX
 };

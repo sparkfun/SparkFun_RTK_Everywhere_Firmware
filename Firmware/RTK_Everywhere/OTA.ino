@@ -108,8 +108,14 @@ OTA_SUBSYSTEM_MASK otaGetProductSubsystemSupport()
 //----------------------------------------
 const char * otaGetRequestNameFromRequestType(uint8_t requestType)
 {
-    if (requestType == OTA_REQUEST_CHECK_VERSION)
-        return "Check version, select highest version";
+    if (requestType == OTA_REQUEST_PRODUCT_RELEASE)
+        return "Update to product release";
+    if (requestType == OTA_REQUEST_SKIP_UPDATE)
+        return "Skip update";
+    if (requestType == OTA_REQUEST_LATEST_VERSION)
+        return "Check version, select latest version";
+    if (requestType == OTA_REQUEST_USE_RC)
+        return "Use RC version";
     if (requestType == OTA_REQUEST_ALWAYS_UPDATE)
         return "Always update";
 
