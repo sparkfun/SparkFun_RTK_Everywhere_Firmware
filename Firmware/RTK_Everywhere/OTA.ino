@@ -51,6 +51,21 @@ static uint32_t otaLastUpdateCheck;
 static uint8_t otaState;
 
 //----------------------------------------
+// Cleanup after running the updates
+//----------------------------------------
+void otaCleanup(bool keepTargets)
+{
+    // Keep the targets for configuration (web, serial, ...)
+    if (keepTargets == false)
+    {
+        otaTargetCount = -1;
+        enableRCFirmware = false;
+    }
+
+    online.otaClient = false;
+}
+
+//----------------------------------------
 // Compare local and remote version components; returns -1, 0, or 1.
 // -1 if update is available, 0 if up to date, 1 if local version is newer than remote.
 //----------------------------------------
@@ -341,7 +356,7 @@ void otaUpdate()
         // Report failure to interfaces
         webServerSendString((char *)"gettingNewFirmware,ERROR,");
         commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"Connection Error");
-        otaUpdateStop();
+        otaUpdateStop(false);
     }
 
     // Check for auto firmware update
@@ -367,7 +382,7 @@ void otaUpdate()
             systemPrintf("ERROR: Unknown OTA state (%d)\r\n", otaState);
 
             // Stop the machine
-            otaUpdateStop();
+            otaUpdateStop(false);
             break;
 
         // Wait for a request from a user, the Web Config, CLI, or from the scheduler
@@ -385,7 +400,7 @@ void otaUpdate()
         case OTA_STATE_WAIT_FOR_NETWORK:
             // Determine if the OTA request has been canceled while waiting
             if (otaRequestFirmwareVersionCheck == false && otaRequestFirmwareUpdate == false)
-                otaUpdateStop();
+                otaUpdateStop(false);
 
             // Wait until the network is connected to the media
             else if (connected)
@@ -420,7 +435,7 @@ void otaUpdate()
                         commandSendErrorResponse((char *)"SPGET", (char *)"espNewFirmwareVersion",
                                                  (char *)"No Internet");
                 }
-                otaUpdateStop();
+                otaUpdateStop(false);
             }
             break;
 
@@ -467,7 +482,7 @@ void otaUpdate()
 
                         commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware", otaSystemsToUpdate);
 
-                        otaUpdateStop(); // Nothing to update.
+                        otaUpdateStop(true); // Nothing to update.
 
                         return;
                     }
@@ -497,7 +512,7 @@ void otaUpdate()
 
                 commandSendExecuteErrorResponse((char *)"SPGET", (char *)"newSubsystemFirmware", (char *)"No Server");
 
-                otaUpdateStop();
+                otaUpdateStop(false);
             }
             break;
 
@@ -608,7 +623,7 @@ void otaUpdate()
 
                     commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"OTA Error");
 
-                    otaUpdateStop();
+                    otaUpdateStop(false);
                 }
             }
             break;
@@ -630,26 +645,24 @@ void otaUpdate()
 //----------------------------------------
 // Stop the automatic OTA firmware update
 //----------------------------------------
-void otaUpdateStop()
+void otaUpdateStop(bool keepTargets)
 {
     if (settings.debugFirmwareUpdate)
         systemPrintln("otaUpdateStop called");
 
     if (otaState != OTA_STATE_OFF)
     {
-        // Stop network
+        // Let the network know we no longer are using it
         if (settings.debugFirmwareUpdate)
             systemPrintln("Firmware update releasing network request");
-
-        online.otaClient = false;
-        otaRequestFirmwareVersionCheck = false;
-        otaRequestFirmwareUpdate = false;
-
-        // Let the network know we no longer need it
-        networkConsumerOffline(NETCONSUMER_OTA_CLIENT);
         networkConsumerRemove(NETCONSUMER_OTA_CLIENT, NETWORK_ANY, __FILE__, __LINE__);
 
+        // Release the buffers and restore default values
+        otaCleanup(keepTargets);
+
         // Stop the firmware update
+        otaRequestFirmwareVersionCheck = false;
+        otaRequestFirmwareUpdate = false;
         otaSetState(OTA_STATE_OFF);
         otaLastUpdateCheck = millis();
     }
