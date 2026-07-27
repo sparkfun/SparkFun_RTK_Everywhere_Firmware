@@ -16,8 +16,10 @@ menuFirmware.ino
 void firmwareMenu()
 {
     bool debugVerbose;
+    bool developerOptions;
 
     debugVerbose = false;
+    developerOptions = false;
     while (1)
     {
         systemPrintln();
@@ -30,9 +32,9 @@ void firmwareMenu()
         // Display the OTA portion of the menu
         // Note: Use otaMenuDisplay to get a new ESP32 image when the parsing
         // fails in deviceFirmwareUpdate due to server website changes!
-        // Letters: a  c  e  i  r  s  u
-        otaMenuDisplay(currentVersion);
-        systemPrintf("d) Single device firmware update\r\n");
+        // Letters: a  c  e  i  r  s  u, 1, 2, 3, 4
+        otaMenuDisplay(developerOptions, currentVersion);
+        systemPrintf("d) %s developer options\r\n", developerOptions ? "Disable" : "Enable");
         systemPrintf("p) Program all firmware updates\r\n");
         systemPrintf("t) %s firmware debugging\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
         if (settings.debugFirmwareUpdate)
@@ -55,30 +57,44 @@ void firmwareMenu()
         // Note: Use otaMenuProcessInput to get a new ESP32 image when the
         // parsing fails in deviceFirmwareUpdate due to server website
         // changes!
-        else if (otaMenuProcessInput(incoming))
+        else if (otaMenuProcessInput(developerOptions, incoming))
         {
         }
 
-        // Perform the device firmware update
-        else if ((incoming == 'd') || (incoming == 'p'))
-        {
-            deviceFirmwareUpdateBegin(incoming == 'p', debugVerbose);
-            while (deviceFirmwareUpdate(millis()))
-            {
-                networkUpdate();
-            }
-        }
+        // Enable / disable developer options
+        else if (incoming == 'd')
+            developerOptions ^= 1;
 
         // Toggle firmware debugging
-        else if (incoming == 't')
+        else if (developerOptions && (incoming == 'D'))
         {
             settings.debugFirmwareUpdate ^= 1;
             if (settings.debugFirmwareUpdate == false)
                 debugVerbose = false;
         }
 
+        // Perform the device firmware update
+        else if (developerOptions && (incoming == 'd'))
+        {
+            deviceFirmwareUpdateBegin(false, debugVerbose);
+            while (deviceFirmwareUpdate(millis()))
+            {
+                networkUpdate();
+            }
+        }
+
+        // Restore product to production firmware
+        else if (incoming == 'p')
+        {
+            deviceFirmwareUpdateBegin(true, debugVerbose);
+            while (deviceFirmwareUpdate(millis()))
+            {
+                networkUpdate();
+            }
+        }
+
         // Toggle verbose firmware debugging
-        else if (settings.debugFirmwareUpdate && (incoming == 'v'))
+        else if (developerOptions && settings.debugFirmwareUpdate && (incoming == 'V'))
             debugVerbose ^= 1;
 
         else if (incoming == 'x')

@@ -87,24 +87,21 @@ const char * otaGetRequestNameFromRequestType(uint8_t requestType)
 //----------------------------------------
 // Display the OTA portion of the firmware menu
 //----------------------------------------
-void otaMenuDisplay(char *currentVersion)
+void otaMenuDisplay(bool developerOptions, char *currentVersion)
 {
     // Automatic firmware updates
     systemPrintf("a) Automatic firmware updates: %s\r\n", settings.enableAutoFirmwareUpdate ? "Enabled" : "Disabled");
 
-    systemPrint("c) Check for firmware updates: ");
+    systemPrintf("c) Check for firmware updates: %s\r\n",
+                 otaRequestFirmwareVersionCheck ? "Requested" : "Not requested");
 
-    if (otaRequestFirmwareVersionCheck == true)
-        systemPrintln("Requested");
-    else
-        systemPrintln("Not requested");
-
-    systemPrintf("e) Allow beta firmware: %s\r\n", enableRCFirmware ? "Enabled" : "Disabled");
+    if (developerOptions)
+        systemPrintf("e) Allow beta firmware: %s\r\n", enableRCFirmware ? "Enabled" : "Disabled");
 
     if (settings.enableAutoFirmwareUpdate)
         systemPrintf("i) Automatic firmware check minutes: %d\r\n", settings.autoFirmwareCheckMinutes);
 
-    if (settings.debugWifiState == true)
+    if (developerOptions)
     {
         systemPrintf("r) Change RC Firmware JSON URL: %s\r\n", otaRcFirmwareJsonUrl);
         systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
@@ -116,14 +113,12 @@ void otaMenuDisplay(char *currentVersion)
         systemPrintf("u) Run system update: %s\r\n", otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
     else if (otaTargetCount == 0)
         systemPrintln("u) Run system update: No updates needed");
-    else if (otaTargetCount == 1)
-        systemPrintf("u) Run %d system update: %s\r\n", otaTargetCount,
-                     otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
     else
-        systemPrintf("u) Run %d system updates: %s\r\n", otaTargetCount,
+        systemPrintf("u) Run %d system update%s: %s\r\n", otaTargetCount,
+                     (otaTargetCount == 1) ? "" : "s",
                      otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
 
-    if (settings.debugFirmwareUpdate == true)
+    if (developerOptions)
     {
         systemPrintf("1) Force update ESP32: %s\r\n", otaForceUpdateEsp ? "True" : "False");
         systemPrintf("2) Force update GNSS: %s\r\n", otaForceUpdateGnss ? "True" : "False");
@@ -135,7 +130,7 @@ void otaMenuDisplay(char *currentVersion)
 //----------------------------------------
 // Process the OTA specific firmware menu input
 //----------------------------------------
-bool otaMenuProcessInput(byte incoming)
+bool otaMenuProcessInput(bool developerOptions, byte incoming)
 {
     if (incoming == 'a')
         settings.enableAutoFirmwareUpdate ^= 1;
@@ -143,7 +138,7 @@ bool otaMenuProcessInput(byte incoming)
     else if (incoming == 'c')
         otaRequestFirmwareVersionCheck ^= 1;
 
-    else if (incoming == 'e')
+    else if ((incoming == 'e') && developerOptions)
     {
         enableRCFirmware ^= 1;
         strncpy(otaReportedVersion, "", sizeof(otaReportedVersion) - 1); // Reset to force c) menu
@@ -152,13 +147,13 @@ bool otaMenuProcessInput(byte incoming)
     else if ((incoming == 'i') && settings.enableAutoFirmwareUpdate)
         getNewSetting("Enter minutes before next firmware check", 1, 999999, &settings.autoFirmwareCheckMinutes);
 
-    else if ((incoming == 'r') && (settings.debugWifiState == true))
+    else if ((incoming == 'r') && developerOptions)
     {
         systemPrint("Enter RC Firmware JSON URL (empty to use default): ");
         memset(otaRcFirmwareJsonUrl, 0, sizeof(otaRcFirmwareJsonUrl));
         getUserInputString(otaRcFirmwareJsonUrl, sizeof(otaRcFirmwareJsonUrl) - 1);
     }
-    else if ((incoming == 's') && (settings.debugWifiState == true))
+    else if ((incoming == 's') && developerOptions)
     {
         systemPrint("Enter Firmware JSON URL (empty to use default): ");
         memset(otaFirmwareJsonUrl, 0, sizeof(otaFirmwareJsonUrl));
@@ -168,13 +163,13 @@ bool otaMenuProcessInput(byte incoming)
     else if (incoming == 'u')
         otaRequestFirmwareUpdate ^= 1; // Tell network we need access, and otaUpdate() that we want to update
 
-    else if (incoming == 1 && settings.debugFirmwareUpdate)
+    else if (incoming == 1 && developerOptions)
         otaForceUpdateEsp ^= 1;
-    else if (incoming == 2 && settings.debugFirmwareUpdate)
+    else if (incoming == 2 && developerOptions)
         otaForceUpdateGnss ^= 1;
-    else if (incoming == 3 && settings.debugFirmwareUpdate)
+    else if (incoming == 3 && developerOptions)
         otaForceUpdateLora ^= 1;
-    else if (incoming == 4 && settings.debugFirmwareUpdate)
+    else if (incoming == 4 && developerOptions)
         otaForceUpdateImu ^= 1;
 
     // Input not associated with OTA menu items
