@@ -170,7 +170,9 @@ OTA_SUBSYSTEM_MASK otaGetSubsystemMaskFromSubsystem(uint8_t subsystem)
 //----------------------------------------
 // Display the OTA portion of the firmware menu
 //----------------------------------------
-void otaMenuDisplay(bool developerOptions, char *currentVersion)
+void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
+                    bool developerOptions,
+                    char *currentVersion)
 {
     // Automatic firmware updates
     systemPrintf("a) Automatic firmware updates: %s\r\n", settings.enableAutoFirmwareUpdate ? "Enabled" : "Disabled");
@@ -201,19 +203,22 @@ void otaMenuDisplay(bool developerOptions, char *currentVersion)
                      (otaTargetCount == 1) ? "" : "s",
                      otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
 
-    if (developerOptions)
-    {
+    if (otaEsp32AreFirmwareWritesSupported())
         systemPrintf("1) ESP32: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_ESP32));
+    if (platformDevices & OTA_DEVICE_GNSS)
         systemPrintf("2) GNSS: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_GNSS));
+    if (platformDevices & OTA_DEVICE_LORA)
         systemPrintf("3) LoRa: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_LORA));
+    if (platformDevices & OTA_DEVICE_IMU)
         systemPrintf("4) IMU: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_IMU));
-    }
 }
 
 //----------------------------------------
 // Process the OTA specific firmware menu input
 //----------------------------------------
-bool otaMenuProcessInput(bool developerOptions, byte incoming)
+bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
+                         bool developerOptions,
+                         byte incoming)
 {
     if (incoming == 'a')
         settings.enableAutoFirmwareUpdate ^= 1;
@@ -247,7 +252,8 @@ bool otaMenuProcessInput(bool developerOptions, byte incoming)
         otaRequestFirmwareUpdate ^= 1; // Tell network we need access, and otaUpdate() that we want to update
 
     else if (((incoming >= 1) && (incoming <= 4)) // Check for legal subsystem
-        && developerOptions)
+        && ((incoming != 1) || otaEsp32AreFirmwareWritesSupported()) // ESP32 requires second APP partition
+        && ((incoming == 1) || (platformDevices & (1 << (incoming - 1))))) // Check for subsystem on product
     {
         // Set the next value for this subsystem
         uint8_t subsystem = incoming - 1;

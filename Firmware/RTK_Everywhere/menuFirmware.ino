@@ -17,9 +17,11 @@ void firmwareMenu()
 {
     bool debugVerbose;
     bool developerOptions;
+    OTA_SUBSYSTEM_MASK subsystemMask;
 
     debugVerbose = false;
     developerOptions = false;
+    subsystemMask = otaGetProductSubsystemSupport();
     while (1)
     {
         systemPrintln();
@@ -33,7 +35,7 @@ void firmwareMenu()
         // Note: Use otaMenuDisplay to get a new ESP32 image when the parsing
         // fails in deviceFirmwareUpdate due to server website changes!
         // Letters: a  c  e  i  r  s  u, 1, 2, 3, 4
-        otaMenuDisplay(developerOptions, currentVersion);
+        otaMenuDisplay(subsystemMask, developerOptions, currentVersion);
         systemPrintf("d) %s developer options\r\n", developerOptions ? "Disable" : "Enable");
         systemPrintf("p) Program all firmware updates\r\n");
         systemPrintf("t) %s firmware debugging\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
@@ -57,7 +59,7 @@ void firmwareMenu()
         // Note: Use otaMenuProcessInput to get a new ESP32 image when the
         // parsing fails in deviceFirmwareUpdate due to server website
         // changes!
-        else if (otaMenuProcessInput(developerOptions, incoming))
+        else if (otaMenuProcessInput(subsystemMask, developerOptions, incoming))
         {
         }
 
@@ -619,6 +621,25 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 
         previousPercent = percent;
     }
+}
+
+//----------------------------------------
+// Determine if the ESP32 supports OTA
+//----------------------------------------
+bool otaEsp32AreFirmwareWritesSupported()
+{
+    int partitionCount;
+
+    // We can do OTA if there are two APP partitions
+    partitionCount = countAppPartitions();
+    if (partitionCount >= 2)
+        return true;
+
+    // Warn the user
+    systemPrintf("WARNING: ESP32 updates require two APP paritions, found %d!\r\n",
+                 partitionCount);
+    printPartitionTable();
+    return false;
 }
 
 // Return the file path if a specified subsystem code is in the list, null string if not
