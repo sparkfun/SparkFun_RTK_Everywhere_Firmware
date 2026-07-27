@@ -32,11 +32,32 @@ enum OTA_FIRMWARE_UPDATE_REQUEST
     OTA_REQUEST_MAX
 };
 
+#define OTA_DEVICE_ESP32        (1 << OTA_SUBSYSTEM_ESP32)
+#define OTA_DEVICE_GNSS         (1 << OTA_SUBSYSTEM_GNSS)
+#define OTA_DEVICE_LORA         (1 << OTA_SUBSYSTEM_LORA)
+#define OTA_DEVICE_IMU          (1 << OTA_SUBSYSTEM_IMU)
+
 //----------------------------------------
 // Globals
 //----------------------------------------
 
 uint8_t otaSubsystemUpdateRequest[OTA_SUBSYSTEM_MAX];
+
+//----------------------------------------
+// Subsystem support
+//----------------------------------------
+
+typedef uint8_t OTA_SUBSYSTEM_MASK;
+
+typedef struct _OTA_SUBSYSTEM_INFO
+{
+    ProductVariant _productVariant;
+    uint8_t _subsystem;
+    const bool * _present;
+} OTA_SUBSYSTEM_INFO;
+
+extern const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[];
+extern const int otaSubsystemInfoTableEntries;
 
 //----------------------------------------
 // OTA targets

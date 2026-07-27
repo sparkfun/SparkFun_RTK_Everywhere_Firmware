@@ -69,6 +69,26 @@ int otaCompareVersions(int localMajor, int localMinor, int localPatch, int local
 }
 
 //----------------------------------------
+// Determine the product subsystem support
+//----------------------------------------
+OTA_SUBSYSTEM_MASK otaGetProductSubsystemSupport()
+{
+    const OTA_SUBSYSTEM_INFO * subsystemInfo;
+    OTA_SUBSYSTEM_MASK subsystemMask;
+
+    // Walk the subsystems
+    subsystemMask = 0;
+    for (int subsystem = 0; subsystem < OTA_SUBSYSTEM_MAX; subsystem++)
+    {
+        // Determine if this platform supports this device
+        subsystemInfo = otaGetSubsystemInfo(subsystem);
+        if (subsystemInfo)
+            subsystemMask |= otaGetSubsystemMaskFromSubsystem(subsystem);
+    }
+    return subsystemMask;
+}
+
+//----------------------------------------
 // Get the firmware update state name from a firmware state
 //----------------------------------------
 const char * otaGetRequestNameFromRequestType(uint8_t requestType)
@@ -105,6 +125,46 @@ uint8_t otaGetRequestTypeFromSubsystem(uint8_t subsystem)
         return 0;
     }
     return otaSubsystemUpdateRequest[subsystem];
+}
+
+//----------------------------------------
+// Locate the subsystem info table entry
+//----------------------------------------
+const OTA_SUBSYSTEM_INFO * otaGetSubsystemInfo(uint8_t subsystem)
+{
+    const OTA_SUBSYSTEM_INFO * subsystemInfo;
+
+    // Walk the device table
+    for (int index = 0; index < otaSubsystemInfoTableEntries; index++)
+    {
+        // Determine if this product supports this device
+        // RTK_ALL, present == nullptr: All products use the ESP32
+        // RTK_ALL, present != nullptr: Detect subsystem across products, all use same chip
+        //                              IMU, LoRa
+        // product, present == nullptr: All postcards use the LG290P GNSS
+        // product, present != nullptr: Detect subsystem in product
+        //                              GNSS in Facet FP needs to be detected
+        subsystemInfo = &otaSubsystemInfoTable[index];
+        if ((subsystemInfo->_subsystem == subsystem)
+            && (((subsystemInfo->_productVariant == RTK_ALL)
+                && ((subsystemInfo->_present == nullptr)
+                    || *subsystemInfo->_present))
+                || ((subsystemInfo->_productVariant == productVariant)
+                    && ((subsystemInfo->_present == nullptr)
+                        || *subsystemInfo->_present))))
+        {
+            return subsystemInfo;
+        }
+    }
+    return nullptr;
+}
+
+//----------------------------------------
+// Convert the subsystem ID into a subsystem mask
+//----------------------------------------
+OTA_SUBSYSTEM_MASK otaGetSubsystemMaskFromSubsystem(uint8_t subsystem)
+{
+    return (1 << subsystem);
 }
 
 //----------------------------------------
@@ -645,5 +705,44 @@ void otaVerifyTables()
     for (uint8_t index= 0; index < OTA_REQUEST_MAX; index++)
         otaGetRequestNameFromRequestType(index);
 }
+
+//----------------------------------------
+// Globals
+//----------------------------------------
+
+// Determine if this product supports this device
+// RTK_ALL, present == nullptr: All products use the ESP32
+// RTK_ALL, present != nullptr: Detect subsystem across products, all use same chip
+//                              IMU, LoRa
+// product, present == nullptr: All postcards use the LG290P GNSS
+// product, present != nullptr: Detect subsystem in product
+//                              GNSS in Facet FP needs to be detected
+//
+// OTA product subsystem support table
+extern const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[] =
+{
+    // Variant      subsystem               present
+    {RTK_ALL,       OTA_SUBSYSTEM_ESP32,    nullptr},
+#ifdef  COMPILE_ZED
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_lg290p},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_mosaicX5},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_um980},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedf9p},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedx20p},
+#endif  // COMPILE_ZED
+#ifdef  COMPILE_LORA
+    {RTK_ALL,       OTA_SUBSYSTEM_LORA,     &present.radio_lora},
+#endif  // COMPILE_LORA
+#ifdef  COMPILE_IM19_IMU
+    {RTK_ALL,       OTA_SUBSYSTEM_IMU,      &present.imu_im19},
+#endif  // COMPILE_IM19_IMU
+};
+/*
+    im19StreamFirmware
+    stm32StreamFirmware
+*/
+
+const int otaSubsystemInfoTableEntries = sizeof(otaSubsystemInfoTable)
+                                       / sizeof(otaSubsystemInfoTable[0]);
 
 #endif // COMPILE_OTA_AUTO
