@@ -40,6 +40,9 @@ static const char *const otaStateNames[] = {"OTA_STATE_OFF",
                                             "OTA_STATE_UPDATE_FIRMWARE_ESP32"};
 static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[0]);
 
+static const char * const otaSubsystem[] = {"ESP32", "GNSS", "LoRa", "IMU"};
+static const int otaSubsystemEntries = sizeof(otaSubsystem) / sizeof(otaSubsystem[0]);
+
 //----------------------------------------
 // Locals
 //----------------------------------------
@@ -63,6 +66,22 @@ int otaCompareVersions(int localMajor, int localMinor, int localPatch, int local
     if (localRevision != remoteRevision)
         return (localRevision < remoteRevision) ? -1 : 1;
     return 0;
+}
+
+//----------------------------------------
+// Get the firmware update state name from a firmware state
+//----------------------------------------
+const char * otaGetRequestNameFromRequestType(uint8_t requestType)
+{
+    if (requestType == OTA_REQUEST_CHECK_VERSION)
+        return "Check version, select highest version";
+    if (requestType == OTA_REQUEST_ALWAYS_UPDATE)
+        return "Always update";
+
+    // This code should only be reached during call to otaVerifyTables
+    systemPrintf("ERROR: Unknown request type: %d\r\n", requestType);
+    reportFatalError("Add missing request type to OTA_FIRMWARE_UPDATE_REQUEST");
+    return "Unknown";
 }
 
 //----------------------------------------
@@ -597,6 +616,13 @@ void otaVerifyTables()
     // Verify the table lengths
     if (otaStateEntries != OTA_STATE_MAX)
         reportFatalError("Fix otaStateNames table to match OtaState");
+
+    if (otaSubsystemEntries != OTA_SUBSYSTEM_MAX)
+        reportFatalError("Fix otaSubsystem table to match OTA_SUBSYSTEM");
+
+    // Verify the request type name "table"
+    for (uint8_t index= 0; index < OTA_REQUEST_MAX; index++)
+        otaGetRequestNameFromRequestType(index);
 }
 
 #endif // COMPILE_OTA_AUTO
