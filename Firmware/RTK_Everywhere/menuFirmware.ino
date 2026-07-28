@@ -15,11 +15,10 @@ menuFirmware.ino
 //----------------------------------------
 void firmwareMenu()
 {
-    bool debugVerbose;
     bool developerOptions;
     OTA_SUBSYSTEM_MASK subsystemMask;
 
-    debugVerbose = false;
+    otaDebugVerbose = false;
     developerOptions = false;
     subsystemMask = otaGetProductSubsystemSupport();
     while (1)
@@ -40,7 +39,7 @@ void firmwareMenu()
         systemPrintf("p) Program all firmware updates\r\n");
         systemPrintf("t) %s firmware debugging\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
         if (settings.debugFirmwareUpdate)
-            systemPrintf("v) %s verbose firmware debugging\r\n", debugVerbose ? "Disable" : "Enable");
+            systemPrintf("v) %s verbose firmware debugging\r\n", otaDebugVerbose ? "Disable" : "Enable");
 
         for (int x = 0; x < binCount; x++)
             systemPrintf("%d) Load SD file: %s\r\n", x + 1, binFileNames[x]);
@@ -72,13 +71,13 @@ void firmwareMenu()
         {
             settings.debugFirmwareUpdate ^= 1;
             if (settings.debugFirmwareUpdate == false)
-                debugVerbose = false;
+                otaDebugVerbose = false;
         }
 
         // Perform the device firmware update
         else if (developerOptions && (incoming == 'd'))
         {
-            deviceFirmwareUpdateBegin(false, debugVerbose);
+            deviceFirmwareUpdateBegin(false, otaDebugVerbose);
             while (deviceFirmwareUpdate(millis()))
             {
                 networkUpdate();
@@ -88,7 +87,7 @@ void firmwareMenu()
         // Restore product to production firmware
         else if (incoming == 'p')
         {
-            deviceFirmwareUpdateBegin(true, debugVerbose);
+            deviceFirmwareUpdateBegin(true, otaDebugVerbose);
             while (deviceFirmwareUpdate(millis()))
             {
                 networkUpdate();
@@ -97,7 +96,7 @@ void firmwareMenu()
 
         // Toggle verbose firmware debugging
         else if (developerOptions && settings.debugFirmwareUpdate && (incoming == 'V'))
-            debugVerbose ^= 1;
+            otaDebugVerbose ^= 1;
 
         else if (incoming == 'x')
             break;

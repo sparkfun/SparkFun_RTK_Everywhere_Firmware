@@ -45,6 +45,7 @@ enum OTA_FIRMWARE_UPDATE_REQUEST
 //----------------------------------------
 
 uint8_t otaSubsystemUpdateRequest[OTA_SUBSYSTEM_MAX];
+bool otaDebugVerbose;
 
 //----------------------------------------
 // Subsystem support
