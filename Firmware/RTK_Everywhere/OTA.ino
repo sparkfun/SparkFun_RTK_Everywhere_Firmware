@@ -70,17 +70,63 @@ void otaCleanup(bool keepTargets)
 // Compare local and remote version components; returns -1, 0, or 1.
 // -1 if update is available, 0 if up to date, 1 if local version is newer than remote.
 //----------------------------------------
-int otaCompareVersions(int localMajor, int localMinor, int localPatch, int localRevision,
-                       int remoteMajor, int remoteMinor, int remotePatch, int remoteRevision)
+int otaCompareVersions(int localMajor, int localMinor, int localPatch, int localRevision, int localReleaseCandidate,
+                       int remoteMajor, int remoteMinor, int remotePatch, int remoteRevision, int remoteReleaseCandidate)
 {
+    if (localReleaseCandidate)
+    {
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("%d.%d.%d.%d (debug build) < %d.%d.%d.%d%s\r\n",
+                         localMajor, localMinor, localPatch, localRevision,
+                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
+                         remoteReleaseCandidate ? " (debug build)" : "");
+        return -1;
+    }
     if (localMajor != remoteMajor)
+    {
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
+                         localMajor, localMinor, localPatch, localRevision,
+                         (localMajor < remoteMajor) ? '<' : '>',
+                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
+                         remoteReleaseCandidate ? " (debug build)" : "");
         return (localMajor < remoteMajor) ? -1 : 1;
+    }
     if (localMinor != remoteMinor)
+    {
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
+                         localMajor, localMinor, localPatch, localRevision,
+                         (localMinor < remoteMinor) ? '<' : '>',
+                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
+                         remoteReleaseCandidate ? " (debug build)" : "");
         return (localMinor < remoteMinor) ? -1 : 1;
+    }
     if (localPatch != remotePatch)
+    {
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
+                         localMajor, localMinor, localPatch, localRevision,
+                         (localPatch < remotePatch) ? '<' : '>',
+                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
+                         remoteReleaseCandidate ? " (debug build)" : "");
         return (localPatch < remotePatch) ? -1 : 1;
+    }
     if (localRevision != remoteRevision)
+    {
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
+                         localMajor, localMinor, localPatch, localRevision,
+                         (localRevision < remoteRevision) ? '<' : '>',
+                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
+                         remoteReleaseCandidate ? " (debug build)" : "");
         return (localRevision < remoteRevision) ? -1 : 1;
+    }
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintf("%d.%d.%d.%d == %d.%d.%d.%d%s\r\n",
+                     localMajor, localMinor, localPatch, localRevision,
+                     remoteMajor, remoteMinor, remotePatch, remoteRevision,
+                     remoteReleaseCandidate ? " (debug build)" : "");
     return 0;
 }
 

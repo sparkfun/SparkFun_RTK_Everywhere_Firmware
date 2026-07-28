@@ -167,6 +167,19 @@ void espFirmwareVersionFormat(uint8_t major, uint8_t minor, char *buffer, int bu
 //----------------------------------------
 // Get the current firmware version
 //----------------------------------------
+bool otaEsp32GetVersion(int &major, int &minor, int &patch, int &revision, int &releaseCandidate)
+{
+    major = FIRMWARE_VERSION_MAJOR;
+    minor = FIRMWARE_VERSION_MINOR;
+    patch = 0;
+    revision = 0;
+    releaseCandidate = (ENABLE_DEVELOPER || (major >= 99));
+    return true;
+}
+
+//----------------------------------------
+// Get the current firmware version
+//----------------------------------------
 void espFirmwareVersionGet(char *buffer, int bufferLength, bool includeDate)
 {
     espFirmwareVersionFormat(FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR, buffer, bufferLength, includeDate);
@@ -813,25 +826,28 @@ bool otaGetSystemsToUpdate(char *modelType)
         int remoteMinor = found["version_minor"] | 0;
         int remotePatch = found["version_patch"] | 0;
         int remoteRevision = found["version_revision"] | 0;
+        int remoteReleaseCandidate = found["release_candidate"] | 0;
 
         char localVersionText[50];
-        uint16_t localMajor = 0;
-        uint8_t localMinor = 0;
-        uint8_t localPatch = 0;
-        uint8_t localRevision = 0;
+        int localMajor = 0;
+        int localMinor = 0;
+        int localPatch = 0;
+        int localRevision = 0;
+        int localReleaseCandidate = 0;
 
         if (settings.debugFirmwareUpdate)
             systemPrintln("=================================================");
 
         if (strcasecmp(subsystem, "ESP32") == 0)
         {
-            localMajor = FIRMWARE_VERSION_MAJOR;
-            localMinor = FIRMWARE_VERSION_MINOR;
-            snprintf(localVersionText, sizeof(localVersionText), "v%d.%d", localMajor, localMinor);
+            otaEsp32GetVersion(localMajor, localMinor, localPatch, localRevision, localReleaseCandidate);
+            snprintf(localVersionText, sizeof(localVersionText), "%c%d.%d",
+                     localReleaseCandidate ? 'd' : 'v', localMajor, localMinor);
 
             int compareResult =
-                otaCompareVersionsPrint(subsystem, localVersionText, remoteVersionText, localMajor, localMinor, 0, 0,
-                                        remoteMajor, remoteMinor, remotePatch, remoteRevision, remoteFilePath);
+                otaCompareVersionsPrint(subsystem, localVersionText, remoteVersionText, localMajor, localMinor, localPatch, localRevision,
+                                        localReleaseCandidate, remoteMajor, remoteMinor, remotePatch, remoteRevision, remoteReleaseCandidate,
+                                        remoteFilePath);
 
             // If the remote version is newer, add it to the list of subsystems to update
             if (compareResult == -1)
@@ -850,12 +866,17 @@ bool otaGetSystemsToUpdate(char *modelType)
                 continue;
             }
 
-            gnss->getVersion(localMajor, localMinor, localPatch, localRevision);
+            gnssGetVersion(localMajor, localMinor, localPatch, localRevision, localReleaseCandidate);
 
-            snprintf(localVersionText, sizeof(localVersionText), "v%d.%d.%d.%d", localMajor, localMinor, localPatch, localRevision);
+            snprintf(localVersionText, sizeof(localVersionText), "%c%d.%d.%d.%d%s",
+                     localReleaseCandidate ? 'd' : 'v',
+                     localMajor, localMinor, localPatch, localRevision,
+                     localReleaseCandidate ? " (debug build)" : "");
 
-            if (otaCompareVersionsPrint(subsystem, localVersionText, remoteVersionText, localMajor, localMinor, 0, 0,
-                                        remoteMajor, remoteMinor, remotePatch, remoteRevision, remoteFilePath) == -1)
+            if (otaCompareVersionsPrint(subsystem, localVersionText, remoteVersionText,
+                                        localMajor, localMinor, localPatch, localRevision, localReleaseCandidate,
+                                        remoteMajor, remoteMinor, remotePatch, remoteRevision, remoteReleaseCandidate,
+                                        remoteFilePath) == -1)
             {
                 addTargetToUpdateList('G', remoteFilePath);
             }
@@ -875,13 +896,12 @@ bool otaGetSystemsToUpdate(char *modelType)
 
             // The LoRa version is under our control (our code) so we can assume
             // a x.y.z format.
-            localMajor = loraFirmwareVersionInt / 100;
-            localMinor = (loraFirmwareVersionInt / 10) % 10;
-            localPatch = loraFirmwareVersionInt % 10;
-            snprintf(localVersionText, sizeof(localVersionText), "v%d.%d.%d", localMajor, localMinor, localPatch);
+            loraGetVersion(localMajor, localMinor, localPatch, localRevision, localReleaseCandidate);
+            snprintf(localVersionText, sizeof(localVersionText), "%c%d.%d.%d",
+                     localReleaseCandidate ? 'd' : 'v', localMajor, localMinor, localPatch);
             if (otaCompareVersionsPrint(subsystem, localVersionText, remoteVersionText, localMajor, localMinor,
-                                        localPatch, 0, remoteMajor, remoteMinor, remotePatch, remoteRevision,
-                                        remoteFilePath) == -1)
+                                        localPatch, localRevision, localReleaseCandidate, remoteMajor, remoteMinor, remotePatch, remoteRevision,
+                                        remoteReleaseCandidate, remoteFilePath) == -1)
             {
                 addTargetToUpdateList('L', remoteFilePath);
             }
@@ -900,11 +920,12 @@ bool otaGetSystemsToUpdate(char *modelType)
             }
 
             //IM19 version may be x.y or x.y.z
-            tiltGetVersion(localMajor, localMinor, localPatch);
+            tiltGetVersion(localMajor, localMinor, localPatch, localRevision, localReleaseCandidate);
 
             snprintf(localVersionText, sizeof(localVersionText), "v%d.%d.%d", localMajor, localMinor, localPatch);
-            if (otaCompareVersionsPrint(subsystem, localVersionText, remoteVersionText, localMajor, localMinor, localPatch, 0,
-                                        remoteMajor, remoteMinor, remotePatch, remoteRevision, remoteFilePath) == -1)
+            if (otaCompareVersionsPrint(subsystem, localVersionText, remoteVersionText, localMajor, localMinor, localPatch, localRevision,
+                                        localReleaseCandidate, remoteMajor, remoteMinor, remotePatch, remoteRevision, remoteReleaseCandidate,
+                                        remoteFilePath) == -1)
             {
                 addTargetToUpdateList('I', remoteFilePath);
             }
@@ -1040,26 +1061,33 @@ bool otaBuildSubsystemList(JsonArray root, const char *modelType, const char *su
 // Returns -1 if update available, 0 if up to date, 1 if local version is newer than remote.
 // Prints additional context if debug is enabled
 int otaCompareVersionsPrint(const char *subsystem, const char *currentVersionText, const char *remoteVersionText,
-                            int localMajor, int localMinor, int localPatch, int localRevision, int remoteMajor,
-                            int remoteMinor, int remotePatch, int remoteRevision, const char *remoteFilePath)
+                            int localMajor, int localMinor, int localPatch, int localRevision, int localReleaseCandidate,
+                            int remoteMajor, int remoteMinor, int remotePatch, int remoteRevision, int remoteReleaseCandidate,
+                            const char *remoteFilePath)
 {
     if (settings.debugFirmwareUpdate)
     {
         systemPrintf("Subsystem: %s\r\n", subsystem);
         if (localRevision != 0)
-            systemPrintf("Current version: %s (%d.%d.%d.%d)\r\n", currentVersionText, localMajor, localMinor,
-                         localPatch, localRevision);
+            systemPrintf("Current version: %s (%d.%d.%d.%d%s)\r\n", currentVersionText,
+                         localMajor, localMinor, localPatch, localRevision,
+                         localReleaseCandidate ? "(debug build)" : "");
         else
-            systemPrintf("Current version: %s (%d.%d.%d)\r\n", currentVersionText, localMajor, localMinor, localPatch);
+            systemPrintf("Current version: %s (%d.%d.%d%s)\r\n", currentVersionText,
+                         localMajor, localMinor, localPatch,
+                         localReleaseCandidate ? "(debug build)" : "");
         if (remoteRevision != 0)
-            systemPrintf("Found version: %s (%d.%d.%d.%d)\r\n", remoteVersionText, remoteMajor, remoteMinor,
-                         remotePatch, remoteRevision);
+            systemPrintf("Found version: %s (%d.%d.%d.%d%s)\r\n", remoteVersionText,
+                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
+                         remoteReleaseCandidate ? "(debug build)" : "");
         else
-            systemPrintf("Found version: %s (%d.%d.%d)\r\n", remoteVersionText, remoteMajor, remoteMinor, remotePatch);
+            systemPrintf("Found version: %s (%d.%d.%d%s)\r\n", remoteVersionText,
+                         remoteMajor, remoteMinor, remotePatch,
+                         remoteReleaseCandidate ? "(debug build)" : "");
     }
 
-    int cmp = otaCompareVersions(localMajor, localMinor, localPatch, localRevision, remoteMajor, remoteMinor,
-                                 remotePatch, remoteRevision);
+    int cmp = otaCompareVersions(localMajor, localMinor, localPatch, localRevision, localReleaseCandidate,
+                                 remoteMajor, remoteMinor, remotePatch, remoteRevision, remoteReleaseCandidate);
     if (settings.debugFirmwareUpdate)
     {
         if (cmp < 0)

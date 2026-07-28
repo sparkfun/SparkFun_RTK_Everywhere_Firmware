@@ -1966,6 +1966,20 @@ bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
     http.end();
     return success;
 }
+
+//----------------------------------------
+// Gets the five version number parts
+//----------------------------------------
+bool loraGetVersion(int &major, int &minor, int &patch, int &revision, int &releaseCandidate)
+{
+    major = loraFirmwareVersionInt / 100;
+    minor = (loraFirmwareVersionInt % 100) / 10;
+    patch = loraFirmwareVersionInt % 10;
+    revision = 0;
+    releaseCandidate = 0;
+    return true;
+}
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of LoRa/STM32 firmware update functions.
 
