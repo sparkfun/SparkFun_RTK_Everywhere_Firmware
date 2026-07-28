@@ -62,9 +62,23 @@ static uint8_t otaState;
 //----------------------------------------
 void otaCleanup(bool keepTargets)
 {
+    OTA_TARGET * target;
+
     // Keep the targets for configuration (web, serial, ...)
     if (keepTargets == false)
     {
+        // Release the targets
+        for (int subsysstemIndex = 0; subsysstemIndex < OTA_SUBSYSTEM_MAX; subsysstemIndex++)
+        {
+            target = &otaTarget[subsysstemIndex];
+            target->_requestType = OTA_REQUEST_PRODUCT_RELEASE;
+            target->_valid = false;
+            if (target->_url)
+            {
+                rtkFree(target->_url, "Target URL");
+                target->_url = nullptr;
+            }
+        }
         otaTargetCount = -1;
         enableRCFirmware = false;
     }
@@ -248,6 +262,21 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
                     bool developerOptions,
                     char *currentVersion)
 {
+    OTA_SUBSYSTEM_MASK productSubsystems = otaGetProductSubsystemSupport();
+
+    // Initialize the OTA targets
+    for (int subsystem = 0; subsystem < OTA_SUBSYSTEM_MAX; subsystem++)
+    {
+        if (otaTarget[subsystem]._valid == false)
+        {
+            if (otaGetSubsystemMaskFromSubsystem(subsystem) & productSubsystems)
+                otaTarget[subsystem]._requestType = OTA_REQUEST_PRODUCT_RELEASE;
+            else
+                otaTarget[subsystem]._requestType = OTA_REQUEST_SKIP_UPDATE;
+            otaTarget[subsystem]._valid = true;
+        }
+    }
+
     // Automatic firmware updates
     systemPrintf("a) Automatic firmware updates: %s\r\n", settings.enableAutoFirmwareUpdate ? "Enabled" : "Disabled");
 
@@ -334,12 +363,13 @@ bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
         && ((incoming == 1) || (platformDevices & (1 << (incoming - 1))))) // Check for subsystem on product
     {
         // Set the next value for this subsystem
-        uint8_t subsystem = incoming - 1;
-        otaSubsystemUpdateRequest[subsystem] += 1;
+        uint8_t subsystemIndex = incoming - 1;
+        OTA_TARGET * target = &otaTarget[subsystemIndex];
+        target->_requestType += 1;
 
         // Wrap the value as necessary
-        if (otaSubsystemUpdateRequest[subsystem] >= (OTA_REQUEST_MAX - 1))
-            otaSubsystemUpdateRequest[subsystem] = 0;
+        if (target->_requestType >= (OTA_REQUEST_MAX - 1))
+            target->_requestType = 0;
     }
 
     // Toggle firmware debugging

@@ -88,6 +88,19 @@ extern const int otaSubsystemInfoTableEntries;
 // OTA targets
 //----------------------------------------
 
+typedef struct _OTA_TARGET
+{
+    char * _url;            // URL built from file name or URL in CSV file
+    const char * _cert;     // Certificate for the web server
+    size_t _fileBytes;      // File size
+    uint32_t _crc;          // CRC
+    uint8_t _requestType;   // Type of request for this subssystem
+    bool _valid;            // Valid contents
+    int _localVersion[5];   // Current firmware version
+    int _remoteVersion[5];  // New firmware version
+} OTA_TARGET;
+OTA_TARGET otaTarget[OTA_SUBSYSTEM_MAX];
+
 struct OtaTarget
 {
     char subsystemCode; // 'E'=ESP32, 'G'=GNSS, 'L'=LoRa, 'I'=IMU
