@@ -1634,6 +1634,20 @@ bool removeFileLfs(const char *filename)
 }
 
 //----------------------------------------
+// Translate the certificate into a certificate name
+//----------------------------------------
+const char * getCertName(const char * cert)
+{
+    if (cert == nullptr)
+        return "None";
+    if (cert == GITHUB_RAW_PUBLIC_CERT)
+        return "github";
+    if (cert == AWS_PUBLIC_CERT)
+        return "aws";
+    return "Unknown";
+}
+
+//----------------------------------------
 // Extract the web server from the URL
 //----------------------------------------
 String getServerFromUrl(const char * url)
