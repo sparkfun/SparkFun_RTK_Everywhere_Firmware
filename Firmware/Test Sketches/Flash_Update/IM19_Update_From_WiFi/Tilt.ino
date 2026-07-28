@@ -15,7 +15,7 @@ void imuReset()
         gpioExpanderImuBoot();
     }
     else
-        systemPrintln("Uncaught gnssReset()");
+        systemPrintln("Uncaught imuReset()");
 }
 
 // Below are the functions necessary for firmware upgrading the IM19
@@ -625,7 +625,6 @@ bool im19StreamFirmware(const char *relativeFirmwareFileLocation)
 
 // Sends AT+VERSION and copies the returned "Version:" line into versionOut.
 // Returns true if "Version:" is seen in the response
-// IM19_H2.0_B2.2.3 19:40:11 Feb 14 2022
 bool im19GetVersionString(char *versionOut, size_t versionOutSize)
 {
     if (versionOut == nullptr || versionOutSize < 2)
