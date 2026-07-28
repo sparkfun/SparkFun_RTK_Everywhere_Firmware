@@ -43,6 +43,12 @@ static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[
 static const char * const otaSubsystem[] = {"ESP32", "GNSS", "LoRa", "IMU"};
 static const int otaSubsystemEntries = sizeof(otaSubsystem) / sizeof(otaSubsystem[0]);
 
+#define OTA_BUFFER_BYTES        (16 * 1024)
+
+const char * otaGhRawCert = GITHUB_RAW_PUBLIC_CERT;
+const char * otaGithubRaw = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries";
+const char * otaRawBranch = "/main";
+
 //----------------------------------------
 // Locals
 //----------------------------------------
@@ -802,27 +808,34 @@ void otaVerifyTables()
 // OTA product subsystem support table
 extern const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[] =
 {
-    // Variant      subsystem               present
-    {RTK_ALL,       OTA_SUBSYSTEM_ESP32,    nullptr},
+    // Variant      subsystem               present                 getVersion          streamFirmware          packetBytes         rcSupport   directory          certificate     server          branch
+    {RTK_ALL,       OTA_SUBSYSTEM_ESP32,    nullptr,                otaEsp32GetVersion, nullptr,                OTA_BUFFER_BYTES,   true,       "",                otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+
+    // GNSS devices
+#ifdef  COMPILE_LG290P
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_lg290p,   gnssGetVersion,     nullptr,                256,                false,      "/gnss/lg290p",    otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+#endif  // COMPILE_LG290P
+#ifdef  COMPILE_MOSAICX5
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_mosaicX5, gnssGetVersion,     nullptr,                256,                false,      "/gnss/mosaic-x5", otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+#endif  // COMPILE_MOSAICX5
+#ifdef  COMPILE_UM980
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_um980,    gnssGetVersion,     nullptr,                256,                false,      "/gnss/um980",     otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+#endif  // COMPILE_UM980
 #ifdef  COMPILE_ZED
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_lg290p},
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_mosaicX5},
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_um980},
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedf9p},
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedx20p},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedf9p,   gnssGetVersion,     nullptr,                256,                false,      "/gnss/zed-f9p",   otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedx20p,  gnssGetVersion,     nullptr,                256,                false,      "/gnss/zed-x20p",  otaGhRawCert,   otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_ZED
+
+    // LoRa devices
 #ifdef  COMPILE_LORA
-    {RTK_ALL,       OTA_SUBSYSTEM_LORA,     &present.radio_lora},
+    {RTK_ALL,       OTA_SUBSYSTEM_LORA,     &present.radio_lora,    loraGetVersion,     nullptr,                256,                false,      "lora/stm32wl",    otaGhRawCert,   otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_LORA
+
+    // IMU devices
 #ifdef  COMPILE_IM19_IMU
-    {RTK_ALL,       OTA_SUBSYSTEM_IMU,      &present.imu_im19},
+    {RTK_ALL,       OTA_SUBSYSTEM_IMU,      &present.imu_im19,      tiltGetVersion,     nullptr,                256,                false,      "/imu/im19",       otaGhRawCert,   otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_IM19_IMU
 };
-/*
-    im19StreamFirmware
-    stm32StreamFirmware
-*/
-
 const int otaSubsystemInfoTableEntries = sizeof(otaSubsystemInfoTable)
                                        / sizeof(otaSubsystemInfoTable[0]);
 

@@ -56,11 +56,29 @@ bool otaDebugVerbose;
 
 typedef uint8_t OTA_SUBSYSTEM_MASK;
 
+typedef bool (*OTA_GET_VERSION)(int &major,
+                                int &minor,
+                                int &patch,
+                                int &revision,
+                                int &releaseCandidate);
+typedef bool (*OTA_STREAM_FIRMWARE)(NetworkClient * client,
+                                    size_t contentLength,
+                                    uint8_t * buffer,
+                                    size_t bufferBytes);
+
 typedef struct _OTA_SUBSYSTEM_INFO
 {
     ProductVariant _productVariant;
     uint8_t _subsystem;
     const bool * _present;
+    OTA_GET_VERSION _getVersion;
+    OTA_STREAM_FIRMWARE _streamFirmware;
+    size_t _packetBytes;
+    bool _rcSupport;
+    const char * _directory;
+    const char * _cert;     // Certificate for the server
+    const char * _server;   // Server name
+    const char * _branch;   // Branch name
 } OTA_SUBSYSTEM_INFO;
 
 extern const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[];
