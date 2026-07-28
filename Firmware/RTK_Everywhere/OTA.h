@@ -40,6 +40,9 @@ enum OTA_FIRMWARE_UPDATE_REQUEST
 #define OTA_DEVICE_LORA         (1 << OTA_SUBSYSTEM_LORA)
 #define OTA_DEVICE_IMU          (1 << OTA_SUBSYSTEM_IMU)
 
+const char * csvUrl = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-Variants.csv";
+const char * csvCert = GITHUB_RAW_PUBLIC_CERT;
+
 //----------------------------------------
 // Globals
 //----------------------------------------

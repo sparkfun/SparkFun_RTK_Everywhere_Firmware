@@ -47,6 +47,7 @@ static const int otaSubsystemEntries = sizeof(otaSubsystem) / sizeof(otaSubsyste
 // Locals
 //----------------------------------------
 
+static uint8_t * otaCsvFileData;
 static uint32_t otaLastUpdateCheck;
 static uint8_t otaState;
 
@@ -380,6 +381,9 @@ void otaUpdate()
 {
     bool connected;
     static uint32_t connectTimer = 0;
+    size_t fileBytes;
+    int fieldCount;
+    int lineCount;
 
     // Check if we need a scheduled check
     connected = networkConsumerIsConnected(NETCONSUMER_OTA_CLIENT);
@@ -475,6 +479,26 @@ void otaUpdate()
         case OTA_STATE_GET_SYSTEMS_TO_UPDATE:
             if (settings.debugFirmwareUpdate)
                 systemPrintln("Creating list of subsystems to update");
+
+            // Get CVS file listing the firmware for this system
+            if (csvOpenCsvFile(csvUrl,
+                               nullptr,
+                               &otaCsvFileData,
+                               &fileBytes,
+                               &fieldCount,
+                               &lineCount,
+                               settings.debugFirmwareUpdate,
+                               otaDebugVerbose) == false)
+            {
+                // Failed to get CVS file for some reason
+                systemPrintln("Failed to get version number from server.");
+                webServerSendString((char *)"newSubsystemFirmware,NO_SERVER,");
+
+                commandSendExecuteErrorResponse((char *)"SPGET", (char *)"newSubsystemFirmware", (char *)"No Server");
+
+                otaUpdateStop(false);
+                break;
+            }
 
             // If we are using auto updates, only update to production firmware, disable release candidates
             if (settings.enableAutoFirmwareUpdate)
