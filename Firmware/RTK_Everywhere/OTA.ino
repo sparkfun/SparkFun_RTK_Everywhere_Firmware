@@ -1094,7 +1094,10 @@ void otaUpdate()
 
                 // Get the latest firmware version
                 networkUserAdd(NETCONSUMER_OTA_CLIENT, __FILE__, __LINE__);
-                otaSetState(OTA_STATE_GET_SYSTEMS_TO_UPDATE);
+                if (otaTargetCount <= 0)
+                    otaSetState(OTA_STATE_GET_SYSTEMS_TO_UPDATE);
+                else
+                    otaSetState(OTA_STATE_UPDATE_FIRMWARE);
             }
 
             else if ((millis() - connectTimer) > settings.wifiConnectTimeoutMs)
@@ -1178,76 +1181,15 @@ void otaUpdate()
                 break;
             }
 
-            // If we are using auto updates, only update to production firmware, disable release candidates
-            if (settings.enableAutoFirmwareUpdate)
-                enableRCFirmware = 0;
-
-            // Get JSON and form the list of subsystems that need updating
-            if (otaGetSystemsToUpdate(platformPrefix) == true)
+            // Check for done
+            if (otaRequestFirmwareVersionCheck)
             {
-                online.otaClient = true;
-
-                // We successfully parsed the JSON and created otaTargets
-                if (otaTargetCount > 0)
-                {
-                    systemPrintf("New updates available for %d system(s):\r\n", otaTargetCount);
-
-                    // Create string of chars to pass to the web interface and CLI
-                    char otaSystemsToUpdate[otaTargetCount + 1] = {'\0'};
-                    int otaSystemsToUpdateSpot = 0;
-                    for (int i = 0; i < otaTargetCount; i++)
-                    {
-                        systemPrintf("  %c: %s\r\n", otaTargets[i].subsystemCode, otaTargets[i].filePath);
-                        otaSystemsToUpdate[otaSystemsToUpdateSpot++] =
-                            otaTargets[i].subsystemCode; // Add this letter to the list
-                    }
-                    otaSystemsToUpdate[otaSystemsToUpdateSpot] = '\0'; // Null-terminate the string
-
-                    // If we are doing just a version check, set version number,
-                    // turn off network request and stop machine
-                    if (otaRequestFirmwareVersionCheck == true)
-                    {
-                        otaRequestFirmwareVersionCheck = false;
-
-                        char systemsToUpdate[50];
-                        snprintf(systemsToUpdate, sizeof(systemsToUpdate), "newSubsystemFirmware,%s,",
-                                 otaSystemsToUpdate);
-                        webServerSendString(systemsToUpdate); // Report systems that have new firmware available
-
-                        commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware", otaSystemsToUpdate);
-
-                        otaUpdateStop(true); // Nothing to update.
-
-                        return;
-                    }
-
-                    // If we are doing a scheduled automatic update or a manually requested update, continue through the
-                    // state machine
-
-                    otaSetState(OTA_STATE_UPDATE_FIRMWARE_IM19);
-                }
-                else
-                {
-                    // systemPrintln("All systems up to date");
-
-                    webServerSendString("newSubsystemFirmware,CURRENT,"); // Report systems are up to date
-
-                    commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware", (char *)"CURRENT");
-
-                    otaRequestFirmwareVersionCheck = false;
-                    otaSetState(OTA_STATE_OFF);
-                }
+                otaRequestFirmwareVersionCheck = false;
+                otaUpdateStop(true);
+                break;
             }
-            else
-            {
-                // Failed to get JSON for some reason
-                systemPrintln("Failed to get version number from server.");
-                webServerSendString((char *)"newSubsystemFirmware,NO_SERVER,");
 
-                commandSendExecuteErrorResponse((char *)"SPGET", (char *)"newSubsystemFirmware", (char *)"No Server");
-
-                otaUpdateStop(false);
-            }
+            otaSetState(OTA_STATE_UPDATE_FIRMWARE);
             break;
 
         case OTA_STATE_UPDATE_FIRMWARE:

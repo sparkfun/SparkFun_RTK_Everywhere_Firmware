@@ -494,9 +494,6 @@ char otaRcFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
 
-#define OTA_FIRMWARE_SYSTEM_VARIANTS_JSON \
-    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-Variants.json"
-
 bool apConfigFirmwareUpdateInProcess; // Goes true once WiFi is connected and OTA pull begins
 
 // Global variables used by firmwareUpdateProgressCallback, called by all firmware update procedures
@@ -1454,7 +1451,7 @@ void setup()
 
     DMW_b("imuFirmwareCheckUpdate");
     if (imuCheckPassthroughFile() == true) // Check if updateImuFirmware.txt exists
-        imuBeginFirmwareUpdate();         // 
+        imuBeginFirmwareUpdate();         //
 
     DMW_b("commandIndexFillActual");
     commandIndexFillActual(); // Shrink the commandIndex table now we're certain what GNSS we have
