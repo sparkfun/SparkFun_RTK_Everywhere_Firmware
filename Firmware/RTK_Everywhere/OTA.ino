@@ -211,6 +211,10 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
     {
         systemPrintf("r) Change RC Firmware JSON URL: %s\r\n", otaRcFirmwareJsonUrl);
         systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
+        systemPrintf("D) %s firmware debugging\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
+        systemPrintf("O) Update firmware on one subsystem\r\n");
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("V) %s verbose firmware debugging\r\n", otaDebugVerbose ? "Disable" : "Enable");
     }
 
     // Allow user to initiate a firmware update without checking for new firmware first
@@ -284,6 +288,28 @@ bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
         if (otaSubsystemUpdateRequest[subsystem] >= (OTA_REQUEST_MAX - 1))
             otaSubsystemUpdateRequest[subsystem] = 0;
     }
+
+    // Toggle firmware debugging
+    else if (developerOptions && (incoming == 'D'))
+    {
+        settings.debugFirmwareUpdate ^= 1;
+        if (settings.debugFirmwareUpdate == false)
+            otaDebugVerbose = false;
+    }
+
+    // Perform the device firmware update
+    else if (developerOptions && (incoming == 'O'))
+    {
+        deviceFirmwareUpdateBegin(false, otaDebugVerbose);
+        while (deviceFirmwareUpdate(millis()))
+        {
+            networkUpdate();
+        }
+    }
+
+    // Toggle verbose firmware debugging
+    else if (developerOptions && settings.debugFirmwareUpdate && (incoming == 'V'))
+        otaDebugVerbose ^= 1;
 
     // Input not associated with OTA menu items
     else

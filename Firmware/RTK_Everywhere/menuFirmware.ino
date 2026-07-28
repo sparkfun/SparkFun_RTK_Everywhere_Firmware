@@ -36,10 +36,7 @@ void firmwareMenu()
         // Letters: a  c  e  i  r  s  u, 1, 2, 3, 4
         otaMenuDisplay(subsystemMask, developerOptions, currentVersion);
         systemPrintf("d) %s developer options\r\n", developerOptions ? "Disable" : "Enable");
-        systemPrintf("p) Program all firmware updates\r\n");
-        systemPrintf("t) %s firmware debugging\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
-        if (settings.debugFirmwareUpdate)
-            systemPrintf("v) %s verbose firmware debugging\r\n", otaDebugVerbose ? "Disable" : "Enable");
+        systemPrintf("p) Update firmware on all subsystems\r\n");
 
         for (int x = 0; x < binCount; x++)
             systemPrintf("%d) Load SD file: %s\r\n", x + 1, binFileNames[x]);
@@ -66,24 +63,6 @@ void firmwareMenu()
         else if (incoming == 'd')
             developerOptions ^= 1;
 
-        // Toggle firmware debugging
-        else if (developerOptions && (incoming == 'D'))
-        {
-            settings.debugFirmwareUpdate ^= 1;
-            if (settings.debugFirmwareUpdate == false)
-                otaDebugVerbose = false;
-        }
-
-        // Perform the device firmware update
-        else if (developerOptions && (incoming == 'd'))
-        {
-            deviceFirmwareUpdateBegin(false, otaDebugVerbose);
-            while (deviceFirmwareUpdate(millis()))
-            {
-                networkUpdate();
-            }
-        }
-
         // Restore product to production firmware
         else if (incoming == 'p')
         {
@@ -93,10 +72,6 @@ void firmwareMenu()
                 networkUpdate();
             }
         }
-
-        // Toggle verbose firmware debugging
-        else if (developerOptions && settings.debugFirmwareUpdate && (incoming == 'V'))
-            otaDebugVerbose ^= 1;
 
         else if (incoming == 'x')
             break;
