@@ -854,7 +854,7 @@ bool otaGetSystemsToUpdate(char *modelType)
                 addTargetToUpdateList('E', remoteFilePath);
 
             // Force add if user selects it (only in debug mode)
-            else if (otaSubsystemUpdateRequest[OTA_SUBSYSTEM_ESP32] == OTA_REQUEST_ALWAYS_UPDATE)
+            else if (otaTarget[OTA_SUBSYSTEM_ESP32]._requestType == OTA_REQUEST_ALWAYS_UPDATE)
                 addTargetToUpdateList('E', remoteFilePath);
         }
         else if (otaIsGnssSubsystem(subsystem))
@@ -882,7 +882,7 @@ bool otaGetSystemsToUpdate(char *modelType)
             }
 
             // Force add if user selects it (only in debug mode)
-            else if (otaSubsystemUpdateRequest[OTA_SUBSYSTEM_GNSS] == OTA_REQUEST_ALWAYS_UPDATE)
+            else if (otaTarget[OTA_SUBSYSTEM_GNSS]._requestType == OTA_REQUEST_ALWAYS_UPDATE)
                 addTargetToUpdateList('G', remoteFilePath);
         }
         else if (strcasecmp(subsystem, "STM32WL") == 0)
@@ -907,7 +907,7 @@ bool otaGetSystemsToUpdate(char *modelType)
             }
 
             // Force add if user selects it (only in debug mode)
-            else if (otaSubsystemUpdateRequest[OTA_SUBSYSTEM_LORA] == OTA_REQUEST_ALWAYS_UPDATE)
+            else if (otaTarget[OTA_SUBSYSTEM_LORA]._requestType == OTA_REQUEST_ALWAYS_UPDATE)
                 addTargetToUpdateList('L', remoteFilePath);
         }
         else if (strcasecmp(subsystem, "IM19") == 0)
@@ -931,7 +931,7 @@ bool otaGetSystemsToUpdate(char *modelType)
             }
 
             // Force add if user selects it (only in debug mode)
-            else if (otaSubsystemUpdateRequest[OTA_SUBSYSTEM_IMU] == OTA_REQUEST_ALWAYS_UPDATE)
+            else if (otaTarget[OTA_SUBSYSTEM_IMU]._requestType == OTA_REQUEST_ALWAYS_UPDATE)
                 addTargetToUpdateList('I', remoteFilePath);
         }
         else

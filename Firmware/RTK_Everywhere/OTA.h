@@ -47,7 +47,6 @@ const char * csvCert = GITHUB_RAW_PUBLIC_CERT;
 // Globals
 //----------------------------------------
 
-uint8_t otaSubsystemUpdateRequest[OTA_SUBSYSTEM_MAX];
 bool otaDebugVerbose;
 
 //----------------------------------------

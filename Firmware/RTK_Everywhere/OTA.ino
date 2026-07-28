@@ -260,7 +260,213 @@ uint8_t otaGetRequestTypeFromSubsystem(uint8_t subsystem)
         reportFatalError("Add missing subsystem to OTA_SUBSYSTEM");
         return 0;
     }
-    return otaSubsystemUpdateRequest[subsystem];
+    return otaTarget[subsystem]._requestType;
+}
+
+//----------------------------------------
+// Get the required updates
+//----------------------------------------
+bool otaGetRequiredUpdates(const char * fileData,
+                           size_t fileBytes,
+                           int fieldCount,
+                           int lineCount,
+                           bool debug,
+                           bool verbose)
+{
+    const char * buffer;
+    const char * bufferEnd;
+    const char * csvEntry;
+    const OTA_SUBSYSTEM_INFO * subsystemInfo;
+    int fieldIndex;
+    int lineIndex;
+    int major;
+    int minor;
+    int patch;
+    const char * productSubsystem;
+    int releaseCandidate;
+    int revision;
+    const char * subsystem;
+    OTA_TARGET * target;
+    bool urlSet;
+    int versionDelta;
+
+    // Walk the list of subsystems
+    urlSet = false;
+    otaTargetCount = 0;
+    for (int8_t subsystemIndex = 0; subsystemIndex < OTA_SUBSYSTEM_MAX; subsystemIndex++)
+    {
+        productSubsystem = otaSubsystem[subsystemIndex];
+        target = &otaTarget[subsystemIndex];
+        subsystem = otaSubsystem[subsystemIndex];
+
+        // Set the default version number (0.0.0.0)
+        memset(target->_localVersion, 0, sizeof(target->_localVersion));
+        memset(target->_remoteVersion, 0, sizeof(target->_remoteVersion));
+
+        // Verify that this platform supports this subsystem
+        subsystemInfo = otaGetSubsystemInfo(subsystemIndex);
+        if (subsystemInfo == nullptr)
+        {
+            if (debug && verbose)
+                systemPrintf("%s not implemented\r\n", subsystem);
+            continue;
+        }
+
+        // Get the current firmware version
+        if (subsystemInfo->_getVersion)
+            subsystemInfo->_getVersion(target->_localVersion[0],
+                                       target->_localVersion[1],
+                                       target->_localVersion[2],
+                                       target->_localVersion[3],
+                                       target->_localVersion[4]);
+
+        // Determine if this subsystem is being skipped
+        if ((target->_requestType) == OTA_REQUEST_SKIP_UPDATE)
+        {
+            // Subsystem being skipped
+            if (debug && verbose)
+                systemPrintf("%s skip requested\r\n", subsystem);
+            continue;
+        }
+
+        // Skip over the CSV file header line
+        buffer = fileData;
+        bufferEnd = &buffer[fileBytes];
+        buffer = csvNextLine(buffer, bufferEnd, fieldCount);
+
+        // Determine if a release candidate should be used
+        if ((target->_requestType) == OTA_REQUEST_USE_RC)
+        {
+            // Attempt to locate the release candidate line
+            for (lineIndex = 1; lineIndex < lineCount; lineIndex++)
+            {
+                subsystem = csvGetField(fileData, fieldCount, buffer, "subsystem");
+                if (strcmp(subsystem, productSubsystem) == 0)
+                {
+                    // Get the values from the CSV file
+                    major = csvGetNumber(fileData, fieldCount, buffer, "version_major");
+                    minor = csvGetNumber(fileData, fieldCount, buffer, "version_minor");
+                    patch = csvGetNumber(fileData, fieldCount, buffer, "version_patch");
+                    revision = csvGetNumber(fileData, fieldCount, buffer, "version_revision");
+                    releaseCandidate = csvGetNumber(fileData, fieldCount, buffer, "release_candidate");
+
+                    // Determine if a release candidate version is available
+                    if (releaseCandidate)
+                    {
+                        if (debug && verbose)
+                            systemPrintf("%s release candidate firmware found\r\n", subsystem);
+
+                        // Save the URL for the update
+                        otaGetUrlAndCert(target, subsystemInfo, csvGetField(fileData,
+                                                                            fieldCount,
+                                                                            buffer,
+                                                                            "file_name"));
+                        target->_fileBytes = csvGetNumber(fileData, fieldCount, buffer, "file_bytes");
+                        target->_crc = csvGetNumber(fileData, fieldCount, buffer, "file_crc32");
+
+                        // Save the new firmware version
+                        target->_remoteVersion[0] = major;
+                        target->_remoteVersion[1] = minor;
+                        target->_remoteVersion[2] = patch;
+                        target->_remoteVersion[3] = revision;
+                        target->_remoteVersion[4] = releaseCandidate;
+                        urlSet = true;
+                        break;
+                    }
+                    if (debug && verbose)
+                        systemPrintf("%s not a release candidate\r\n", subsystem);
+                }
+
+                // Try the next line
+                buffer = csvNextLine(buffer, bufferEnd, fieldCount);
+            }
+
+            // Skip to next subsystem if RC is being used
+            if (lineIndex < lineCount)
+                continue;
+        }
+
+        // Skip over the CSV file header line
+        buffer = fileData;
+        bufferEnd = &buffer[fileBytes];
+        buffer = csvNextLine(buffer, bufferEnd, fieldCount);
+
+        // Locate the subsystem line
+        for (lineIndex = 1; lineIndex < lineCount; lineIndex++)
+        {
+            subsystem = csvGetField(fileData, fieldCount, buffer, "subsystem");
+            if (strcmp(subsystem, productSubsystem) == 0)
+            {
+                // Release candidates are not allowed for forced updates or newer versions
+                releaseCandidate = csvGetNumber(fileData, fieldCount, buffer, "release_candidate");
+                if (releaseCandidate)
+                {
+                    if (debug && verbose)
+                        systemPrintf("%s skipping the release candidate\r\n", subsystem);
+
+                    // Try the next line
+                    buffer = csvNextLine(buffer, bufferEnd, fieldCount);
+                    continue;
+                }
+
+                // Get the values from the CSV file
+                major = csvGetNumber(fileData, fieldCount, buffer, "version_major");
+                minor = csvGetNumber(fileData, fieldCount, buffer, "version_minor");
+                patch = csvGetNumber(fileData, fieldCount, buffer, "version_patch");
+                revision = csvGetNumber(fileData, fieldCount, buffer, "version_revision");
+
+                // Compare the versions
+                // Returns (local version - CSV version): -1, 0, 1
+                versionDelta = otaCompareVersions(target->_localVersion[0],
+                                                  target->_localVersion[1],
+                                                  target->_localVersion[2],
+                                                  target->_localVersion[3],
+                                                  target->_localVersion[4],
+                                                  major, minor, patch, revision,
+                                                  releaseCandidate);
+
+                // Determine if a newer version of firmware is available
+                if (debug && verbose)
+                    systemPrintf("%s firmware found, versionDelta: %d\r\n",
+                                 subsystem, versionDelta);
+                if (((target->_requestType) != OTA_REQUEST_ALWAYS_UPDATE)
+                    && (((target->_requestType) != OTA_REQUEST_PRODUCT_RELEASE)
+                        || (versionDelta == 0))
+                    && (versionDelta >= 0))
+                {
+                    target->_requestType = OTA_REQUEST_SKIP_UPDATE;
+                }
+                break;
+            }
+
+            // Try the next line
+            buffer = csvNextLine(buffer, bufferEnd, fieldCount);
+        }
+
+        // Save the firmware update URL if found
+        if (lineIndex < lineCount)
+        {
+            if (target->_requestType != OTA_REQUEST_SKIP_UPDATE)
+            {
+                // Save the URL for the update
+                otaGetUrlAndCert(target, subsystemInfo, csvGetField(fileData,
+                                                                    fieldCount,
+                                                                    buffer,
+                                                                    "file_name"));
+                target->_fileBytes = csvGetNumber(fileData, fieldCount, buffer, "file_bytes");
+                target->_crc = csvGetNumber(fileData, fieldCount, buffer, "file_crc32");
+            }
+
+            // Save the new firmware version
+            target->_remoteVersion[0] = major;
+            target->_remoteVersion[1] = minor;
+            target->_remoteVersion[2] = patch;
+            target->_remoteVersion[3] = revision;
+            target->_remoteVersion[4] = releaseCandidate;
+            urlSet = true;
+        }
+    }
+    return urlSet;
 }
 
 //----------------------------------------
@@ -301,6 +507,48 @@ const OTA_SUBSYSTEM_INFO * otaGetSubsystemInfo(uint8_t subsystem)
 OTA_SUBSYSTEM_MASK otaGetSubsystemMaskFromSubsystem(uint8_t subsystem)
 {
     return (1 << subsystem);
+}
+
+//----------------------------------------
+// Get the URL and CERT for the link in the CSV file
+//----------------------------------------
+void otaGetUrlAndCert(OTA_TARGET * target,
+                      const OTA_SUBSYSTEM_INFO * subsystemInfo,
+                      const char * fileName)
+{
+    char * buffer;
+    const char * cert;
+    const char * url;
+    String urlString;
+
+    cert = nullptr;
+    if ((strncmp("http:", fileName, 5) == 0) || (strncmp("https:", fileName, 6) == 0))
+        url = fileName;
+    else
+    {
+        target->_cert = subsystemInfo->_cert;
+
+        // https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries
+        // /main
+        // /imu/im19
+        // /20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc
+        //
+        // Build the raw URL
+        urlString = subsystemInfo->_server;
+        if (subsystemInfo->_branch)
+            urlString += subsystemInfo->_branch;
+        urlString += subsystemInfo->_directory;
+        urlString += "/";
+        urlString += fileName;
+
+        // Allocate a buffer for the URL
+        buffer = (char *)rtkMalloc(urlString.length() + 1, "Target URL");
+        target->_url = buffer;
+        if (buffer == nullptr)
+            systemPrintf("Failed to allocate URL buffer for %s\r\n", otaSubsystem[subsystemInfo->_subsystem]);
+        else
+            strcpy(buffer, urlString.c_str());
+    }
 }
 
 //----------------------------------------
@@ -514,6 +762,7 @@ void otaUpdate()
     size_t fileBytes;
     int fieldCount;
     int lineCount;
+    bool updatesFound;
 
     // Check if we need a scheduled check
     connected = networkConsumerIsConnected(NETCONSUMER_OTA_CLIENT);
@@ -630,8 +879,33 @@ void otaUpdate()
                 break;
             }
 
+            // Reduce this list based upon the requested updates, version
+            // number checks and the order of entries found in the CSV file
+            // to a list of URLs
+            updatesFound = otaGetRequiredUpdates((const char *)otaCsvFileData,
+                                                 fileBytes,
+                                                 fieldCount,
+                                                 lineCount,
+                                                 settings.debugFirmwareUpdate,
+                                                 otaDebugVerbose);
             // Display the targets
             otaDisplayTargets();
+
+            // Done if no updates found
+            if (updatesFound == false)
+            {
+                // Nothing to update
+                if (settings.debugFirmwareUpdate)
+                    systemPrintf("All subsystems up to date\r\n");
+
+                webServerSendString("newSubsystemFirmware,CURRENT,"); // Report systems are up to date
+
+                commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware", (char *)"CURRENT");
+
+                otaRequestFirmwareVersionCheck = false;
+                otaUpdateStop(true);
+                break;
+            }
 
             // If we are using auto updates, only update to production firmware, disable release candidates
             if (settings.enableAutoFirmwareUpdate)
