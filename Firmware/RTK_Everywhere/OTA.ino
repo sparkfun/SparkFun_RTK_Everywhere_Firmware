@@ -669,7 +669,7 @@ bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
             target->_requestType += 1;
 
         // Wrap the value as necessary
-        if (target->_requestType >= (OTA_REQUEST_MAX - 1))
+        if (target->_requestType >= OTA_REQUEST_MAX)
             target->_requestType = 0;
     }
 
