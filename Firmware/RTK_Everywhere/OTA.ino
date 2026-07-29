@@ -22,7 +22,6 @@ enum OtaState
     OTA_STATE_UPDATE_FIRMWARE_LG290P,
     OTA_STATE_UPDATE_FIRMWARE_MX5,
     OTA_STATE_UPDATE_FIRMWARE_X20P,
-    OTA_STATE_UPDATE_FIRMWARE_ESP,
     OTA_STATE_UPDATE_FIRMWARE,
     OTA_STATE_REBOOT,
 
@@ -39,7 +38,6 @@ static const char *const otaStateNames[] = {"OTA_STATE_OFF",
                                             "OTA_STATE_UPDATE_FIRMWARE_LG290P",
                                             "OTA_STATE_UPDATE_FIRMWARE_MX5",
                                             "OTA_STATE_UPDATE_FIRMWARE_X20P",
-                                            "OTA_STATE_UPDATE_FIRMWARE_ESP32",
                                             "OTA_STATE_UPDATE_FIRMWARE",
                                             "OTA_STATE_REBOOT"};
 static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[0]);
@@ -1332,49 +1330,18 @@ void otaUpdate()
             // If the subsystem is not present, or there is not a new version, then move to the next subsystem
             if (present.gnss_zedx20p == false || otaSubsystemFilePath('G') == nullptr)
             {
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP); // Move on
+                otaSetState(OTA_STATE_REBOOT); // Move on
             }
 
             // Get binary file over the network and stream/update the target
             else if (x20pStreamFirmware(otaSubsystemFilePath('G')) == false)
             {
                 systemPrintln("Failed to update ZED-X20P firmware");
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP); // If we get here, move on
+                otaSetState(OTA_STATE_REBOOT); // If we get here, move on
             }
             else
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP); // If we get here, move on
+                otaSetState(OTA_STATE_REBOOT); // If we get here, move on
 
-            break;
-
-        // Update the firmware on the ESP32 - the last update path because it will end in a reset
-        case OTA_STATE_UPDATE_FIRMWARE_ESP:
-            // If there is not a new version, then the machine is complete
-            // The only way we got here is if *one* of the subsystems updated. So do a system reset
-            if (otaSubsystemFilePath('E') == nullptr)
-            {
-                systemPrintln("System update complete. Resetting. Good bye!");
-                ESP.restart();
-            }
-
-            else
-            {
-                // Get binary file over the network and stream/update the target
-                if (espStreamFirmware(otaSubsystemFilePath('E')) == true)
-                {
-                    systemPrintln("ESP32 update complete. Resetting. Good bye!");
-                    ESP.restart();
-                }
-                else
-                {
-                    systemPrintln("Failed to update ESP32 firmware");
-
-                    webServerSendString((char *)"gettingNewFirmware,ERROR,");
-
-                    commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"OTA Error");
-
-                    otaUpdateStop(false);
-                }
-            }
             break;
         }
     }
