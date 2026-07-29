@@ -661,7 +661,12 @@ bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
         // Set the next value for this subsystem
         uint8_t subsystemIndex = incoming - 1;
         OTA_TARGET * target = &otaTarget[subsystemIndex];
+        const OTA_SUBSYSTEM_INFO * subsystemInfo = &otaSubsystemInfoTable[subsystemIndex];
         target->_requestType += 1;
+
+        // Skip release candidate if not supported
+        if ((target->_requestType == OTA_REQUEST_USE_RC) && !subsystemInfo->_rcSupport)
+            target->_requestType += 1;
 
         // Wrap the value as necessary
         if (target->_requestType >= (OTA_REQUEST_MAX - 1))
