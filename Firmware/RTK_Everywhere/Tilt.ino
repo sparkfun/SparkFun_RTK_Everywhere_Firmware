@@ -1412,12 +1412,24 @@ void imuBeginFirmwareUpdate()
     ESP.restart();
 }
 
-// Rest the IMU
+// Reset the GNSS/IMU module ahead of entering the bootloader.
+// On Flex modules, the IMU reset is tied to the GNSS reset
 void imuReset()
 {
-    gnssReset();
-    delay(50);
-    gnssBoot();
+    if (productVariant == RTK_TORCH)
+    {
+        digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell UM980 and DR to reset
+        delay(50);
+        digitalWrite(pin_GNSS_DR_Reset, HIGH);
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        gpioExpanderImuReset(); // Drive the GNSS reset pin low to reset both GNSS and IMU
+        delay(50);
+        gpioExpanderImuBoot();
+    }
+    else
+        systemPrintln("Uncaught imuReset()");
 }
 
 // Below are the functions necessary for firmware upgrading the IM19

@@ -1119,6 +1119,7 @@ void gpioExpanderGnssBoot()
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, HIGH);
 }
 
+// This drives the GNSS_Reset low, which causes the GNSS and IMU to reset on the FP
 void gpioExpanderGnssReset()
 {
     if (online.gpioExpanderSwitches == true)
@@ -1131,6 +1132,17 @@ void gpioExpanderGnssReset()
             systemPrintln("Skipped disable of LG290P"); // Disabling an LG290P when it's connected to an I2C bus will
                                                         // bring down the I2C bus
     }
+}
+
+// On Flex modules, the IMU reset is tied to the GNSS reset
+void gpioExpanderImuReset()
+{
+    gpioExpanderGnssReset();
+}
+
+void gpioExpanderImuBoot()
+{
+    gpioExpanderGnssBoot();
 }
 
 // Detect if a GNSS is present by:

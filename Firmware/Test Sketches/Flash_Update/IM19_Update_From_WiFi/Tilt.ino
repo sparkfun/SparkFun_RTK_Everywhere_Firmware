@@ -1,3 +1,23 @@
+// Reset the GNSS/IMU module ahead of entering the bootloader.
+// On Flex modules, the IMU reset is tied to the GNSS reset
+void imuReset()
+{
+    if (productVariant == RTK_TORCH)
+    {
+        digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell UM980 and DR to reset
+        delay(50);
+        digitalWrite(pin_GNSS_DR_Reset, HIGH);
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        gpioExpanderImuReset(); // Drive the GNSS reset pin low to reset both GNSS and IMU
+        delay(50);
+        gpioExpanderImuBoot();
+    }
+    else
+        systemPrintln("Uncaught imuReset()");
+}
+
 // Below are the functions necessary for firmware upgrading the IM19
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -31,7 +51,7 @@
 // tune it empirically on hardware: lower it, then watch how many frames the IM19
 // reports missing at the end. The existing retry path only re-fetches what's missing,
 // so occasional drops are safe; a delay set too low just means more retry passes.
- static const uint32_t IM19_FRAME_PACING_MS = 100; // Works - 0.1% frame failure.
+static const uint32_t IM19_FRAME_PACING_MS = 100; // Works - 0.1% frame failure.
 // static const uint32_t IM19_FRAME_PACING_MS = 75; // Works - 42% frame failure.
 // static const uint32_t IM19_FRAME_PACING_MS = 50; // Original mfg timeout. 87% frame failure.
 //  static const uint32_t IM19_FRAME_PACING_MS = 30; // Works - 94% frame failure.
@@ -84,17 +104,6 @@ static bool im19AllocateBuffers()
     return true;
 }
 
-// Picks the UART the IM19 is wired to for this board.
-static HardwareSerial *im19Serial()
-{
-#ifdef PLATFORM_TORCH
-    return &Serial; // Torch: tilt shares UART0 with USB
-#else
-    beginUart2Serial();
-    return uart2Serial; // FP: tilt is on its own UART2
-#endif
-}
-
 static uint16_t im19BufToUint16(const uint8_t *buffer)
 {
     return (uint16_t)(buffer[0] | (buffer[1] << 8));
@@ -141,8 +150,8 @@ static bool im19SendOneFrame(uint32_t frameID, const uint8_t *payload)
     uint8_t frame[IM19_FRAME_TOTAL_SIZE] = {0};
     memcpy(&frame[12], payload, IM19_FRAME_PAYLOAD_SIZE);
     im19BuildFrame(IM19_FRAME_TYPE_BIN, frameID, frame);
-    im19Serial()->write(frame, sizeof(frame));
-    im19Serial()->flush(); // Block until the frame is actually on the wire, not just queued
+    SerialForTilt->write(frame, sizeof(frame));
+    SerialForTilt->flush(); // Block until the frame is actually on the wire, not just queued
     delay(IM19_FRAME_PACING_MS);
     return true;
 }
@@ -160,8 +169,8 @@ static void im19SendCmdFrame(uint16_t cmd, uint32_t frameTotal)
             frame[12 + num] = 0xFF >> (8 - mod);
     }
     im19BuildFrame(cmd, 0xFFFFFFFF, frame);
-    im19Serial()->write(frame, sizeof(frame));
-    im19Serial()->flush();
+    SerialForTilt->write(frame, sizeof(frame));
+    SerialForTilt->flush();
     delay(IM19_FRAME_PACING_MS);
 }
 
@@ -170,8 +179,8 @@ static void im19SendCmdFrame(uint16_t cmd, uint32_t frameTotal)
 static int im19CheckResponse(uint8_t *frameMap, uint32_t timeoutMs)
 {
     uint8_t buf[350]; // a little slack past one frame (268B) in case of a leading garbage byte
-    im19Serial()->setTimeout(timeoutMs);
-    int buf_len = im19Serial()->readBytes(buf, sizeof(buf));
+    SerialForTilt->setTimeout(timeoutMs);
+    int buf_len = SerialForTilt->readBytes(buf, sizeof(buf));
     uint8_t *p = buf;
 
     while (buf_len >= IM19_FRAME_TOTAL_SIZE)
@@ -226,28 +235,38 @@ static bool im19FindStr(const uint8_t *buf, int buf_len, const char *str)
 }
 
 // Sends an AT command and waits (with retries) for the expected response substring.
-static bool im19SendATCommand(const char *cmd, const char *response, int retries)
+static bool im19SendATCommand(const char *cmd, const char *response, int retries, uint8_t *responseBuf, size_t responseBufSize,
+                              int *responseLenOut)
 {
-    uint8_t buf[128];
+    if (responseLenOut != nullptr)
+        *responseLenOut = 0;
+
+    uint8_t buf[256];
     while (retries--)
     {
-        im19Serial()->write((const uint8_t *)cmd, strlen(cmd));
+        SerialForTilt->write((const uint8_t *)cmd, strlen(cmd));
         delay(50);
-        im19Serial()->setTimeout(50);
-        int buf_len = im19Serial()->readBytes(buf, sizeof(buf));
-        if (buf_len > 0 && im19FindStr(buf, buf_len, response))
-            return true;
+        SerialForTilt->setTimeout(50);
+        int buf_len = SerialForTilt->readBytes(buf, sizeof(buf));
+        if (buf_len > 0)
+        {
+            if (responseBuf != nullptr && responseBufSize > 0)
+            {
+                size_t copyLen = (size_t)buf_len;
+                if (copyLen >= responseBufSize)
+                    copyLen = responseBufSize - 1;
+
+                memcpy(responseBuf, buf, copyLen);
+                responseBuf[copyLen] = '\0';
+                if (responseLenOut != nullptr)
+                    *responseLenOut = (int)copyLen;
+            }
+
+            if (im19FindStr(buf, buf_len, response))
+                return true;
+        }
     }
     return false;
-}
-
-// Hardware-resets the GNSS/IMU module ahead of entering the bootloader.
-static void im19ResetImu()
-{
-    pinMode(pin_GNSS_DR_Reset, OUTPUT);
-    digitalWrite(pin_GNSS_DR_Reset, LOW);
-    delay(100);
-    digitalWrite(pin_GNSS_DR_Reset, HIGH);
 }
 
 // Puts the IM19 into its bootloader and gets ready to receive frames for a file of
@@ -275,9 +294,9 @@ bool im19UpdateFirmwareBegin(uint32_t fileSize)
 
     for (int retry = 0; retry < 3; retry++)
     {
-        im19ResetImu();
+        imuReset();
         delay(1000);
-        if (im19SendATCommand("AT+UPDATE_APP\r\n", "OK", 5))
+        if (im19SendATCommand("AT+UPDATE_APP\r\n", "OK", 5, nullptr, 0, nullptr))
             return true;
     }
 
@@ -329,7 +348,7 @@ static bool im19VerifyFirmwareRunning()
     delay(5000); // Give the IM19 time to flash and boot the new image
     for (int retry = 0; retry < 3; retry++)
     {
-        if (im19SendATCommand("AT+VERSION\r\n", "Version:", 1))
+        if (im19SendATCommand("AT+VERSION\r\n", "Version:", 1, nullptr, 0, nullptr))
             return true;
         delay(100);
     }
@@ -438,7 +457,7 @@ static bool im19StreamRange(const char *relativeFirmwareFileLocation, uint32_t s
         systemPrintln("Failed to securely connect to GitHub.");
         return false;
     }
-    
+
     HTTPClient http;
     if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
     {
@@ -502,8 +521,8 @@ static bool im19StreamMissingRanges(const char *relativeFirmwareFileLocation)
         uint32_t endByte = min(frame * IM19_FRAME_PAYLOAD_SIZE, im19FileSize) - 1;
 
         systemPrintf("Requesting missing frames %lu-%lu (%lu bytes) from source (failure rate: %lu.%lu%%).\r\n",
-                 (unsigned long)runStart, (unsigned long)(frame - 1), (unsigned long)(endByte - startByte + 1),
-                 (unsigned long)(missingRateTenthsPct / 10), (unsigned long)(missingRateTenthsPct % 10));
+                     (unsigned long)runStart, (unsigned long)(frame - 1), (unsigned long)(endByte - startByte + 1),
+                     (unsigned long)(missingRateTenthsPct / 10), (unsigned long)(missingRateTenthsPct % 10));
 
         if (!im19StreamRange(relativeFirmwareFileLocation, startByte, endByte))
             return false;
@@ -602,6 +621,36 @@ bool im19StreamFirmware(const char *relativeFirmwareFileLocation)
     systemPrintln("IM19 firmware update failed: too many retries.");
     im19ReleaseBuffers();
     return false;
+}
+
+// Sends AT+VERSION and copies the returned "Version:" line into versionOut.
+// Returns true if "Version:" is seen in the response
+bool im19GetVersionString(char *versionOut, size_t versionOutSize)
+{
+    if (versionOut == nullptr || versionOutSize < 2)
+        return false;
+
+    versionOut[0] = '\0';
+    uint8_t responseBuf[256];
+
+    if (!im19SendATCommand("AT+VERSION\r\n", "Version:", 3, responseBuf, sizeof(responseBuf), nullptr))
+        return false;
+
+    char *versionStart = strstr((char *)responseBuf, "Version:");
+    if (versionStart == nullptr)
+        return false;
+
+    char *lineEnd = strchr(versionStart, '\r');
+    if (lineEnd == nullptr)
+        lineEnd = strchr(versionStart, '\n');
+
+    size_t copyLen = lineEnd != nullptr ? (size_t)(lineEnd - versionStart) : strlen(versionStart);
+    if (copyLen >= versionOutSize)
+        copyLen = versionOutSize - 1;
+
+    memcpy(versionOut, versionStart, copyLen);
+    versionOut[copyLen] = '\0';
+    return true;
 }
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
