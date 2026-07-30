@@ -1800,7 +1800,7 @@ static bool im19PumpStreamToDevice(WiFiClient *stream, WiFiClientSecure *client,
             return false;
 
         received += bytesRead;
-        firmwareUpdateProgressCallback((uint16_t)bytesRead);
+        firmwareUpdateProgressCallback("IM19", (uint16_t)bytesRead);
     }
 
     return received == byteCount;

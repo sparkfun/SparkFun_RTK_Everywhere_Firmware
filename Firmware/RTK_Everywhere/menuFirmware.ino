@@ -723,7 +723,7 @@ bool espStreamFirmware(char *relativeFirmwareFileLocation)
             bytesWritten += bytesRead;
             lastDataTime = millis();
 
-            firmwareUpdateProgressCallback((uint16_t)bytesRead);
+            firmwareUpdateProgressCallback("ESP32", (uint16_t)bytesRead);
         }
         if (readError)
             break;

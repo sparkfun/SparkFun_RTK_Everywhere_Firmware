@@ -4299,7 +4299,7 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
                     break;
                 }
 
-                firmwareUpdateProgressCallback(bytesRead);
+                firmwareUpdateProgressCallback("X20P", bytesRead);
 
                 if (contentLength > 0)
                     contentLength -= bytesRead;

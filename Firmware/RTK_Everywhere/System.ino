@@ -1289,7 +1289,7 @@ void gpioExpanderConnectGNSSToESP32()
 }
 
 // Callback for all firmware update targets. Called with the number of bytes written to flash so far. Used to track and print progress.
-void firmwareUpdateProgressCallback(uint16_t bytesProcessed)
+void firmwareUpdateProgressCallback(const char * subsystemName, uint16_t bytesProcessed)
 {
     const uint8_t progressBarWidth = 20;
     static uint8_t lastUpdatePercent = 0;
@@ -1311,7 +1311,7 @@ void firmwareUpdateProgressCallback(uint16_t bytesProcessed)
 
     lastUpdatePercent = progressPercent;
 
-    systemPrint("Update Progress: [");
+    systemPrintf("%s Update Progress: [", subsystemName);
     for (uint8_t i = 0; i < progressBarWidth; i++)
         systemWrite(i < filled ? '#' : '-');
 
