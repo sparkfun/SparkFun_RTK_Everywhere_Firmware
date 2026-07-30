@@ -153,8 +153,48 @@ int otaCompareVersions(int localMajor, int localMinor, int localPatch, int local
 //----------------------------------------
 // Display the subsystem
 //----------------------------------------
+void otaDisplayTarget(OTA_TARGET * target)
+{
+    int subsystem = target - &otaTarget[0];
+
+    // Display the firmware update status for this subsystem
+    target = &otaTarget[subsystem];
+    systemPrintln("=================================================");
+    systemPrintf("%s: %s\r\n", otaSubsystem[subsystem],
+                 otaGetRequestNameFromRequestType(target->_requestType));
+
+    systemPrintf("%d.%d.%d.%d%s",
+                 target->_localVersion[0], target->_localVersion[1],
+                 target->_localVersion[2], target->_localVersion[3],
+                 target->_localVersion[4] ? " (debug build)" : "");
+
+    if ((target->_requestType != OTA_REQUEST_SKIP_UPDATE) && target->_url)
+        systemPrintf(" --> %d.%d.%d.%d%s",
+                     target->_remoteVersion[0], target->_remoteVersion[1],
+                     target->_remoteVersion[2], target->_remoteVersion[3],
+                     target->_remoteVersion[4] ? " (debug build)" : "");
+    systemPrintln();
+    systemPrintf("Cert: %s\r\n", getCertName(target->_cert));
+    systemPrintf("URL: %s\r\n", target->_url ? target->_url : "None");
+    if ((target->_requestType != OTA_REQUEST_SKIP_UPDATE) && target->_url)
+    {
+        systemPrintf("File bytes: %d (0x%08x)\r\n", target->_fileBytes, target->_fileBytes);
+        systemPrintf("CRC: 0x%08x\r\n", target->_crc);
+    }
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+    {
+        systemPrintf("subsystem; %p\r\n", subsystem);
+        systemPrintf("target; %p\r\n", target);
+        systemPrintf("subsystemInfo; %p\r\n", &otaSubsystemInfoTable[subsystem]);
+    }
+}
+
+//----------------------------------------
+// Display the subsystem
+//----------------------------------------
 void otaDisplayTargets()
 {
+    bool displayed;
     OTA_SUBSYSTEM_MASK productSubsystems;
     OTA_TARGET * target;
 
@@ -163,39 +203,25 @@ void otaDisplayTargets()
         return;
 
     // Display each of the targets for this platform
+    displayed = false;
     productSubsystems = otaGetProductSubsystemSupport();
     for (int subsystem = 0; subsystem < OTA_SUBSYSTEM_MAX; subsystem++)
     {
         if ((productSubsystems & otaGetSubsystemMaskFromSubsystem(subsystem)) == 0)
             continue;
 
-        // Display the firmware update status for this subsystem
+        // Skip over invalid entries
         target = &otaTarget[subsystem];
-        systemPrintln("=================================================");
-        systemPrintf("%s: %s\r\n", otaSubsystem[subsystem],
-                     otaGetRequestNameFromRequestType(target->_requestType));
+        if ((target->_url == nullptr) && (target->_requestType != OTA_REQUEST_SKIP_UPDATE))
+            continue;
 
-        systemPrintf("%d.%d.%d.%d%s",
-                     target->_localVersion[0], target->_localVersion[1],
-                     target->_localVersion[2], target->_localVersion[3],
-                     target->_localVersion[4] ? " (debug build)" : "");
-
-        if ((target->_requestType != OTA_REQUEST_SKIP_UPDATE) && target->_url)
-            systemPrintf(" --> %d.%d.%d.%d%s",
-                         target->_remoteVersion[0], target->_remoteVersion[1],
-                         target->_remoteVersion[2], target->_remoteVersion[3],
-                         target->_remoteVersion[4] ? " (debug build)" : "");
-        systemPrintln();
-        systemPrintf("Cert: %s\r\n", getCertName(target->_cert));
-        systemPrintf("URL: %s\r\n", target->_url ? target->_url : "None");
-        if ((target->_requestType != OTA_REQUEST_SKIP_UPDATE) && target->_url)
-        {
-            systemPrintf("File bytes: %d (0x%08x)\r\n", target->_fileBytes, target->_fileBytes);
-            systemPrintf("CRC: 0x%08x\r\n", target->_crc);
-        }
+        // Display the firmware update status for this subsystem
+        otaDisplayTarget(&otaTarget[subsystem]);
+        displayed = true;
     }
 
-    systemPrintln("=================================================");
+    if (displayed)
+        systemPrintln("=================================================");
 }
 
 //----------------------------------------
