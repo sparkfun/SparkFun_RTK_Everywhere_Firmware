@@ -1482,7 +1482,7 @@ extern const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[] =
 
     // LoRa devices
 #ifdef  COMPILE_LORA
-    {RTK_ALL,       OTA_SUBSYSTEM_LORA,     &present.radio_lora,    loraGetVersion,     nullptr,                nullptr,                256,                false,      "lora/stm32wl",    otaGithubRaw,   otaRawBranch},
+    {RTK_ALL,       OTA_SUBSYSTEM_LORA,     &present.radio_lora,    loraGetVersion,     nullptr,                stm32StreamFirmware,    256,                false,      "/lora/stm32wl",   otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_LORA
 
     // IMU devices
