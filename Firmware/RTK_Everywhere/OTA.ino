@@ -56,6 +56,7 @@ const char * otaRawBranch = "/main";
 static uint8_t * otaCsvFileData;
 static uint32_t otaLastUpdateCheck;
 static uint8_t otaState;
+static OTA_SUBSYSTEM_MASK otaUpdatesFound;
 
 //----------------------------------------
 // Cleanup after running the updates
@@ -68,6 +69,7 @@ void otaCleanup(bool keepTargets)
     if (keepTargets == false)
     {
         // Release the targets
+        otaUpdatesFound = 0;
         for (int subsysstemIndex = 0; subsysstemIndex < OTA_SUBSYSTEM_MAX; subsysstemIndex++)
         {
             target = &otaTarget[subsysstemIndex];
@@ -174,7 +176,6 @@ void otaDisplayTarget(OTA_TARGET * target)
                      target->_remoteVersion[2], target->_remoteVersion[3],
                      target->_remoteVersion[4] ? " (debug build)" : "");
     systemPrintln();
-    systemPrintf("Cert: %s\r\n", getCertName(target->_cert));
     systemPrintf("URL: %s\r\n", target->_url ? target->_url : "None");
     if ((target->_requestType != OTA_REQUEST_SKIP_UPDATE) && target->_url)
     {
@@ -292,12 +293,12 @@ uint8_t otaGetRequestTypeFromSubsystem(uint8_t subsystem)
 //----------------------------------------
 // Get the required updates
 //----------------------------------------
-bool otaGetRequiredUpdates(const char * fileData,
-                           size_t fileBytes,
-                           int fieldCount,
-                           int lineCount,
-                           bool debug,
-                           bool verbose)
+OTA_SUBSYSTEM_MASK otaGetRequiredUpdates(const char * fileData,
+                                         size_t fileBytes,
+                                         int fieldCount,
+                                         int lineCount,
+                                         bool debug,
+                                         bool verbose)
 {
     const char * buffer;
     const char * bufferEnd;
@@ -313,12 +314,11 @@ bool otaGetRequiredUpdates(const char * fileData,
     int revision;
     const char * subsystem;
     OTA_TARGET * target;
-    bool urlSet;
+    OTA_SUBSYSTEM_MASK updatesFound;
     int versionDelta;
 
     // Walk the list of subsystems
-    urlSet = false;
-    otaTargetCount = 0;
+    updatesFound = 0;
     for (int8_t subsystemIndex = 0; subsystemIndex < OTA_SUBSYSTEM_MAX; subsystemIndex++)
     {
         productSubsystem = otaSubsystem[subsystemIndex];
@@ -383,10 +383,10 @@ bool otaGetRequiredUpdates(const char * fileData,
                             systemPrintf("%s release candidate firmware found\r\n", subsystem);
 
                         // Save the URL for the update
-                        otaGetUrlAndCert(target, subsystemInfo, csvGetField(fileData,
-                                                                            fieldCount,
-                                                                            buffer,
-                                                                            "file_name"));
+                        otaGetUrl(target, subsystemInfo, csvGetField(fileData,
+                                                                     fieldCount,
+                                                                     buffer,
+                                                                     "file_name"));
                         target->_fileBytes = csvGetNumber(fileData, fieldCount, buffer, "file_bytes");
                         target->_crc = csvGetNumber(fileData, fieldCount, buffer, "file_crc32");
 
@@ -396,7 +396,7 @@ bool otaGetRequiredUpdates(const char * fileData,
                         target->_remoteVersion[2] = patch;
                         target->_remoteVersion[3] = revision;
                         target->_remoteVersion[4] = releaseCandidate;
-                        urlSet = true;
+                        updatesFound |= otaGetSubsystemMaskFromSubsystem(subsystemInfo->_subsystem);
                         break;
                     }
                     if (debug && verbose)
@@ -475,12 +475,13 @@ bool otaGetRequiredUpdates(const char * fileData,
             if (target->_requestType != OTA_REQUEST_SKIP_UPDATE)
             {
                 // Save the URL for the update
-                otaGetUrlAndCert(target, subsystemInfo, csvGetField(fileData,
-                                                                    fieldCount,
-                                                                    buffer,
-                                                                    "file_name"));
+                otaGetUrl(target, subsystemInfo, csvGetField(fileData,
+                                                             fieldCount,
+                                                             buffer,
+                                                             "file_name"));
                 target->_fileBytes = csvGetNumber(fileData, fieldCount, buffer, "file_bytes");
                 target->_crc = csvGetNumber(fileData, fieldCount, buffer, "file_crc32");
+                updatesFound |= otaGetSubsystemMaskFromSubsystem(subsystemInfo->_subsystem);
             }
 
             // Save the new firmware version
@@ -489,10 +490,9 @@ bool otaGetRequiredUpdates(const char * fileData,
             target->_remoteVersion[2] = patch;
             target->_remoteVersion[3] = revision;
             target->_remoteVersion[4] = releaseCandidate;
-            urlSet = true;
         }
     }
-    return urlSet;
+    return updatesFound;
 }
 
 //----------------------------------------
@@ -538,22 +538,31 @@ OTA_SUBSYSTEM_MASK otaGetSubsystemMaskFromSubsystem(uint8_t subsystem)
 //----------------------------------------
 // Get the URL and CERT for the link in the CSV file
 //----------------------------------------
-void otaGetUrlAndCert(OTA_TARGET * target,
-                      const OTA_SUBSYSTEM_INFO * subsystemInfo,
-                      const char * fileName)
+void otaGetUrl(OTA_TARGET * target,
+               const OTA_SUBSYSTEM_INFO * subsystemInfo,
+               const char * fileName)
 {
     char * buffer;
     const char * cert;
     const char * url;
     String urlString;
 
-    cert = nullptr;
+    // Free any previous URL value
+    if (target->_url)
+    {
+        rtkFree(target->_url, "Target URL");
+        target->_url = nullptr;
+    }
+
+    // Handle CSV file without file_name field
+    if (fileName == nullptr)
+        return;
+
+    // Determine the new value
     if ((strncmp("http:", fileName, 5) == 0) || (strncmp("https:", fileName, 6) == 0))
-        url = fileName;
+        urlString = fileName;
     else
     {
-        target->_cert = subsystemInfo->_cert;
-
         // https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries
         // /main
         // /imu/im19
@@ -566,15 +575,19 @@ void otaGetUrlAndCert(OTA_TARGET * target,
         urlString += subsystemInfo->_directory;
         urlString += "/";
         urlString += fileName;
-
-        // Allocate a buffer for the URL
-        buffer = (char *)rtkMalloc(urlString.length() + 1, "Target URL");
-        target->_url = buffer;
-        if (buffer == nullptr)
-            systemPrintf("Failed to allocate URL buffer for %s\r\n", otaSubsystem[subsystemInfo->_subsystem]);
-        else
-            strcpy(buffer, urlString.c_str());
     }
+
+    // Allocate a buffer for the URL
+    buffer = (char *)rtkMalloc(urlString.length() + 1, "Target URL");
+    if (buffer == nullptr)
+    {
+        systemPrintf("Failed to allocate URL buffer for %s\r\n", otaSubsystem[subsystemInfo->_subsystem]);
+        return;
+    }
+
+    // Save the URL value
+    strcpy(buffer, urlString.c_str());
+    target->_url = buffer;
 }
 
 //----------------------------------------
@@ -800,12 +813,12 @@ const char *otaStateNameGet(uint8_t state, char *string)
 //----------------------------------------
 void otaUpdate()
 {
+    const char * cert;
     bool connected;
     static uint32_t connectTimer = 0;
-    size_t fileBytes;
     int fieldCount;
+    size_t fileBytes;
     int lineCount;
-    bool updatesFound;
 
     // Check if we need a scheduled check
     connected = networkConsumerIsConnected(NETCONSUMER_OTA_CLIENT);
@@ -903,8 +916,9 @@ void otaUpdate()
                 systemPrintln("Creating list of subsystems to update");
 
             // Get CVS file listing the firmware for this system
-            if (csvOpenCsvFile(csvUrl,
-                               nullptr,
+            cert = otaGetCert(settings.csvUrl);
+            if (csvOpenCsvFile(settings.csvUrl,
+                               cert,
                                &otaCsvFileData,
                                &fileBytes,
                                &fieldCount,
@@ -925,17 +939,18 @@ void otaUpdate()
             // Reduce this list based upon the requested updates, version
             // number checks and the order of entries found in the CSV file
             // to a list of URLs
-            updatesFound = otaGetRequiredUpdates((const char *)otaCsvFileData,
-                                                 fileBytes,
-                                                 fieldCount,
-                                                 lineCount,
-                                                 settings.debugFirmwareUpdate,
-                                                 otaDebugVerbose);
+            otaUpdatesFound = otaGetRequiredUpdates((const char *)otaCsvFileData,
+                                                    fileBytes,
+                                                    fieldCount,
+                                                    lineCount,
+                                                    settings.debugFirmwareUpdate,
+                                                    otaDebugVerbose);
+
             // Display the targets
             otaDisplayTargets();
 
             // Done if no updates found
-            if (updatesFound == false)
+            if (otaUpdatesFound == 0)
             {
                 // Nothing to update
                 if (settings.debugFirmwareUpdate)
@@ -1206,32 +1221,32 @@ void otaVerifyTables()
 // OTA product subsystem support table
 extern const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[] =
 {
-    // Variant      subsystem               present                 getVersion          streamFirmware          packetBytes         rcSupport   directory          certificate     server          branch
-    {RTK_ALL,       OTA_SUBSYSTEM_ESP32,    nullptr,                otaEsp32GetVersion, nullptr,                OTA_BUFFER_BYTES,   true,       "",                otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+    // Variant      subsystem               present                 getVersion          streamFirmware          packetBytes         rcSupport   directory          server          branch
+    {RTK_ALL,       OTA_SUBSYSTEM_ESP32,    nullptr,                otaEsp32GetVersion, nullptr,                OTA_BUFFER_BYTES,   true,       "",                otaGithubRaw,   otaRawBranch},
 
     // GNSS devices
 #ifdef  COMPILE_LG290P
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_lg290p,   gnssGetVersion,     nullptr,                256,                false,      "/gnss/lg290p",    otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_lg290p,   gnssGetVersion,     nullptr,                256,                false,      "/gnss/lg290p",    otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_LG290P
 #ifdef  COMPILE_MOSAICX5
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_mosaicX5, gnssGetVersion,     nullptr,                256,                false,      "/gnss/mosaic-x5", otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_mosaicX5, gnssGetVersion,     nullptr,                256,                false,      "/gnss/mosaic-x5", otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_MOSAICX5
 #ifdef  COMPILE_UM980
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_um980,    gnssGetVersion,     nullptr,                256,                false,      "/gnss/um980",     otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_um980,    gnssGetVersion,     nullptr,                256,                false,      "/gnss/um980",     otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_UM980
 #ifdef  COMPILE_ZED
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedf9p,   gnssGetVersion,     nullptr,                256,                false,      "/gnss/zed-f9p",   otaGhRawCert,   otaGithubRaw,   otaRawBranch},
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedx20p,  gnssGetVersion,     nullptr,                256,                false,      "/gnss/zed-x20p",  otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedf9p,   gnssGetVersion,     nullptr,                256,                false,      "/gnss/zed-f9p",   otaGithubRaw,   otaRawBranch},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedx20p,  gnssGetVersion,     nullptr,                256,                false,      "/gnss/zed-x20p",  otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_ZED
 
     // LoRa devices
 #ifdef  COMPILE_LORA
-    {RTK_ALL,       OTA_SUBSYSTEM_LORA,     &present.radio_lora,    loraGetVersion,     nullptr,                256,                false,      "lora/stm32wl",    otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+    {RTK_ALL,       OTA_SUBSYSTEM_LORA,     &present.radio_lora,    loraGetVersion,     nullptr,                256,                false,      "lora/stm32wl",    otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_LORA
 
     // IMU devices
 #ifdef  COMPILE_IM19_IMU
-    {RTK_ALL,       OTA_SUBSYSTEM_IMU,      &present.imu_im19,      tiltGetVersion,     nullptr,                256,                false,      "/imu/im19",       otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+    {RTK_ALL,       OTA_SUBSYSTEM_IMU,      &present.imu_im19,      tiltGetVersion,     nullptr,                256,                false,      "/imu/im19",       otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_IM19_IMU
 };
 const int otaSubsystemInfoTableEntries = sizeof(otaSubsystemInfoTable)

@@ -75,7 +75,6 @@ typedef struct _OTA_SUBSYSTEM_INFO
     size_t _packetBytes;
     bool _rcSupport;
     const char * _directory;
-    const char * _cert;     // Certificate for the server
     const char * _server;   // Server name
     const char * _branch;   // Branch name
 } OTA_SUBSYSTEM_INFO;
@@ -90,7 +89,6 @@ extern const int otaSubsystemInfoTableEntries;
 typedef struct _OTA_TARGET
 {
     char * _url;            // URL built from file name or URL in CSV file
-    const char * _cert;     // Certificate for the web server
     size_t _fileBytes;      // File size
     uint32_t _crc;          // CRC
     uint8_t _requestType;   // Type of request for this subssystem
