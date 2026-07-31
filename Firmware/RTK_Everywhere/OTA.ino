@@ -1463,7 +1463,7 @@ void otaVerifyTables()
 extern const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[] =
 {
     // Variant      subsystem               present                 getVersion          firmwareUpdate          streamFirmware          packetBytes         rcSupport   directory          server          branch
-    {RTK_ALL,       OTA_SUBSYSTEM_ESP32,    nullptr,                otaEsp32GetVersion, nullptr,                nullptr,                OTA_BUFFER_BYTES,   true,       "",                otaGithubRaw,   otaRawBranch},
+    {RTK_ALL,       OTA_SUBSYSTEM_ESP32,    nullptr,                otaEsp32GetVersion, nullptr,                otaEsp32StreamFirmware, OTA_BUFFER_BYTES,   true,       "",                otaGithubRaw,   otaRawBranch},
 
     // GNSS devices
 #ifdef  COMPILE_LG290P
