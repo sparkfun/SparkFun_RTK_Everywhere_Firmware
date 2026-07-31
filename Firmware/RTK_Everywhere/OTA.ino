@@ -18,7 +18,6 @@ enum OtaState
     OTA_STATE_GET_SYSTEMS_TO_UPDATE,
     OTA_STATE_UPDATE_FIRMWARE_IM19,
     OTA_STATE_UPDATE_FIRMWARE_UM980,
-    OTA_STATE_UPDATE_FIRMWARE_MX5,
     OTA_STATE_UPDATE_FIRMWARE_X20P,
     OTA_STATE_UPDATE_FIRMWARE,
     OTA_STATE_REBOOT,
@@ -32,7 +31,6 @@ static const char *const otaStateNames[] = {"OTA_STATE_OFF",
                                             "OTA_STATE_GET_SYSTEMS_TO_UPDATE",
                                             "OTA_STATE_UPDATE_FIRMWARE_IM19",
                                             "OTA_STATE_UPDATE_FIRMWARE_UM980",
-                                            "OTA_STATE_UPDATE_FIRMWARE_MX5",
                                             "OTA_STATE_UPDATE_FIRMWARE_X20P",
                                             "OTA_STATE_UPDATE_FIRMWARE",
                                             "OTA_STATE_REBOOT"};
@@ -1279,19 +1277,10 @@ void otaUpdate()
 
         case OTA_STATE_UPDATE_FIRMWARE_UM980:
             if (present.gnss_um980 == false || otaSubsystemFilePath('G') == nullptr)
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_MX5);
-
-            // Currently there is no update path. Move on
-            systemPrintln("No UM980 update path, moving on");
-            otaSetState(OTA_STATE_UPDATE_FIRMWARE_MX5);
-            break;
-
-        case OTA_STATE_UPDATE_FIRMWARE_MX5:
-            if (present.gnss_mosaicX5 == false || otaSubsystemFilePath('G') == nullptr)
                 otaSetState(OTA_STATE_UPDATE_FIRMWARE_X20P);
 
             // Currently there is no update path. Move on
-            systemPrintln("No mosaic-X5 update path, moving on");
+            systemPrintln("No UM980 update path, moving on");
             otaSetState(OTA_STATE_UPDATE_FIRMWARE_X20P);
             break;
 
