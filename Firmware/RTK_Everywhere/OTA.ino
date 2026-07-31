@@ -18,7 +18,6 @@ enum OtaState
     OTA_STATE_GET_SYSTEMS_TO_UPDATE,
     OTA_STATE_UPDATE_FIRMWARE_IM19,
     OTA_STATE_UPDATE_FIRMWARE_UM980,
-    OTA_STATE_UPDATE_FIRMWARE_LG290P,
     OTA_STATE_UPDATE_FIRMWARE_MX5,
     OTA_STATE_UPDATE_FIRMWARE_X20P,
     OTA_STATE_UPDATE_FIRMWARE,
@@ -33,7 +32,6 @@ static const char *const otaStateNames[] = {"OTA_STATE_OFF",
                                             "OTA_STATE_GET_SYSTEMS_TO_UPDATE",
                                             "OTA_STATE_UPDATE_FIRMWARE_IM19",
                                             "OTA_STATE_UPDATE_FIRMWARE_UM980",
-                                            "OTA_STATE_UPDATE_FIRMWARE_LG290P",
                                             "OTA_STATE_UPDATE_FIRMWARE_MX5",
                                             "OTA_STATE_UPDATE_FIRMWARE_X20P",
                                             "OTA_STATE_UPDATE_FIRMWARE",
@@ -1281,19 +1279,10 @@ void otaUpdate()
 
         case OTA_STATE_UPDATE_FIRMWARE_UM980:
             if (present.gnss_um980 == false || otaSubsystemFilePath('G') == nullptr)
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_LG290P);
-
-            // Currently there is no update path. Move on
-            systemPrintln("No UM980 update path, moving on");
-            otaSetState(OTA_STATE_UPDATE_FIRMWARE_LG290P);
-            break;
-
-        case OTA_STATE_UPDATE_FIRMWARE_LG290P:
-            if (present.gnss_lg290p == false || otaSubsystemFilePath('G') == nullptr)
                 otaSetState(OTA_STATE_UPDATE_FIRMWARE_MX5);
 
             // Currently there is no update path. Move on
-            systemPrintln("No LG290P update path, moving on");
+            systemPrintln("No UM980 update path, moving on");
             otaSetState(OTA_STATE_UPDATE_FIRMWARE_MX5);
             break;
 
