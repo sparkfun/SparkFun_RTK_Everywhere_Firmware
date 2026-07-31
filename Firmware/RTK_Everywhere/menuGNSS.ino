@@ -39,7 +39,7 @@ void menuGNSS()
                 "      Note: The message intervals / rates are set using the \"Configure GNSS Messages\" menu.");
         }
 
-        if (present.dynamicModel) // ZED, mosaic, UM980 have dynamic models. LG290P does not.
+        if (present.dynamicModel) // ZED, mosaic, UM980 have dynamic models. LG290P does from firmware v2.01.
         {
             systemPrint("3) Set dynamic model: ");
             if (present.gnss_zedf9p)
@@ -138,7 +138,6 @@ void menuGNSS()
                 systemPrintln();
             }
 
-#ifdef COMPILE_UM980
             else if (present.gnss_um980)
             {
                 switch (settings.dynamicModel)
@@ -146,6 +145,7 @@ void menuGNSS()
                 default:
                     systemPrint("Unknown");
                     break;
+#ifdef COMPILE_UM980
                 case UM980_DYN_MODEL_SURVEY:
                     systemPrint("Survey");
                     break;
@@ -155,10 +155,10 @@ void menuGNSS()
                 case UM980_DYN_MODEL_AUTOMOTIVE:
                     systemPrint("Automotive");
                     break;
+#endif // COMPILE_UM980
                 }
                 systemPrintln();
             }
-#endif // COMPILE_UM980
 
             else if (present.gnss_mosaicX5)
             {
@@ -167,6 +167,7 @@ void menuGNSS()
                 default:
                     systemPrint("Unknown");
                     break;
+#ifdef COMPILE_MOSAICX5
                 case MOSAIC_DYN_MODEL_STATIC:
                 case MOSAIC_DYN_MODEL_QUASISTATIC:
                 case MOSAIC_DYN_MODEL_PEDESTRIAN:
@@ -177,6 +178,26 @@ void menuGNSS()
                 case MOSAIC_DYN_MODEL_UNLIMITED:
                     systemPrint(mosaicReceiverDynamics[settings.dynamicModel].humanName);
                     break;
+#endif // COMPILE_MOSAICX5
+                }
+                systemPrintln();
+            }
+
+            else if (present.gnss_lg290p)
+            {
+                switch (settings.dynamicModel)
+                {
+                default:
+                    systemPrint("Unknown");
+                    break;
+#ifdef COMPILE_LG290P
+                case LG290P_NAV_MODE_NORMAL:
+                case LG290P_NAV_MODE_DYNAMIC:
+                case LG290P_NAV_MODE_MOWER:
+                case LG290P_NAV_MODE_AGRICULTURE:
+                    systemPrint(lg290pGetNavModeNameFromModel(settings.dynamicModel));
+                    break;
+#endif // COMPILE_LG290P
                 }
                 systemPrintln();
             }
@@ -302,6 +323,12 @@ void menuGNSS()
                 for (int i = 0; i < MAX_MOSAIC_RX_DYNAMICS; i++)
                     systemPrintf("%d) %s\r\n", i + 1, mosaicReceiverDynamics[i].humanName);
             }
+            else if (present.gnss_lg290p)
+            {
+                systemPrintln("Enter the dynamic model to use: ");
+                for (int i = 0; i < MAX_LG290P_NAV_MODES; i++)
+                    systemPrintf("%d) %s\r\n", i + 1, lg290pNavModes[i].name);
+            }
 
             int dynamicModel = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((dynamicModel != INPUT_RESPONSE_GETNUMBER_EXIT) && (dynamicModel != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
@@ -347,6 +374,20 @@ void menuGNSS()
 
                         gnssConfigure(GNSS_CONFIG_MODEL); // Request receiver to use new settings
                     }
+                }
+                else if (present.gnss_lg290p)
+                {
+#ifdef COMPILE_LG290P
+                    if (dynamicModel < 1 || dynamicModel > MAX_LG290P_NAV_MODES)
+                        systemPrintln("Error: Dynamic model out of range");
+                    else
+                    {
+                        dynamicModel -= 1;                    // Align to 0 to MAX_LG290P_NAV_MODES - 1
+                        settings.dynamicModel = lg290pNavModes[dynamicModel].navMode; // Recorded to NVM and file at main menu exit
+
+                        gnssConfigure(GNSS_CONFIG_MODEL); // Request receiver to use new settings
+                    }
+#endif // COMPILE_LG290P
                 }
             }
         }

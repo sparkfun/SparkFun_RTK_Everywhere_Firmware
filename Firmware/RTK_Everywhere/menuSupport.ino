@@ -214,6 +214,12 @@ void checkGNSSArrayDefaults()
 #ifdef COMPILE_LG290P
     else if (present.gnss_lg290p)
     {
+        if (settings.dynamicModel == 254)
+        {
+            defaultsApplied = true;
+            settings.dynamicModel = LG290P_NAV_MODE_NORMAL; // Requires firmware >= 2.01
+        }
+
         if (settings.enableExtCorrRadio == 254)
         {
             defaultsApplied = true;

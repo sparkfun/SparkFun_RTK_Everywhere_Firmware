@@ -1383,14 +1383,82 @@ const uint8_t DynamicModel_10_Bike[] = {0x00, 0x80, 0x40, 0x50, 0x90, 0xB0, 0xC0
                                         0x98, 0x4C, 0x4C, 0x80, 0x00, 0x00, 0x01, 0x02, 0x02, 0x01,
                                         0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x02, 0x01, 0x00};
 
+/*
+    DynamicModel_11_Mower [15, 12]
+
+                      1
+             123456789012345
+            .---------------.
+        0x01|**             |
+        0x02| **            |
+        0x04|  **    ****   |
+        0x08|   **    **    |
+        0x10|    **  ****   |
+        0x20|     ** *  *   |
+        0x40|      *******  |
+        0x80|  ************ |
+        0x01|  *          * |
+        0x02|  ************ |
+        0x04|   * *    * *  |
+        0x08|   ***    ***  |
+            '---------------'
+*/
+
 const uint8_t DynamicModel_11_Mower[] = {
     0x01, 0x03, 0x86, 0x8C, 0x98, 0xB0, 0xE0, 0xC0, 0xF4, 0xDC, 0xDC, 0xF4, 0xC0, 0x80, 0x00,
     0x00, 0x00, 0x03, 0x0E, 0x0A, 0x0E, 0x02, 0x02, 0x02, 0x02, 0x0E, 0x0A, 0x0E, 0x03, 0x00,
 };
 
+/*
+    DynamicModel_12_EScooter [15, 12]
+
+                      1
+             123456789012345
+            .---------------.
+        0x01|       ****    |
+        0x02|      * ** *   |
+        0x04|        **     |
+        0x08|        **     |
+        0x10|        **     |
+        0x20|        **     |
+        0x40|        **     |
+        0x80| **     **     |
+        0x01| ************  |
+        0x02| ************  |
+        0x04|  * *    * *   |
+        0x08|  ***    ***   |
+            '---------------'
+*/
+
 const uint8_t DynamicModel_12_EScooter[] = {
     0x00, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0xFF, 0xFF, 0x01, 0x02, 0x00, 0x00,
     0x00, 0x03, 0x0F, 0x0B, 0x0F, 0x03, 0x03, 0x03, 0x03, 0x0F, 0x0B, 0x0F, 0x03, 0x00, 0x00,
+};
+
+/*
+    DynamicModel_Tractor [15, 12]
+
+                      1
+             123456789012345
+            .---------------.
+        0x01|               |
+        0x02| ******        |
+        0x04| *     *       |
+        0x08| *     *       |
+        0x10|*       *******|
+        0x20|* ***         *|
+        0x40|**   *     ** *|
+        0x80| *   ******  * |
+        0x01| *   *    *  * |
+        0x02|  ***      **  |
+        0x04|               |
+        0x08|               |
+            '---------------'
+*/
+
+const uint8_t DynamicModel_Tractor[] = {
+    0x70, 0xCE, 0x22, 0x22, 0x22, 0xC2, 0x82, 0x8C, 0x90, 0x90, 0x90, 0x50, 0x50, 0x90, 0x70,
+    0x00, 0x01, 0x02, 0x02, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x02, 0x01, 0x00,
 };
 
 /*
@@ -1961,6 +2029,8 @@ const iconProperties DynamicModel_11_Properties = {{{ &DynamicModel_11_Mower, Dy
                                                     { &DynamicModel_11_Mower, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
 const iconProperties DynamicModel_12_Properties = {{{ &DynamicModel_12_EScooter, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
                                                    { &DynamicModel_12_EScooter, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
+const iconProperties DynamicModel_Tractor_Props = {{{ &DynamicModel_Tractor, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
+                                                    { &DynamicModel_Tractor, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
 
 const uint8_t BaseIconXPos64x48 = 28;
 const uint8_t BaseIconYPos64x48 = 0;
