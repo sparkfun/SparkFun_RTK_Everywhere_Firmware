@@ -590,9 +590,15 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
         systemPrintf("r) Change RC Firmware JSON URL: %s\r\n", otaRcFirmwareJsonUrl);
         systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
         systemPrintf("D) %s firmware debugging\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
+        if (otaEsp32AreFirmwareWritesSupported())
+            systemPrintf("E) ESP32: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_ESP32));
+        if (platformDevices & OTA_DEVICE_GNSS)
+            systemPrintf("G) GNSS: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_GNSS));
+        if (platformDevices & OTA_DEVICE_IMU)
+            systemPrintf("I) IMU: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_IMU));
+        if (platformDevices & OTA_DEVICE_LORA)
+            systemPrintf("L) LoRa: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_LORA));
         systemPrintf("O) Update firmware on one subsystem\r\n");
-        if (settings.debugFirmwareUpdate)
-            systemPrintf("V) %s verbose firmware debugging\r\n", otaDebugVerbose ? "Disable" : "Enable");
     }
 
     // Allow user to initiate a firmware update without checking for new firmware first
@@ -606,14 +612,27 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
                      (otaTargetCount == 1) ? "" : "s",
                      otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
 
-    if (otaEsp32AreFirmwareWritesSupported())
-        systemPrintf("1) ESP32: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_ESP32));
-    if (platformDevices & OTA_DEVICE_GNSS)
-        systemPrintf("2) GNSS: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_GNSS));
-    if (platformDevices & OTA_DEVICE_LORA)
-        systemPrintf("3) LoRa: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_LORA));
-    if (platformDevices & OTA_DEVICE_IMU)
-        systemPrintf("4) IMU: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_IMU));
+    if (developerOptions && settings.debugFirmwareUpdate)
+            systemPrintf("V) %s verbose firmware debugging\r\n", otaDebugVerbose ? "Disable" : "Enable");
+}
+
+//----------------------------------------
+// Set the next subsystem request type
+//----------------------------------------
+void otaMenuNextSubsystemRequestType(uint8_t subsystemIndex)
+{
+    // Set the next value for this subsystem
+    OTA_TARGET * target = &otaTarget[subsystemIndex];
+    const OTA_SUBSYSTEM_INFO * subsystemInfo = &otaSubsystemInfoTable[subsystemIndex];
+    target->_requestType += 1;
+
+    // Skip release candidate if not supported
+    if ((target->_requestType == OTA_REQUEST_USE_RC) && !subsystemInfo->_rcSupport)
+        target->_requestType += 1;
+
+    // Wrap the value as necessary
+    if (target->_requestType >= OTA_REQUEST_MAX)
+        target->_requestType = 0;
 }
 
 //----------------------------------------
@@ -654,25 +673,6 @@ bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
     else if (incoming == 'u')
         otaRequestFirmwareUpdate ^= 1; // Tell network we need access, and otaUpdate() that we want to update
 
-    else if (((incoming >= 1) && (incoming <= 4)) // Check for legal subsystem
-        && ((incoming != 1) || otaEsp32AreFirmwareWritesSupported()) // ESP32 requires second APP partition
-        && ((incoming == 1) || (platformDevices & (1 << (incoming - 1))))) // Check for subsystem on product
-    {
-        // Set the next value for this subsystem
-        uint8_t subsystemIndex = incoming - 1;
-        OTA_TARGET * target = &otaTarget[subsystemIndex];
-        const OTA_SUBSYSTEM_INFO * subsystemInfo = &otaSubsystemInfoTable[subsystemIndex];
-        target->_requestType += 1;
-
-        // Skip release candidate if not supported
-        if ((target->_requestType == OTA_REQUEST_USE_RC) && !subsystemInfo->_rcSupport)
-            target->_requestType += 1;
-
-        // Wrap the value as necessary
-        if (target->_requestType >= OTA_REQUEST_MAX)
-            target->_requestType = 0;
-    }
-
     // Toggle firmware debugging
     else if (developerOptions && (incoming == 'D'))
     {
@@ -680,6 +680,18 @@ bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
         if (settings.debugFirmwareUpdate == false)
             otaDebugVerbose = false;
     }
+
+    else if (developerOptions && (incoming == 'E') && otaEsp32AreFirmwareWritesSupported()) // ESP32 requires second APP partition
+        otaMenuNextSubsystemRequestType(OTA_SUBSYSTEM_ESP32);
+
+    else if (developerOptions && (incoming == 'G') && (platformDevices & OTA_DEVICE_GNSS)) // Check for GNSS on product
+        otaMenuNextSubsystemRequestType(OTA_SUBSYSTEM_GNSS);
+
+    else if (developerOptions && (incoming == 'I') && (platformDevices & OTA_DEVICE_IMU)) // Check for IMU on product
+        otaMenuNextSubsystemRequestType(OTA_SUBSYSTEM_IMU);
+
+    else if (developerOptions && (incoming == 'I') && (platformDevices & OTA_DEVICE_LORA)) // Check for LoRa on product
+        otaMenuNextSubsystemRequestType(OTA_SUBSYSTEM_LORA);
 
     // Perform the device firmware update
     else if (developerOptions && (incoming == 'O'))

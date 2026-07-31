@@ -33,7 +33,7 @@ void firmwareMenu()
         // Display the OTA portion of the menu
         // Note: Use otaMenuDisplay to get a new ESP32 image when the parsing
         // fails in deviceFirmwareUpdate due to server website changes!
-        // Letters: a  c  e  i  r  s  u, 1, 2, 3, 4
+        // Letters: a  c  e  i  r  s  u, D, E, G, I, L, O, V, 1, ... for files
         otaMenuDisplay(subsystemMask, developerOptions, currentVersion);
         systemPrintf("d) %s developer options\r\n", developerOptions ? "Disable" : "Enable");
         systemPrintf("p) Update firmware on all subsystems\r\n");
