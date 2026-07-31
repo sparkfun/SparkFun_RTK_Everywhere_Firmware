@@ -67,13 +67,13 @@ const lg290pMsg lgMessagesRTCM[] = {
     {"RTCM3-111X", 0, 1, 1200, false, 0},    //
     {"RTCM3-112X", 0, 1, 1200, false, 0},    //
     {"RTCM3-113X", 0, 1, 1200, false, 0},    //
-    {"RTCM3-1019", -1, 0, 7200, true, 0},      // Ephemeris: CFGMSGRATE must be 0 or 1; CFGRTCM sets the interval 0-7200
-    {"RTCM3-1020", -1, 0, 7200, true, 0},      //
-    {"RTCM3-1041", -1, 0, 7200, true, 0},      //
-    {"RTCM3-1042", -1, 0, 7200, true, 0},      //
-    {"RTCM3-1044", -1, 0, 7200, true, 0},      //
-    {"RTCM3-1046", -1, 0, 7200, true, 0},      //
-    {"RTCM3-1230", -1, 0, 7200, true, 201},    // Added in v1.2.0 spec. Firmware v2.1 and above.
+    {"RTCM3-1019", -1, 0, 7200, true, 0},    // Ephemeris: CFGMSGRATE must be 0 or 1; CFGRTCM sets the interval 0-7200
+    {"RTCM3-1020", -1, 0, 7200, true, 0},    //
+    {"RTCM3-1041", -1, 0, 7200, true, 0},    //
+    {"RTCM3-1042", -1, 0, 7200, true, 0},    //
+    {"RTCM3-1044", -1, 0, 7200, true, 0},    //
+    {"RTCM3-1046", -1, 0, 7200, true, 0},    //
+    {"RTCM3-1230", -1, 0, 7200, false, 201}, // Added in v1.2.0 spec. Firmware v2.1 and above. NOT Ephemeris!
 };
 
 // Quectel Proprietary messages
@@ -103,13 +103,36 @@ const lg290pMsg lgMessagesPQTM[] = {
 #define MAX_LG290P_RTCM_MSG (sizeof(lgMessagesRTCM) / sizeof(lg290pMsg))
 #define MAX_LG290P_PQTM_MSG (sizeof(lgMessagesPQTM) / sizeof(lg290pMsg))
 
-enum lg290p_Models
+enum lg290p_NavMode_e
 {
-    // LG290P does not have models
-    LG290P_DYN_MODEL_SURVEY = 0,
-    LG290P_DYN_MODEL_UAV,
-    LG290P_DYN_MODEL_AUTOMOTIVE,
+    // PQTMCFGNAVMODE - added at firmware v2.01
+    // 0 = Normal mode. (Basic mode applied to most scenarios, for example, driving scenario)
+    // 5 = Dynamic flight mode (applied to Dynamic flight mode with equivalent dynamics range
+    //             and vertical acceleration on different flight phase)
+    // 11 = Mower mode (applied to mower application) (*** Default value on LG290P ***)
+    // 14 = Agriculture mode (applied to agriculture application)
+    LG290P_NAV_MODE_NORMAL = 0,
+    LG290P_NAV_MODE_DYNAMIC = 5,
+    LG290P_NAV_MODE_MOWER = 11,
+    LG290P_NAV_MODE_AGRICULTURE = 14,
+
+    LG290P_NUM_NAV_MODES = 4, // Change to match the total number of modes
 };
+
+typedef struct
+{
+    const uint8_t navMode;
+    const char name[15];
+} lg290pNavMode;
+
+const lg290pNavMode lg290pNavModes[] = {
+    {LG290P_NAV_MODE_NORMAL, "Normal"},
+    {LG290P_NAV_MODE_DYNAMIC, "Dynamic"},
+    {LG290P_NAV_MODE_MOWER, "Mower"},
+    {LG290P_NAV_MODE_AGRICULTURE, "Agriculture"},
+};
+
+#define MAX_LG290P_NAV_MODES (sizeof(lg290pNavModes) / sizeof(lg290pNavMode))
 
 class GNSS_LG290P : GNSS
 {

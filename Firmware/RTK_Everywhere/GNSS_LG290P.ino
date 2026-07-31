@@ -166,10 +166,22 @@ void GNSS_LG290P::begin()
         systemPrintln("PPP trial firmware detected. PPP HAS/E6 settings will now be available.");
     }
 
-    // v2.1 officially supports E6 HAS
+    if (lg290pFirmwareVersionInt < 201)
+    {
+        systemPrintf(
+            "Current LG290P firmware: v%d.%d (full form: %s). Galileo E6 HAS and navigation mode require v2.01 or "
+            "newer. "
+            "Please "
+            "update the "
+            "firmware on your LG290P to allow for these features. Please see https://bit.ly/sfe-rtk-lg290p-update\r\n",
+            lg290pFirmwareVersionMajor, lg290pFirmwareVersionMinor, gnssFirmwareVersion);
+    }
+
+    // v2.01 officially supports E6 HAS and navigation mode
     if (lg290pFirmwareVersionInt >= 201)
     {
         present.pppCapable = true;
+        present.dynamicModel = true;
     }
 
     printModuleInfo();
@@ -215,6 +227,7 @@ bool GNSS_LG290P::checkPPPRates()
 
 //----------------------------------------
 // begin() has already established communication. There are no one-time config requirements for the LG290P
+// The dynamic model / navigation mode will be set by gnssConfigure(GNSS_CONFIG_MODEL) as needed
 //----------------------------------------
 bool GNSS_LG290P::configure()
 {
@@ -1524,16 +1537,35 @@ void GNSS_LG290P::menuGnssSpecificConfiguration()
         systemPrintln();
         systemPrintln("Menu: GNSS-Specific Configuration");
 
-        systemPrintf("1) RTK Differential Age: %ds\r\n", settings.lg290pRtkDifferentialAge);
-        systemPrintf("2) RTK Differential Source Type: %s\r\n",
-            settings.lg290pRtkDifferentialSourceType == 0 ? "Auto" :
-            settings.lg290pRtkDifferentialSourceType == 1 ? "Normal" : "Wide Lane");
+        // setRtkDifferentialSourceType fails with firmware 1.05
+        if (lg290pFirmwareVersionInt <= 105)
+            systemPrintln("\r\n*** RTK Differential settings not available. Please upgrade your LG290P firmware ***\r\n");
+        else
+        {
+            systemPrintf("1) RTK Differential Age: %ds\r\n", settings.lg290pRtkDifferentialAge);
+            systemPrintf("2) RTK Differential Source Type: %s\r\n",
+                settings.lg290pRtkDifferentialSourceType == 0 ? "Auto" :
+                settings.lg290pRtkDifferentialSourceType == 1 ? "Normal" : "Wide Lane");
+        }
+
+        // setRtkReliabilityLevel fails with firmware 1.05
+        if (lg290pFirmwareVersionInt <= 105)
+            systemPrintln("\r\n*** RTK Reliability settings not available. Please upgrade your LG290P firmware ***\r\n");
+        else
+        {
+            systemPrintf("3) RTK Reliability Level: %s\r\n",
+                settings.lg290pRtkReliabilityLevel == 1 ? "Very relax" :
+                settings.lg290pRtkReliabilityLevel == 2 ? "Relax" :
+                settings.lg290pRtkReliabilityLevel == 3 ? "Medium" :
+                settings.lg290pRtkReliabilityLevel == 4 ? "Strict" :
+                settings.lg290pRtkReliabilityLevel == 5 ? "Very strict" : "Undefined");
+        }
 
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
-        if (incoming == 1)
+        if ((lg290pFirmwareVersionInt > 105) && (incoming == 1))
         {
             uint16_t newAge = 120;
             if (getNewSetting("Enter RTK Differential Age", 1, 600, &newAge) == INPUT_RESPONSE_VALID)
@@ -1542,10 +1574,17 @@ void GNSS_LG290P::menuGnssSpecificConfiguration()
                 gnssConfigure(GNSS_CONFIG_GNSS_SPECIFIC); // Request receiver to use new settings
             }
         }
-        else if (incoming == 2)
+        else if ((lg290pFirmwareVersionInt > 105) && (incoming == 2))
         {
             settings.lg290pRtkDifferentialSourceType += 1;
             settings.lg290pRtkDifferentialSourceType %= 3;
+            gnssConfigure(GNSS_CONFIG_GNSS_SPECIFIC); // Request receiver to use new settings
+        }
+        else if ((lg290pFirmwareVersionInt > 105) && (incoming == 3))
+        {
+            settings.lg290pRtkReliabilityLevel += 1;
+            if (settings.lg290pRtkReliabilityLevel == 6)
+                settings.lg290pRtkReliabilityLevel = 1;
             gnssConfigure(GNSS_CONFIG_GNSS_SPECIFIC); // Request receiver to use new settings
         }
 
@@ -2121,12 +2160,17 @@ bool GNSS_LG290P::setElevation(uint8_t elevationDegrees)
 //----------------------------------------
 bool GNSS_LG290P::setGnssSpecificConfiguration()
 {
+    // setRtkDifferentialSourceType fails with firmware 1.05
+    if (lg290pFirmwareVersionInt <= 105)
+        return true;
+
     bool response = true;
 
     if (online.gnss)
     {
         response &= _lg290p->setRtkDifferentialAge(settings.lg290pRtkDifferentialAge);
         response &= _lg290p->setRtkDifferentialSourceType(settings.lg290pRtkDifferentialSourceType);
+        response &= _lg290p->setRtkReliabilityLevel(settings.lg290pRtkReliabilityLevel);
     }
 
     gnssConfigure(GNSS_CONFIG_RESET); // Changes require device save/restart
@@ -2714,8 +2758,18 @@ bool GNSS_LG290P::setMessagesRTCMRover()
 //----------------------------------------
 bool GNSS_LG290P::setModel(uint8_t modelNumber)
 {
-    // Not a feature on LG290p
-    return true;
+    // Added with firmware v2.01
+    if (!present.dynamicModel)
+        return true;
+
+    if (online.gnss == false)
+        return (false);
+
+    uint16_t navMode = modelNumber;
+    bool response = _lg290p->setNavMode(navMode, false); // resetAfter = false
+    if (response == true)
+        gnssConfigure(GNSS_CONFIG_RESET); // Reboot receiver to apply changes
+    return response;
 }
 
 //----------------------------------------
@@ -2782,7 +2836,7 @@ bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
                 systemPrintf("Modifying fix interval to %d\r\n", msBetweenSolutions);
 
             // Set the fix interval
-            response &= _lg290p->setFixInterval(msBetweenSolutions);
+            response &= _lg290p->setFixInterval(msBetweenSolutions, false); // resetAfter = false
 
             if (response == true)
                 gnssConfigure(GNSS_CONFIG_RESET); // Reboot receiver to apply changes
@@ -3638,6 +3692,31 @@ uint8_t lg290pGetESP32Port()
         systemPrintln("lg290pGetESP32Port: Uncaught GNSS");
 
     return uart;
+
+  //----------------------------------------
+// Verify tables and index into the tables have the same lengths
+// This routine is called during boot and only continues execution when
+// the table lengths match
+//----------------------------------------
+void lg290pVerifyTables()
+{
+    // Verify the table lengths
+    if (LG290P_NUM_NAV_MODES != MAX_LG290P_NAV_MODES)
+        reportFatalError("Fix lg290p_NavMode_e to match lg290PNavModes");
+}
+
+//----------------------------------------
+// Given a dynamic model, look up its name
+//----------------------------------------
+const char *lg290pGetNavModeNameFromModel(const uint8_t dynamicModel)
+{
+    static const char unknown[] = {"Unknown"};
+    for (uint8_t m = 0; m < MAX_LG290P_NAV_MODES; m++)
+    {
+        if (lg290pNavModes[m].navMode == dynamicModel)
+            return lg290pNavModes[m].name;
+    }
+    return unknown;
 }
 
 #endif // COMPILE_LG290P

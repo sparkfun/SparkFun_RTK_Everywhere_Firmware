@@ -770,6 +770,7 @@ void verifyTables()
     pointPerfectVerifyTables();
     wifiVerifyTables();
     gnssVerifyTables();
+    lg290pVerifyTables();
 
     if (CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");

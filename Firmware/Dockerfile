@@ -79,7 +79,7 @@ RUN arduino-cli lib install "ArduinoMqttClient"@0.1.8
 RUN arduino-cli lib install "SparkFun u-blox PointPerfect Library"@1.11.4
 RUN arduino-cli lib install "SparkFun IM19 IMU Arduino Library"@1.1.1
 RUN arduino-cli lib install "SparkFun UM980 Triband RTK GNSS Arduino Library"@2.0.1
-RUN arduino-cli lib install "SparkFun LG290P Quadband RTK GNSS Arduino Library"@3.0.2
+RUN arduino-cli lib install "SparkFun LG290P Quadband RTK GNSS Arduino Library"@3.1.1
 RUN arduino-cli lib install "SparkFun I2C Expander Arduino Library"@1.0.1
 
 # Install the depends last. See:

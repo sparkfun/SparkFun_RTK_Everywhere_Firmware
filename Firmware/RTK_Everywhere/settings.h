@@ -1190,6 +1190,7 @@ struct Settings
     int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied.
     uint16_t lg290pRtkDifferentialAge = 120; // LG290P only. Sets the max differential age of RTK fix. 1-600s. Default: 120s
     uint16_t lg290pRtkDifferentialSourceType = 0; // LG290P only. 0 = Auto, 1 = Normal, 2 = Wide Lane. Default is Auto.
+    uint16_t lg290pRtkReliabilityLevel = 3; // LG290P only. 1 = Very relax, 2 = Relax, 3 = Medium, 4 = Strict, 5 = Very strict. Default is 3.
 #endif // COMPILE_LG290P
 
     bool debugSettings = false;
@@ -1668,7 +1669,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.gnssHandlerBufferSize, "gnssHandlerBufferSize", nullptr, },
 
     // Rover operation
-    { 1, 1, 0, 1, 1, 1, 0, ALL, 0, _uint8_t,  0, & settings.dynamicModel, "dynamicModel", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.dynamicModel, "dynamicModel", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy", nullptr, },
     { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.minCN0, "minCN0", nullptr, }, // Not inWebConfig - createSettingsString gets from GNSS
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.minElev, "minElev", nullptr, },
@@ -1844,6 +1845,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 0, 0, 1, L29, 1, tLgMRPqtm, MAX_LG290P_PQTM_MSG, & settings.lg290pMessageRatesPQTM, "messageRatePQTM_", gnssCmdUpdateMessageRates, },
     { 1, 1, 0, 0, 0, 0, 1, L29, 1, _uint16_t, 0, & settings.lg290pRtkDifferentialAge, "lg290pRtkDifferentialAge", nullptr, },
     { 1, 1, 0, 0, 0, 0, 1, L29, 1, _uint16_t, 0, & settings.lg290pRtkDifferentialSourceType, "lg290pRtkDifferentialSourceType", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, L29, 1, _uint16_t, 0, & settings.lg290pRtkReliabilityLevel, "lg290pRtkReliabilityLevel", nullptr, },
 #endif  // COMPILE_LG290P
 
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugSettings, "debugSettings", nullptr, },
@@ -1947,7 +1949,7 @@ struct struct_present
     bool multipathMitigation = false; // UM980 has MPM, other platforms do not
     bool minCN0 = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
     bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does on versions >= v5.
-    bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does not.
+    bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does with firmware v2.01.
     bool gpioExpanderSwitches = false; // Used on Facet FP
     bool loraDedicatedUart = false; // Platforms may have a dedicated or shared UART interface to the LoRa radio
 
