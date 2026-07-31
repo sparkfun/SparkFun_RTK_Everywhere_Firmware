@@ -52,8 +52,6 @@ class GNSS
     unsigned long _pvtArrivalMillis;
     bool _pvtUpdated;
 
-    bool _corrRadioExtPortEnabled = false;
-
     unsigned long _autoBaseStartTimer; // Tracks how long the base auto / averaging mode has been running
 
   public:
@@ -272,11 +270,13 @@ class GNSS
     // Date is confirmed once we have GNSS fix
     virtual bool isConfirmedTime();
 
-    // Returns true if data is arriving on the Radio Ext port
-    virtual bool isCorrRadioExtPortActive();
-
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     virtual bool isDgpsFixed();
+
+    // Returns 0 if corrections can not be arriving on the selected port
+    // Returns 1 if corrections are assumed to be arriving on the selected port
+    // Returns 2 if corrections truly are arriving on the selected port
+    virtual int isExternalCorrectionActive(uint8_t port);
 
     // Some functions merely need to know if we have an RTK Float.
     // This function checks to see if the given platform has reached sufficient
@@ -363,9 +363,9 @@ class GNSS
     // Enable all the valid constellations and bands for this platform
     virtual bool setConstellations();
 
-    // Enable / disable corrections protocol(s) on the Radio External port
+    // Enable / disable external corrections protocol(s) on the chosen port
     // Always update if force is true. Otherwise, only update if enable has changed state
-    virtual bool setCorrRadioExtPort(bool enable, bool force);
+    virtual bool setExternalCorrections(uint8_t port, bool enable, bool force, const char *debug = nullptr);
 
     // Set the elevation in degrees
     // Inputs:

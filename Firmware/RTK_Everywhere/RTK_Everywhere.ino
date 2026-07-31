@@ -546,6 +546,8 @@ bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
 #define RTCM_CORRECTION_INPUT_TIMEOUT (2 * 1000)
 #define RTCM_CORRECTION_WRITE_TIMEOUT (3 * 1000)
 
+bool gnssExternalIncomingRtcm; // Incoming RTCM direct to GNSS (Radio Ext - or LoRa on Facet FP)
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Extensible Message Parser

@@ -11,6 +11,11 @@ GNSS_LG290P.h
 
 #include <SparkFun_LG290P_GNSS.h> //http://librarymanager/All#SparkFun_LG290P
 
+// Keep count of the number of RTCM messages received on the correction port
+// so we can tell if the port is receiving corrections
+uint32_t lg290pRTCMCorrectionCountPrevious = 0;
+uint32_t lg290pRTCMCorrectionCountCurrent = 0;
+
 // Constellations monitored/used for fix
 // Available constellations: GPS, BDS, GLO, GAL, QZSS, NavIC
 const char *lg290pConstellationNames[] = {
@@ -133,6 +138,8 @@ class GNSS_LG290P : GNSS
 {
   private:
     LG290P *_lg290p; // Library class instance
+
+    int _externalCorrectionsEnabled[3] = { -1, -1, -1 }; // LG290P has UARTS 1-3
 
   protected:
     bool configureOnce();
@@ -383,11 +390,15 @@ class GNSS_LG290P : GNSS
     // Date is confirmed once we have GNSS fix
     bool isConfirmedTime();
 
-    // Returns true if data is arriving on the Radio Ext port
-    bool isCorrRadioExtPortActive();
-
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed();
+
+    // Returns 0 if corrections can not be arriving on the selected port
+    // Returns 1 if corrections are assumed to be arriving on the selected port
+    // Returns 2 if corrections truly are arriving on the selected port
+    // Firmware < v2.01 will return 0 or 1
+    // Firmware >= v2.01 will return 0 or 2
+    int isExternalCorrectionActive(uint8_t port);
 
     // Some functions merely need to know if we have an RTK Float.
     // This function checks to see if the given platform has reached sufficient
@@ -474,9 +485,9 @@ class GNSS_LG290P : GNSS
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
 
-    // Enable / disable corrections protocol(s) on the Radio External port
+    // Enable / disable external corrections protocol(s) on the chosen port
     // Always update if force is true. Otherwise, only update if enable has changed state
-    bool setCorrRadioExtPort(bool enable, bool force);
+    bool setExternalCorrections(uint8_t port, bool enable, bool force, const char *debug = nullptr);
 
     // Set the elevation in degrees
     // Inputs:

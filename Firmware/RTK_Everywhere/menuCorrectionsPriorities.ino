@@ -430,6 +430,28 @@ const char *correctionGetName(CORRECTION_ID_T id)
 }
 
 //----------------------------------------
+// Get the priority of a correction source
+// Inputs:
+//    id: correctionsSource value, ID of the correction source
+// Outputs:
+//    Returns the priority of the source or
+//    CORR_NUM when id is invalid
+//----------------------------------------
+CORRECTION_ID_T correctionGetPriority(CORRECTION_ID_T id)
+{
+    // Validate the id value
+    if (id >= CORR_NUM)
+    {
+        systemPrintf("ERROR: correctionGetPriority invalid correction id value %d, valid range (0 - %d)!\r\n", id,
+                     CORR_NUM - 1);
+        return CORR_NUM;
+    }
+
+    // Return the priority of the correction source
+    return settings.correctionsSourcesPriority[id];
+}
+
+//----------------------------------------
 // Get the ID of the source providing corrections
 // Outputs:
 //    Returns the correctionsSource ID providing corrections
@@ -610,27 +632,48 @@ bool correctionPriorityValidation()
 //----------------------------------------
 void correctionUpdateSource()
 {
-    // Periodically check if data is arriving on the Radio Ext port
-    // If needed, fake the arrival of data on the Radio Ext port
+    // Periodically check if data is arriving on the external corrections port
+    // If needed, fake the arrival of data on the corrections port
     // The code is the same:
     //   On ZED / mosaic, we can detect if the port is active.
     //   On LG290P, we fake the arrival of data if needed.
-    //   On Facet FPL, we fake the arrival of radio data if LoRa is active
+    //   On Facet FPL, we fake the arrival of correction data
     //     again to prevent a timeout and maintain the port protocol
-    static uint32_t lastRadioExtCheck = millis();
-    uint32_t radioCheckIntervalMsec = settings.correctionsSourcesLifetime_s * 500; // Check twice per lifetime
-    bool setCorrRadioPort = false;
+    static uint32_t lastExternalCorrectionsCheck = millis(); // We can wait...
+    // settings.correctionsSourcesLifetime_s is in the range 5-120
+    // To keep life simple and improve the user experience, check every 2 seconds
+    uint32_t correctionsCheckIntervalMsec = 2000;
+    bool correctionsMayNeedUpdating = false;
 
-    if ((millis() - lastRadioExtCheck) > radioCheckIntervalMsec)
+    if ((millis() - lastExternalCorrectionsCheck) > correctionsCheckIntervalMsec)
     {
-        // LG290P will return settings.enableExtCorrRadio.
-        // ZED / mosaic will return true if settings.enableExtCorrRadio is
-        // true and the port is actually active.
-        if (gnss->isCorrRadioExtPortActive())
-            correctionLastSeen(CORR_RADIO_EXT);
+        // What needs to happen here?
+        // We want to find out if external radio or LoRa corrections are active
+        // If corrections are active, update correctionLastSeen with CORR_RADIO_LORA or
+        // CORR_RADIO_EXT as appropriate
+        // Call GNSS::isExternalCorrectionActive every correctionsCheckIntervalMsec
+        // LG290P will return 1 if corrections are assumed to be enabled, 2 if truly being received
+        // ZED / mosaic will return 2 if corrections are enabled and the port is actually active
+        // The GNSS does not know the source of the corrections (Facet FP: LoRa vs. Ext Radio);
+        // we get that from the gnssExternalCorrectionsSelected lora reference
+        // If the corrections are active, then update correctionLastSeen with the source
+        // If corrections are not active, don't update - allowing the source to timeout
+        int activity = gnss->isExternalCorrectionActive(getGnssExternalCorrectionsPort());
+        if (activity > 0)
+        {
+            // gnssExternalCorrectionsSelected returns true if corrections have been selected
+            // and returns the type via the lora reference
+            bool lora;
+            if(gnssExternalCorrectionsSelected(lora))
+                correctionLastSeen(lora ? CORR_RADIO_LORA : CORR_RADIO_EXT);
+            
+            // Tell the display about the incoming corrections
+            // Only display the arrow if corrections are truly arriving
+            gnssExternalIncomingRtcm = activity > 1;
+        }
 
-        lastRadioExtCheck = millis();
-        setCorrRadioPort = true; // Update the port protocols after updating the sources
+        lastExternalCorrectionsCheck = millis();
+        correctionsMayNeedUpdating = true; // Update the port protocols after updating the sources
     }
 
     // Now update the sources
@@ -649,11 +692,59 @@ void correctionUpdateSource()
     }
 
     // Now that the sources have been updated
-    // If radioCheckIntervalMsec expired
-    if (setCorrRadioPort)
+    // If correctionsCheckIntervalMsec expired
+    if (correctionsMayNeedUpdating)
     {
-        // Update the input protocols, based on CORR_RADIO_EXT being the active correction source
-        gnss->setCorrRadioExtPort(correctionGetSource() == CORR_RADIO_EXT, false); // Don't force
+        // On Facet FP, SW4 to connects LoRa or External Radio to the GNSS UART2
+        // But, setting SW4 is looked after by the loraState state machine
+        // Here we are only concerned about the port protocol:
+        // disable RTCM if CORR_RADIO_EXT / CORR_RADIO_LORA is not the highest priority;
+        // ensure RTCM is enabled if the priority of CORR_RADIO_EXT / CORR_RADIO_LORA is
+        // higher than that of the current source.
+    
+        bool lora;
+        if(gnssExternalCorrectionsSelected(lora))
+        {
+            // Update the input protocols, based on the active correction source
+            // *** setExternalCorrections will only communicate with the GNSS if things have changed ***
+
+            // If no correction source is active, ensure the protocol is enabled
+            if (correctionGetSource() >= CORR_NUM)
+            {
+                gnss->setExternalCorrections(getGnssExternalCorrectionsPort(), true,
+                    false, "correctionUpdateSource no active source"); // Don't force
+            }
+            // Else if the priority of LoRa is higher than the priority of the active correction source
+            // then ensure the protocol is enabled
+            // Remember that 0 is the highest priority
+            // Use <= because the current source could be LoRa
+            else if (lora && (correctionGetPriority(CORR_RADIO_LORA) <= correctionGetPriority(correctionGetSource())))
+            {
+                gnss->setExternalCorrections(getGnssExternalCorrectionsPort(), true,
+                    false, "correctionUpdateSource lora priority"); // Don't force
+            }
+            // Else if the priority of External Radio is higher than the priority of the active correction source
+            // then ensure the protocol is enabled
+            // Remember that 0 is the highest priority
+            // Use <= because the current source could be External Radio
+            else if (!lora && (correctionGetPriority(CORR_RADIO_EXT) <= correctionGetPriority(correctionGetSource())))
+            {
+                gnss->setExternalCorrections(getGnssExternalCorrectionsPort(), true,
+                    false, "correctionUpdateSource radio ext priority"); // Don't force
+            }
+            // Else disable the protocol to disable the corrections
+            else
+            {
+                gnss->setExternalCorrections(getGnssExternalCorrectionsPort(), false,
+                    false, "correctionUpdateSource no priority"); // Don't force
+            }
+        }
+        else
+        {
+            // External corrections not selected. Ensure the protocol is disabled
+            gnss->setExternalCorrections(getGnssExternalCorrectionsPort(), false,
+                false, "correctionUpdateSource not selected"); // Don't force
+        }
     }
 }
 
@@ -676,14 +767,141 @@ void markPppCorrectionsPresent()
 {
     // The GNSS is reporting that PPP is detected/converged.
     // Determine if PPP is the correction source to use
+    // It's a lot of messages
+    static unsigned long lastPrint = 0;
     if (correctionLastSeen(CORR_PPP_HAS_B2B))
     {
-        if (settings.debugCorrections == true && !inMainMenu)
+        if (((millis() - lastPrint) > 2000) && (settings.debugCorrections == true) && !inMainMenu)
+        {
             systemPrintln("PPP Signal detected. Using corrections.");
+            lastPrint = millis();
+        }
     }
     else
     {
-        if (settings.debugCorrections == true && !inMainMenu)
+        if (((millis() - lastPrint) > 2000) && (settings.debugCorrections == true) && !inMainMenu)
+        {
             systemPrintln("PPP signal detected, but it is not the top priority");
+            lastPrint = millis();
+        }
     }    
+}
+
+// Return true if external corrections (external radio or LoRa) are enabled
+// Set lora true if external corrections are LoRa
+// If both are enabled on Facet FP, LoRa always wins regardless of the corrections priority
+// since the loraState machine will go into receive/transmit if LoRa is enabled
+bool gnssExternalCorrectionsSelected(bool &lora)
+{
+    if ((productVariant == RTK_FACET_FP) && settings.enableLora) // On Facet FP, LoRa always wins
+    {
+        lora = true;
+        return true;
+    }
+
+    if (settings.enableExtCorrRadio)
+    {
+        lora = false;
+        return true;
+    }
+
+    return false;
+}
+
+// Return the baud rate for the GNSS Radio port
+// Usually this is settings.radioPortBaud but on Facet FP we need to allow LoRa to override
+uint32_t getBaudRateForGnssRadio()
+{
+    if (present.loraDedicatedUart == true) // Facet FP
+    {
+        // Check for Base mode
+        if (inBaseMode())
+        {
+            if (settings.enableLora)
+                return 115200;
+            else
+                return settings.radioPortBaud;
+        }
+
+        // Rover mode
+        bool lora;
+        if (gnssExternalCorrectionsSelected(lora) && lora)
+            return 115200; // Facet FP LoRa UART baud is fixed at 115200
+        else
+            return settings.radioPortBaud;
+    }
+
+    return settings.radioPortBaud;
+}
+
+// Return the GNSS external corrections port (UART) for this platform
+uint8_t getGnssExternalCorrectionsPort()
+{
+    uint8_t radioUart = 0;
+
+    if (present.gnss_lg290p)
+    {
+        if (productVariant == RTK_POSTCARD)
+        {
+            // UART3 of the LG290P is connected to the locking JST connector labled RADIO
+            radioUart = 3;
+        }
+        else if (productVariant == RTK_FACET_FP)
+        {
+            // UART2 of the GNSS is connected to SW4, which is connected to LoRa UART0
+            radioUart = 2;
+        }
+        else if (productVariant == RTK_TORCH_X2)
+        {
+            // UART1 of the LG290P is connected to SW, which is connected to ESP32 UART0
+            // Not really used at this time but available for configuration
+            radioUart = 1;
+        }
+        else
+            systemPrintln("getGnssExternalCorrectionsPort: Uncaught LG290P platform");
+    }
+    else if (present.gnss_mosaicX5)
+    {
+        if (productVariant == RTK_FACET_FP)
+        {
+            // UART2 of the GNSS is connected to SW4, which is connected to LoRa UART1
+            radioUart = 2;
+        }
+        else if (productVariant == RTK_FACET_MOSAIC)
+        {
+            // COM2 of the GNSS is connected to the Radio port
+            radioUart = 2;
+        }
+        else
+            systemPrintln("getGnssExternalCorrectionsPort: Uncaught mosaicX5 platform");
+    }
+    else if (present.gnss_um980)
+    {
+        if (productVariant == RTK_TORCH)
+        {
+            // UART3 of the GNSS is connected to ESP32. ESP32 provides corrections
+            radioUart = 3;
+        }
+        else
+            systemPrintln("getGnssExternalCorrectionsPort: Uncaught UM980 platform");
+    }
+    else if (present.gnss_zedf9p || present.gnss_zedx20p)
+    {
+        if (productVariant == RTK_FACET_FP)
+        {
+            // UART2 of the GNSS is connected to SW4, which is connected to LoRa UART1
+            radioUart = 2;
+        }
+        else if (productVariant == RTK_EVK)
+        {
+            // UART2 of the GNSS is accessible via the IO screw terminals
+            radioUart = 2;
+        }
+        else
+            systemPrintln("getGnssExternalCorrectionsPort: Uncaught ZED platform");
+    }
+    else
+        systemPrintln("getGnssExternalCorrectionsPort: Uncaught GNSS");
+
+    return radioUart;
 }

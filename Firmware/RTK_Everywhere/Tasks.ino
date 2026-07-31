@@ -1092,10 +1092,17 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 
         if (type == RTK_NMEA_PARSER_INDEX)
         {
+            if (strstr(sempNmeaGetSentenceName(parse), "PQTMRTCMIS") != nullptr)
+            {
+                // Extract correction port RTCM count from PQTMRTCMIS
+                lg290pProcessRTCMIS(parse->buffer, parse->length);
+            }
+
             // Suppress PQTM/NMEA messages as needed
             if (lg290pMessageEnabled((char *)parse->buffer, parse->length) == false)
             {
-                if (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true)
+                if ((strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
+                    && settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true)
                 {
                     // GGA is disabled, but the user has enabled the NTRIP Client.
                     // Allow GGA to get through, unmodified.
@@ -1103,6 +1110,8 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 else
                 {
                     // Remove the contents of this message
+                    // Note: I know we're not using the PPL any more but this code will prevent
+                    // ZDA from reaching the PPL. Is that what we want?
                     parse->buffer[0] = 0;
                     parse->length = 0;
                 }
@@ -1215,13 +1224,13 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     }
 
     // Push GGA to Caster if enabled
-    if (type == RTK_NMEA_PARSER_INDEX && strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
+    if ((type == RTK_NMEA_PARSER_INDEX) && (strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr))
     {
         pushGPGGA((char *)parse->buffer);
     }
 
     // If the user has not specifically enabled RTCM used by the PPL, then suppress it
-    if (inRoverMode() && gnss->getActiveRtcmMessageCount() == 0 && type == RTK_RTCM_PARSER_INDEX)
+    if (inRoverMode() && (gnss->getActiveRtcmMessageCount() == 0) && (type == RTK_RTCM_PARSER_INDEX))
     {
         // Erase buffer
         parse->buffer[0] = 0;

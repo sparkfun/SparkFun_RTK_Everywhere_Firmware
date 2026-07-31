@@ -102,6 +102,7 @@ void updateLora()
 
     if (settings.enableLora == false && (loraState >= LORA_IDLE && loraState < LORA_STATE_MAX))
     {
+        loraHangup();   // On Facet FP, select external radio and restore baud rate
         loraPowerOff(); // Leave serial inteface in place
         loraState = LORA_DISABLED;
     }
@@ -121,6 +122,7 @@ void updateLora()
                          // mode.
             if (settings.enableLora == false)
             {
+                loraHangup();   // On Facet FP, select external radio and restore baud rate
                 loraPowerOff(); // Power off system. Leave serial inteface in place
                 loraState = LORA_DISABLED;
             }
@@ -238,10 +240,10 @@ void updateLora()
                     loraBytesSent = 0;
                 }
             }
-
-            if (inBaseMode() == false)
-                loraState = LORA_IDLE; // Force restart to move to other modes
         }
+
+        if (inBaseMode() == false)
+            loraState = LORA_IDLE; // Force restart to move to other modes
 
         break;
 
@@ -698,11 +700,10 @@ void loraSetupTransmit()
     // If platform has a dedicated LoRa UART - i.e. Facet FP
     // Set the switch(es) to connect the GNSS to LoRa
     // And override the baud rate
-    // TODO: improve this so it works better with settings.radioPortBaud and GNSS_CONFIG_BAUD_RATE_RADIO
     if (present.loraDedicatedUart == true)
     {
-        gnss->setBaudRateRadio(115200);
         gpioExpanderSelectLoraCommunication();
+        gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO);
     }
 
     loraSetup(true);
@@ -713,14 +714,26 @@ void loraSetupReceive()
     // If platform has a dedicated LoRa UART - i.e. Facet FP
     // Set the switch(es) to connect the GNSS to LoRa
     // And override the baud rate
-    // TODO: improve this so it works better with settings.radioPortBaud and GNSS_CONFIG_BAUD_RATE_RADIO
     if (present.loraDedicatedUart == true)
     {
-        gnss->setBaudRateRadio(115200);
         gpioExpanderSelectLoraCommunication();
+        gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO);
     }
 
     loraSetup(false);
+}
+
+void loraHangup()
+{
+    // LoRa is no longer needed
+    // If platform has a dedicated LoRa UART - i.e. Facet FP
+    // Set the switch(es) to connect the GNSS to External radio
+    // And restore the baud rate
+    if (present.loraDedicatedUart == true)
+    {
+        gpioExpanderSelectRadioPort();
+        gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO);
+    }
 }
 
 // Setup LoRa radio for receiving or transmitting
@@ -1486,14 +1499,61 @@ void loraProcessRTCM(uint8_t *rtcmData, uint16_t dataLength)
         // Only needed for Torch. Facet FP has GNSS tied directly to LoRa.
         if (productVariant == RTK_TORCH)
         {
+            // Check to see if the RTCM data conatins the "+++" escape sequence
+            // Will strnstr work on binary data? Probably not?
+            //if (strnstr(rtcmData, "+++", dataLength))
+            uint16_t ptr = 0;
+            uint8_t consecutivePlus = 0;
+            while ((ptr < dataLength) && (consecutivePlus < 3))
+            {
+                if (rtcmData[ptr++] == '+')
+                    consecutivePlus++;
+                else
+                    consecutivePlus = 0;
+            }
+            if (consecutivePlus == 3)
+            {
+                if (settings.debugLora == true)
+                    systemPrintln("loraProcessRTCM: RTCM for LoRa contains +++. Skipping...");
+                return;
+            }
+            
             // Send this data to the LoRa radio
             systemFlush();                // Complete prints
+
+// Test for LoRa Framing Error - which will stall Torch LoRa Base TX
+// Generate a framing error by dropping the baud rate to 4800 so that a single 0 is longer
+// than a full byte at 115200
+// #define TORCH_LORA_FE_TEST
+// #if defined(TORCH_LORA_FE_TEST)
+//             static int rtcmCount = 0;
+//             const int feEvery = 100;
+//             rtcmCount++;
+//             if ((productVariant == RTK_TORCH) && (rtcmCount % feEvery == 0))
+//             {
+//                 systemPrintln("<<<<< TORCH LORA FE TEST >>>>>");
+//                 systemFlush();  // Complete prints
+//                 Serial.end();
+//                 Serial.begin(4800); // Drop the baud rate to generate framing errors
+//             }
+// #endif
+
             muxSelectLoRaCommunication(); // Connect the LoRa radio to ESP32 UART0 (shared with USB)
 
             loraWrite(rtcmData, dataLength);
 
             systemFlush();  // Complete prints
             muxSelectUsb(); // Connect USB
+
+// #if defined(TORCH_LORA_FE_TEST)
+//             if ((productVariant == RTK_TORCH) && (rtcmCount % feEvery == 0))
+//             {
+//                 Serial.end();
+//                 Serial.begin(115200);
+//                 systemPrintln(">>>>> TORCH LORA FE TEST <<<<<");
+//                 systemFlush();  // Complete prints
+//             }
+// #endif
         }
 
         // Keep a record of how many LoRa bytes _should_ be being sent

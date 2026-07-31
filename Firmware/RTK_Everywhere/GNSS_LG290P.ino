@@ -189,12 +189,6 @@ void GNSS_LG290P::begin()
     snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", getId());
 
     gnssFirmwareVersionInt = lg290pFirmwareVersionInt; // Tell Web Config what version to use
-
-    // On Facet FP: set UART2 (Radio) protocol(s)
-    // Both Ext Radio and LoRa need RTCM on UART2
-    // Note: this is probably redundant? I only added it because I added it on mosaic...
-    if (productVariant == RTK_FACET_FP)
-        setCorrRadioExtPort((settings.enableExtCorrRadio || settings.enableLora), true); // Force the setting
 }
 
 //----------------------------------------
@@ -300,8 +294,9 @@ bool GNSS_LG290P::configureBase()
 
         reset();
 
-        // When a device is changed from Rover to Base, NMEA messages are disabled. Turn them back on.
+        // When a device is changed from Rover to Base, NMEA and PQTM messages are disabled. Turn them back on.
         gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_OTHER);
 
         // In Survey-In mode, configuring the RTCM Base will trigger a print warning because the survey-in
         // takes a few seconds to start during which gnssInBaseSurveyInMode() incorrectly reports false.
@@ -1214,16 +1209,6 @@ bool GNSS_LG290P::isConfirmedTime()
     return isValidTime();
 }
 
-// Returns true if data is arriving on the Radio Ext port
-bool GNSS_LG290P::isCorrRadioExtPortActive()
-{
-    // On LG290P, we don't have access to the UART RX byte counts
-    // We have to assume data is arriving if ext radio is enabled...
-    // And on Facet FP, we also have to fake the arrival of LoRa traffic
-    // to maintain the Radio Ext protocols...
-    return (settings.enableExtCorrRadio || ((productVariant == RTK_FACET_FP) && settings.enableLora));
-}
-
 //----------------------------------------
 // Return true if GNSS receiver has a higher quality DGPS fix than 3D
 //----------------------------------------
@@ -1242,6 +1227,35 @@ bool GNSS_LG290P::isDgpsFixed()
             return (true);
     }
     return false;
+}
+
+//----------------------------------------
+// Returns 0 if corrections can not be arriving on the selected port
+// Returns 1 if corrections are assumed to be arriving on the selected port
+// Returns 2 if corrections truly are arriving on the selected port
+// On LG290P, we can check the PQTMRTCMIS MsgNum with firmware >= v2.01
+// Firmware < v2.01 will return 0 or 1
+// Firmware >= v2.01 will return 0 or 2
+//----------------------------------------
+int GNSS_LG290P::isExternalCorrectionActive(uint8_t port)
+{
+    if ((port < 1) || (port > 3))
+        return 0;
+
+    if (_externalCorrectionsEnabled[port - 1] < 1)
+        return 0;
+
+    // PQTMRTCMIS is supported from firmware v2.01
+    if (lg290pFirmwareVersionInt < 201)
+        return 1;
+
+    if ((lg290pRTCMCorrectionCountCurrent - lg290pRTCMCorrectionCountPrevious) > 0)
+    {
+        lg290pRTCMCorrectionCountPrevious = lg290pRTCMCorrectionCountCurrent;
+        return 2;
+    }
+
+    return 0;
 }
 
 //----------------------------------------
@@ -1648,6 +1662,7 @@ void GNSS_LG290P::menuMessages()
                 settings.lg290pMessageRatesPQTM[x] = lgMessagesPQTM[x].msgDefaultRate;
 
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_OTHER);
             if (inBaseMode()) // If the system is in Base mode
                 gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
             else
@@ -1691,6 +1706,8 @@ void GNSS_LG290P::menuMessages()
 
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);       // Request receiver to use new settings
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
+
+            // I think it is OK to skip gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_OTHER); here?
 
             if (incoming == 12)
                 systemPrintln("Reset to High-rate PPP Logging Defaults (NMEAx7 / RTCMx4 - 1Hz)");
@@ -2073,54 +2090,51 @@ bool GNSS_LG290P::setConstellations()
     return (response);
 }
 
-// Enable / disable corrections protocol(s) on the Radio External port
+// Enable / disable external corrections protocol(s) on the chosen port
 // Always update if force is true. Otherwise, only update if enable has changed state
-bool GNSS_LG290P::setCorrRadioExtPort(bool enable, bool force)
+bool GNSS_LG290P::setExternalCorrections(uint8_t port, bool enable, bool force, const char *debug)
 {
+    // LG290P has UARTs 1-3
+    if ((port < 1) || (port > 3))
+    {
+        systemPrintf("setExternalCorrections: invalid port %d\r\n", port);
+        return false;
+    }
+
     if (online.gnss)
     {
         // Someday, read/modify/write setPortInputProtocols
 
-        if (force || (enable != _corrRadioExtPortEnabled))
+        if (force || (enable != _externalCorrectionsEnabled[port - 1]))
         {
-            uint8_t radioUart = 0;
-            if (productVariant == RTK_POSTCARD)
-            {
-                // UART3 of the LG290P is connected to the locking JST connector labled RADIO
-                radioUart = 3;
-            }
-            else if (productVariant == RTK_FACET_FP)
-            {
-                // UART2 of the LG290P is connected to SW4, which is connected to LoRa UART0
-                radioUart = 2;
-            }
-            else if (productVariant == RTK_TORCH_X2)
-            {
-                // UART1 of the LG290P is connected to SW, which is connected to ESP32 UART0
-                // Not really used at this time but available for configuration
-                radioUart = 1;
-            }
-            else
-                systemPrintln("setCorrRadioExtPort: Uncaught platform");
-
             // Set port InputProt: RTCM3 (4) vs NMEA (1)
-            if (_lg290p->setPortInputProtocols(radioUart, enable ? 4 : 1))
+            if (_lg290p->setPortInputProtocols(port, enable ? 4 : 1))
             {
                 if ((settings.debugCorrections == true) && !inMainMenu)
                 {
-                    systemPrintf("Radio Ext corrections: %s -> %s%s\r\n",
-                                 _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled",
-                                 force ? " (Forced)" : "");
+                    systemPrintf("setExternalCorrections: %s -> %s%s%s%s%s\r\n",
+                                 _externalCorrectionsEnabled[port - 1] == -1 ? "not set" :
+                                 _externalCorrectionsEnabled[port - 1] ? "enabled" : "disabled",
+                                 enable ? "enabled" : "disabled",
+                                 force ? " (Forced)" : "",
+                                 debug ? " (" : "",
+                                 debug ? debug : "",
+                                 debug ? ")" : "");
                 }
 
-                _corrRadioExtPortEnabled = enable;
+                _externalCorrectionsEnabled[port - 1] = enable;
                 return true;
             }
             else
             {
-                systemPrintf("Radio Ext corrections FAILED: %s -> %s%s\r\n",
-                             _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled",
-                             force ? " (Forced)" : "");
+                systemPrintf("setExternalCorrections FAILED: %s -> %s%s%s%s%s\r\n",
+                                 _externalCorrectionsEnabled[port - 1] == -1 ? "not set" :
+                                 _externalCorrectionsEnabled[port - 1] ? "enabled" : "disabled",
+                                 enable ? "enabled" : "disabled",
+                                 force ? " (Forced)" : "",
+                                 debug ? " (" : "",
+                                 debug ? debug : "",
+                                 debug ? ")" : "");
             }
         }
     }
@@ -2295,6 +2309,7 @@ bool GNSS_LG290P::setMessagesNMEA()
                 }
                 else if (productVariant == RTK_FACET_FP)
                 {
+                    // Disable NMEA on the LoRa / Ext Radio port if needed
                     if ((portNumber == 2) && ((settings.enableNmeaOnRadio == false) || (settings.enableLora == true)))
                         msgRate = 0;
                 }
@@ -2355,7 +2370,8 @@ bool GNSS_LG290P::setMessagesNMEA()
             {
                 // Enable GGA on a specific port
                 // On Torch X2 and Postcard, the LG290P UART 2 is connected to ESP32.
-                globalResponse &= _lg290p->setMessageRateOnPort("GGA", 1, 2);
+                // On Facet FP, the LG290P UART 1 is connected to ESP32
+                globalResponse &= _lg290p->setMessageRateOnPort("GGA", 1, lg290pGetESP32Port());
             }
             else
                 // Enable GGA on all UARTs. It's the best we can do.
@@ -2403,6 +2419,8 @@ bool GNSS_LG290P::setMessagesNMEA()
 bool GNSS_LG290P::setMessagesOther()
 {
     bool overallResponse = true;
+    bool pqtmrtcmisEnabled = false; // PQTMRTCMIS - Outputs the RTCM input status
+    int pqtmrtcmisMessageNumber;
 
     int portNumber = 1;
 
@@ -2442,7 +2460,18 @@ bool GNSS_LG290P::setMessagesOther()
                 else if (settings.debugGnssConfig)
                     systemPrintf("Set PQTM success at messageNumber %d %s.\r\n", messageNumber,
                                  lgMessagesPQTM[messageNumber].msgTextName);
+
+                // Mark messages needed for other services as enabled if rate > 0
+                if (settings.lg290pMessageRatesPQTM[messageNumber] > 0)
+                {
+                    if (strcmp(lgMessagesPQTM[messageNumber].msgTextName, "PQTMRTCMIS") == 0)
+                        pqtmrtcmisEnabled = true;
+                }
             }
+
+            // Capture the RTCMIS version
+            if (strcmp(lgMessagesPQTM[messageNumber].msgTextName, "PQTMRTCMIS") == 0)
+                pqtmrtcmisMessageNumber = messageNumber;
         }
 
         portNumber++;
@@ -2450,6 +2479,31 @@ bool GNSS_LG290P::setMessagesOther()
         // setMessageRateOnPort only supported on v1.4 and above
         if (lg290pFirmwareVersionInt < 104)
             break; // Don't step through portNumbers
+    }
+
+    // Ensure PQTMRTCMIS is enabled - so we can check for RTCM on the corrections port
+    if (pqtmrtcmisEnabled == false)
+    {
+        // Check if this message is supported by the current LG290P firmware
+        if (lg290pFirmwareVersionInt >= lgMessagesPQTM[pqtmrtcmisMessageNumber].firmwareVersionSupported)
+        {
+            if (settings.debugGnssConfig)
+                systemPrintln("Enabling PQTMRTCMIS for RTCM monitoring");
+
+            // If firmware is v1.4 or higher, use setMessageRateOnPort, otherwise setMessageRate
+            if (lg290pFirmwareVersionInt >= 104)
+            {
+                // Enable PQTMRTCMIS on a specific port
+                // On Torch X2 and Postcard, the LG290P UART 2 is connected to ESP32
+                // On Facet FP, LG290P UART 1 is connectedd to ESP32
+                overallResponse &= _lg290p->setMessageRateOnPort("PQTMRTCMIS", 1, lg290pGetESP32Port(),
+                                            lgMessagesPQTM[pqtmrtcmisMessageNumber].msgVersionOffset);
+            }
+            else
+                // Enable PQTMRTCMIS on all UARTs. It's the best we can do.
+                overallResponse &= _lg290p->setMessageRate("PQTMRTCMIS", 1,
+                                            lgMessagesPQTM[pqtmrtcmisMessageNumber].msgVersionOffset);
+        }
     }
 
     // Messages take effect immediately. Save/Reset is not needed.
@@ -2892,6 +2946,73 @@ void lg290pHandler(uint8_t *incomingBuffer, int bufferLength)
 }
 
 //----------------------------------------
+// If we have received PQTMRTCMIS from the LG290P, process and update the correction port RTCM count
+//----------------------------------------
+void lg290pProcessRTCMIS(uint8_t * buffer, int length)
+{
+    const int portIDComma = 4;
+    const int msgNumComma = 10;
+
+    uint8_t portIDStart = 0;
+    uint8_t portIDStop = 0;
+    uint8_t msgNumStart = 0;
+    uint8_t msgNumStop = 0;
+
+    int commaCount = 0;
+    for (int x = 0; x < length; x++) // Assumes sentence is null terminated
+    {
+        if (buffer[x] == ',')
+        {
+            commaCount++;
+            if (commaCount == portIDComma)
+                portIDStart = x + 1;
+            if (commaCount == portIDComma + 1)
+                portIDStop = x;
+            if (commaCount == msgNumComma)
+                msgNumStart = x + 1;
+            if (commaCount == msgNumComma + 1)
+            {
+                msgNumStop = x;
+                break;
+            }
+        }
+        if (buffer[x] == '*')
+        {
+            break;
+        }
+    }
+
+    if (portIDStart == 0 || portIDStop == 0 || msgNumStart == 0 || msgNumStop == 0)
+    {
+        return;
+    }
+
+    // Extract the PortID
+    char PortID[1 + portIDStop - portIDStart];
+    strncpy(PortID, (const char *)&buffer[portIDStart], portIDStop - portIDStart);
+    int portID = atoi(PortID);
+
+    // Extract the MsgNum
+    char MsgNum[1 + msgNumStop - msgNumStart];
+    strncpy(MsgNum, (const char *)&buffer[msgNumStart], msgNumStop - msgNumStart);
+    int msgNum = atoi(MsgNum);
+
+    // If the port matches, update the current count
+    if (portID == getGnssExternalCorrectionsPort())
+    {
+        lg290pRTCMCorrectionCountCurrent = msgNum;
+
+        // It's a lot of messages....
+        static unsigned long lastPrint = millis();
+        if ((millis() - lastPrint > 2000) && (settings.debugCorrections == true) && !inMainMenu)
+        {
+            systemPrintf("lg290pProcessRTCMIS: extracted msgNum %ld\r\n", msgNum);
+            lastPrint = millis();
+        }
+    }
+}
+
+//----------------------------------------
 // Pass a buffer of bytes to LG290P library. Allows a stream outside of library to feed the library.
 //----------------------------------------
 void GNSS_LG290P::lg290pUpdate(uint8_t *incomingBuffer, int bufferLength)
@@ -2912,8 +3033,11 @@ void GNSS_LG290P::update()
 
 //----------------------------------------
 // Check if given baud rate is allowed
+// According to the protocol specification, only 9600, 115200, 230400, 460800 and 921600
+// are supported. But we know the LG290P also supports 57600 - which is convenient for
+// SiK radios. What to do? Include it, or not? Let's include it - to improve the user experience.
 //----------------------------------------
-const uint32_t lg290pAllowedRates[] = {9600, 115200, 230400, 460800, 921600};
+const uint32_t lg290pAllowedRates[] = {9600, 57600, 115200, 230400, 460800, 921600};
 const int lg290pAllowedRatesCount = sizeof(lg290pAllowedRates) / sizeof(lg290pAllowedRates[0]);
 
 bool GNSS_LG290P::baudIsAllowed(uint32_t baudRate)
@@ -2975,7 +3099,7 @@ bool GNSS_LG290P::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msg
 
 // Given a sentence, determine if it is enabled in settings
 // This is used to signal to the processUart1Message() task to remove messages that are needed
-// by the library to function (ie, PQTMEPE, PQTMPVT, PQTMSVINSTATUS, GNGSV) but have not been enabled by the user,
+// by the library to function (ie, PQTMEPE, PQTMPVT, PQTMSVINSTATUS, PQTMRTCMIS, GNGSV) but have not been enabled by the user,
 // so should not be logged or passed to other consumers (Bluetooth, TCP, etc).
 // If the message is unknown, allow messages through - this assumes the user has configured the message outside
 // of the standard firmware settings.
@@ -3537,7 +3661,39 @@ bool lg290pSettingsToFile(char * line,
     return true;
 }
 
-//----------------------------------------
+// Return the GNSS port (UART) connected to ESP32 on this platform
+uint8_t lg290pGetESP32Port()
+{
+    uint8_t uart = 0;
+
+    if (present.gnss_lg290p)
+    {
+        if (productVariant == RTK_POSTCARD)
+        {
+            // UART2 of the LG290P is connected to the ESP32
+            uart = 2;
+        }
+        else if (productVariant == RTK_FACET_FP)
+        {
+            // UART1 of the GNSS is connected to ESP32
+            uart = 1;
+        }
+        else if (productVariant == RTK_TORCH_X2)
+        {
+            // UART2 of the LG290P is connected directly to ESP32
+            uart = 2;
+        }
+        else
+        // This should never appear...
+            systemPrintln("lg290pGetESP32Port: Uncaught LG290P platform");
+    }
+    else
+        // This should never appear...
+        systemPrintln("lg290pGetESP32Port: Uncaught GNSS");
+
+    return uart;
+
+  //----------------------------------------
 // Verify tables and index into the tables have the same lengths
 // This routine is called during boot and only continues execution when
 // the table lengths match

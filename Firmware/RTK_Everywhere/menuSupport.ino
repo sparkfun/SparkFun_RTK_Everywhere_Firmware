@@ -224,16 +224,26 @@ void checkGNSSArrayDefaults()
         {
             defaultsApplied = true;
             if (productVariant == RTK_POSTCARD)
-                // User has to enable UART3 (JST) manually for the same reason as LG290P on FP
-                settings.enableExtCorrRadio = false;
+            {
+                if(lg290pFirmwareVersionInt >= 201)
+                    // Firmware v2.01 supports PQTMRTCMIS. It is safe to enable Ext Radio by default
+                    settings.enableExtCorrRadio = true;
+                else
+                    // User has to enable UART3 (JST) manually for the same reason as LG290P on FP
+                    settings.enableExtCorrRadio = false;
+            }
             else if (productVariant == RTK_FACET_FP)
             {
-                // With LG290P on Facet FP:
-                // We do not know if ext radio / LoRa corrections are arriving
-                // because we don't have access to the UART2 byte counts. We have to assume
-                // that corrections are arriving. See GNSS_LG290P::isCorrRadioExtPortActive()
-                // We must set settings.enableExtCorrRadio to false to prevent this.
-                settings.enableExtCorrRadio = false;
+                if(lg290pFirmwareVersionInt >= 201)
+                    // Firmware v2.01 supports PQTMRTCMIS. It is safe to enable Ext Radio by default
+                    settings.enableExtCorrRadio = true;
+                else
+                    // With LG290P firmware < v2.01 on Facet FP:
+                    // We do not know if ext radio / LoRa corrections are arriving
+                    // because we don't have access to the UART2 byte counts. We have to assume
+                    // that corrections are arriving. See GNSS_LG290P::isExternalCorrectionActive()
+                    // We must set settings.enableExtCorrRadio to false to prevent this.
+                    settings.enableExtCorrRadio = false;
             }
             else if (productVariant == RTK_TORCH_X2)
                 settings.enableExtCorrRadio = false; // GNSS UART1 isn't really accessible

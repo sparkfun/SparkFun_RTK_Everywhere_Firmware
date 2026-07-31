@@ -27,7 +27,7 @@ calculation
   * setPppService() - Set the PPP/HAS E6 capabilities of the receiver
   * setMultipathMitigation() - Set the multipath capabilities of the receiver
   * setTilt() - Set the GNSS receiver's output to be compatible with a tilt sensor
-  * setCorrRadioExtPort() - Set corrections protocol(s) on the UART connected to the RADIO port
+  * setExternalCorrections() - Set corrections protocol(s) on the UART connected to the RADIO port
   * saveConfiguration() - Save the current receiver's settings to the receiver's NVM
   * reset() - Reset the receiver (through software or hardware)
   * factoryReset() - Reset the receiver to factory settings
@@ -347,7 +347,10 @@ void gnssUpdate()
 
         if (gnssConfigureRequested(GNSS_CONFIG_BAUD_RATE_RADIO))
         {
-            if (gnss->setBaudRateRadio(settings.radioPortBaud) == true)
+            uint32_t baud = getBaudRateForGnssRadio(); // Override with LoRa baud if needed
+            if (settings.debugGnssConfig == true)
+                systemPrintf("Setting GNSS radio port baud to %ld\r\n", baud);
+            if (gnss->setBaudRateRadio(baud) == true)
             {
                 gnssConfigureClear(GNSS_CONFIG_BAUD_RATE_RADIO);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
@@ -486,9 +489,14 @@ void gnssUpdate()
         {
             // If settings.enableExtCorrRadio is true, we need RTCM input
             // On Facet FP, we also need RTCM if LoRa is enabled
-            bool enableExtCorrRadio = settings.enableExtCorrRadio
-                 || ((productVariant == RTK_FACET_FP) && settings.enableLora);
-            if (gnss->setCorrRadioExtPort(enableExtCorrRadio, true) == true) // Force the setting
+            bool lora;
+            bool enableExtCorrRadio = gnssExternalCorrectionsSelected(lora);
+            // Set the protocols if either LoRa or External Radio _may_ need the port
+            // Note: this is probably redundant. correctionUpdateSource() will enable / disable
+            // the port protocols as needed, based on the priority of external radio (and LoRa)
+            // corrections
+            if (gnss->setExternalCorrections(getGnssExternalCorrectionsPort(), enableExtCorrRadio,
+                true, "gnssUpdate GNSS_CONFIG_EXT_CORRECTIONS") == true) // Force the setting
             {
                 gnssConfigureClear(GNSS_CONFIG_EXT_CORRECTIONS);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
