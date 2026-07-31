@@ -1520,12 +1520,40 @@ void loraProcessRTCM(uint8_t *rtcmData, uint16_t dataLength)
             
             // Send this data to the LoRa radio
             systemFlush();                // Complete prints
+
+// Test for LoRa Framing Error - which will stall Torch LoRa Base TX
+// Generate a framing error by dropping the baud rate to 4800 so that a single 0 is longer
+// than a full byte at 115200
+// #define TORCH_LORA_FE_TEST
+// #if defined(TORCH_LORA_FE_TEST)
+//             static int rtcmCount = 0;
+//             const int feEvery = 100;
+//             rtcmCount++;
+//             if ((productVariant == RTK_TORCH) && (rtcmCount % feEvery == 0))
+//             {
+//                 systemPrintln("<<<<< TORCH LORA FE TEST >>>>>");
+//                 systemFlush();  // Complete prints
+//                 Serial.end();
+//                 Serial.begin(4800); // Drop the baud rate to generate framing errors
+//             }
+// #endif
+
             muxSelectLoRaCommunication(); // Connect the LoRa radio to ESP32 UART0 (shared with USB)
 
             loraWrite(rtcmData, dataLength);
 
             systemFlush();  // Complete prints
             muxSelectUsb(); // Connect USB
+
+// #if defined(TORCH_LORA_FE_TEST)
+//             if ((productVariant == RTK_TORCH) && (rtcmCount % feEvery == 0))
+//             {
+//                 Serial.end();
+//                 Serial.begin(115200);
+//                 systemPrintln(">>>>> TORCH LORA FE TEST <<<<<");
+//                 systemFlush();  // Complete prints
+//             }
+// #endif
         }
 
         // Keep a record of how many LoRa bytes _should_ be being sent
