@@ -1487,7 +1487,7 @@ extern const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[] =
 
     // IMU devices
 #ifdef  COMPILE_IM19_IMU
-    {RTK_ALL,       OTA_SUBSYSTEM_IMU,      &present.imu_im19,      tiltGetVersion,     nullptr,                nullptr,                256,                false,      "/imu/im19",       otaGithubRaw,   otaRawBranch},
+    {RTK_ALL,       OTA_SUBSYSTEM_IMU,      &present.imu_im19,      tiltGetVersion,     im19FirmwareUpdate,     nullptr,                256,                false,      "/imu/im19",       otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_IM19_IMU
 };
 const int otaSubsystemInfoTableEntries = sizeof(otaSubsystemInfoTable)
