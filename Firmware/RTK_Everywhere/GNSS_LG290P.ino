@@ -3716,4 +3716,177 @@ const char *lg290pGetNavModeNameFromModel(const uint8_t dynamicModel)
     return unknown;
 }
 
+//----------------------------------------
+// Reboot the module into bootloader mode, negotiate sync, query bootloader version,
+// send firmware metadata, and erase flash.
+//----------------------------------------
+bool GNSS_LG290P::updateFirmwareBegin(size_t fileBytes,
+                                      uint32_t firmwareCrc32,
+                                      bool skipSoftwareReset)
+{
+    if (_lg290p == nullptr)
+        return false;
+    return _lg290p->updateFirmwareBegin(fileBytes, firmwareCrc32, skipSoftwareReset);
+}
+
+//----------------------------------------
+// Feed the next chunk of firmware bytes to the module.
+//----------------------------------------
+bool GNSS_LG290P::updateFirmware(const uint8_t *data, size_t bytesToWrite)
+{
+    if (_lg290p == nullptr)
+        return false;
+    return _lg290p->updateFirmware(data, bytesToWrite);
+}
+
+//----------------------------------------
+// Flush any remaining buffered bytes as a final (partial) firmware packet.
+//----------------------------------------
+bool GNSS_LG290P::updateFirmwareEnd()
+{
+    if (_lg290p == nullptr)
+        return false;
+    return _lg290p->updateFirmwareEnd();
+}
+
+//----------------------------------------
+// Send the firmware reset command then poll for up to 15 seconds for the
+// module to boot into the new firmware.
+//----------------------------------------
+bool GNSS_LG290P::updateFirmwareIsFinished(uint8_t maxWaitSeconds)
+{
+    if (_lg290p == nullptr)
+        return false;
+    return _lg290p->updateFirmwareIsFinished(maxWaitSeconds);
+}
+
+//----------------------------------------
+// Put module into bootloader mode and prepare for firmware update
+//----------------------------------------
+bool lg290pFirmwareUpdateBegin(size_t fileBytes, uint32_t expectedCrc)
+{
+    if (productVariant == RTK_FACET_FP)
+        // We don't have hardware reset so use software reset.
+        // Begin update: reboot, sync, version, firmware info, erase (~30 s)
+        return (((GNSS_LG290P *)gnss)->updateFirmwareBegin(fileBytes, expectedCrc, false)); // Use software reset
+
+    // If a previous attempt failed, the device won't respond to software reset commands. Do a hardware reset.
+    gnssReset();
+    delay(100);
+    gnssBoot();
+
+    // Begin update: reboot, sync, version, firmware info, erase (~30 s)
+    return (((GNSS_LG290P *)gnss)->updateFirmwareBegin(fileBytes, expectedCrc, true)); // Skip software reset
+}
+
+//----------------------------------------
+// Given a chunk of bytes, feed the LG290P firmware update machine
+//----------------------------------------
+bool lg290pFirmwareUpdate(uint8_t *dataArray, uint16_t bytesToWrite, bool sendLastLine)
+{
+    if (sendLastLine == true)
+        return (((GNSS_LG290P *)gnss)->updateFirmwareEnd());
+
+    // Bytes will be aggregated into 4096 chunks, then written to the LG290P
+    return ((GNSS_LG290P *)gnss)->updateFirmware(dataArray, bytesToWrite);
+}
+
+//----------------------------------------
+// Wait for LG290P to reboot and respond to the PQTMUNIQID command
+//----------------------------------------
+bool lg290pFirmwareUpdateEnd()
+{
+    if (productVariant == RTK_FACET_FP)
+        return (((GNSS_LG290P *)gnss)->updateFirmwareIsFinished(30));
+
+    gnssReset();
+    delay(100);
+    gnssBoot();
+
+    return (((GNSS_LG290P *)gnss)->updateFirmwareIsFinished(10));
+}
+
+//----------------------------------------
+// Update the LG290P firmware
+//----------------------------------------
+bool lg290pStreamFirmware(NetworkClient * stream,
+                          size_t fileBytes,
+                          uint32_t expectedCrc,
+                          uint8_t * buffer,
+                          size_t bufferBytes)
+{
+    uint32_t crc = 0;
+
+    // Get the LG290P in a state to receive firmware updates
+    if (lg290pFirmwareUpdateBegin(fileBytes, expectedCrc) == false)
+    {
+        systemPrintln(otaEqualSigns);
+        systemPrintln("ERROR: Failed to erase LG290P flash!\r\n");
+        systemPrintln(otaEqualSigns);
+        return false;
+    }
+    systemPrintln("Starting LG290P firmware update...");
+    unsigned long lastDataTime = millis();
+    while (stream->connected() && (fileBytes > 0))
+    {
+        // Wait until some data is available
+        size_t availableBytes = stream->available();
+        if (availableBytes == 0)
+        {
+            if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+            {
+                systemPrintln("LG290P OTA update timed out waiting for data");
+                return false;
+            }
+            delay(1);
+            continue;
+        }
+
+        // Read the received data
+        size_t bytesToRead = (availableBytes > bufferBytes) ? bufferBytes : availableBytes;
+        int bytesRead = stream->readBytes(buffer, bytesToRead);
+        if (bytesRead <= 0)
+            continue;
+
+        // Compute the CRC
+        crc = crc32Compute(crc, buffer, bytesRead);
+
+        // Validate the computed CRC matches the expected CRC
+        bool lastPacket = (fileBytes == bytesRead);
+        if (lastPacket && (crc != expectedCrc))
+        {
+            systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
+            break;
+        }
+
+        // Update this portion of the firmware
+        if (lg290pFirmwareUpdate(buffer, bytesRead, lastPacket) == false)
+        {
+            systemPrintln("LG290P OTA update failed during write");
+            return false;
+        }
+
+        // Account for this data
+        fileBytes -= bytesRead;
+        firmwareUpdateProgressCallback("LG290P", (uint16_t)bytesRead);
+        lastDataTime = millis();
+    }
+
+    systemPrintln(otaEqualSigns);
+    if (fileBytes > 0)
+    {
+        systemPrintln("LG290P OTA update failed during writeStream");
+        return false;
+    }
+
+    if (lg290pFirmwareUpdateEnd() == false)
+    {
+        systemPrintf("LG290P failed to reboot\r\n");
+        return false;
+    }
+    systemPrintln("LG290P update successfully completed.");
+    systemPrintln(otaEqualSigns);
+    return true;
+}
+
 #endif // COMPILE_LG290P

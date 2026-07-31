@@ -1467,7 +1467,7 @@ extern const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[] =
 
     // GNSS devices
 #ifdef  COMPILE_LG290P
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_lg290p,   gnssGetVersion,     nullptr,                nullptr,                256,                false,      "/gnss/lg290p",    otaGithubRaw,   otaRawBranch},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_lg290p,   gnssGetVersion,     nullptr,                lg290pStreamFirmware,   4096,               false,      "/gnss/lg290p",    otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_LG290P
 #ifdef  COMPILE_MOSAICX5
     {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_mosaicX5, gnssGetVersion,     nullptr,                nullptr,                256,                false,      "/gnss/mosaic-x5", otaGithubRaw,   otaRawBranch},
