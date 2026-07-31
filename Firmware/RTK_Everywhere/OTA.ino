@@ -17,7 +17,6 @@ enum OtaState
     OTA_STATE_WAIT_FOR_NETWORK,
     OTA_STATE_GET_SYSTEMS_TO_UPDATE,
     OTA_STATE_UPDATE_FIRMWARE_IM19,
-    OTA_STATE_UPDATE_FIRMWARE_STM32,
     OTA_STATE_UPDATE_FIRMWARE_UM980,
     OTA_STATE_UPDATE_FIRMWARE_LG290P,
     OTA_STATE_UPDATE_FIRMWARE_MX5,
@@ -33,7 +32,6 @@ static const char *const otaStateNames[] = {"OTA_STATE_OFF",
                                             "OTA_STATE_WAIT_FOR_NETWORK",
                                             "OTA_STATE_GET_SYSTEMS_TO_UPDATE",
                                             "OTA_STATE_UPDATE_FIRMWARE_IM19",
-                                            "OTA_STATE_UPDATE_FIRMWARE_STM32",
                                             "OTA_STATE_UPDATE_FIRMWARE_UM980",
                                             "OTA_STATE_UPDATE_FIRMWARE_LG290P",
                                             "OTA_STATE_UPDATE_FIRMWARE_MX5",
@@ -1267,31 +1265,13 @@ void otaUpdate()
             // If the subsystem is not present, or there is not a new version, then move to the next subsystem
             if (present.imu_im19 == false || otaSubsystemFilePath('I') == nullptr)
             {
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_STM32); // Move on
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // Move on
             }
 
             // Get binary file over the network and stream/update the target
             else if (im19StreamFirmware(otaSubsystemFilePath('I')) == false)
             {
                 systemPrintln("Failed to update IM19 firmware");
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_STM32); // If we get here, move on
-            }
-            else
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_STM32); // If we get here, move on
-
-            break;
-
-        case OTA_STATE_UPDATE_FIRMWARE_STM32:
-            // If the subsystem is not present, or there is not a new version, then move to the next subsystem
-            if (present.radio_lora == false || otaSubsystemFilePath('L') == nullptr)
-            {
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // Move on
-            }
-
-            // Get binary file over the network and stream/update the target
-            else if (stm32StreamFirmware(otaSubsystemFilePath('L')) == false)
-            {
-                systemPrintln("Failed to update LoRa firmware");
                 otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // If we get here, move on
             }
             else
