@@ -17,7 +17,6 @@ enum OtaState
     OTA_STATE_WAIT_FOR_NETWORK,
     OTA_STATE_GET_SYSTEMS_TO_UPDATE,
     OTA_STATE_UPDATE_FIRMWARE_IM19,
-    OTA_STATE_UPDATE_FIRMWARE_UM980,
     OTA_STATE_UPDATE_FIRMWARE_X20P,
     OTA_STATE_UPDATE_FIRMWARE,
     OTA_STATE_REBOOT,
@@ -30,7 +29,6 @@ static const char *const otaStateNames[] = {"OTA_STATE_OFF",
                                             "OTA_STATE_WAIT_FOR_NETWORK",
                                             "OTA_STATE_GET_SYSTEMS_TO_UPDATE",
                                             "OTA_STATE_UPDATE_FIRMWARE_IM19",
-                                            "OTA_STATE_UPDATE_FIRMWARE_UM980",
                                             "OTA_STATE_UPDATE_FIRMWARE_X20P",
                                             "OTA_STATE_UPDATE_FIRMWARE",
                                             "OTA_STATE_REBOOT"};
@@ -1261,27 +1259,18 @@ void otaUpdate()
             // If the subsystem is not present, or there is not a new version, then move to the next subsystem
             if (present.imu_im19 == false || otaSubsystemFilePath('I') == nullptr)
             {
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // Move on
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_X20P); // Move on
             }
 
             // Get binary file over the network and stream/update the target
             else if (im19StreamFirmware(otaSubsystemFilePath('I')) == false)
             {
                 systemPrintln("Failed to update IM19 firmware");
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // If we get here, move on
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_X20P); // If we get here, move on
             }
             else
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // If we get here, move on
+                otaSetState(OTA_STATE_UPDATE_FIRMWARE_X20P); // If we get here, move on
 
-            break;
-
-        case OTA_STATE_UPDATE_FIRMWARE_UM980:
-            if (present.gnss_um980 == false || otaSubsystemFilePath('G') == nullptr)
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_X20P);
-
-            // Currently there is no update path. Move on
-            systemPrintln("No UM980 update path, moving on");
-            otaSetState(OTA_STATE_UPDATE_FIRMWARE_X20P);
             break;
 
         case OTA_STATE_UPDATE_FIRMWARE_X20P:
