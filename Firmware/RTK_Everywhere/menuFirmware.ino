@@ -33,10 +33,8 @@ void firmwareMenu()
         // Display the OTA portion of the menu
         // Note: Use otaMenuDisplay to get a new ESP32 image when the parsing
         // fails in deviceFirmwareUpdate due to server website changes!
-        // Letters: a  c  e  i  r  s  u, D, E, G, I, L, O, V, 1, ... for files
-        otaMenuDisplay(subsystemMask, developerOptions, currentVersion);
-        systemPrintf("d) %s developer options\r\n", developerOptions ? "Disable" : "Enable");
-        systemPrintf("p) Update firmware on all subsystems\r\n");
+        // Letters: a c d e i q r s u C D E F G I L O P V 1... for files
+        otaMenuDisplay(subsystemMask, &developerOptions, currentVersion);
 
         for (int x = 0; x < binCount; x++)
             systemPrintf("%d) Load SD file: %s\r\n", x + 1, binFileNames[x]);
@@ -55,22 +53,8 @@ void firmwareMenu()
         // Note: Use otaMenuProcessInput to get a new ESP32 image when the
         // parsing fails in deviceFirmwareUpdate due to server website
         // changes!
-        else if (otaMenuProcessInput(subsystemMask, developerOptions, incoming))
+        else if (otaMenuProcessInput(subsystemMask, &developerOptions, incoming))
         {
-        }
-
-        // Enable / disable developer options
-        else if (incoming == 'd')
-            developerOptions ^= 1;
-
-        // Restore product to production firmware
-        else if (incoming == 'p')
-        {
-            deviceFirmwareUpdateBegin(true, otaDebugVerbose);
-            while (deviceFirmwareUpdate(millis()))
-            {
-                networkUpdate();
-            }
         }
 
         else if (incoming == 'x')
