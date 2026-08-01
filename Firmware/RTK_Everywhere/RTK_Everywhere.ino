@@ -486,11 +486,7 @@ const char *wifiSoftApPassword = nullptr;
 #define OTA_FIRMWARE_JSON_URL                                                                                          \
     "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/"                       \
     "RTK-Everywhere-Firmware.json"
-#define OTA_RC_FIRMWARE_JSON_URL                                                                                       \
-    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/"                       \
-    "RTK-Everywhere-RC-Firmware.json"
 char otaFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
-char otaRcFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
 

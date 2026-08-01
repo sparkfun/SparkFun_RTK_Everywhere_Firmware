@@ -767,12 +767,8 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
     if (developerOptions)
         systemPrintf("D) %s firmware debugging\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
 
-    if (developerOptions)
-    {
-        systemPrintf("e) Allow beta firmware: %s\r\n", enableRCFirmware ? "Enabled" : "Disabled");
-        if (otaEsp32AreFirmwareWritesSupported())
-            systemPrintf("E) ESP32: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_ESP32));
-    }
+    if (developerOptions && (otaEsp32AreFirmwareWritesSupported()))
+        systemPrintf("E) ESP32: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_ESP32));
 
     if (developerOptions)
     {
@@ -794,7 +790,6 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
 
     if (developerOptions)
     {
-        systemPrintf("r) Change RC Firmware JSON URL: %s\r\n", otaRcFirmwareJsonUrl);
         systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
         systemPrintf("S) Change Firmware CSV URL: %s\r\n", settings.csvUrl);
     }
@@ -873,12 +868,6 @@ bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
             otaDebugVerbose = false;
     }
 
-    else if ((incoming == 'e') && developerOptions)
-    {
-        enableRCFirmware ^= 1;
-        strncpy(otaReportedVersion, "", sizeof(otaReportedVersion) - 1); // Reset to force c) menu
-    }
-
     // Select ESP32 request type
     else if (developerOptions && (incoming == 'E') && otaEsp32AreFirmwareWritesSupported()) // ESP32 requires second APP partition
         otaMenuNextSubsystemRequestType(OTA_SUBSYSTEM_ESP32);
@@ -923,12 +912,6 @@ bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
         otaRequestFirmwareUpdate = false;
     }
 
-    else if ((incoming == 'r') && developerOptions)
-    {
-        systemPrint("Enter RC Firmware JSON URL (empty to use default): ");
-        memset(otaRcFirmwareJsonUrl, 0, sizeof(otaRcFirmwareJsonUrl));
-        getUserInputString(otaRcFirmwareJsonUrl, sizeof(otaRcFirmwareJsonUrl) - 1);
-    }
     else if ((incoming == 's') && developerOptions)
     {
         systemPrint("Enter Firmware JSON URL (empty to use default): ");
