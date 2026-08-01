@@ -1616,8 +1616,7 @@ const uint8_t logoSparkPNT[] = {
     0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01,
     0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x01,
     0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x01, 0x03, 0x02, 0x02, 0x03, 0x03, 0x03, 0x03, 0x03,
-    0x03, 0x02, 0x02, 0x03, 0x03, 0x03, 0x02, 0x02, 0x03, 0x03, 0x03, 0x02, 0x02, 0x03, 0x03, 0x01
-    };
+    0x03, 0x02, 0x02, 0x03, 0x03, 0x03, 0x02, 0x02, 0x03, 0x03, 0x03, 0x02, 0x02, 0x03, 0x03, 0x01};
 
 /*
     ESPNOW_Symbol_3 [8, 13]
@@ -1920,29 +1919,31 @@ typedef struct
     const uint8_t yOffset;
     const uint8_t width;
     const uint8_t height;
-    const uint8_t * const pointer;
+    const uint8_t *const pointer;
 } correctionIconAttribute;
 
 correctionIconAttribute correctionIconAttributes[CORR_NUM] = {
-    { 0, 1, DynamicModel_Width, DynamicModel_Height, DynamicModel_1_Portable },
-    { 3, 0, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, ESPNOW_Symbol_3 },
-    { 0, 0, 15, 14, Corr_Radio_LoRa },
-    { 4, 0, BT_Symbol_Width, BT_Symbol_Height, BT_Symbol },
-    { 0, 0, 15, 14, Corr_USB_Icon },
-    { 0, 0, 15, 14, Corr_TCP_Icon },
-    { 0, 0, 15, 14, Corr_PPP_Icon },
-    { 1, 1, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIV_Antenna_LBand },
-    { 0, 0, 15, 14, Corr_IP_Icon },
+    {0, 1, DynamicModel_Width, DynamicModel_Height, DynamicModel_1_Portable},
+    {3, 0, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, ESPNOW_Symbol_3},
+    {0, 0, 15, 14, Corr_Radio_LoRa},
+    {4, 0, BT_Symbol_Width, BT_Symbol_Height, BT_Symbol},
+    {0, 0, 15, 14, Corr_USB_Icon},
+    {0, 0, 15, 14, Corr_TCP_Icon},
+    {0, 0, 15, 14, Corr_PPP_Icon},
+    {1, 1, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIV_Antenna_LBand},
+    {0, 0, 15, 14, Corr_IP_Icon},
 };
 
 // Display.ino uses a vector (list) of iconPropertyBlinking to define which icons are displayed where.
 
-typedef struct {
+typedef struct
+{
     uint8_t x;
     uint8_t y;
 } displayCoords;
 
-typedef struct {
+typedef struct
+{
     const void *bitmap;
     uint8_t width;
     uint8_t height;
@@ -1950,53 +1951,55 @@ typedef struct {
     uint8_t yPos;
 } iconProperty;
 
-typedef struct {
+typedef struct
+{
     iconProperty icon;
     uint8_t duty;
 } iconPropertyBlinking;
 
-typedef struct {
+typedef struct
+{
     const iconProperty iconDisplay[DISPLAY_MAX_NONE];
 } iconProperties;
 
 // 64x48-specific
-const iconProperty BTSymbolLeft64x48 = { &BT_Symbol, BT_Symbol_Width, BT_Symbol_Height, 1, 0 };
-const iconProperty DownloadArrowLeft64x48 = { &DownloadArrow, DownloadArrow_Width, DownloadArrow_Height, 1, 0 };
-const iconProperty UploadArrowLeft64x48 = { &UploadArrow, UploadArrow_Width, UploadArrow_Height, 1, 0 };
-const iconProperty ESPNowSymbol3Left64x48 = { &ESPNOW_Symbol_3, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 0, 0 };
-const iconProperty ESPNowSymbol2Left64x48 = { &ESPNOW_Symbol_2, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 0, 0 };
-const iconProperty ESPNowSymbol1Left64x48 = { &ESPNOW_Symbol_1, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 0, 0 };
-const iconProperty ESPNowSymbol0Left64x48 = { &ESPNOW_Symbol_0, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 0, 0 };
-const iconProperty WiFiSymbol3Left64x48 = { &WiFi_Symbol_3, WiFi_Symbol_Width, WiFi_Symbol_Height, 0, 0 };
-const iconProperty WiFiSymbol2Left64x48 = { &WiFi_Symbol_2, WiFi_Symbol_Width, WiFi_Symbol_Height, 0, 0 };
-const iconProperty WiFiSymbol1Left64x48 = { &WiFi_Symbol_1, WiFi_Symbol_Width, WiFi_Symbol_Height, 0, 0 };
-const iconProperty WiFiSymbol0Left64x48 = { &WiFi_Symbol_0, WiFi_Symbol_Width, WiFi_Symbol_Height, 0, 0 };
-const iconProperty BTSymbolCenter64x48 = { &BT_Symbol, BT_Symbol_Width, BT_Symbol_Height, 16, 0 };
-const iconProperty DownloadArrowCenter64x48 = { &DownloadArrow, DownloadArrow_Width, DownloadArrow_Height, 16, 0 };
-const iconProperty UploadArrowCenter64x48 = { &UploadArrow, UploadArrow_Width, UploadArrow_Height, 16, 0 };
-const iconProperty WiFiSymbol3Right64x48 = { &WiFi_Symbol_3, WiFi_Symbol_Width, WiFi_Symbol_Height, 28, 0 };
-const iconProperty WiFiSymbol2Right64x48 = { &WiFi_Symbol_2, WiFi_Symbol_Width, WiFi_Symbol_Height, 28, 0 };
-const iconProperty WiFiSymbol1Right64x48 = { &WiFi_Symbol_1, WiFi_Symbol_Width, WiFi_Symbol_Height, 28, 0 };
-const iconProperty WiFiSymbol0Right64x48 = { &WiFi_Symbol_0, WiFi_Symbol_Width, WiFi_Symbol_Height, 28, 0 };
-const iconProperty DownloadArrowRight64x48 = { &DownloadArrow, DownloadArrow_Width, DownloadArrow_Height, 31, 0 };
-const iconProperty UploadArrowRight64x48 = { &UploadArrow, UploadArrow_Width, UploadArrow_Height, 31, 0 };
+const iconProperty BTSymbolLeft64x48 = {&BT_Symbol, BT_Symbol_Width, BT_Symbol_Height, 1, 0};
+const iconProperty DownloadArrowLeft64x48 = {&DownloadArrow, DownloadArrow_Width, DownloadArrow_Height, 1, 0};
+const iconProperty UploadArrowLeft64x48 = {&UploadArrow, UploadArrow_Width, UploadArrow_Height, 1, 0};
+const iconProperty ESPNowSymbol3Left64x48 = {&ESPNOW_Symbol_3, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 0, 0};
+const iconProperty ESPNowSymbol2Left64x48 = {&ESPNOW_Symbol_2, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 0, 0};
+const iconProperty ESPNowSymbol1Left64x48 = {&ESPNOW_Symbol_1, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 0, 0};
+const iconProperty ESPNowSymbol0Left64x48 = {&ESPNOW_Symbol_0, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 0, 0};
+const iconProperty WiFiSymbol3Left64x48 = {&WiFi_Symbol_3, WiFi_Symbol_Width, WiFi_Symbol_Height, 0, 0};
+const iconProperty WiFiSymbol2Left64x48 = {&WiFi_Symbol_2, WiFi_Symbol_Width, WiFi_Symbol_Height, 0, 0};
+const iconProperty WiFiSymbol1Left64x48 = {&WiFi_Symbol_1, WiFi_Symbol_Width, WiFi_Symbol_Height, 0, 0};
+const iconProperty WiFiSymbol0Left64x48 = {&WiFi_Symbol_0, WiFi_Symbol_Width, WiFi_Symbol_Height, 0, 0};
+const iconProperty BTSymbolCenter64x48 = {&BT_Symbol, BT_Symbol_Width, BT_Symbol_Height, 16, 0};
+const iconProperty DownloadArrowCenter64x48 = {&DownloadArrow, DownloadArrow_Width, DownloadArrow_Height, 16, 0};
+const iconProperty UploadArrowCenter64x48 = {&UploadArrow, UploadArrow_Width, UploadArrow_Height, 16, 0};
+const iconProperty WiFiSymbol3Right64x48 = {&WiFi_Symbol_3, WiFi_Symbol_Width, WiFi_Symbol_Height, 28, 0};
+const iconProperty WiFiSymbol2Right64x48 = {&WiFi_Symbol_2, WiFi_Symbol_Width, WiFi_Symbol_Height, 28, 0};
+const iconProperty WiFiSymbol1Right64x48 = {&WiFi_Symbol_1, WiFi_Symbol_Width, WiFi_Symbol_Height, 28, 0};
+const iconProperty WiFiSymbol0Right64x48 = {&WiFi_Symbol_0, WiFi_Symbol_Width, WiFi_Symbol_Height, 28, 0};
+const iconProperty DownloadArrowRight64x48 = {&DownloadArrow, DownloadArrow_Width, DownloadArrow_Height, 31, 0};
+const iconProperty UploadArrowRight64x48 = {&UploadArrow, UploadArrow_Width, UploadArrow_Height, 31, 0};
 
 // 128x64-specific
-const iconProperty BTSymbol128x64 = { &BT_Symbol, BT_Symbol_Width, BT_Symbol_Height, 25, 0 };
-const iconProperty WiFiSymbol3128x64 = { &WiFi_Symbol_3, WiFi_Symbol_Width, WiFi_Symbol_Height, 34, 2 };
-const iconProperty WiFiSymbol2128x64 = { &WiFi_Symbol_2, WiFi_Symbol_Width, WiFi_Symbol_Height, 34, 2 };
-const iconProperty WiFiSymbol1128x64 = { &WiFi_Symbol_1, WiFi_Symbol_Width, WiFi_Symbol_Height, 34, 2 };
-const iconProperty WiFiSymbol0128x64 = { &WiFi_Symbol_0, WiFi_Symbol_Width, WiFi_Symbol_Height, 34, 2 };
-const iconProperty CellularSymbol3128x64 = { &Cellular_Symbol_3, Cellular_Symbol_Width, Cellular_Symbol_Height, 49, 0 };
-const iconProperty CellularSymbol2128x64 = { &Cellular_Symbol_2, Cellular_Symbol_Width, Cellular_Symbol_Height, 49, 0 };
-const iconProperty CellularSymbol1128x64 = { &Cellular_Symbol_1, Cellular_Symbol_Width, Cellular_Symbol_Height, 49, 0 };
-const iconProperty CellularSymbol0128x64 = { &Cellular_Symbol_0, Cellular_Symbol_Width, Cellular_Symbol_Height, 49, 0 };
-const iconProperty ESPNowSymbol3128x64 = { &ESPNOW_Symbol_3, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 64, 0 };
-const iconProperty ESPNowSymbol2128x64 = { &ESPNOW_Symbol_2, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 64, 0 };
-const iconProperty ESPNowSymbol1128x64 = { &ESPNOW_Symbol_1, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 64, 0 };
-const iconProperty ESPNowSymbol0128x64 = { &ESPNOW_Symbol_0, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 64, 0 };
-const iconProperty DownloadArrow128x64 = { &DownloadArrow, DownloadArrow_Width, DownloadArrow_Height, 74, 2 };
-const iconProperty UploadArrow128x64 = { &UploadArrow, UploadArrow_Width, UploadArrow_Height, 83, 2 };
+const iconProperty BTSymbol128x64 = {&BT_Symbol, BT_Symbol_Width, BT_Symbol_Height, 25, 0};
+const iconProperty WiFiSymbol3128x64 = {&WiFi_Symbol_3, WiFi_Symbol_Width, WiFi_Symbol_Height, 34, 2};
+const iconProperty WiFiSymbol2128x64 = {&WiFi_Symbol_2, WiFi_Symbol_Width, WiFi_Symbol_Height, 34, 2};
+const iconProperty WiFiSymbol1128x64 = {&WiFi_Symbol_1, WiFi_Symbol_Width, WiFi_Symbol_Height, 34, 2};
+const iconProperty WiFiSymbol0128x64 = {&WiFi_Symbol_0, WiFi_Symbol_Width, WiFi_Symbol_Height, 34, 2};
+const iconProperty CellularSymbol3128x64 = {&Cellular_Symbol_3, Cellular_Symbol_Width, Cellular_Symbol_Height, 49, 0};
+const iconProperty CellularSymbol2128x64 = {&Cellular_Symbol_2, Cellular_Symbol_Width, Cellular_Symbol_Height, 49, 0};
+const iconProperty CellularSymbol1128x64 = {&Cellular_Symbol_1, Cellular_Symbol_Width, Cellular_Symbol_Height, 49, 0};
+const iconProperty CellularSymbol0128x64 = {&Cellular_Symbol_0, Cellular_Symbol_Width, Cellular_Symbol_Height, 49, 0};
+const iconProperty ESPNowSymbol3128x64 = {&ESPNOW_Symbol_3, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 64, 0};
+const iconProperty ESPNowSymbol2128x64 = {&ESPNOW_Symbol_2, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 64, 0};
+const iconProperty ESPNowSymbol1128x64 = {&ESPNOW_Symbol_1, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 64, 0};
+const iconProperty ESPNowSymbol0128x64 = {&ESPNOW_Symbol_0, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 64, 0};
+const iconProperty DownloadArrow128x64 = {&DownloadArrow, DownloadArrow_Width, DownloadArrow_Height, 74, 2};
+const iconProperty UploadArrow128x64 = {&UploadArrow, UploadArrow_Width, UploadArrow_Height, 83, 2};
 
 // Shared on 64x48 and 128x64
 
@@ -2005,96 +2008,94 @@ const uint8_t DynamicModelIconYPos64x48 = 0;
 const uint8_t DynamicModelIconXPos128x64 = 92;
 const uint8_t DynamicModelIconYPos128x64 = 0;
 
-const iconProperties DynamicModel_1_Properties = {{{ &DynamicModel_1_Portable, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
-                                                   { &DynamicModel_1_Portable, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
-const iconProperties DynamicModel_2_Properties = {{{ &DynamicModel_2_Stationary, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
-                                                   { &DynamicModel_2_Stationary, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
-const iconProperties DynamicModel_3_Properties = {{{ &DynamicModel_3_Pedestrian, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
-                                                   { &DynamicModel_3_Pedestrian, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
-const iconProperties DynamicModel_4_Properties = {{{ &DynamicModel_4_Automotive, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
-                                                   { &DynamicModel_4_Automotive, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
-const iconProperties DynamicModel_5_Properties = {{{ &DynamicModel_5_Sea, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
-                                                   { &DynamicModel_5_Sea, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
-const iconProperties DynamicModel_6_Properties = {{{ &DynamicModel_6_Airborne1g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
-                                                   { &DynamicModel_6_Airborne1g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
-const iconProperties DynamicModel_7_Properties = {{{ &DynamicModel_7_Airborne2g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
-                                                   { &DynamicModel_7_Airborne2g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
-const iconProperties DynamicModel_8_Properties = {{{ &DynamicModel_8_Airborne4g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
-                                                   { &DynamicModel_8_Airborne4g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
-const iconProperties DynamicModel_9_Properties = {{{ &DynamicModel_9_Wrist, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
-                                                   { &DynamicModel_9_Wrist, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
-const iconProperties DynamicModel_10_Properties = {{{ &DynamicModel_10_Bike, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
-                                                    { &DynamicModel_10_Bike, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
-const iconProperties DynamicModel_11_Properties = {{{ &DynamicModel_11_Mower, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
-                                                    { &DynamicModel_11_Mower, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
-const iconProperties DynamicModel_12_Properties = {{{ &DynamicModel_12_EScooter, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
-                                                   { &DynamicModel_12_EScooter, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
-const iconProperties DynamicModel_Tractor_Props = {{{ &DynamicModel_Tractor, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
-                                                    { &DynamicModel_Tractor, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 }}};
+const iconProperties DynamicModel_1_Properties = {{{&DynamicModel_1_Portable, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48},
+                                                   {&DynamicModel_1_Portable, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64}}};
+const iconProperties DynamicModel_2_Properties = {{{&DynamicModel_2_Stationary, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48},
+                                                   {&DynamicModel_2_Stationary, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64}}};
+const iconProperties DynamicModel_3_Properties = {{{&DynamicModel_3_Pedestrian, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48},
+                                                   {&DynamicModel_3_Pedestrian, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64}}};
+const iconProperties DynamicModel_4_Properties = {{{&DynamicModel_4_Automotive, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48},
+                                                   {&DynamicModel_4_Automotive, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64}}};
+const iconProperties DynamicModel_5_Properties = {{{&DynamicModel_5_Sea, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48},
+                                                   {&DynamicModel_5_Sea, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64}}};
+const iconProperties DynamicModel_6_Properties = {{{&DynamicModel_6_Airborne1g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48},
+                                                   {&DynamicModel_6_Airborne1g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64}}};
+const iconProperties DynamicModel_7_Properties = {{{&DynamicModel_7_Airborne2g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48},
+                                                   {&DynamicModel_7_Airborne2g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64}}};
+const iconProperties DynamicModel_8_Properties = {{{&DynamicModel_8_Airborne4g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48},
+                                                   {&DynamicModel_8_Airborne4g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64}}};
+const iconProperties DynamicModel_9_Properties = {{{&DynamicModel_9_Wrist, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48},
+                                                   {&DynamicModel_9_Wrist, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64}}};
+const iconProperties DynamicModel_10_Properties = {{{&DynamicModel_10_Bike, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48},
+                                                    {&DynamicModel_10_Bike, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64}}};
+const iconProperties DynamicModel_11_Properties = {{{&DynamicModel_11_Mower, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48},
+                                                    {&DynamicModel_11_Mower, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64}}};
+const iconProperties DynamicModel_12_Properties = {{{&DynamicModel_12_EScooter, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48},
+                                                    {&DynamicModel_12_EScooter, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64}}};
+const iconProperties DynamicModel_Tractor_Props = {{{&DynamicModel_Tractor, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48},
+                                                    {&DynamicModel_Tractor, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64}}};
 
 const uint8_t BaseIconXPos64x48 = 28;
 const uint8_t BaseIconYPos64x48 = 0;
 const uint8_t BaseIconXPos128x64 = 92;
 const uint8_t BaseIconYPos128x64 = 0;
 
-const iconProperties BaseTemporaryProperties = {{{ &BaseTemporary, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos64x48, BaseIconYPos64x48 },
-                                                 { &BaseTemporary, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos128x64, BaseIconYPos128x64 }}};
-const iconProperties BaseFixedProperties = {{{ &BaseFixed, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos64x48, BaseIconYPos64x48 },
-                                              { &BaseFixed, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos128x64, BaseIconYPos128x64 }}};
-
+const iconProperties BaseTemporaryProperties = {{{&BaseTemporary, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos64x48, BaseIconYPos64x48},
+                                                 {&BaseTemporary, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos128x64, BaseIconYPos128x64}}};
+const iconProperties BaseFixedProperties = {{{&BaseFixed, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos64x48, BaseIconYPos64x48},
+                                             {&BaseFixed, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos128x64, BaseIconYPos128x64}}};
 
 const uint8_t AccuracyIconXPos64x48 = 0;
 const uint8_t AccuracyIconYPos64x48 = 18;
 const uint8_t AccuracyIconXPos128x64 = 0;
 const uint8_t AccuracyIconYPos128x64 = 26; // Just because we can, move accuracy down by 8 pixels on 128x64
 
-const iconProperties CrossHairProperties = {{{ &CrossHair, CrossHair_Width, CrossHair_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
-                                             { &CrossHair, CrossHair_Width, CrossHair_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 }}};
-const iconProperties CrossHairDualProperties = {{{ &CrossHairDual, CrossHairDual_Width, CrossHairDual_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
-                                                 { &CrossHairDual, CrossHairDual_Width, CrossHairDual_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 }}};
-const iconProperties CrossHairPppConvergedProperties = {{{ &CrossHairPppConverged, CrossHairPppConverged_Width, CrossHairPppConverged_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
-                                                 { &CrossHairPppConverged, CrossHairPppConverged_Width, CrossHairPppConverged_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 }}};
+const iconProperties CrossHairProperties = {{{&CrossHair, CrossHair_Width, CrossHair_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48},
+                                             {&CrossHair, CrossHair_Width, CrossHair_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64}}};
+const iconProperties CrossHairDualProperties = {{{&CrossHairDual, CrossHairDual_Width, CrossHairDual_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48},
+                                                 {&CrossHairDual, CrossHairDual_Width, CrossHairDual_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64}}};
+const iconProperties CrossHairPppConvergedProperties = {{{&CrossHairPppConverged, CrossHairPppConverged_Width, CrossHairPppConverged_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48},
+                                                         {&CrossHairPppConverged, CrossHairPppConverged_Width, CrossHairPppConverged_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64}}};
 
 #define CLOCK_ICON_STATES 4
-typedef struct {
+typedef struct
+{
     iconProperty iconDisplay[CLOCK_ICON_STATES][DISPLAY_MAX_NONE];
 } iconClockProperties;
 
-const iconClockProperties ClockIconProperties = {{{{ &Clock_Icon_0, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
-                                                   { &Clock_Icon_0, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 }},
-                                                  {{ &Clock_Icon_1, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
-                                                   { &Clock_Icon_1, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 }},
-                                                  {{ &Clock_Icon_2, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
-                                                   { &Clock_Icon_2, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 }},
-                                                  {{ &Clock_Icon_3, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
-                                                   { &Clock_Icon_3, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 }}}};
-
+const iconClockProperties ClockIconProperties = {{{{&Clock_Icon_0, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48},
+                                                   {&Clock_Icon_0, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64}},
+                                                  {{&Clock_Icon_1, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48},
+                                                   {&Clock_Icon_1, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64}},
+                                                  {{&Clock_Icon_2, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48},
+                                                   {&Clock_Icon_2, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64}},
+                                                  {{&Clock_Icon_3, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48},
+                                                   {&Clock_Icon_3, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64}}}};
 
 const uint8_t SIVIconXPos64x48 = 2; // This aligns the SIV icon neatly under the accuracy icon. But it causes challenges elsewhere. See SIVTextStartXPosOffset
 const uint8_t SIVIconYPos64x48 = 35;
 const uint8_t SIVIconXPos128x64 = 74; // Just because we can, move SIV to the right on 128x64
 const uint8_t SIVIconYPos128x64 = 26;
-const uint8_t BaseSIVIconXPos128x64 = 74; // Move SIV info below the 'Xmitting RTCM' text on 128x64
+const uint8_t BaseSIVIconXPos128x64 = 74;        // Move SIV info below the 'Xmitting RTCM' text on 128x64
 const uint8_t BaseSIVIconYPos128x64 = (26 + 14); // Assume font size 1;
 
-const int SIVTextStartXPosOffset[DISPLAY_MAX_NONE] = { -2, -2 }; // This is a bodge to allow the paintBaseTempSurveyStarted text to be printed in the correct place
+const int SIVTextStartXPosOffset[DISPLAY_MAX_NONE] = {-2, -2}; // This is a bodge to allow the paintBaseTempSurveyStarted text to be printed in the correct place
 
-const iconProperties SIVIconProperties = {{{ &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
-                                           { &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
+const iconProperties SIVIconProperties = {{{&SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, SIVIconXPos64x48, SIVIconYPos64x48},
+                                           {&SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, SIVIconXPos128x64, SIVIconYPos128x64}}};
 
-const iconProperties BaseSIVIconProperties = {{{ &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
-                                           { &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, BaseSIVIconXPos128x64, BaseSIVIconYPos128x64 }}};
+const iconProperties BaseSIVIconProperties = {{{&SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, SIVIconXPos64x48, SIVIconYPos64x48},
+                                               {&SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, BaseSIVIconXPos128x64, BaseSIVIconYPos128x64}}};
 
-const iconProperties PppIconProperties =   {{{ &SIV_Antenna_PPP, SIV_Antenna_PPP_Width, SIV_Antenna_PPP_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
-                                             { &SIV_Antenna_PPP, SIV_Antenna_PPP_Width, SIV_Antenna_PPP_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
-const iconProperties LBandIconProperties = {{{ &SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
-                                             { &SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
+const iconProperties PppIconProperties = {{{&SIV_Antenna_PPP, SIV_Antenna_PPP_Width, SIV_Antenna_PPP_Height, SIVIconXPos64x48, SIVIconYPos64x48},
+                                           {&SIV_Antenna_PPP, SIV_Antenna_PPP_Width, SIV_Antenna_PPP_Height, SIVIconXPos128x64, SIVIconYPos128x64}}};
+const iconProperties LBandIconProperties = {{{&SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIVIconXPos64x48, SIVIconYPos64x48},
+                                             {&SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIVIconXPos128x64, SIVIconYPos128x64}}};
 
-const iconProperties ShortIconProperties = {{{ &Antenna_Short, Antenna_Short_Width, Antenna_Short_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
-                                             { &Antenna_Short, Antenna_Short_Width, Antenna_Short_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
-const iconProperties OpenIconProperties = {{{ &Antenna_Open, Antenna_Open_Width, Antenna_Open_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
-                                            { &Antenna_Open, Antenna_Open_Width, Antenna_Open_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
-
+const iconProperties ShortIconProperties = {{{&Antenna_Short, Antenna_Short_Width, Antenna_Short_Height, SIVIconXPos64x48, SIVIconYPos64x48},
+                                             {&Antenna_Short, Antenna_Short_Width, Antenna_Short_Height, SIVIconXPos128x64, SIVIconYPos128x64}}};
+const iconProperties OpenIconProperties = {{{&Antenna_Open, Antenna_Open_Width, Antenna_Open_Height, SIVIconXPos64x48, SIVIconYPos64x48},
+                                            {&Antenna_Open, Antenna_Open_Width, Antenna_Open_Height, SIVIconXPos128x64, SIVIconYPos128x64}}};
 
 const uint8_t LoggingIconXPos64x48 = DisplayWidth[0] - Logging_Width; // Put the logging icon in the bottom right corner
 const uint8_t LoggingIconYPos64x48 = DisplayHeight[0] - Logging_Height;
@@ -2102,50 +2103,51 @@ const uint8_t LoggingIconXPos128x64 = DisplayWidth[1] - Logging_Width;
 const uint8_t LoggingIconYPos128x64 = DisplayHeight[1] - Logging_Height;
 
 #define LOGGING_ICON_STATES 4
-typedef struct {
+typedef struct
+{
     const iconProperty iconDisplay[LOGGING_ICON_STATES][DISPLAY_MAX_NONE];
 } iconLoggingProperties;
 
-const iconLoggingProperties LoggingIconProperties = {{{{ &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
-                                               {{ &Logging_1, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_1, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
-                                               {{ &Logging_2, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_2, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
-                                               {{ &Logging_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }}}};
-const iconLoggingProperties LoggingPPPIconProperties = {{{{ &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
-                                               {{ &Logging_PPP_1, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_PPP_1, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
-                                               {{ &Logging_PPP_2, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_PPP_2, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
-                                               {{ &Logging_PPP_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_PPP_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }}}};
-const iconLoggingProperties LoggingCustomIconProperties = {{{{ &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
-                                               {{ &Logging_Custom_1, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_Custom_1, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
-                                               {{ &Logging_Custom_2, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_Custom_2, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
-                                               {{ &Logging_Custom_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_Custom_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }}}};
-const iconLoggingProperties LoggingNTPIconProperties = {{{{ &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
-                                               {{ &Logging_NTP_1, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_NTP_1, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
-                                               {{ &Logging_NTP_2, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_NTP_2, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
-                                               {{ &Logging_NTP_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Logging_NTP_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }}}};
-const iconLoggingProperties PulseIconProperties = {{{{ &Pulse_0, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Pulse_0, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
-                                               {{ &Pulse_1, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Pulse_1, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
-                                               {{ &Pulse_2, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Pulse_2, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
-                                               {{ &Pulse_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
-                                                { &Pulse_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }}}};
+const iconLoggingProperties LoggingIconProperties = {{{{&Logging_0, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                       {&Logging_0, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}},
+                                                      {{&Logging_1, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                       {&Logging_1, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}},
+                                                      {{&Logging_2, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                       {&Logging_2, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}},
+                                                      {{&Logging_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                       {&Logging_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}}}};
+const iconLoggingProperties LoggingPPPIconProperties = {{{{&Logging_0, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                          {&Logging_0, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}},
+                                                         {{&Logging_PPP_1, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                          {&Logging_PPP_1, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}},
+                                                         {{&Logging_PPP_2, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                          {&Logging_PPP_2, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}},
+                                                         {{&Logging_PPP_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                          {&Logging_PPP_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}}}};
+const iconLoggingProperties LoggingCustomIconProperties = {{{{&Logging_0, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                             {&Logging_0, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}},
+                                                            {{&Logging_Custom_1, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                             {&Logging_Custom_1, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}},
+                                                            {{&Logging_Custom_2, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                             {&Logging_Custom_2, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}},
+                                                            {{&Logging_Custom_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                             {&Logging_Custom_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}}}};
+const iconLoggingProperties LoggingNTPIconProperties = {{{{&Logging_0, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                          {&Logging_0, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}},
+                                                         {{&Logging_NTP_1, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                          {&Logging_NTP_1, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}},
+                                                         {{&Logging_NTP_2, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                          {&Logging_NTP_2, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}},
+                                                         {{&Logging_NTP_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                          {&Logging_NTP_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}}}};
+const iconLoggingProperties PulseIconProperties = {{{{&Pulse_0, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                     {&Pulse_0, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}},
+                                                    {{&Pulse_1, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                     {&Pulse_1, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}},
+                                                    {{&Pulse_2, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                     {&Pulse_2, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}},
+                                                    {{&Pulse_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48},
+                                                     {&Pulse_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}}}};
 
 // Put the battery / Ethernet icon in the top right corner
 // Note: the "Width + 1" shouldn't be necessary, but I see corruption on column 0 without it...
@@ -2155,21 +2157,22 @@ const uint8_t BatteryIconYPos64x48 = 0;
 const uint8_t BatteryIconXPos128x64 = DisplayWidth[1] - (Battery_Width + 1);
 const uint8_t BatteryIconYPos128x64 = 0;
 
-const iconProperties EthernetIconProperties = {{{ &Ethernet_Icon, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48 },
-                                                { &Ethernet_Icon, Battery_Width, Battery_Height, BatteryIconXPos128x64, BatteryIconYPos128x64 }}};
+const iconProperties EthernetIconProperties = {{{&Ethernet_Icon, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48},
+                                                {&Ethernet_Icon, Battery_Width, Battery_Height, BatteryIconXPos128x64, BatteryIconYPos128x64}}};
 
 #define BATTERY_CHARGE_STATES 4
-typedef struct {
+typedef struct
+{
     iconProperty iconDisplay[BATTERY_CHARGE_STATES][DISPLAY_MAX_NONE];
 } iconBatteryProperties;
 
-const iconBatteryProperties BatteryProperties = {{{{ &Battery_0, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48 },
-                                                   { &Battery_0, Battery_Width, Battery_Height, BatteryIconXPos128x64, BatteryIconYPos128x64 }},
-                                                  {{ &Battery_1, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48 },
-                                                   { &Battery_1, Battery_Width, Battery_Height, BatteryIconXPos128x64, BatteryIconYPos128x64 }},
-                                                  {{ &Battery_2, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48 },
-                                                   { &Battery_2, Battery_Width, Battery_Height, BatteryIconXPos128x64, BatteryIconYPos128x64 }},
-                                                  {{ &Battery_3, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48 },
-                                                   { &Battery_3, Battery_Width, Battery_Height, BatteryIconXPos128x64, BatteryIconYPos128x64 }}}};
+const iconBatteryProperties BatteryProperties = {{{{&Battery_0, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48},
+                                                   {&Battery_0, Battery_Width, Battery_Height, BatteryIconXPos128x64, BatteryIconYPos128x64}},
+                                                  {{&Battery_1, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48},
+                                                   {&Battery_1, Battery_Width, Battery_Height, BatteryIconXPos128x64, BatteryIconYPos128x64}},
+                                                  {{&Battery_2, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48},
+                                                   {&Battery_2, Battery_Width, Battery_Height, BatteryIconXPos128x64, BatteryIconYPos128x64}},
+                                                  {{&Battery_3, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48},
+                                                   {&Battery_3, Battery_Width, Battery_Height, BatteryIconXPos128x64, BatteryIconYPos128x64}}}};
 
 #endif
