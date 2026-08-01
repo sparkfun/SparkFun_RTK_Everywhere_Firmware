@@ -192,12 +192,26 @@ void beginDisplay(TwoWire *i2cBus)
                 oled->flipHorizontal(true);
             }
 
-            // Display the brand LOGO
+            // Display the brand logo
             RTKBrandAttribute *brandAttribute = getBrandAttributeFromProductVariant(productVariant);
             oled->erase();
-            x = (oled->getWidth() - brandAttribute->logoWidth) / 2;
-            y = (oled->getHeight() - brandAttribute->logoHeight) / 2;
-            displayBitmap(x, y, brandAttribute->logoWidth, brandAttribute->logoHeight, brandAttribute->logoPointer);
+
+            uint8_t logoWidth = brandAttribute->logoWidth;
+            uint8_t logoHeight = brandAttribute->logoHeight;
+            const uint8_t *logoPointer = brandAttribute->logoPointer;
+
+            // logoSparkPNT was drawn for the 64 pixel wide displays (Facet mosaic-X5). Use the wider
+            // logoSparkPNT_128x64 splash on the 128 pixel wide displays (Facet FP, Postcard) instead.
+            if (brandAttribute->brand == BRAND_SPARKPNT && present.display_type == DISPLAY_128x64)
+            {
+                logoWidth = logoSparkPNT_128x64_Width;
+                logoHeight = logoSparkPNT_128x64_Height;
+                logoPointer = logoSparkPNT_128x64;
+            }
+
+            x = (oled->getWidth() - logoWidth) / 2;
+            y = (oled->getHeight() - logoHeight) / 2;
+            displayBitmap(x, y, logoWidth, logoHeight, logoPointer);
             oled->display();
             splashStart = millis();
             return;

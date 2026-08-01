@@ -181,6 +181,9 @@ extern const uint8_t logoSparkFun[];
 extern const uint8_t logoSparkPNT_Height;
 extern const uint8_t logoSparkPNT_Width;
 extern const uint8_t logoSparkPNT[];
+extern const uint8_t logoSparkPNT_128x64_Height;
+extern const uint8_t logoSparkPNT_128x64_Width;
+extern const uint8_t logoSparkPNT_128x64[];
 
 RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
     { BRAND_SPARKFUN, "SparkFun", logoSparkFun_Width, logoSparkFun_Height, logoSparkFun },
