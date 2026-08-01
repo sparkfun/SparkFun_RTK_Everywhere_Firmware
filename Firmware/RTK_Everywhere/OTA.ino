@@ -77,7 +77,6 @@ void otaCleanup(bool keepTargets)
             }
         }
         otaTargetCount = -1;
-        enableRCFirmware = false;
     }
 
     // Release the firmware buffer

@@ -11,6 +11,15 @@ menuFirmware.ino
 #ifdef COMPILE_MENU_FIRMWARE
 
 //----------------------------------------
+// Check for release candidate (RC) build
+//----------------------------------------
+bool firmwareCheckForRcBuild()
+{
+    bool rcBuild = (ENABLE_DEVELOPER || (FIRMWARE_VERSION_MAJOR >= 99));
+    return rcBuild;
+}
+
+//----------------------------------------
 // Update firmware if bin files found
 //----------------------------------------
 void firmwareMenu()
@@ -27,7 +36,8 @@ void firmwareMenu()
         systemPrintln("Menu: Firmware Update");
 
         char currentVersion[21];
-        espFirmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
+        bool rcBuild = firmwareCheckForRcBuild();
+        espFirmwareVersionGet(currentVersion, sizeof(currentVersion), rcBuild);
         systemPrintf("Current firmware: %s\r\n", currentVersion);
 
         // Display the OTA portion of the menu
@@ -77,46 +87,69 @@ void firmwareMenu()
 // Given a char string, break into version number major/minor, year, month, day
 // Returns false if parsing failed
 //----------------------------------------
-bool firmwareVersionBreakIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor, int *patch,
-                                   int *revision, int *year, int *month, int *day)
+bool firmwareVersionBreakIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor,
+                                   int *patch, int *revision, int *year, int *month, int *day)
 {
     char monthStr[20];
-    int placed = 0;
+    int placed;
 
-    *patch = 0;
-    *revision = 0;
-
-    if (enableRCFirmware == false)
+    do
     {
-        placed = sscanf(version, "%d.%d.%d.%d", versionNumberMajor, versionNumberMinor, patch, revision);
-        if (placed < 2)
-        {
-            log_d("Failed to sscanf basic");
-            return (false); // Something went wrong
-        }
-    }
-    else
-    {
-        placed = sscanf(version, "%d.%d.%d.%d-%s %d %d", versionNumberMajor, versionNumberMinor, patch, revision,
+        // Try major.minor-date.patch.revision-monthStr day year
+        *patch = 0;
+        *revision = 0;
+        *year = 0;
+        *month = 0;
+        *day = 0;
+        placed = sscanf(version, "%d.%d.%d.%d-%s %d %d",
+                        versionNumberMajor, versionNumberMinor, patch, revision,
                         monthStr, day, year);
-
         if (placed < 5)
         {
             // Fall back to major.minor-date format without patch/revision
-            placed = sscanf(version, "%d.%d-%s %d %d", versionNumberMajor, versionNumberMinor, monthStr, day, year);
-            if (placed != 5)
-            {
-                log_d("Failed to sscanf RC");
-                return (false); // Something went wrong
-            }
+            *patch = 0;
+            *revision = 0;
+            *year = 0;
+            *month = 0;
+            *day = 0;
+            placed = sscanf(version, "%d.%d-%s %d %d",
+                            versionNumberMajor, versionNumberMinor,
+                            monthStr, day, year);
+        }
+        if (placed < 5)
+        {
+            // Fall back to version built by espFirmwareVersionFormat
+            *patch = 0;
+            *revision = 0;
+            *year = 0;
+            *month = 0;
+            *day = 0;
+            placed = sscanf(version, "%d.%d-%d-%s-%d",
+                            versionNumberMajor, versionNumberMinor,
+                            monthStr, day, year);
+        }
+        if (placed >= 5)
+        {
+            // Validate the month
+            (*month) = firmwareVersionMapMonthName(monthStr);
+            if (*month != -1)
+                return true;
         }
 
-        (*month) = firmwareVersionMapMonthName(monthStr);
-        if (*month == -1)
-            return (false); // Something went wrong
-    }
+        // Fall back to major.minor.patch.revision
+        *patch = 0;
+        *revision = 0;
+        *year = 0;
+        *month = 0;
+        *day = 0;
+        placed = sscanf(version, "%d.%d.%d.%d",
+                        versionNumberMajor, versionNumberMinor, patch, revision);
+        if (placed >= 2)
+            return true;
+    } while (0);
 
-    return (true);
+    log_d("Failed to sscanf basic");
+    return false;
 }
 
 //----------------------------------------
@@ -128,7 +161,7 @@ void espFirmwareVersionFormat(uint8_t major, uint8_t minor, char *buffer, int bu
 
     // Construct the full or release candidate version number
     prefix = (ENABLE_DEVELOPER || (major >= 99)) ? 'd' : 'v';
-    if (includeDate && (bufferLength >= 21))
+    if ((prefix == 'd') && (bufferLength >= 21))
         // 123456789012345678901
         // pxxx.yyy-dd-mmm-yyyy0
         snprintf(buffer, bufferLength, "%c%d.%d-%s", prefix, major, minor, __DATE__);
@@ -174,7 +207,8 @@ const char *printEspFirmwareVersion()
 {
     // Create the firmware version string
     static char espFirmwareVersion[86];
-    espFirmwareVersionGet(espFirmwareVersion, sizeof(espFirmwareVersion), true);
+    bool rcBuild = firmwareCheckForRcBuild();
+    espFirmwareVersionGet(espFirmwareVersion, sizeof(espFirmwareVersion), rcBuild);
 
     return ((const char *)espFirmwareVersion);
 }
@@ -216,6 +250,7 @@ bool firmwareVersionIsReportedNewer(char *reportedVersion, char *currentVersion)
     int currentDay = 0;
     int currentMonth = 0;
     int currentYear = 0;
+    bool currentRc = false;
 
     int reportedVersionNumberMajor = 0;
     int reportedVersionNumberMinor = 0;
@@ -224,13 +259,16 @@ bool firmwareVersionIsReportedNewer(char *reportedVersion, char *currentVersion)
     int reportedDay = 0;
     int reportedMonth = 0;
     int reportedYear = 0;
+    bool reportedRc = false;
 
     firmwareVersionBreakIntoParts(currentVersion, &currentVersionNumberMajor, &currentVersionNumberMinor,
                                   &currentVersionNumberPatch, &currentVersionNumberRevision, &currentYear,
                                   &currentMonth, &currentDay);
+    currentRc = (currentYear != 0);
     firmwareVersionBreakIntoParts(reportedVersion, &reportedVersionNumberMajor, &reportedVersionNumberMinor,
                                   &reportedVersionNumberPatch, &reportedVersionNumberRevision, &reportedYear,
                                   &reportedMonth, &reportedDay);
+    reportedRc = (reportedYear != 0);
 
     if (settings.debugFirmwareUpdate)
     {
@@ -240,36 +278,14 @@ bool firmwareVersionIsReportedNewer(char *reportedVersion, char *currentVersion)
         systemPrintf("reportedVersion (%s): %d.%d.%d.%d %d %d %d\r\n", reportedVersion, reportedVersionNumberMajor,
                      reportedVersionNumberMinor, reportedVersionNumberPatch, reportedVersionNumberRevision,
                      reportedYear, reportedMonth, reportedDay);
-        if (enableRCFirmware)
-            systemPrintln("RC firmware enabled");
     }
 
     // Production firmware is named "2.6" or "4.11.1.2"
     // Release Candidate firmware is named "2.6-Dec 5 2022"
 
-    // If the user is not using Release Candidate firmware, then check only the version number
-    if (enableRCFirmware == false)
-    {
-        if (reportedVersionNumberMajor > currentVersionNumberMajor)
-            return (true);
-        if (reportedVersionNumberMajor == currentVersionNumberMajor &&
-            reportedVersionNumberMinor > currentVersionNumberMinor)
-            return (true);
-        if (reportedVersionNumberMajor == currentVersionNumberMajor &&
-            reportedVersionNumberMinor == currentVersionNumberMinor &&
-            reportedVersionNumberPatch > currentVersionNumberPatch)
-            return (true);
-        if (reportedVersionNumberMajor == currentVersionNumberMajor &&
-            reportedVersionNumberMinor == currentVersionNumberMinor &&
-            reportedVersionNumberPatch == currentVersionNumberPatch &&
-            reportedVersionNumberRevision > currentVersionNumberRevision)
-            return (true);
-        return (false);
-    }
-
-    // For RC firmware, compare firmware date as well
     // Check version number
-    if (reportedVersionNumberMajor > currentVersionNumberMajor)
+    if ((reportedVersionNumberMajor > currentVersionNumberMajor)
+        || (currentVersionNumberMajor == 99))
         return (true);
     if (reportedVersionNumberMajor == currentVersionNumberMajor &&
         reportedVersionNumberMinor > currentVersionNumberMinor)
@@ -284,15 +300,15 @@ bool firmwareVersionIsReportedNewer(char *reportedVersion, char *currentVersion)
         reportedVersionNumberRevision > currentVersionNumberRevision)
         return (true);
 
+    // For RC firmware, compare firmware date as well
     // Check which date is more recent
     // https://stackoverflow.com/questions/5283120/date-comparison-to-find-which-is-bigger-in-c
-    int reportedVersionScore = reportedDay + reportedMonth * 100 + reportedYear * 2000;
-    int currentVersionScore = currentDay + currentMonth * 100 + currentYear * 2000;
+    int reportedVersionScore = ((reportedYear > 100) ? reportedYear : reportedYear + 2000)
+                             + (reportedMonth * 100) + reportedDay;
+    int currentVersionScore = ((currentYear > 100) ? currentYear : currentYear + 2000)
+                             + (currentMonth * 100) + currentDay;
 
-    if (reportedVersionScore > currentVersionScore)
-        return (true);
-
-    return (false);
+    return (reportedVersionScore > currentVersionScore);
 }
 
 //----------------------------------------
