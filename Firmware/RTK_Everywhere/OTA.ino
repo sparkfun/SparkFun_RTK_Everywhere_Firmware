@@ -734,8 +734,10 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
 {
     bool developerOptions = *developerOptionsAddr;
     OTA_SUBSYSTEM_MASK productSubsystems = otaGetProductSubsystemSupport();
+    bool targetsValid;
 
     // Initialize the OTA targets
+    targetsValid = true;
     for (int subsystem = 0; subsystem < OTA_SUBSYSTEM_MAX; subsystem++)
     {
         if (otaTarget[subsystem]._valid == false)
@@ -745,8 +747,13 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
             else
                 otaTarget[subsystem]._requestType = OTA_REQUEST_SKIP_UPDATE;
             otaTarget[subsystem]._valid = true;
+            if (platformDevices & otaGetSubsystemMaskFromSubsystem(subsystem))
+                targetsValid = false;
         }
     }
+
+    // Display the targets
+    otaDisplayTargets();
 
     // Automatic firmware updates
     systemPrintf("a) Automatic firmware updates: %s\r\n", settings.enableAutoFirmwareUpdate ? "Enabled" : "Disabled");
@@ -789,6 +796,7 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
     {
         systemPrintf("r) Change RC Firmware JSON URL: %s\r\n", otaRcFirmwareJsonUrl);
         systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
+        systemPrintf("S) Change Firmware CSV URL: %s\r\n", settings.csvUrl);
     }
 
     // Allow user to initiate a firmware update without checking for new firmware first
@@ -926,6 +934,16 @@ bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
         systemPrint("Enter Firmware JSON URL (empty to use default): ");
         memset(otaFirmwareJsonUrl, 0, sizeof(otaFirmwareJsonUrl));
         getUserInputString(otaFirmwareJsonUrl, sizeof(otaFirmwareJsonUrl) - 1);
+    }
+
+    // Set the CSV URL
+    else if ((incoming == 'S') && developerOptions)
+    {
+        systemPrint("Enter Firmware CSV URL (empty to use default): ");
+        memset(settings.csvUrl, 0, sizeof(settings.csvUrl));
+        getUserInputString(settings.csvUrl, sizeof(settings.csvUrl) - 1);
+        if (strlen(settings.csvUrl) == 0)
+            strcpy(settings.csvUrl, OTA_FIRMWARE_CSV_URL);
     }
 
     else if (incoming == 'u')
@@ -1111,8 +1129,8 @@ void otaUpdate()
                 systemPrintln("Creating list of subsystems to update");
 
             // Get CVS file listing the firmware for this system
-            cert = otaGetCert(csvUrl);
-            if (csvOpenCsvFile(csvUrl,
+            cert = otaGetCert(settings.csvUrl);
+            if (csvOpenCsvFile(settings.csvUrl,
                                cert,
                                &otaCsvFileData,
                                &fileBytes,

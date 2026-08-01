@@ -44,14 +44,12 @@ enum OTA_FIRMWARE_UPDATE_REQUEST
 
 const char * otaEqualSigns = "==================================================";
 
-const char * csvUrl = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-Variants.csv";
-const char * csvCert = GITHUB_RAW_PUBLIC_CERT;
-
 //----------------------------------------
 // Globals
 //----------------------------------------
 
 bool otaDebugVerbose;
+char otaFirmwareCsvUrl[OTA_FIRMWARE_CSV_URL_LENGTH];
 
 //----------------------------------------
 // Subsystem support
