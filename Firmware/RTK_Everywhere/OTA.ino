@@ -74,7 +74,6 @@ void otaCleanup(bool keepTargets)
                 target->_url = nullptr;
             }
         }
-        otaTargetCount = -1;
     }
 
     // Release the firmware buffer
@@ -719,22 +718,17 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
 {
     bool developerOptions = *developerOptionsAddr;
     OTA_SUBSYSTEM_MASK productSubsystems = otaGetProductSubsystemSupport();
+    OTA_TARGET * target;
+    int targetCount;
     bool targetsValid;
 
     // Initialize the OTA targets
     targetsValid = true;
+    targetCount = 0;
     for (int subsystem = 0; subsystem < OTA_SUBSYSTEM_MAX; subsystem++)
     {
-        if (otaTarget[subsystem]._valid == false)
-        {
-            if (otaGetSubsystemMaskFromSubsystem(subsystem) & productSubsystems)
-                otaTarget[subsystem]._requestType = OTA_REQUEST_PRODUCT_RELEASE;
-            else
-                otaTarget[subsystem]._requestType = OTA_REQUEST_SKIP_UPDATE;
-            otaTarget[subsystem]._valid = true;
-            if (platformDevices & otaGetSubsystemMaskFromSubsystem(subsystem))
-                targetsValid = false;
-        }
+        if (otaUpdatesFound & otaGetSubsystemMaskFromSubsystem(subsystem))
+            targetCount += 1;
     }
 
     // Display the targets
@@ -778,13 +772,11 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
 
     // Allow user to initiate a firmware update without checking for new firmware first
     // If all systems are up to date, the process will exit
-    if (otaTargetCount == -1)
+    if (targetCount == 0)
         systemPrintf("u) Run system update: %s\r\n", otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
-    else if (otaTargetCount == 0)
-        systemPrintln("u) Run system update: No updates needed");
     else
-        systemPrintf("u) Run %d system update%s: %s\r\n", otaTargetCount,
-                     (otaTargetCount == 1) ? "" : "s",
+        systemPrintf("u) Run %d system update%s: %s\r\n", targetCount,
+                     (targetCount == 1) ? "" : "s",
                      otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
 
     if (developerOptions && settings.debugFirmwareUpdate)
@@ -1052,7 +1044,7 @@ void otaUpdate()
 
                 // Get the latest firmware version
                 networkUserAdd(NETCONSUMER_OTA_CLIENT, __FILE__, __LINE__);
-                if (otaTargetCount <= 0)
+                if (otaUpdatesFound == 0)
                     otaSetState(OTA_STATE_GET_SYSTEMS_TO_UPDATE);
                 else
                     otaSetState(OTA_STATE_UPDATE_FIRMWARE);
