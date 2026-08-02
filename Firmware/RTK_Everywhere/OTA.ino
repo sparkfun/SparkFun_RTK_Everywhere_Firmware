@@ -16,7 +16,6 @@ enum OtaState
     OTA_STATE_OFF = 0,
     OTA_STATE_WAIT_FOR_NETWORK,
     OTA_STATE_GET_SYSTEMS_TO_UPDATE,
-    OTA_STATE_UPDATE_FIRMWARE_X20P,
     OTA_STATE_UPDATE_FIRMWARE,
     OTA_STATE_REBOOT,
 
@@ -27,7 +26,6 @@ enum OtaState
 static const char *const otaStateNames[] = {"OTA_STATE_OFF",
                                             "OTA_STATE_WAIT_FOR_NETWORK",
                                             "OTA_STATE_GET_SYSTEMS_TO_UPDATE",
-                                            "OTA_STATE_UPDATE_FIRMWARE_X20P",
                                             "OTA_STATE_UPDATE_FIRMWARE",
                                             "OTA_STATE_REBOOT"};
 static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[0]);
@@ -1250,24 +1248,6 @@ void otaUpdate()
         case OTA_STATE_REBOOT:
             // Update finished
             otaEsp32Reboot();
-            break;
-
-        case OTA_STATE_UPDATE_FIRMWARE_X20P:
-            // If the subsystem is not present, or there is not a new version, then move to the next subsystem
-            if (present.gnss_zedx20p == false || otaSubsystemFilePath('G') == nullptr)
-            {
-                otaSetState(OTA_STATE_REBOOT); // Move on
-            }
-
-            // Get binary file over the network and stream/update the target
-            else if (x20pStreamFirmware(otaSubsystemFilePath('G')) == false)
-            {
-                systemPrintln("Failed to update ZED-X20P firmware");
-                otaSetState(OTA_STATE_REBOOT); // If we get here, move on
-            }
-            else
-                otaSetState(OTA_STATE_REBOOT); // If we get here, move on
-
             break;
         }
     }

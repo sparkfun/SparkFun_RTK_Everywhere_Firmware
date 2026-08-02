@@ -629,20 +629,6 @@ bool otaEsp32AreFirmwareWritesSupported()
     return false;
 }
 
-// Return the file path if a specified subsystem code is in the list, null string if not
-// subsystemCode should be a single character - ie 'E' for ESP32, 'I' for IM19, etc.
-char *otaSubsystemFilePath(char subsystemCode)
-{
-    for (int i = 0; i < otaTargetCount; i++)
-    {
-        if (otaTargets[i].subsystemCode == subsystemCode)
-            return otaTargets[i].filePath;
-    }
-    if (settings.debugFirmwareUpdate)
-        systemPrintf("No file path found for subsystem code '%c'\r\n", subsystemCode);
-    return nullptr;
-}
-
 //----------------------------------------
 // Reboot the ESP32
 //----------------------------------------
