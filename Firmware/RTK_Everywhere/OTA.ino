@@ -789,10 +789,7 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
     systemPrintf("q) Cancel check and update requests\r\n");
 
     if (developerOptions)
-    {
-        systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
         systemPrintf("S) Change Firmware CSV URL: %s\r\n", settings.csvUrl);
-    }
 
     // Allow user to initiate a firmware update without checking for new firmware first
     // If all systems are up to date, the process will exit
@@ -910,13 +907,6 @@ bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
     {
         otaRequestFirmwareVersionCheck = false;
         otaRequestFirmwareUpdate = false;
-    }
-
-    else if ((incoming == 's') && developerOptions)
-    {
-        systemPrint("Enter Firmware JSON URL (empty to use default): ");
-        memset(otaFirmwareJsonUrl, 0, sizeof(otaFirmwareJsonUrl));
-        getUserInputString(otaFirmwareJsonUrl, sizeof(otaFirmwareJsonUrl) - 1);
     }
 
     // Set the CSV URL

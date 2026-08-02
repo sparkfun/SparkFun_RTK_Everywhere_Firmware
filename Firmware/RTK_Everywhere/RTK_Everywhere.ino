@@ -479,15 +479,6 @@ const char *wifiSoftApPassword = nullptr;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
 
-#define OTA_FIRMWARE_JSON_URL_LENGTH 128
-//                                                                                                      1         1 1
-//            1         2         3         4         5         6         7         8         9         0         1 2
-//   12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678
-#define OTA_FIRMWARE_JSON_URL                                                                                          \
-    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/"                       \
-    "RTK-Everywhere-Firmware.json"
-char otaFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
-
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
 
 bool apConfigFirmwareUpdateInProcess; // Goes true once WiFi is connected and OTA pull begins
