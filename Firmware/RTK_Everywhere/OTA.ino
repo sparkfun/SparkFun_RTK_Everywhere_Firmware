@@ -1477,7 +1477,7 @@ extern const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[] =
 #endif  // COMPILE_UM980
 #ifdef  COMPILE_ZED
     {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedf9p,   gnssGetVersion,     nullptr,                nullptr,                256,                false,      "/gnss/zed-f9p",   otaGithubRaw,   otaRawBranch},
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedx20p,  gnssGetVersion,     nullptr,                nullptr,                256,                false,      "/gnss/zed-x20p",  otaGithubRaw,   otaRawBranch},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedx20p,  gnssGetVersion,     nullptr,                x20pStreamFirmware,     256,                false,      "/gnss/zed-x20p",  otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_ZED
 
     // LoRa devices
