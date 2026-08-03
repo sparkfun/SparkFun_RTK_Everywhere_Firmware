@@ -244,6 +244,17 @@ const productHousingProperties productHousingPropertiesTable[] =
 };
 const int productHousingEntries = sizeof(productHousingPropertiesTable) / sizeof(productHousingPropertiesTable[0]);
 
+typedef enum
+{
+    TILT_NOT_PRESENT = 0,
+    TILT_DISABLED,
+    TILT_OFFLINE,
+    TILT_STARTED,
+    TILT_INITIALIZED,
+    TILT_CORRECTING,
+    TILT_REQUEST_STOP,
+} TiltState;
+
 // Product Properties Table
 // ========================
 // name is used to create the BT broadcast deviceName
