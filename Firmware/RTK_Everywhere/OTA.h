@@ -106,13 +106,5 @@ typedef struct _OTA_TARGET
 } OTA_TARGET;
 OTA_TARGET otaTarget[OTA_SUBSYSTEM_MAX];
 
-struct OtaTarget
-{
-    char subsystemCode; // 'E'=ESP32, 'G'=GNSS, 'L'=LoRa, 'I'=IMU
-    char filePath[256];
-};
-OtaTarget otaTargets[OTA_SUBSYSTEM_MAX];
-int otaTargetCount = -1; // -1 means we have not yet pulled the list of targets from the server
-
 #endif  // COMPILE_OTA_AUTO
 #endif  // __OTA_H__

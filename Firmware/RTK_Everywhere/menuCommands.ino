@@ -315,7 +315,7 @@ t_cliResult processCommand(char *cmdBuffer)
             }
             else if (strcmp(tokens[1], "UPDATEFIRMWARE") == 0)
             {
-                // Begin a firmware update. WiFi networks and enableRCFirmware should previously be set.
+                // Begin a firmware update. WiFi networks should previously be set.
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 otaRequestFirmwareUpdate = true;
 
@@ -1177,11 +1177,6 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
 
     // Special human-machine-interface commands/actions
-    else if (strcmp(settingName, "enableRCFirmware") == 0)
-    {
-        enableRCFirmware = settingValue;
-        knownSetting = true;
-    }
     else if (strcmp(settingName, "firmwareFileName") == 0)
     {
         microSDMountThenUpdate(settingValueStr);
@@ -1892,7 +1887,6 @@ void createSettingsString(char *newSettings)
 
     // Single variables needed on Config page
     stringRecord(newSettings, "minCN0", settings.minCN0);
-    stringRecord(newSettings, "enableRCFirmware", enableRCFirmware);
 
     if (present.microSd)
     {
@@ -2594,11 +2588,6 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     }
 
     // Special actions
-    else if (strcmp(settingName, "enableRCFirmware") == 0)
-    {
-        writeToString(settingValueStr, enableRCFirmware);
-        knownSetting = true;
-    }
     else if (strcmp(settingName, "gnssModuleInfo") == 0)
     {
         writeToString(settingValueStr, (char *)printGnssModuleInfo());
@@ -2996,9 +2985,9 @@ const char *commandGetName(int stringIndex, int rtkIndex)
     else if (rtkIndex == COMMAND_REMOTE_FIRMWARE_VERSION)
         return "espNewFirmwareVersion";
 
-    // Allow release candidate firmware to be installed
+    // Enable the use of release candidate firmware
     else if (rtkIndex == COMMAND_ENABLE_RC_FIRMWARE)
-        return "enableRCFirmware";
+        return "enableRcFirmware";
 
     // Display the current GNSS firmware version number
     else if (rtkIndex == COMMAND_GNSS_MODULE_INFO)
@@ -3028,7 +3017,8 @@ const char *commandGetName(int stringIndex, int rtkIndex)
     else if (rtkIndex == COMMAND_DEVICE_ID)
         return "deviceId";
 
-    systemPrintln("commandGetName Error: Uncaught command type");
+    systemPrintf("commandGetName Error: Uncaught command type, stringIndex: %d, rtkIndex: %d\r\n",
+                 stringIndex, rtkIndex);
     return "unknown";
 }
 
@@ -3340,15 +3330,6 @@ void printAvailableSettings()
         {
             // Report the available command but without data. That requires the user issue separate SPGET.
             commandSendExecuteListResponse("espNewFirmwareVersion", "char[21]", "NotYetRetrieved");
-        }
-
-        // Allow beta firmware release candidates
-        else if (commandIndex[i] == COMMAND_ENABLE_RC_FIRMWARE)
-        {
-            if (enableRCFirmware)
-                commandSendExecuteListResponse("enableRCFirmware", "bool", "true");
-            else
-                commandSendExecuteListResponse("enableRCFirmware", "bool", "false");
         }
 
         // Display the GNSS receiver info

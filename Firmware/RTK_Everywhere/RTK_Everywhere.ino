@@ -496,7 +496,6 @@ bool otaRequestFirmwareUpdate = false;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include "base64.h" //Built-in. Needed for NTRIP Client credential encoding.
 
-bool enableRCFirmware;      // Allows updating to the latest release candidate firmware.
 bool currentlyParsingData;  // Goes true when we hit 750ms timeout with new data
 bool tcpServerInCasterMode; // True when TCP server is running in caster mode
 

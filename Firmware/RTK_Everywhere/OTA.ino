@@ -16,13 +16,6 @@ enum OtaState
     OTA_STATE_OFF = 0,
     OTA_STATE_WAIT_FOR_NETWORK,
     OTA_STATE_GET_SYSTEMS_TO_UPDATE,
-    OTA_STATE_UPDATE_FIRMWARE_IM19,
-    OTA_STATE_UPDATE_FIRMWARE_STM32,
-    OTA_STATE_UPDATE_FIRMWARE_UM980,
-    OTA_STATE_UPDATE_FIRMWARE_LG290P,
-    OTA_STATE_UPDATE_FIRMWARE_MX5,
-    OTA_STATE_UPDATE_FIRMWARE_X20P,
-    OTA_STATE_UPDATE_FIRMWARE_ESP,
     OTA_STATE_UPDATE_FIRMWARE,
     OTA_STATE_REBOOT,
 
@@ -33,13 +26,6 @@ enum OtaState
 static const char *const otaStateNames[] = {"OTA_STATE_OFF",
                                             "OTA_STATE_WAIT_FOR_NETWORK",
                                             "OTA_STATE_GET_SYSTEMS_TO_UPDATE",
-                                            "OTA_STATE_UPDATE_FIRMWARE_IM19",
-                                            "OTA_STATE_UPDATE_FIRMWARE_STM32",
-                                            "OTA_STATE_UPDATE_FIRMWARE_UM980",
-                                            "OTA_STATE_UPDATE_FIRMWARE_LG290P",
-                                            "OTA_STATE_UPDATE_FIRMWARE_MX5",
-                                            "OTA_STATE_UPDATE_FIRMWARE_X20P",
-                                            "OTA_STATE_UPDATE_FIRMWARE_ESP32",
                                             "OTA_STATE_UPDATE_FIRMWARE",
                                             "OTA_STATE_REBOOT"};
 static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[0]);
@@ -88,8 +74,6 @@ void otaCleanup(bool keepTargets)
                 target->_url = nullptr;
             }
         }
-        otaTargetCount = -1;
-        enableRCFirmware = false;
     }
 
     // Release the firmware buffer
@@ -734,22 +718,17 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
 {
     bool developerOptions = *developerOptionsAddr;
     OTA_SUBSYSTEM_MASK productSubsystems = otaGetProductSubsystemSupport();
+    OTA_TARGET * target;
+    int targetCount;
     bool targetsValid;
 
     // Initialize the OTA targets
     targetsValid = true;
+    targetCount = 0;
     for (int subsystem = 0; subsystem < OTA_SUBSYSTEM_MAX; subsystem++)
     {
-        if (otaTarget[subsystem]._valid == false)
-        {
-            if (otaGetSubsystemMaskFromSubsystem(subsystem) & productSubsystems)
-                otaTarget[subsystem]._requestType = OTA_REQUEST_PRODUCT_RELEASE;
-            else
-                otaTarget[subsystem]._requestType = OTA_REQUEST_SKIP_UPDATE;
-            otaTarget[subsystem]._valid = true;
-            if (platformDevices & otaGetSubsystemMaskFromSubsystem(subsystem))
-                targetsValid = false;
-        }
+        if (otaUpdatesFound & otaGetSubsystemMaskFromSubsystem(subsystem))
+            targetCount += 1;
     }
 
     // Display the targets
@@ -793,13 +772,11 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
 
     // Allow user to initiate a firmware update without checking for new firmware first
     // If all systems are up to date, the process will exit
-    if (otaTargetCount == -1)
+    if (targetCount == 0)
         systemPrintf("u) Run system update: %s\r\n", otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
-    else if (otaTargetCount == 0)
-        systemPrintln("u) Run system update: No updates needed");
     else
-        systemPrintf("u) Run %d system update%s: %s\r\n", otaTargetCount,
-                     (otaTargetCount == 1) ? "" : "s",
+        systemPrintf("u) Run %d system update%s: %s\r\n", targetCount,
+                     (targetCount == 1) ? "" : "s",
                      otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
 
     if (developerOptions && settings.debugFirmwareUpdate)
@@ -1067,7 +1044,7 @@ void otaUpdate()
 
                 // Get the latest firmware version
                 networkUserAdd(NETCONSUMER_OTA_CLIENT, __FILE__, __LINE__);
-                if (otaTargetCount <= 0)
+                if (otaUpdatesFound == 0)
                     otaSetState(OTA_STATE_GET_SYSTEMS_TO_UPDATE);
                 else
                     otaSetState(OTA_STATE_UPDATE_FIRMWARE);
@@ -1263,118 +1240,6 @@ void otaUpdate()
         case OTA_STATE_REBOOT:
             // Update finished
             otaEsp32Reboot();
-            break;
-
-        case OTA_STATE_UPDATE_FIRMWARE_IM19:
-            // If the subsystem is not present, or there is not a new version, then move to the next subsystem
-            if (present.imu_im19 == false || otaSubsystemFilePath('I') == nullptr)
-            {
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_STM32); // Move on
-            }
-
-            // Get binary file over the network and stream/update the target
-            else if (im19StreamFirmware(otaSubsystemFilePath('I')) == false)
-            {
-                systemPrintln("Failed to update IM19 firmware");
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_STM32); // If we get here, move on
-            }
-            else
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_STM32); // If we get here, move on
-
-            break;
-
-        case OTA_STATE_UPDATE_FIRMWARE_STM32:
-            // If the subsystem is not present, or there is not a new version, then move to the next subsystem
-            if (present.radio_lora == false || otaSubsystemFilePath('L') == nullptr)
-            {
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // Move on
-            }
-
-            // Get binary file over the network and stream/update the target
-            else if (stm32StreamFirmware(otaSubsystemFilePath('L')) == false)
-            {
-                systemPrintln("Failed to update LoRa firmware");
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // If we get here, move on
-            }
-            else
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_UM980); // If we get here, move on
-
-            break;
-
-        case OTA_STATE_UPDATE_FIRMWARE_UM980:
-            if (present.gnss_um980 == false || otaSubsystemFilePath('G') == nullptr)
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_LG290P);
-
-            // Currently there is no update path. Move on
-            systemPrintln("No UM980 update path, moving on");
-            otaSetState(OTA_STATE_UPDATE_FIRMWARE_LG290P);
-            break;
-
-        case OTA_STATE_UPDATE_FIRMWARE_LG290P:
-            if (present.gnss_lg290p == false || otaSubsystemFilePath('G') == nullptr)
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_MX5);
-
-            // Currently there is no update path. Move on
-            systemPrintln("No LG290P update path, moving on");
-            otaSetState(OTA_STATE_UPDATE_FIRMWARE_MX5);
-            break;
-
-        case OTA_STATE_UPDATE_FIRMWARE_MX5:
-            if (present.gnss_mosaicX5 == false || otaSubsystemFilePath('G') == nullptr)
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_X20P);
-
-            // Currently there is no update path. Move on
-            systemPrintln("No mosaic-X5 update path, moving on");
-            otaSetState(OTA_STATE_UPDATE_FIRMWARE_X20P);
-            break;
-
-        case OTA_STATE_UPDATE_FIRMWARE_X20P:
-            // If the subsystem is not present, or there is not a new version, then move to the next subsystem
-            if (present.gnss_zedx20p == false || otaSubsystemFilePath('G') == nullptr)
-            {
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP); // Move on
-            }
-
-            // Get binary file over the network and stream/update the target
-            else if (x20pStreamFirmware(otaSubsystemFilePath('G')) == false)
-            {
-                systemPrintln("Failed to update ZED-X20P firmware");
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP); // If we get here, move on
-            }
-            else
-                otaSetState(OTA_STATE_UPDATE_FIRMWARE_ESP); // If we get here, move on
-
-            break;
-
-        // Update the firmware on the ESP32 - the last update path because it will end in a reset
-        case OTA_STATE_UPDATE_FIRMWARE_ESP:
-            // If there is not a new version, then the machine is complete
-            // The only way we got here is if *one* of the subsystems updated. So do a system reset
-            if (otaSubsystemFilePath('E') == nullptr)
-            {
-                systemPrintln("System update complete. Resetting. Good bye!");
-                ESP.restart();
-            }
-
-            else
-            {
-                // Get binary file over the network and stream/update the target
-                if (espStreamFirmware(otaSubsystemFilePath('E')) == true)
-                {
-                    systemPrintln("ESP32 update complete. Resetting. Good bye!");
-                    ESP.restart();
-                }
-                else
-                {
-                    systemPrintln("Failed to update ESP32 firmware");
-
-                    webServerSendString((char *)"gettingNewFirmware,ERROR,");
-
-                    commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"OTA Error");
-
-                    otaUpdateStop(false);
-                }
-            }
             break;
         }
     }

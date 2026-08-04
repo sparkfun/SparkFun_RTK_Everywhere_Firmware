@@ -11,6 +11,15 @@ menuFirmware.ino
 #ifdef COMPILE_MENU_FIRMWARE
 
 //----------------------------------------
+// Check for release candidate (RC) build
+//----------------------------------------
+bool firmwareCheckForRcBuild()
+{
+    bool rcBuild = (ENABLE_DEVELOPER || (FIRMWARE_VERSION_MAJOR >= 99));
+    return rcBuild;
+}
+
+//----------------------------------------
 // Update firmware if bin files found
 //----------------------------------------
 void firmwareMenu()
@@ -27,7 +36,8 @@ void firmwareMenu()
         systemPrintln("Menu: Firmware Update");
 
         char currentVersion[21];
-        espFirmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
+        bool rcBuild = firmwareCheckForRcBuild();
+        espFirmwareVersionGet(currentVersion, sizeof(currentVersion), rcBuild);
         systemPrintf("Current firmware: %s\r\n", currentVersion);
 
         // Display the OTA portion of the menu
@@ -77,46 +87,69 @@ void firmwareMenu()
 // Given a char string, break into version number major/minor, year, month, day
 // Returns false if parsing failed
 //----------------------------------------
-bool firmwareVersionBreakIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor, int *patch,
-                                   int *revision, int *year, int *month, int *day)
+bool firmwareVersionBreakIntoParts(char *version, int *versionNumberMajor, int *versionNumberMinor,
+                                   int *patch, int *revision, int *year, int *month, int *day)
 {
     char monthStr[20];
-    int placed = 0;
+    int placed;
 
-    *patch = 0;
-    *revision = 0;
-
-    if (enableRCFirmware == false)
+    do
     {
-        placed = sscanf(version, "%d.%d.%d.%d", versionNumberMajor, versionNumberMinor, patch, revision);
-        if (placed < 2)
-        {
-            log_d("Failed to sscanf basic");
-            return (false); // Something went wrong
-        }
-    }
-    else
-    {
-        placed = sscanf(version, "%d.%d.%d.%d-%s %d %d", versionNumberMajor, versionNumberMinor, patch, revision,
+        // Try major.minor-date.patch.revision-monthStr day year
+        *patch = 0;
+        *revision = 0;
+        *year = 0;
+        *month = 0;
+        *day = 0;
+        placed = sscanf(version, "%d.%d.%d.%d-%s %d %d",
+                        versionNumberMajor, versionNumberMinor, patch, revision,
                         monthStr, day, year);
-
         if (placed < 5)
         {
             // Fall back to major.minor-date format without patch/revision
-            placed = sscanf(version, "%d.%d-%s %d %d", versionNumberMajor, versionNumberMinor, monthStr, day, year);
-            if (placed != 5)
-            {
-                log_d("Failed to sscanf RC");
-                return (false); // Something went wrong
-            }
+            *patch = 0;
+            *revision = 0;
+            *year = 0;
+            *month = 0;
+            *day = 0;
+            placed = sscanf(version, "%d.%d-%s %d %d",
+                            versionNumberMajor, versionNumberMinor,
+                            monthStr, day, year);
+        }
+        if (placed < 5)
+        {
+            // Fall back to version built by espFirmwareVersionFormat
+            *patch = 0;
+            *revision = 0;
+            *year = 0;
+            *month = 0;
+            *day = 0;
+            placed = sscanf(version, "%d.%d-%d-%s-%d",
+                            versionNumberMajor, versionNumberMinor,
+                            monthStr, day, year);
+        }
+        if (placed >= 5)
+        {
+            // Validate the month
+            (*month) = firmwareVersionMapMonthName(monthStr);
+            if (*month != -1)
+                return true;
         }
 
-        (*month) = firmwareVersionMapMonthName(monthStr);
-        if (*month == -1)
-            return (false); // Something went wrong
-    }
+        // Fall back to major.minor.patch.revision
+        *patch = 0;
+        *revision = 0;
+        *year = 0;
+        *month = 0;
+        *day = 0;
+        placed = sscanf(version, "%d.%d.%d.%d",
+                        versionNumberMajor, versionNumberMinor, patch, revision);
+        if (placed >= 2)
+            return true;
+    } while (0);
 
-    return (true);
+    log_d("Failed to sscanf basic");
+    return false;
 }
 
 //----------------------------------------
@@ -128,7 +161,7 @@ void espFirmwareVersionFormat(uint8_t major, uint8_t minor, char *buffer, int bu
 
     // Construct the full or release candidate version number
     prefix = (ENABLE_DEVELOPER || (major >= 99)) ? 'd' : 'v';
-    if (includeDate && (bufferLength >= 21))
+    if ((prefix == 'd') && (bufferLength >= 21))
         // 123456789012345678901
         // pxxx.yyy-dd-mmm-yyyy0
         snprintf(buffer, bufferLength, "%c%d.%d-%s", prefix, major, minor, __DATE__);
@@ -174,7 +207,8 @@ const char *printEspFirmwareVersion()
 {
     // Create the firmware version string
     static char espFirmwareVersion[86];
-    espFirmwareVersionGet(espFirmwareVersion, sizeof(espFirmwareVersion), true);
+    bool rcBuild = firmwareCheckForRcBuild();
+    espFirmwareVersionGet(espFirmwareVersion, sizeof(espFirmwareVersion), rcBuild);
 
     return ((const char *)espFirmwareVersion);
 }
@@ -216,6 +250,7 @@ bool firmwareVersionIsReportedNewer(char *reportedVersion, char *currentVersion)
     int currentDay = 0;
     int currentMonth = 0;
     int currentYear = 0;
+    bool currentRc = false;
 
     int reportedVersionNumberMajor = 0;
     int reportedVersionNumberMinor = 0;
@@ -224,13 +259,16 @@ bool firmwareVersionIsReportedNewer(char *reportedVersion, char *currentVersion)
     int reportedDay = 0;
     int reportedMonth = 0;
     int reportedYear = 0;
+    bool reportedRc = false;
 
     firmwareVersionBreakIntoParts(currentVersion, &currentVersionNumberMajor, &currentVersionNumberMinor,
                                   &currentVersionNumberPatch, &currentVersionNumberRevision, &currentYear,
                                   &currentMonth, &currentDay);
+    currentRc = (currentYear != 0);
     firmwareVersionBreakIntoParts(reportedVersion, &reportedVersionNumberMajor, &reportedVersionNumberMinor,
                                   &reportedVersionNumberPatch, &reportedVersionNumberRevision, &reportedYear,
                                   &reportedMonth, &reportedDay);
+    reportedRc = (reportedYear != 0);
 
     if (settings.debugFirmwareUpdate)
     {
@@ -240,36 +278,14 @@ bool firmwareVersionIsReportedNewer(char *reportedVersion, char *currentVersion)
         systemPrintf("reportedVersion (%s): %d.%d.%d.%d %d %d %d\r\n", reportedVersion, reportedVersionNumberMajor,
                      reportedVersionNumberMinor, reportedVersionNumberPatch, reportedVersionNumberRevision,
                      reportedYear, reportedMonth, reportedDay);
-        if (enableRCFirmware)
-            systemPrintln("RC firmware enabled");
     }
 
     // Production firmware is named "2.6" or "4.11.1.2"
     // Release Candidate firmware is named "2.6-Dec 5 2022"
 
-    // If the user is not using Release Candidate firmware, then check only the version number
-    if (enableRCFirmware == false)
-    {
-        if (reportedVersionNumberMajor > currentVersionNumberMajor)
-            return (true);
-        if (reportedVersionNumberMajor == currentVersionNumberMajor &&
-            reportedVersionNumberMinor > currentVersionNumberMinor)
-            return (true);
-        if (reportedVersionNumberMajor == currentVersionNumberMajor &&
-            reportedVersionNumberMinor == currentVersionNumberMinor &&
-            reportedVersionNumberPatch > currentVersionNumberPatch)
-            return (true);
-        if (reportedVersionNumberMajor == currentVersionNumberMajor &&
-            reportedVersionNumberMinor == currentVersionNumberMinor &&
-            reportedVersionNumberPatch == currentVersionNumberPatch &&
-            reportedVersionNumberRevision > currentVersionNumberRevision)
-            return (true);
-        return (false);
-    }
-
-    // For RC firmware, compare firmware date as well
     // Check version number
-    if (reportedVersionNumberMajor > currentVersionNumberMajor)
+    if ((reportedVersionNumberMajor > currentVersionNumberMajor)
+        || (currentVersionNumberMajor == 99))
         return (true);
     if (reportedVersionNumberMajor == currentVersionNumberMajor &&
         reportedVersionNumberMinor > currentVersionNumberMinor)
@@ -284,15 +300,15 @@ bool firmwareVersionIsReportedNewer(char *reportedVersion, char *currentVersion)
         reportedVersionNumberRevision > currentVersionNumberRevision)
         return (true);
 
+    // For RC firmware, compare firmware date as well
     // Check which date is more recent
     // https://stackoverflow.com/questions/5283120/date-comparison-to-find-which-is-bigger-in-c
-    int reportedVersionScore = reportedDay + reportedMonth * 100 + reportedYear * 2000;
-    int currentVersionScore = currentDay + currentMonth * 100 + currentYear * 2000;
+    int reportedVersionScore = ((reportedYear > 100) ? reportedYear : reportedYear + 2000)
+                             + (reportedMonth * 100) + reportedDay;
+    int currentVersionScore = ((currentYear > 100) ? currentYear : currentYear + 2000)
+                             + (currentMonth * 100) + currentDay;
 
-    if (reportedVersionScore > currentVersionScore)
-        return (true);
-
-    return (false);
+    return (reportedVersionScore > currentVersionScore);
 }
 
 //----------------------------------------
@@ -613,20 +629,6 @@ bool otaEsp32AreFirmwareWritesSupported()
     return false;
 }
 
-// Return the file path if a specified subsystem code is in the list, null string if not
-// subsystemCode should be a single character - ie 'E' for ESP32, 'I' for IM19, etc.
-char *otaSubsystemFilePath(char subsystemCode)
-{
-    for (int i = 0; i < otaTargetCount; i++)
-    {
-        if (otaTargets[i].subsystemCode == subsystemCode)
-            return otaTargets[i].filePath;
-    }
-    if (settings.debugFirmwareUpdate)
-        systemPrintf("No file path found for subsystem code '%c'\r\n", subsystemCode);
-    return nullptr;
-}
-
 //----------------------------------------
 // Reboot the ESP32
 //----------------------------------------
@@ -731,126 +733,6 @@ bool otaEsp32StreamFirmware(NetworkClient * stream,
     systemPrintln("ESP32 update successfully completed.");
     systemPrintln(otaEqualSigns);
     return true;
-}
-
-// Update the ESP32 firmware
-bool espStreamFirmware(char *relativeFirmwareFileLocation)
-{
-    size_t contentLength;
-    HTTPClient * http;
-    String server;
-    NetworkClient * stream;
-    char * url;
-
-    do
-    {
-        if (relativeFirmwareFileLocation == nullptr)
-        {
-            systemPrintln("Firmware file location is null.");
-            break;
-        }
-
-        systemPrintln("Starting ESP32 firmware update...");
-        url = otaGetGithubFileLocation(relativeFirmwareFileLocation);
-        if (openUrl(url,
-                    GITHUB_RAW_PUBLIC_CERT,
-                    server,
-                    http,
-                    &contentLength,
-                    &stream,
-                    nullptr,
-                    settings.debugFirmwareUpdate) == false)
-        {
-            break;
-        }
-
-        if (contentLength > 0)
-            firmwareUpdateBytesToProcess = (uint32_t)contentLength;
-
-        if (Update.begin(contentLength) == false)
-        {
-            systemPrintln("Not enough space to begin OTA");
-            break;
-        }
-
-        // Stream the firmware in chunks (rather than Update.writeStream(*stream) in one shot)
-        // so we can report progress via firmwareUpdateProgressCallback() along the way.
-        firmwareUpdateBytesProcessed = 0;
-
-        uint8_t buffer[512];
-        int bytesWritten = 0;
-        unsigned long lastDataTime = millis();
-        const unsigned long dataTimeoutMs = 15000;
-        bool readError = false;
-
-        while (http->connected() && (bytesWritten < contentLength))
-        {
-            size_t availableBytes = stream->available();
-            if (availableBytes == 0)
-            {
-                if ((millis() - lastDataTime) > dataTimeoutMs)
-                {
-                    systemPrintln("OTA update timed out waiting for data");
-                    readError = true;
-                    break;
-                }
-                delay(1);
-                continue;
-            }
-
-            size_t bytesToRead = (availableBytes > sizeof(buffer)) ? sizeof(buffer) : availableBytes;
-            int bytesRead = stream->readBytes(buffer, bytesToRead);
-            if (bytesRead <= 0)
-                continue;
-
-            if (Update.write(buffer, bytesRead) != (size_t)bytesRead)
-            {
-                systemPrintln("OTA update failed during write");
-                readError = true;
-                break;
-            }
-
-            bytesWritten += bytesRead;
-            lastDataTime = millis();
-
-            firmwareUpdateProgressCallback("ESP32", (uint16_t)bytesRead);
-        }
-        if (readError)
-            break;
-
-        if (bytesWritten != contentLength)
-        {
-            systemPrintln("OTA update failed during writeStream");
-            break;
-        }
-
-        if (Update.end() == false)
-        {
-            systemPrintln("Error Occurred. Error #: " + String(Update.getError()));
-            break;
-        }
-
-        systemPrintln("OTA done!");
-        if (Update.isFinished() == false)
-        {
-            systemPrintln("Update not finished? Something went wrong!");
-            break;
-        }
-
-        systemPrintln("Update successfully completed.");
-
-        http->end();
-        delete http;
-        return true;
-    } while (0);
-
-    // Done with the server connection
-    if (http)
-    {
-        http->end();
-        delete http;
-    }
-    return false;
 }
 
 // Given a relative location, return the full GitHub raw URL for the firmware file.
