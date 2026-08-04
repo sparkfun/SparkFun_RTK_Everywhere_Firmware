@@ -3025,7 +3025,10 @@ bool messageSupported(int messageNumber)
         if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].x20pFirmwareVersionSupported)
         {
             messageSupported = true;
-            if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].x20pFirmwareVersionNotSupported)
+            // If the message is supported, check if it is no longer supported
+            // We use 0 to indicate "all versions", so we need to be careful when we use >=
+            if ((ubxMessages[messageNumber].x20pFirmwareVersionNotSupported > 0)
+                && (gnssFirmwareVersionInt >= ubxMessages[messageNumber].x20pFirmwareVersionNotSupported))
                 messageSupported = false;
         }
     }
