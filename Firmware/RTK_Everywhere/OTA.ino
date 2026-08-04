@@ -43,6 +43,12 @@ static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[
 static const char * const otaSubsystem[] = {"ESP32", "GNSS", "LoRa", "IMU"};
 static const int otaSubsystemEntries = sizeof(otaSubsystem) / sizeof(otaSubsystem[0]);
 
+#define OTA_BUFFER_BYTES        (16 * 1024)
+
+const char * otaGhRawCert = GITHUB_RAW_PUBLIC_CERT;
+const char * otaGithubRaw = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries";
+const char * otaRawBranch = "/main";
+
 //----------------------------------------
 // Locals
 //----------------------------------------
@@ -56,9 +62,23 @@ static uint8_t otaState;
 //----------------------------------------
 void otaCleanup(bool keepTargets)
 {
+    OTA_TARGET * target;
+
     // Keep the targets for configuration (web, serial, ...)
     if (keepTargets == false)
     {
+        // Release the targets
+        for (int subsysstemIndex = 0; subsysstemIndex < OTA_SUBSYSTEM_MAX; subsysstemIndex++)
+        {
+            target = &otaTarget[subsysstemIndex];
+            target->_requestType = OTA_REQUEST_PRODUCT_RELEASE;
+            target->_valid = false;
+            if (target->_url)
+            {
+                rtkFree(target->_url, "Target URL");
+                target->_url = nullptr;
+            }
+        }
         otaTargetCount = -1;
         enableRCFirmware = false;
     }
@@ -70,18 +90,112 @@ void otaCleanup(bool keepTargets)
 // Compare local and remote version components; returns -1, 0, or 1.
 // -1 if update is available, 0 if up to date, 1 if local version is newer than remote.
 //----------------------------------------
-int otaCompareVersions(int localMajor, int localMinor, int localPatch, int localRevision,
-                       int remoteMajor, int remoteMinor, int remotePatch, int remoteRevision)
+int otaCompareVersions(int localMajor, int localMinor, int localPatch, int localRevision, int localReleaseCandidate,
+                       int remoteMajor, int remoteMinor, int remotePatch, int remoteRevision, int remoteReleaseCandidate)
 {
+    if (localReleaseCandidate)
+    {
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("%d.%d.%d.%d (debug build) < %d.%d.%d.%d%s\r\n",
+                         localMajor, localMinor, localPatch, localRevision,
+                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
+                         remoteReleaseCandidate ? " (debug build)" : "");
+        return -1;
+    }
     if (localMajor != remoteMajor)
+    {
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
+                         localMajor, localMinor, localPatch, localRevision,
+                         (localMajor < remoteMajor) ? '<' : '>',
+                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
+                         remoteReleaseCandidate ? " (debug build)" : "");
         return (localMajor < remoteMajor) ? -1 : 1;
+    }
     if (localMinor != remoteMinor)
+    {
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
+                         localMajor, localMinor, localPatch, localRevision,
+                         (localMinor < remoteMinor) ? '<' : '>',
+                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
+                         remoteReleaseCandidate ? " (debug build)" : "");
         return (localMinor < remoteMinor) ? -1 : 1;
+    }
     if (localPatch != remotePatch)
+    {
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
+                         localMajor, localMinor, localPatch, localRevision,
+                         (localPatch < remotePatch) ? '<' : '>',
+                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
+                         remoteReleaseCandidate ? " (debug build)" : "");
         return (localPatch < remotePatch) ? -1 : 1;
+    }
     if (localRevision != remoteRevision)
+    {
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
+                         localMajor, localMinor, localPatch, localRevision,
+                         (localRevision < remoteRevision) ? '<' : '>',
+                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
+                         remoteReleaseCandidate ? " (debug build)" : "");
         return (localRevision < remoteRevision) ? -1 : 1;
+    }
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintf("%d.%d.%d.%d == %d.%d.%d.%d%s\r\n",
+                     localMajor, localMinor, localPatch, localRevision,
+                     remoteMajor, remoteMinor, remotePatch, remoteRevision,
+                     remoteReleaseCandidate ? " (debug build)" : "");
     return 0;
+}
+
+//----------------------------------------
+// Display the subsystem
+//----------------------------------------
+void otaDisplayTargets()
+{
+    OTA_SUBSYSTEM_MASK productSubsystems;
+    OTA_TARGET * target;
+
+    // Debug output only
+    if (settings.debugFirmwareUpdate == false)
+        return;
+
+    // Display each of the targets for this platform
+    productSubsystems = otaGetProductSubsystemSupport();
+    for (int subsystem = 0; subsystem < OTA_SUBSYSTEM_MAX; subsystem++)
+    {
+        if ((productSubsystems & otaGetSubsystemMaskFromSubsystem(subsystem)) == 0)
+            continue;
+
+        // Display the firmware update status for this subsystem
+        target = &otaTarget[subsystem];
+        systemPrintln("=================================================");
+        systemPrintf("%s: %s\r\n", otaSubsystem[subsystem],
+                     otaGetRequestNameFromRequestType(target->_requestType));
+
+        systemPrintf("%d.%d.%d.%d%s",
+                     target->_localVersion[0], target->_localVersion[1],
+                     target->_localVersion[2], target->_localVersion[3],
+                     target->_localVersion[4] ? " (debug build)" : "");
+
+        if ((target->_requestType != OTA_REQUEST_SKIP_UPDATE) && target->_url)
+            systemPrintf(" --> %d.%d.%d.%d%s",
+                         target->_remoteVersion[0], target->_remoteVersion[1],
+                         target->_remoteVersion[2], target->_remoteVersion[3],
+                         target->_remoteVersion[4] ? " (debug build)" : "");
+        systemPrintln();
+        systemPrintf("Cert: %s\r\n", getCertName(target->_cert));
+        systemPrintf("URL: %s\r\n", target->_url ? target->_url : "None");
+        if ((target->_requestType != OTA_REQUEST_SKIP_UPDATE) && target->_url)
+        {
+            systemPrintf("File bytes: %d (0x%08x)\r\n", target->_fileBytes, target->_fileBytes);
+            systemPrintf("CRC: 0x%08x\r\n", target->_crc);
+        }
+    }
+
+    systemPrintln("=================================================");
 }
 
 //----------------------------------------
@@ -146,7 +260,213 @@ uint8_t otaGetRequestTypeFromSubsystem(uint8_t subsystem)
         reportFatalError("Add missing subsystem to OTA_SUBSYSTEM");
         return 0;
     }
-    return otaSubsystemUpdateRequest[subsystem];
+    return otaTarget[subsystem]._requestType;
+}
+
+//----------------------------------------
+// Get the required updates
+//----------------------------------------
+bool otaGetRequiredUpdates(const char * fileData,
+                           size_t fileBytes,
+                           int fieldCount,
+                           int lineCount,
+                           bool debug,
+                           bool verbose)
+{
+    const char * buffer;
+    const char * bufferEnd;
+    const char * csvEntry;
+    const OTA_SUBSYSTEM_INFO * subsystemInfo;
+    int fieldIndex;
+    int lineIndex;
+    int major;
+    int minor;
+    int patch;
+    const char * productSubsystem;
+    int releaseCandidate;
+    int revision;
+    const char * subsystem;
+    OTA_TARGET * target;
+    bool urlSet;
+    int versionDelta;
+
+    // Walk the list of subsystems
+    urlSet = false;
+    otaTargetCount = 0;
+    for (int8_t subsystemIndex = 0; subsystemIndex < OTA_SUBSYSTEM_MAX; subsystemIndex++)
+    {
+        productSubsystem = otaSubsystem[subsystemIndex];
+        target = &otaTarget[subsystemIndex];
+        subsystem = otaSubsystem[subsystemIndex];
+
+        // Set the default version number (0.0.0.0)
+        memset(target->_localVersion, 0, sizeof(target->_localVersion));
+        memset(target->_remoteVersion, 0, sizeof(target->_remoteVersion));
+
+        // Verify that this platform supports this subsystem
+        subsystemInfo = otaGetSubsystemInfo(subsystemIndex);
+        if (subsystemInfo == nullptr)
+        {
+            if (debug && verbose)
+                systemPrintf("%s not implemented\r\n", subsystem);
+            continue;
+        }
+
+        // Get the current firmware version
+        if (subsystemInfo->_getVersion)
+            subsystemInfo->_getVersion(target->_localVersion[0],
+                                       target->_localVersion[1],
+                                       target->_localVersion[2],
+                                       target->_localVersion[3],
+                                       target->_localVersion[4]);
+
+        // Determine if this subsystem is being skipped
+        if ((target->_requestType) == OTA_REQUEST_SKIP_UPDATE)
+        {
+            // Subsystem being skipped
+            if (debug && verbose)
+                systemPrintf("%s skip requested\r\n", subsystem);
+            continue;
+        }
+
+        // Skip over the CSV file header line
+        buffer = fileData;
+        bufferEnd = &buffer[fileBytes];
+        buffer = csvNextLine(buffer, bufferEnd, fieldCount);
+
+        // Determine if a release candidate should be used
+        if ((target->_requestType) == OTA_REQUEST_USE_RC)
+        {
+            // Attempt to locate the release candidate line
+            for (lineIndex = 1; lineIndex < lineCount; lineIndex++)
+            {
+                subsystem = csvGetField(fileData, fieldCount, buffer, "subsystem");
+                if (strcmp(subsystem, productSubsystem) == 0)
+                {
+                    // Get the values from the CSV file
+                    major = csvGetNumber(fileData, fieldCount, buffer, "version_major");
+                    minor = csvGetNumber(fileData, fieldCount, buffer, "version_minor");
+                    patch = csvGetNumber(fileData, fieldCount, buffer, "version_patch");
+                    revision = csvGetNumber(fileData, fieldCount, buffer, "version_revision");
+                    releaseCandidate = csvGetNumber(fileData, fieldCount, buffer, "release_candidate");
+
+                    // Determine if a release candidate version is available
+                    if (releaseCandidate)
+                    {
+                        if (debug && verbose)
+                            systemPrintf("%s release candidate firmware found\r\n", subsystem);
+
+                        // Save the URL for the update
+                        otaGetUrlAndCert(target, subsystemInfo, csvGetField(fileData,
+                                                                            fieldCount,
+                                                                            buffer,
+                                                                            "file_name"));
+                        target->_fileBytes = csvGetNumber(fileData, fieldCount, buffer, "file_bytes");
+                        target->_crc = csvGetNumber(fileData, fieldCount, buffer, "file_crc32");
+
+                        // Save the new firmware version
+                        target->_remoteVersion[0] = major;
+                        target->_remoteVersion[1] = minor;
+                        target->_remoteVersion[2] = patch;
+                        target->_remoteVersion[3] = revision;
+                        target->_remoteVersion[4] = releaseCandidate;
+                        urlSet = true;
+                        break;
+                    }
+                    if (debug && verbose)
+                        systemPrintf("%s not a release candidate\r\n", subsystem);
+                }
+
+                // Try the next line
+                buffer = csvNextLine(buffer, bufferEnd, fieldCount);
+            }
+
+            // Skip to next subsystem if RC is being used
+            if (lineIndex < lineCount)
+                continue;
+        }
+
+        // Skip over the CSV file header line
+        buffer = fileData;
+        bufferEnd = &buffer[fileBytes];
+        buffer = csvNextLine(buffer, bufferEnd, fieldCount);
+
+        // Locate the subsystem line
+        for (lineIndex = 1; lineIndex < lineCount; lineIndex++)
+        {
+            subsystem = csvGetField(fileData, fieldCount, buffer, "subsystem");
+            if (strcmp(subsystem, productSubsystem) == 0)
+            {
+                // Release candidates are not allowed for forced updates or newer versions
+                releaseCandidate = csvGetNumber(fileData, fieldCount, buffer, "release_candidate");
+                if (releaseCandidate)
+                {
+                    if (debug && verbose)
+                        systemPrintf("%s skipping the release candidate\r\n", subsystem);
+
+                    // Try the next line
+                    buffer = csvNextLine(buffer, bufferEnd, fieldCount);
+                    continue;
+                }
+
+                // Get the values from the CSV file
+                major = csvGetNumber(fileData, fieldCount, buffer, "version_major");
+                minor = csvGetNumber(fileData, fieldCount, buffer, "version_minor");
+                patch = csvGetNumber(fileData, fieldCount, buffer, "version_patch");
+                revision = csvGetNumber(fileData, fieldCount, buffer, "version_revision");
+
+                // Compare the versions
+                // Returns (local version - CSV version): -1, 0, 1
+                versionDelta = otaCompareVersions(target->_localVersion[0],
+                                                  target->_localVersion[1],
+                                                  target->_localVersion[2],
+                                                  target->_localVersion[3],
+                                                  target->_localVersion[4],
+                                                  major, minor, patch, revision,
+                                                  releaseCandidate);
+
+                // Determine if a newer version of firmware is available
+                if (debug && verbose)
+                    systemPrintf("%s firmware found, versionDelta: %d\r\n",
+                                 subsystem, versionDelta);
+                if (((target->_requestType) != OTA_REQUEST_ALWAYS_UPDATE)
+                    && (((target->_requestType) != OTA_REQUEST_PRODUCT_RELEASE)
+                        || (versionDelta == 0))
+                    && (versionDelta >= 0))
+                {
+                    target->_requestType = OTA_REQUEST_SKIP_UPDATE;
+                }
+                break;
+            }
+
+            // Try the next line
+            buffer = csvNextLine(buffer, bufferEnd, fieldCount);
+        }
+
+        // Save the firmware update URL if found
+        if (lineIndex < lineCount)
+        {
+            if (target->_requestType != OTA_REQUEST_SKIP_UPDATE)
+            {
+                // Save the URL for the update
+                otaGetUrlAndCert(target, subsystemInfo, csvGetField(fileData,
+                                                                    fieldCount,
+                                                                    buffer,
+                                                                    "file_name"));
+                target->_fileBytes = csvGetNumber(fileData, fieldCount, buffer, "file_bytes");
+                target->_crc = csvGetNumber(fileData, fieldCount, buffer, "file_crc32");
+            }
+
+            // Save the new firmware version
+            target->_remoteVersion[0] = major;
+            target->_remoteVersion[1] = minor;
+            target->_remoteVersion[2] = patch;
+            target->_remoteVersion[3] = revision;
+            target->_remoteVersion[4] = releaseCandidate;
+            urlSet = true;
+        }
+    }
+    return urlSet;
 }
 
 //----------------------------------------
@@ -190,12 +510,69 @@ OTA_SUBSYSTEM_MASK otaGetSubsystemMaskFromSubsystem(uint8_t subsystem)
 }
 
 //----------------------------------------
+// Get the URL and CERT for the link in the CSV file
+//----------------------------------------
+void otaGetUrlAndCert(OTA_TARGET * target,
+                      const OTA_SUBSYSTEM_INFO * subsystemInfo,
+                      const char * fileName)
+{
+    char * buffer;
+    const char * cert;
+    const char * url;
+    String urlString;
+
+    cert = nullptr;
+    if ((strncmp("http:", fileName, 5) == 0) || (strncmp("https:", fileName, 6) == 0))
+        url = fileName;
+    else
+    {
+        target->_cert = subsystemInfo->_cert;
+
+        // https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries
+        // /main
+        // /imu/im19
+        // /20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc
+        //
+        // Build the raw URL
+        urlString = subsystemInfo->_server;
+        if (subsystemInfo->_branch)
+            urlString += subsystemInfo->_branch;
+        urlString += subsystemInfo->_directory;
+        urlString += "/";
+        urlString += fileName;
+
+        // Allocate a buffer for the URL
+        buffer = (char *)rtkMalloc(urlString.length() + 1, "Target URL");
+        target->_url = buffer;
+        if (buffer == nullptr)
+            systemPrintf("Failed to allocate URL buffer for %s\r\n", otaSubsystem[subsystemInfo->_subsystem]);
+        else
+            strcpy(buffer, urlString.c_str());
+    }
+}
+
+//----------------------------------------
 // Display the OTA portion of the firmware menu
 //----------------------------------------
 void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
                     bool developerOptions,
                     char *currentVersion)
 {
+    OTA_SUBSYSTEM_MASK productSubsystems = otaGetProductSubsystemSupport();
+
+    // Initialize the OTA targets
+    for (int subsystem = 0; subsystem < OTA_SUBSYSTEM_MAX; subsystem++)
+    {
+        if (otaTarget[subsystem]._valid == false)
+        {
+            if (otaGetSubsystemMaskFromSubsystem(subsystem) & productSubsystems)
+                otaTarget[subsystem]._requestType = OTA_REQUEST_PRODUCT_RELEASE;
+            else
+                otaTarget[subsystem]._requestType = OTA_REQUEST_SKIP_UPDATE;
+            otaTarget[subsystem]._valid = true;
+        }
+    }
+
     // Automatic firmware updates
     systemPrintf("a) Automatic firmware updates: %s\r\n", settings.enableAutoFirmwareUpdate ? "Enabled" : "Disabled");
 
@@ -282,12 +659,13 @@ bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
         && ((incoming == 1) || (platformDevices & (1 << (incoming - 1))))) // Check for subsystem on product
     {
         // Set the next value for this subsystem
-        uint8_t subsystem = incoming - 1;
-        otaSubsystemUpdateRequest[subsystem] += 1;
+        uint8_t subsystemIndex = incoming - 1;
+        OTA_TARGET * target = &otaTarget[subsystemIndex];
+        target->_requestType += 1;
 
         // Wrap the value as necessary
-        if (otaSubsystemUpdateRequest[subsystem] >= (OTA_REQUEST_MAX - 1))
-            otaSubsystemUpdateRequest[subsystem] = 0;
+        if (target->_requestType >= (OTA_REQUEST_MAX - 1))
+            target->_requestType = 0;
     }
 
     // Toggle firmware debugging
@@ -384,6 +762,7 @@ void otaUpdate()
     size_t fileBytes;
     int fieldCount;
     int lineCount;
+    bool updatesFound;
 
     // Check if we need a scheduled check
     connected = networkConsumerIsConnected(NETCONSUMER_OTA_CLIENT);
@@ -497,6 +876,34 @@ void otaUpdate()
                 commandSendExecuteErrorResponse((char *)"SPGET", (char *)"newSubsystemFirmware", (char *)"No Server");
 
                 otaUpdateStop(false);
+                break;
+            }
+
+            // Reduce this list based upon the requested updates, version
+            // number checks and the order of entries found in the CSV file
+            // to a list of URLs
+            updatesFound = otaGetRequiredUpdates((const char *)otaCsvFileData,
+                                                 fileBytes,
+                                                 fieldCount,
+                                                 lineCount,
+                                                 settings.debugFirmwareUpdate,
+                                                 otaDebugVerbose);
+            // Display the targets
+            otaDisplayTargets();
+
+            // Done if no updates found
+            if (updatesFound == false)
+            {
+                // Nothing to update
+                if (settings.debugFirmwareUpdate)
+                    systemPrintf("All subsystems up to date\r\n");
+
+                webServerSendString("newSubsystemFirmware,CURRENT,"); // Report systems are up to date
+
+                commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware", (char *)"CURRENT");
+
+                otaRequestFirmwareVersionCheck = false;
+                otaUpdateStop(true);
                 break;
             }
 
@@ -756,27 +1163,34 @@ void otaVerifyTables()
 // OTA product subsystem support table
 extern const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[] =
 {
-    // Variant      subsystem               present
-    {RTK_ALL,       OTA_SUBSYSTEM_ESP32,    nullptr},
+    // Variant      subsystem               present                 getVersion          streamFirmware          packetBytes         rcSupport   directory          certificate     server          branch
+    {RTK_ALL,       OTA_SUBSYSTEM_ESP32,    nullptr,                otaEsp32GetVersion, nullptr,                OTA_BUFFER_BYTES,   true,       "",                otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+
+    // GNSS devices
+#ifdef  COMPILE_LG290P
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_lg290p,   gnssGetVersion,     nullptr,                256,                false,      "/gnss/lg290p",    otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+#endif  // COMPILE_LG290P
+#ifdef  COMPILE_MOSAICX5
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_mosaicX5, gnssGetVersion,     nullptr,                256,                false,      "/gnss/mosaic-x5", otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+#endif  // COMPILE_MOSAICX5
+#ifdef  COMPILE_UM980
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_um980,    gnssGetVersion,     nullptr,                256,                false,      "/gnss/um980",     otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+#endif  // COMPILE_UM980
 #ifdef  COMPILE_ZED
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_lg290p},
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_mosaicX5},
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_um980},
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedf9p},
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedx20p},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedf9p,   gnssGetVersion,     nullptr,                256,                false,      "/gnss/zed-f9p",   otaGhRawCert,   otaGithubRaw,   otaRawBranch},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,     &present.gnss_zedx20p,  gnssGetVersion,     nullptr,                256,                false,      "/gnss/zed-x20p",  otaGhRawCert,   otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_ZED
+
+    // LoRa devices
 #ifdef  COMPILE_LORA
-    {RTK_ALL,       OTA_SUBSYSTEM_LORA,     &present.radio_lora},
+    {RTK_ALL,       OTA_SUBSYSTEM_LORA,     &present.radio_lora,    loraGetVersion,     nullptr,                256,                false,      "lora/stm32wl",    otaGhRawCert,   otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_LORA
+
+    // IMU devices
 #ifdef  COMPILE_IM19_IMU
-    {RTK_ALL,       OTA_SUBSYSTEM_IMU,      &present.imu_im19},
+    {RTK_ALL,       OTA_SUBSYSTEM_IMU,      &present.imu_im19,      tiltGetVersion,     nullptr,                256,                false,      "/imu/im19",       otaGhRawCert,   otaGithubRaw,   otaRawBranch},
 #endif  // COMPILE_IM19_IMU
 };
-/*
-    im19StreamFirmware
-    stm32StreamFirmware
-*/
-
 const int otaSubsystemInfoTableEntries = sizeof(otaSubsystemInfoTable)
                                        / sizeof(otaSubsystemInfoTable[0]);
 

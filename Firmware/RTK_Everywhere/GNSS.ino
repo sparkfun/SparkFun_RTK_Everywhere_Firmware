@@ -1090,3 +1090,29 @@ bool gnssSettingsToFile(char * line, size_t lineSize, RTK_Settings_Types type, i
     }
     return false;
 }
+
+//----------------------------------------
+// Gets the five version number parts
+//----------------------------------------
+bool gnssGetVersion(int &major, int &minor, int &patch, int &revision, int &releaseCandidate)
+{
+    uint16_t m1;
+    uint8_t m2;
+    uint8_t p;
+    uint8_t r;
+
+    major = 0;
+    minor = 0;
+    patch = 0;
+    revision = 0;
+    releaseCandidate = 0;
+    if (online.gnss && gnss->getVersion(m1, m2, p, r))
+    {
+        major = m1;
+        minor = m2;
+        patch = p;
+        revision = r;
+        return true;
+    }
+    return false;
+}

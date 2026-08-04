@@ -47,7 +47,6 @@ const char * csvCert = GITHUB_RAW_PUBLIC_CERT;
 // Globals
 //----------------------------------------
 
-uint8_t otaSubsystemUpdateRequest[OTA_SUBSYSTEM_MAX];
 bool otaDebugVerbose;
 
 //----------------------------------------
@@ -56,11 +55,29 @@ bool otaDebugVerbose;
 
 typedef uint8_t OTA_SUBSYSTEM_MASK;
 
+typedef bool (*OTA_GET_VERSION)(int &major,
+                                int &minor,
+                                int &patch,
+                                int &revision,
+                                int &releaseCandidate);
+typedef bool (*OTA_STREAM_FIRMWARE)(NetworkClient * client,
+                                    size_t contentLength,
+                                    uint8_t * buffer,
+                                    size_t bufferBytes);
+
 typedef struct _OTA_SUBSYSTEM_INFO
 {
     ProductVariant _productVariant;
     uint8_t _subsystem;
     const bool * _present;
+    OTA_GET_VERSION _getVersion;
+    OTA_STREAM_FIRMWARE _streamFirmware;
+    size_t _packetBytes;
+    bool _rcSupport;
+    const char * _directory;
+    const char * _cert;     // Certificate for the server
+    const char * _server;   // Server name
+    const char * _branch;   // Branch name
 } OTA_SUBSYSTEM_INFO;
 
 extern const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[];
@@ -69,6 +86,19 @@ extern const int otaSubsystemInfoTableEntries;
 //----------------------------------------
 // OTA targets
 //----------------------------------------
+
+typedef struct _OTA_TARGET
+{
+    char * _url;            // URL built from file name or URL in CSV file
+    const char * _cert;     // Certificate for the web server
+    size_t _fileBytes;      // File size
+    uint32_t _crc;          // CRC
+    uint8_t _requestType;   // Type of request for this subssystem
+    bool _valid;            // Valid contents
+    int _localVersion[5];   // Current firmware version
+    int _remoteVersion[5];  // New firmware version
+} OTA_TARGET;
+OTA_TARGET otaTarget[OTA_SUBSYSTEM_MAX];
 
 struct OtaTarget
 {
