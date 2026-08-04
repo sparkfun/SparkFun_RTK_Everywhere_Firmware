@@ -40,14 +40,16 @@ enum OTA_FIRMWARE_UPDATE_REQUEST
 #define OTA_DEVICE_LORA         (1 << OTA_SUBSYSTEM_LORA)
 #define OTA_DEVICE_IMU          (1 << OTA_SUBSYSTEM_IMU)
 
-const char * csvUrl = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-Variants.csv";
-const char * csvCert = GITHUB_RAW_PUBLIC_CERT;
+#define OTA_DATA_TIMEOUT        (15 * MILLISECONDS_IN_A_SECOND)
+
+const char * otaEqualSigns = "==================================================";
 
 //----------------------------------------
 // Globals
 //----------------------------------------
 
 bool otaDebugVerbose;
+char otaFirmwareCsvUrl[OTA_FIRMWARE_CSV_URL_LENGTH];
 
 //----------------------------------------
 // Subsystem support
@@ -55,13 +57,18 @@ bool otaDebugVerbose;
 
 typedef uint8_t OTA_SUBSYSTEM_MASK;
 
+typedef bool (*OTA_FIRMWARE_UPDATE)(const struct _OTA_TARGET * target,
+                                    const struct _OTA_SUBSYSTEM_INFO * subsystemInfo,
+                                    uint8_t * buffer,
+                                    size_t bufferBytes);
 typedef bool (*OTA_GET_VERSION)(int &major,
                                 int &minor,
                                 int &patch,
                                 int &revision,
                                 int &releaseCandidate);
-typedef bool (*OTA_STREAM_FIRMWARE)(NetworkClient * client,
+typedef bool (*OTA_STREAM_FIRMWARE)(NetworkClient * stream,
                                     size_t contentLength,
+                                    uint32_t expectedCrc,
                                     uint8_t * buffer,
                                     size_t bufferBytes);
 
@@ -71,11 +78,11 @@ typedef struct _OTA_SUBSYSTEM_INFO
     uint8_t _subsystem;
     const bool * _present;
     OTA_GET_VERSION _getVersion;
+    OTA_FIRMWARE_UPDATE _firmwareUpdate;
     OTA_STREAM_FIRMWARE _streamFirmware;
     size_t _packetBytes;
     bool _rcSupport;
     const char * _directory;
-    const char * _cert;     // Certificate for the server
     const char * _server;   // Server name
     const char * _branch;   // Branch name
 } OTA_SUBSYSTEM_INFO;
@@ -90,7 +97,6 @@ extern const int otaSubsystemInfoTableEntries;
 typedef struct _OTA_TARGET
 {
     char * _url;            // URL built from file name or URL in CSV file
-    const char * _cert;     // Certificate for the web server
     size_t _fileBytes;      // File size
     uint32_t _crc;          // CRC
     uint8_t _requestType;   // Type of request for this subssystem

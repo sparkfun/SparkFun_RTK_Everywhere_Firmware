@@ -826,6 +826,7 @@ struct Settings
     uint32_t autoFirmwareCheckMinutes = 24 * 60;
     bool debugFirmwareUpdate = false;
     bool enableAutoFirmwareUpdate = false;
+    char csvUrl[OTA_FIRMWARE_CSV_URL_LENGTH] = OTA_FIRMWARE_CSV_URL;
 
     // GNSS
     muxConnectionType_e dataPortChannel = MUX_GNSS_UART; // Mux default to GNSS UART
@@ -1462,6 +1463,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.autoFirmwareCheckMinutes, "autoFirmwareCheckMinutes", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugFirmwareUpdate, "debugFirmwareUpdate", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableAutoFirmwareUpdate, "enableAutoFirmwareUpdate", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.csvUrl), & settings.csvUrl, "csvUrl", nullptr, },
 
     // GNSS UART
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.serialGNSSRxFullThreshold, "serialGNSSRxFullThreshold", nullptr, },

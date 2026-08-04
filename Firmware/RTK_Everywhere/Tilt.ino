@@ -49,6 +49,8 @@ typedef enum
 } TiltState;
 TiltState tiltState = TILT_DISABLED;
 
+uint32_t tiltCrc;
+
 // Tilt compensation sensor state machine
 void tiltUpdate()
 {
@@ -1778,36 +1780,47 @@ static bool im19PumpStreamToDevice(WiFiClient *stream, WiFiClientSecure *client,
     uint8_t buffer[512];
     uint32_t received = 0;
 
+    unsigned long lastDataTime = millis();
     while (http->connected() && received < byteCount)
     {
+        // Wait until some data is available
         size_t available = stream->available();
         if (available == 0)
         {
-            if (!client->connected())
-                break;
+            if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+            {
+                systemPrintln("IM19 OTA update timed out waiting for data");
+                return false;
+            }
             delay(1);
             continue;
         }
 
+        // Read the received data
         size_t toRead = min(available, (size_t)(byteCount - received));
         toRead = min(toRead, sizeof(buffer));
-
         int bytesRead = stream->readBytes(buffer, toRead);
         if (bytesRead <= 0)
             break;
 
+        // Compute the CRC
+        tiltCrc = crc32Compute(tiltCrc, buffer, bytesRead);
+
+        // Update this portion of the firmware
         if (!im19UpdateFirmware(buffer, (uint32_t)bytesRead))
             return false;
 
+        // Account for this data
         received += bytesRead;
-        firmwareUpdateProgressCallback((uint16_t)bytesRead);
+        firmwareUpdateProgressCallback("IM19", (uint16_t)bytesRead);
+        lastDataTime = millis();
     }
 
     return received == byteCount;
 }
 
 // Re-downloads only [startByte, endByte] (inclusive) and streams it to the IM19.
-static bool im19StreamRange(const char *relativeFirmwareFileLocation, uint32_t startByte, uint32_t endByte)
+static bool im19StreamRange(const char *url, uint32_t startByte, uint32_t endByte)
 {
     WiFiClientSecure client;
     if (!otaSecurelyConnectGitHub(client))
@@ -1817,7 +1830,7 @@ static bool im19StreamRange(const char *relativeFirmwareFileLocation, uint32_t s
     }
 
     HTTPClient http;
-    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
+    if (!http.begin(client, url))
     {
         systemPrintln("Unable to begin HTTP request.");
         return false;
@@ -1845,7 +1858,7 @@ static bool im19StreamRange(const char *relativeFirmwareFileLocation, uint32_t s
 
 // Walks im19FrameMap for runs of missing frames and re-requests just those byte
 // ranges from the source URL, instead of re-streaming the entire firmware image.
-static bool im19StreamMissingRanges(const char *relativeFirmwareFileLocation)
+static bool im19StreamMissingRanges(const char *url)
 {
     uint32_t frame = 0;
     while (frame < im19TotalFrames)
@@ -1867,7 +1880,7 @@ static bool im19StreamMissingRanges(const char *relativeFirmwareFileLocation)
         systemPrintf("Requesting missing frames %lu-%lu (%lu bytes) from source.\r\n", (unsigned long)runStart,
                      (unsigned long)(frame - 1), (unsigned long)(endByte - startByte + 1));
 
-        if (!im19StreamRange(relativeFirmwareFileLocation, startByte, endByte))
+        if (!im19StreamRange(url, startByte, endByte))
             return false;
     }
     return true;
@@ -1892,7 +1905,8 @@ bool im19StreamFirmware(const char *relativeFirmwareFileLocation)
     }
 
     HTTPClient http;
-    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
+    const char * url = otaGetGithubFileLocation(relativeFirmwareFileLocation);
+    if (!http.begin(client, url))
     {
         systemPrintln("Unable to begin HTTP request.");
         return false;
@@ -1952,7 +1966,7 @@ bool im19StreamFirmware(const char *relativeFirmwareFileLocation)
 
         // IM19_UPDATE_RETRY - the IM19 told us exactly which frames it's missing.
         systemPrintf("Attempt %d: IM19 reports missing frames.\r\n", attempt);
-        if (!im19StreamMissingRanges(relativeFirmwareFileLocation))
+        if (!im19StreamMissingRanges(url))
         {
             systemPrintln("Firmware update failed while re-requesting missing frames.");
             return false;
@@ -1960,6 +1974,133 @@ bool im19StreamFirmware(const char *relativeFirmwareFileLocation)
     }
 
     systemPrintln("IM19 firmware update failed: too many retries.");
+    return false;
+}
+
+//----------------------------------------
+// Updates the IM19 module firmware from the given URL over WiFi.
+//
+// Structure (see the header comment at the top of the .ino for the general pattern):
+//   1. Connect to WiFi.
+//   2. im19UpdateFirmwareBegin() puts the IM19 into its bootloader.
+//   3. Stream the file once, feeding chunks to im19UpdateFirmware().
+//   4. im19UpdateFirmwareEnd() asks the IM19 what it's missing. If anything, re-request
+//      only those byte ranges (im19StreamMissingRanges) and ask again - up to a few
+//      attempts - rather than re-streaming the whole binary.
+//----------------------------------------
+bool im19FirmwareUpdate(const OTA_TARGET * target,
+                        const OTA_SUBSYSTEM_INFO * subsystemInfo,
+                        uint8_t * buffer,
+                        size_t bufferBytes)
+{
+    WiFiClientSecure client;
+    if (!otaSecurelyConnectGitHub(client))
+    {
+        systemPrintln(otaEqualSigns);
+        systemPrintln("Failed to securely connect to GitHub.");
+        systemPrintln(otaEqualSigns);
+        return false;
+    }
+
+    HTTPClient http;
+    if (!http.begin(client, target->_url))
+    {
+        systemPrintln(otaEqualSigns);
+        systemPrintln("Unable to begin HTTP request.");
+        systemPrintln(otaEqualSigns);
+        return false;
+    }
+
+    int httpCode = http.GET();
+    if (httpCode != HTTP_CODE_OK)
+    {
+        systemPrintln(otaEqualSigns);
+        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
+        systemPrintln(otaEqualSigns);
+        http.end();
+        return false;
+    }
+
+    size_t fileBytes = http.getSize();
+    if ((ssize_t)fileBytes <= 0)
+    {
+        systemPrintln(otaEqualSigns);
+        systemPrintln("Server did not report a firmware size.");
+        systemPrintln(otaEqualSigns);
+        http.end();
+        return false;
+    }
+
+    // Stream the firmware in chunks so we can report progress via
+    // firmwareUpdateProgressCallback() along the way.
+    firmwareUpdateBytesProcessed = 0;
+    firmwareUpdateBytesToProcess = fileBytes;
+    tiltCrc = 0;
+
+    if (!im19UpdateFirmwareBegin(fileBytes))
+    {
+        systemPrintln(otaEqualSigns);
+        systemPrintln("IM19 did not respond to the bootloader entry command.");
+        systemPrintln(otaEqualSigns);
+        http.end();
+        return false;
+    }
+
+    // Now that the IM19 is in its bootloader and waiting, stream the already-open
+    // response body straight to it.
+    bool streamed = im19PumpStreamToDevice(http.getStreamPtr(), &client, &http, 0, fileBytes);
+    http.end();
+
+    // Validate the computed CRC matches the expected CRC
+    if (streamed && (tiltCrc != target->_crc))
+    {
+        systemPrintln(otaEqualSigns);
+        systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
+        systemPrintln(otaEqualSigns);
+        return false;
+    }
+
+    if (!streamed)
+    {
+        systemPrintln(otaEqualSigns);
+        systemPrintln("Firmware update failed during initial WiFi download.");
+        systemPrintln(otaEqualSigns);
+        return false;
+    }
+
+    const int maxAttempts = 5;
+    for (int attempt = 1; attempt <= maxAttempts; attempt++)
+    {
+        Im19UpdateResult result = im19UpdateFirmwareEnd();
+
+        if (result == IM19_UPDATE_SUCCESS)
+        {
+            systemPrintln(otaEqualSigns);
+            systemPrintln("IM19 firmware update successful.");
+            systemPrintln(otaEqualSigns);
+            return true;
+        }
+
+        if (result == IM19_UPDATE_FAILED)
+        {
+            systemPrintln("IM19 firmware update failed: no response from IM19.");
+            return false;
+        }
+
+        // IM19_UPDATE_RETRY - the IM19 told us exactly which frames it's missing.
+        systemPrintf("Attempt %d: IM19 reports missing frames.\r\n", attempt);
+        if (!im19StreamMissingRanges(target->_url))
+        {
+            systemPrintln(otaEqualSigns);
+            systemPrintln("Firmware update failed while re-requesting missing frames.");
+            systemPrintln(otaEqualSigns);
+            return false;
+        }
+    }
+
+    systemPrintln(otaEqualSigns);
+    systemPrintln("IM19 firmware update failed: too many retries.");
+    systemPrintln(otaEqualSigns);
     return false;
 }
 

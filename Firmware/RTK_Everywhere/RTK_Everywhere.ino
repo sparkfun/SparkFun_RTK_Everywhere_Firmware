@@ -207,6 +207,13 @@ const uint16_t HTTPS_PORT = 443;                                                
 
 #include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack - Needed for settings.h
 
+#define OTA_FIRMWARE_CSV_URL_LENGTH     192
+//                                                                                                      1         1 1
+//            1         2         3         4         5         6         7         8         9         0         1 2
+//   12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678
+#define OTA_FIRMWARE_CSV_URL    \
+    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-Variants.csv"
+
 #include "settings.h"
 #include <esp_mac.h> // MAC address support
 #include "OTA.h"     // Over-The-Air (OTA) support

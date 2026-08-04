@@ -554,6 +554,40 @@ class GNSS_LG290P : GNSS
 
     // Poll routine to update the GNSS state
     void update();
+
+    /**
+     * @brief Reboot the module into bootloader mode, negotiate sync, query bootloader version,
+     *        send firmware metadata, and erase flash.
+     * @param firmwareSize total byte length of the firmware file (pre-computed by caller)
+     * @param firmwareCrc32 CRC32 of the firmware file (pre-computed via initFirmwareCrc32 / computeFirmwareCrc32)
+     * @param skipSoftwareReset set to true to skip PQTMSRR if the GNSS has been reset externally
+     * @return true when the device is erased and ready to receive firmware packets
+     */
+    bool updateFirmwareBegin(size_t firmwareSize, uint32_t firmwareCrc32, bool skipSoftwareReset = false);
+
+    /**
+     * @brief Feed the next chunk of firmware bytes to the module.
+     * @details Accumulates bytes into a 4096-byte buffer; sends a complete packet and waits
+     *          for ACK each time the buffer fills.
+     * @param data pointer to firmware bytes
+     * @param bytesToWrite number of bytes in data
+     * @return true on success, false on protocol error
+     */
+    bool updateFirmware(const uint8_t *data, size_t bytesToWrite);
+
+    /**
+     * @brief Flush any remaining buffered bytes as a final (partial) firmware packet.
+     * @return true if the last packet was accepted, false on error
+     */
+    bool updateFirmwareEnd();
+
+    /**
+     * @brief Send the firmware reset command then poll for up to 15 seconds for the module
+     *        to boot into the new firmware.
+     * @param maxWaitSeconds maximum number of seconds to wait for the module to respond
+     * @return true when the module responds to normal NMEA commands
+     */
+    bool updateFirmwareIsFinished(uint8_t maxWaitSeconds);
 };
 
 // Forward routine declarations

@@ -4299,7 +4299,7 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
                     break;
                 }
 
-                firmwareUpdateProgressCallback(bytesRead);
+                firmwareUpdateProgressCallback("X20P", bytesRead);
 
                 if (contentLength > 0)
                     contentLength -= bytesRead;
@@ -4322,6 +4322,96 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
 
     return updateOk;
 }
+
+//----------------------------------------
+// Update the X20P firmware
+// Owns the full update sequence: enters bootloader mode, streams the image
+// over WiFi, then verifies/reboots - callers only need to call this one
+// function and do not need to know about Begin()/End().
+//----------------------------------------
+bool x20pStreamFirmware(NetworkClient * stream,
+                        size_t fileBytes,
+                        uint32_t expectedCrc,
+                        uint8_t * buffer,
+                        size_t bufferBytes)
+{
+    uint32_t crc = 0;
+
+    systemPrintln("Starting X20P firmware update...");
+
+    // Stop tasks that absorb serial data from the GNSS
+    tasksStopGnssUart();
+
+    if (x20pFirmwareUpdateBegin() == false)
+    {
+        systemPrintln(otaEqualSigns);
+        systemPrintln("Failed to enter bootloader mode.");
+        systemPrintln(otaEqualSigns);
+        return false;
+    }
+    systemPrintln("Device is in bootloader mode.");
+
+    unsigned long lastDataTime = millis();
+    while (stream->connected() && (fileBytes > 0))
+    {
+        // Wait until some data is available
+        size_t available = stream->available();
+        if (available == 0)
+        {
+            if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+            {
+                systemPrintln("X20P OTA update timed out waiting for data");
+                return false;
+            }
+            delay(1);
+            continue;
+        }
+
+        // Read the received data
+        size_t toRead = min(available, sizeof(buffer));
+        int bytesRead = stream->readBytes(buffer, toRead);
+        if (bytesRead <= 0)
+            break;
+
+        // Compute the CRC
+        crc = crc32Compute(crc, buffer, bytesRead);
+
+        // Validate the computed CRC matches the expected CRC
+        bool lastPacket = (fileBytes == bytesRead);
+        if (lastPacket && (crc != expectedCrc))
+        {
+            systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
+            break;
+        }
+
+        // Update this portion of the firmware
+        if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
+        {
+            systemPrintln("Firmware update failed during WiFi data upload.");
+            break;
+        }
+
+        // Account for this data
+        fileBytes -= bytesRead;
+        firmwareUpdateProgressCallback("X20P", bytesRead);
+        lastDataTime = millis();
+    }
+
+    systemPrintln(otaEqualSigns);
+    bool success = (fileBytes == 0);
+    if (success)
+        systemPrintln("X20P update successfully completed.");
+    else
+        systemPrintln("X20P firmware update failed.");
+    systemPrintln(otaEqualSigns);
+
+    // x20pFirmwareUpdateBegin() succeeded above, so End() must always run -
+    // it verifies (when success), frees the page buffer, and reboots the device.
+    systemPrintln("Rebooting receiver...");
+    bool updateOk = x20pFirmwareUpdateEnd(success);
+    return updateOk;
+}
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of X20P firmware update functions.
 
