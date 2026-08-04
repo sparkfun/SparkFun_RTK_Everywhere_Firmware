@@ -1632,3 +1632,139 @@ bool removeFileLfs(const char *filename)
     }
     return false;
 }
+
+//----------------------------------------
+// Extract the web server from the URL
+//----------------------------------------
+String getServerFromUrl(const char * url)
+{
+    int index;
+    size_t length;
+    int slashCount;
+
+    // Locate the third slash
+    if (url == nullptr)
+        return String("");
+
+    length = strlen(url);
+    char server[length + 1];
+    strcpy(server, url);
+    slashCount = 0;
+    index = 0;
+    if ((strncmp(url, "https://", 8) == 0) || (strncmp(url, "http://", 7) == 0))
+    {
+        for (index = 0; index < length; index++)
+        {
+            if (server[index] == 0)
+                break;
+            if (server[index] == '/')
+            {
+                if (++slashCount == 3)
+                    break;
+            }
+        }
+    }
+    server[index] = 0;
+    return String(server);
+}
+
+//----------------------------------------
+// Open the URL
+//----------------------------------------
+bool openUrl(const char * url,
+             const char * cert,
+             String &server,
+             HTTPClient * &https,
+             size_t * fileBytes,
+             NetworkClient ** networkClient,
+             uint32_t * startMsec,
+             bool debug)
+{
+    NetworkClientSecure * client;
+    const char * crcString;
+    int httpResponseCode;
+    if (debug)
+        systemPrintf("URL: %s\r\n", url);
+
+    // Locate the server
+    server = getServerFromUrl(url);
+
+    // Allocate the HTTP client
+    https = new HTTPClient;
+    if (https == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the HTTP client\r\n");
+        return false;
+    }
+
+    // Use an encrypted connection when possible
+    if (cert == nullptr)
+        https->begin(url);
+    else
+    {
+        // Initialize the secure client
+        client = new NetworkClientSecure;
+        if (client == nullptr)
+        {
+            systemPrintf("ERROR: Failed to allocate network client!\r\n");
+            delete https;
+            https = nullptr;
+            return false;
+        }
+
+        // Set the certificate
+        client->setCACert(cert);
+
+        // Preflight TLS handshake using the expected host name.
+        // With CA configured, connect() fails if certificate validation fails.
+        if (!client->connect(server.c_str(), 443))
+        {
+            systemPrintf("ERROR: TLS socket connect to %s failed!\r\n", server.c_str());
+            delete https;
+            https = nullptr;
+            delete client;
+            return false;
+        }
+
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("TLS certificate verified for %s\r\n", server.c_str());
+        client->stop();
+
+        // Initialize the HTTP client
+        https->begin(*client, url);
+    }
+
+    // Open the connection to the web server
+    if (startMsec)
+        *startMsec = millis();
+    https->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    httpResponseCode = https->GET();
+
+    // Display the error
+    if ((httpResponseCode != 200) || debug)
+        systemPrintf("HTTP Response code: %d\r\n", httpResponseCode);
+
+    // Handle the responses
+    if (httpResponseCode != 200)
+    {
+        systemPrintf("ERROR: Failed to open url: %s, error: %d\r\n", url, httpResponseCode);
+        delete https;
+        https = nullptr;
+        delete client;
+        client = nullptr;
+        return false;
+    }
+
+    // Save the file length
+    if (fileBytes)
+    {
+        *fileBytes = https->getSize();
+        if (debug)
+            systemPrintf("File size: %d (0x%08x) bytes\r\n", *fileBytes, *fileBytes);
+    }
+
+    // Get TCP stream
+    if (networkClient)
+        *networkClient = https->getStreamPtr();
+    return true;
+}

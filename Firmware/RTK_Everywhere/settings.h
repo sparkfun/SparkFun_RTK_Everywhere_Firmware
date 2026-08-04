@@ -193,6 +193,7 @@ RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
 // Product Variant used as part of device ID and whitelists. Do not reorder.
 typedef enum
 {
+    RTK_ALL = -1,
     RTK_EVK = 0, // 0x00
     // RTK_FACET_V2 = 1, // 0x01 - No L-Band
     RTK_FACET_MOSAIC = 2, // 0x02

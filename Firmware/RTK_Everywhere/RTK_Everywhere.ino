@@ -209,6 +209,7 @@ const uint16_t HTTPS_PORT = 443;                                                
 
 #include "settings.h"
 #include <esp_mac.h> // MAC address support
+#include "OTA.h"     // Over-The-Air (OTA) support
 
 #define MAX_CPU_CORES 2
 #define IDLE_COUNT_PER_SECOND 515400 // Found by empirical sketch
