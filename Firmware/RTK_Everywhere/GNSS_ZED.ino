@@ -2222,6 +2222,10 @@ bool GNSS_ZED::setMessagesNMEA()
                 // Set NMEA messages to user's settings on UART1 interface
                 response &= _zed->addCfgValset(ubxMessages[messageNumber].msgConfigKey,
                                                rate); // msgConfigKey defaults to UART1
+                
+                // Disable NMEA on I2C : UBLOX_CFG UART1 - 1 = I2C
+                if (ubxMessages[messageNumber].msgClass == UBX_CLASS_NMEA)
+                    response &= _zed->addCfgValset(ubxMessages[messageNumber].msgConfigKey - 1, 0);
 
                 // Mark messages needed for other services (NTRIP Client, PointPerfect, etc) as enabled if rate
                 // > 0
@@ -2334,6 +2338,20 @@ bool GNSS_ZED::setMessagesRTCMBase()
     // (Secondary) USB in case the RTK device is used as an NTRIP caster connected to SBC or other
     // (Tertiary) UART1 in case RTK device is sending RTCM to a phone that is then NTRIP Caster
 
+    // On Facet FPX:
+    //
+    // Messages output on UART1 are parsed by the SEMP and logged / forwarded to clients as needed
+    // Messages output on UART2 are passed directly to LoRa or the Ext Radio JST connector
+    // Messages output on USB could be picked up through the USB Hub
+    // Messages output on I2C will be processed by the callbacks:
+    //   TIM_TM2 for events
+    //   PVT for basic date, time and fix type information
+    //   HPPOSLLH for high-precision position information and horizontal accuracy
+    //   TIM_TP for time pulse interrupts for NTP
+    //   MON_HW for antenna sort / open
+    //   MON_COMMS for the UART(2) byte counts
+    // Do we need to output RTCM and / or NMEA on I2C? I don't think we do...
+
     // ubxMessageRatesBase is an array of ~12 uint8_ts
     // ubxMessage is an array of ~80 messages
     // We use firstRTCMRecord as an offset for the keys, but use x as the rate
@@ -2350,8 +2368,9 @@ bool GNSS_ZED::setMessagesRTCMBase()
     {
         if (messageSupported(firstRTCMRecord + x))
         {
-            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
-                                           settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 - 1 = I2C
+            // Disable RTCM on I2C : UBLOX_CFG UART1 - 1 = I2C
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1, 0);
+
             response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey,
                                            settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1
             response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
