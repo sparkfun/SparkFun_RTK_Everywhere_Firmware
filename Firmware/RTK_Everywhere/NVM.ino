@@ -902,10 +902,6 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "gnssUniqueId", gnssUniqueId);
 
-    // Firmware URLs
-    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "otaRcFirmwareJsonUrl", otaRcFirmwareJsonUrl);
-    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "otaFirmwareJsonUrl", otaFirmwareJsonUrl);
-
     //------------------------------------------------------------
     // Add any new settings above this line!
     //------------------------------------------------------------
@@ -1539,6 +1535,7 @@ bool parseLine(const char *theLine, struct Settings * tempSettings)
     {
         const char *table[] = {
             "gnssFirmwareVersion", "gnssUniqueId", "neoFirmwareVersion", "espFirmwareVersion", "rtkIdentifier",
+            "otaRcFirmwareJsonUrl", "otaFirmwareJsonUrl",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
@@ -1827,22 +1824,6 @@ bool parseLine(const char *theLine, struct Settings * tempSettings)
                 }
             }
         }
-    }
-
-    // Settings not part of settings.h/Settings struct
-    if (strcmp(settingName, "otaRcFirmwareJsonUrl") == 0)
-    {
-        String url = String(settingString);
-        memset(otaRcFirmwareJsonUrl, 0, sizeof(otaRcFirmwareJsonUrl));
-        strcpy(otaRcFirmwareJsonUrl, url.c_str());
-        knownSetting = true;
-    }
-    else if (strcmp(settingName, "otaFirmwareJsonUrl") == 0)
-    {
-        String url = String(settingString);
-        memset(otaFirmwareJsonUrl, 0, sizeof(otaFirmwareJsonUrl));
-        strcpy(otaFirmwareJsonUrl, url.c_str());
-        knownSetting = true;
     }
 
     // Last catch
