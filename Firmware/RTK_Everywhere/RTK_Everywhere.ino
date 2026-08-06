@@ -661,6 +661,8 @@ unsigned long minSplashFor = 100; // Display SparkFun Logo for at least 1/10 of 
 int binCount;
 const int maxBinFiles = 10;
 char binFileNames[maxBinFiles][50];
+const char *forceFirmwareFileName =
+    "RTK_Everywhere_Firmware_Force.bin"; // File that will be loaded at startup regardless of user input
 int binBytesLastUpdate;                  // Allows websocket notification to be sent every 100k bytes
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -861,12 +863,6 @@ char *latestGPGST;
 char *latestGPVTG;
 const size_t latestEASessionDataMaxLen = 4001; // 1000 * 4 plus NULL
 char *latestEASessionData;
-
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
-// Global variables
-//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include "Device_Update.h"
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -1364,9 +1360,6 @@ void setup()
 
     DMW_b("beginPsram");
     beginPsram(); // Initialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
-
-    DMW_b("beginBuffers");
-    beginBuffers(); // Allocate permanent buffers from PSRAM
 
     DMW_b("beginMux");
     beginMux(); // Must come before I2C activity to avoid external devices from corrupting the bus. See issue 474
