@@ -1044,7 +1044,7 @@ void otaUpdate()
 
                 // Get the latest firmware version
                 networkUserAdd(NETCONSUMER_OTA_CLIENT, __FILE__, __LINE__);
-                if (otaUpdatesFound == 0)
+                if (otaRequestFirmwareVersionCheck || (otaUpdatesFound == 0))
                     otaSetState(OTA_STATE_GET_SYSTEMS_TO_UPDATE);
                 else
                     otaSetState(OTA_STATE_UPDATE_FIRMWARE);
