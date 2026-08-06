@@ -1122,8 +1122,8 @@ void otaUpdate()
                 if (settings.debugFirmwareUpdate)
                     systemPrintf("All subsystems up to date\r\n");
 
+                // Notify web config
                 webServerSendString("newSubsystemFirmware,CURRENT,"); // Report systems are up to date
-
                 commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware", (char *)"CURRENT");
 
                 otaRequestFirmwareVersionCheck = false;
@@ -1134,6 +1134,21 @@ void otaUpdate()
             // Check for done
             if (otaRequestFirmwareVersionCheck)
             {
+                char otaSystemsToUpdate[OTA_SUBSYSTEM_MAX + 1];
+
+                // Build the string of subsystem characters
+                memset(otaSystemsToUpdate, 0, sizeof(otaSystemsToUpdate));
+                for (int index = 0; index < OTA_SUBSYSTEM_MAX; index++)
+                    if (otaUpdatesFound & otaGetSubsystemMaskFromSubsystem(index))
+                        otaSystemsToUpdate[strlen(otaSystemsToUpdate)] = otaSubsystem[index][0];
+
+                // Notify web config
+                char systemsToUpdate[50];
+                snprintf(systemsToUpdate, sizeof(systemsToUpdate), "newSubsystemFirmware,%s,",
+                         otaSystemsToUpdate);
+                webServerSendString(systemsToUpdate); // Report systems that have new firmware available
+                commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware", otaSystemsToUpdate);
+
                 otaRequestFirmwareVersionCheck = false;
                 otaUpdateStop(true);
                 break;
