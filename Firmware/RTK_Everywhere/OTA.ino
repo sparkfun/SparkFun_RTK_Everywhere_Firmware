@@ -607,7 +607,10 @@ OTA_SUBSYSTEM_MASK otaGetRequiredUpdates(const char * fileData,
                     buffer = csvNextLine(buffer, bufferEnd, fieldCount);
                     continue;
                 }
-                if ((target->_requestType == OTA_REQUEST_LATEST_VERSION)
+
+                // Check the version for latest or RC requests
+                if (((target->_requestType == OTA_REQUEST_LATEST_VERSION)
+                    || (target->_requestType == OTA_REQUEST_USE_RC))
                     && (versionDelta >= 0))
                 {
                     target->_requestType = OTA_REQUEST_SKIP_UPDATE;
