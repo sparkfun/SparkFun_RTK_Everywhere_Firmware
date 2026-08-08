@@ -327,7 +327,8 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
         }
 
         // Display the performance
-        otaDisplayPerformance(subsystemIndex, startMsec, millis(), fileBytes);
+        if (success)
+            otaDisplayPerformance(subsystemIndex, startMsec, millis(), fileBytes);
         return success;
     } while (0);
     return false;
