@@ -9,7 +9,7 @@
     Press 'r' to reset. The GNSS module should boot and respond to commands.
 
     If the update fails, the LG290P must be hardware reset or power reset, at which time
-    it will enter into a state where it can enter bootloader mode again. On the TX2, there is 
+    it will enter into a state where it can enter bootloader mode again. On the TX2, there is
     hardware reset. On the FP, the user may need to power cycle the device and restart the update.
 
     All loaders should have similar structure:
@@ -24,7 +24,8 @@
 
 #include "TheData.h" //Array containing the PKG data
 
-#define PLATFORM_FP
+//#define PLATFORM_FP
+#define PLATFORM_POSTCARD
 // #define PLATFORM_TX2
 
 #include <SparkFun_LG290P_GNSS.h>
@@ -33,9 +34,6 @@ LG290P myGnss;
 #include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
 SFE_PCA95XX io(PCA95XX_PCA9534); // Create a PCA9534
 SFE_PCA95XX *gpioExpanderSwitches = nullptr;
-
-int pin_SDA = 15;
-int pin_SCL = 4;
 
 const int gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
 const int gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
@@ -51,9 +49,19 @@ const int gpioExpanderNumSwitches = 8;
 HardwareSerial SerialGNSS(1); // Use UART1 on the ESP32
 
 #ifdef PLATFORM_FP
+int pin_SDA = 15;
+int pin_SCL = 4;
 int pin_UART1_TX = 27; // FP
 int pin_UART1_RX = 26;
+#elif defined(PLATFORM_POSTCARD)
+int pin_SDA = 7;
+int pin_SCL = 20;
+int pin_UART1_TX = 22; // TX2
+int pin_UART1_RX = 21;
+int pin_GNSS_DR_Reset = 33; // Push low to reset GNSS/DR.
 #elif defined(PLATFORM_TX2)
+int pin_SDA = 15;
+int pin_SCL = 4;
 int pin_UART1_TX = 17; // TX2
 int pin_UART1_RX = 14;
 int pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR.
@@ -96,6 +104,8 @@ void setup()
 
     // Connect Facet FP GNSS receiver UART1 to ESP32 UART1 for normal comms
     gpioExpanderConnectGNSSToESP32();
+#elif defined(PLATFORM_POSTCARD)
+    pinMode(pin_GNSS_DR_Reset, OUTPUT);
 #elif defined(PLATFORM_TX2)
     pinMode(pin_GNSS_DR_Reset, OUTPUT);
 #endif
@@ -136,6 +146,15 @@ void setup()
         offset += n;
     }
     Serial.printf("CRC32: 0x%08X\r\n", crc);
+    displayMenu();
+}
+
+void displayMenu()
+{
+    Serial.println();
+    Serial.println("r) Restart the ESP32");
+    Serial.println("u) Update the LG290P firmware");
+    Serial.print("Selection: ");
 }
 
 void loop()
@@ -143,6 +162,7 @@ void loop()
     if (Serial.available())
     {
         byte incoming = Serial.read();
+        Serial.printf("%c\r\n", incoming);
         if (incoming == 'r')
         {
             ESP.restart();
@@ -159,6 +179,7 @@ void loop()
             else
             {
                 Serial.println("Failed to enter bootloader mode.");
+                displayMenu();
                 return;
             }
 
@@ -173,6 +194,7 @@ void loop()
                 if (lg290pFirmwareUpdate(&c, 1, false) == false)
                 {
                     Serial.println("Firmware update failed during data upload.");
+                    displayMenu();
                     return;
                 }
             }
@@ -183,6 +205,7 @@ void loop()
             else
             {
                 Serial.println("FAILED");
+                displayMenu();
                 return;
             }
 
@@ -192,6 +215,7 @@ void loop()
             else
             {
                 Serial.println("LG290P update failed.");
+                displayMenu();
                 return;
             }
 
@@ -200,6 +224,7 @@ void loop()
             Serial.print("Firmware update time: ");
             Serial.print(firmwareUpdateElapsed / 1000.0, 3);
             Serial.println(" seconds");
+            displayMenu();
         }
     }
 }
