@@ -4267,11 +4267,12 @@ bool x20pStreamFirmware(NetworkClient * stream,
     systemPrintln("Device is in bootloader mode.");
 
     unsigned long lastDataTime = millis();
+    size_t validData = 0;
     while (stream->connected() && (fileBytes > 0))
     {
         // Wait until some data is available
-        size_t available = stream->available();
-        if (available == 0)
+        size_t availableBytes = stream->available();
+        if (availableBytes == 0)
         {
             if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
             {
@@ -4283,33 +4284,38 @@ bool x20pStreamFirmware(NetworkClient * stream,
         }
 
         // Read the received data
-        size_t toRead = min(available, packetBytes);
-        int bytesRead = stream->readBytes(buffer, toRead);
+        size_t toRead = min(availableBytes, packetBytes - validData);
+        int bytesRead = stream->readBytes(&buffer[validData], toRead);
         if (bytesRead <= 0)
             break;
+        validData += bytesRead;
+
+        // Fill the packet
+        if ((validData < packetBytes) && (validData != fileBytes))
+            continue;
 
         // Compute the CRC
-        crc = crc32Compute(crc, buffer, bytesRead);
+        crc = crc32Compute(crc, buffer, validData);
 
         // Validate the computed CRC matches the expected CRC
-        bool lastPacket = (fileBytes == bytesRead);
-        if (lastPacket && (crc != expectedCrc))
+        if ((fileBytes == validData) && (crc != expectedCrc))
         {
             systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
             break;
         }
 
         // Update this portion of the firmware
-        if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
+        if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)validData) == false)
         {
             systemPrintln("Firmware update failed during WiFi data upload.");
             break;
         }
 
         // Account for this data
-        fileBytes -= bytesRead;
-        firmwareUpdateProgressCallback("X20P", bytesRead);
+        fileBytes -= validData;
+        firmwareUpdateProgressCallback("X20P", validData);
         lastDataTime = millis();
+        validData = 0;
     }
 
     systemPrintln(otaEqualSigns);
