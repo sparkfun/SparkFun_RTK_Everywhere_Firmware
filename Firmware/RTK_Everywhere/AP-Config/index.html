@@ -524,6 +524,45 @@
                         </div>
                     </div>
 
+                    <div id="rtcm1033Settings" style="display:none">
+                        <div class="form-group row">
+                            <label for="rtcm1033AntennaDescriptor" class="box-margin20 col-sm-3 col-5 col-form-label">Antenna Descriptor:
+                                    <span class="tt" data-bs-placement="right"
+                                        title="The RTCM 1033 Antenna Descriptor. Max 20 characters. Default: ADVNULLANTENNA">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                            </label>
+                            <div class="col-sm-8 col-6">
+                                <input type="text" class="form-control" id="rtcm1033AntennaDescriptor">
+                                <p id="rtcm1033AntennaDescriptorError" class="inlineError"></p>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="ntriprtcm1033AntennaSerialNr" class="box-margin20 col-sm-3 col-5 col-form-label">Antenna Serial Number:
+                                    <span class="tt" data-bs-placement="right"
+                                        title="The RTCM 1033 Antenna Serial Number. Max 20 characters. Default: Unknown">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                            </label>
+                            <div class="col-sm-8 col-6">
+                                <input type="text" class="form-control" id="rtcm1033AntennaSerialNr">
+                                <p id="rtcm1033AntennaSerialNrError" class="inlineError"></p>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="rtcm1033AntennaSetupID" class="col-sm-4 col-6 col-form-label">Antenna Setup ID:
+                                <span class="tt" data-bs-placement="right"
+                                    title="The RTCM 1033 Antenna Setup ID. 0-255. Default: 0">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-4 col-6">
+                                <input type="number" class="form-control" id="rtcm1033AntennaSetupID">
+                                <p id="rtcm1033AntennaSetupIDError" class="inlineError"></p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-check mt-3">
                         <label class="form-check-label" for="enableNtripClient">Enable NTRIP Client</label>
                         <input class="form-check-input" type="checkbox" value="" id="enableNtripClient">

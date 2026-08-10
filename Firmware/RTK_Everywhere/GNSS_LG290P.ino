@@ -155,6 +155,7 @@ void GNSS_LG290P::begin()
         // Supported starting in v1.5
         present.minElevation = true;
         present.minCN0 = true;
+        present.rtcm1033AntennaDescription = true;
     }
 
     // Determine if PPP temp firmware is detected.
@@ -287,6 +288,17 @@ bool GNSS_LG290P::configureBase()
     }
     else
     {
+        // Set the RTCM 1033 Antenna Description
+        if (present.rtcm1033AntennaDescription)
+        {
+            char antInfo[60];
+            snprintf(antInfo, sizeof(antInfo), ",W,%s,%d,%s",
+                settings.rtcm1033AntennaDescriptor,
+                settings.rtcm1033AntennaSetupID,
+                settings.rtcm1033AntennaSerialNr);
+            response &= _lg290p->sendOkCommand("$PQTMANTINF", antInfo); // Set antenna information
+        }
+
         // When switching between modes, we have to do a save, reset, then
         // enable messages. Because of how GNSS.ino works, we force the
         // save/reset here.
@@ -3512,6 +3524,7 @@ void lg290pNewClass()
     present.minCN0 = true;
     present.minElevation = true;
     present.needsExternalPpl = true; // Uses the PointPerfect Library
+    present.rtcm1033AntennaDescription = true;
 }
 
 //----------------------------------------

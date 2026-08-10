@@ -3063,6 +3063,17 @@ bool settingAvailableOnPlatform(int i)
                     //       which is called after commandIndexFillActual()
                     break;
             }
+            if (rtkSettingsEntries[i].platFacetFP == R33)
+            {
+                if (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P)
+                    break;
+                if (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P)
+                    break;
+                if (settings.detectedGnssReceiver == GNSS_RECEIVER_F9P)
+                    break; // Possible future product
+                if (settings.detectedGnssReceiver == GNSS_RECEIVER_UM980)
+                    break; // Possible future product
+            }
         }
         if ((productVariant == RTK_TORCH_X2) && rtkSettingsEntries[i].platTorchX2)
             break;

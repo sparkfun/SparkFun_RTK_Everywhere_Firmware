@@ -598,6 +598,17 @@ bool GNSS_MOSAIC::configureBase()
     // Set the model to static for Base mode
     response &= setModel(MOSAIC_DYN_MODEL_STATIC);
 
+    // Set the RTCM 1033 Antenna Description
+    if (present.rtcm1033AntennaDescription)
+    {
+        String setting =
+            String("sao,,,,,\"" + String(settings.rtcm1033AntennaDescriptor) + "\",\""
+            + String(settings.rtcm1033AntennaSerialNr) + "\","
+            + String(settings.rtcm1033AntennaSetupID)
+            + "\n\r");
+        response &= sendWithResponse(setting, "AntennaOffset");
+    }
+
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
 
     if (response == false)
@@ -3873,6 +3884,7 @@ void mosaicNewClass()
     present.dynamicModel = true;
     present.mosaicMicroSd = true;
     // present.needsExternalPpl = true; // Nope. No L-Band support...
+    present.rtcm1033AntennaDescription = true;
 }
 
 //----------------------------------------

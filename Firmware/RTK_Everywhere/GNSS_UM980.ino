@@ -192,6 +192,18 @@ bool GNSS_UM980::configureBase()
             return (true);
     }
 
+    // Set the RTCM 1033 Antenna Description
+    bool response = true;
+    if (present.rtcm1033AntennaDescription)
+    {
+        char antInfo[100];
+        snprintf(antInfo, sizeof(antInfo), "CONFIG BASEANTENNAMODEL \"%s\" \"%s\" %d NO",
+            settings.rtcm1033AntennaDescriptor,
+            settings.rtcm1033AntennaSerialNr,
+            settings.rtcm1033AntennaSetupID);
+        response &= _um980->sendCommand(antInfo); // Set antenna configuration
+    }
+
     // Assume we are changing from Rover to Base, request any additional config changes
 
     // Set the dynamic mode. This will cancel any base averaging mode and is needed
@@ -203,7 +215,7 @@ bool GNSS_UM980::configureBase()
     // Request a change to Base RTCM. gnss->setMessagesRTCMBase() sets the messages
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
 
-    return (true);
+    return (response);
 }
 
 //----------------------------------------

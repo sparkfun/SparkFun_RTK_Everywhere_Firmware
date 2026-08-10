@@ -1042,8 +1042,11 @@ struct Settings
     // RTC (Real Time Clock)
     bool enablePrintRtcSync = false;
 
-    // RTCM buffers
+    // RTCM
     bool debugRtcmBuffers = false;
+    char rtcm1033AntennaDescriptor[21] = "ADVNULLANTENNA"; // Supported on mosaic-X5 [20], LG290P [31], UM980 [31]
+    char rtcm1033AntennaSerialNr[21] = "Unknown"; // Supported on mosaic-X5 [20], LG290P [31], UM980 [31]
+    uint8_t rtcm1033AntennaSetupID = 0; // 0-255 Supported on mosaic-X5, LG290P, UM980
 
     // SD Card
     bool enablePrintBufferOverrun = false;
@@ -1228,16 +1231,17 @@ const char *localizedDistributionTileLevelNames[LOCALIZED_DISTRIBUTION_TILE_LEVE
 
 typedef enum
 {
-    NON = 0,            // NONE - must be first
-    L29 = (1 << 0),     // LG290P - No Tilt
-    MX5 = (1 << 1),     // mosaic-X5 - No Tilt
-    U98 = (1 << 2),     // UM980 - Tilt TBC
-    ZF9 = (1 << 3),     // ZED-F9P - Tilt TBC
-    ZX2 = (1 << 4),     // ZED-X20P - Tilt TBC
-    ALL = (1 << 5) - 1, // ALL - must be the highest single variant
-    ZED = ZF9 | ZX2,    // Hybrids are possible (enums don't have to be consecutive)
-    MSM = L29,          // Platforms which require parameter selection of MSM7 over MSM4
-    HAS = L29 | ZX2,    // Platforms which support Galileo HAS - includes ZED-X20P with HPG >= 2.10
+    NON = 0,               // NONE - must be first
+    L29 = (1 << 0),        // LG290P
+    MX5 = (1 << 1),        // mosaic-X5
+    U98 = (1 << 2),        // UM980 - Possible future product
+    ZF9 = (1 << 3),        // ZED-F9P - Possible future product
+    ZX2 = (1 << 4),        // ZED-X20P
+    ALL = (1 << 5) - 1,    // ALL - must be the highest single variant
+    ZED = ZF9 | ZX2,       // Hybrids are possible (enums don't have to be consecutive)
+    MSM = L29,             // Platforms which _require_ parameter selection of MSM7 over MSM4
+    HAS = L29 | ZX2,       // Platforms which support Galileo HAS - includes ZED-X20P with HPG >= 2.10
+    R33 = L29 | MX5 | U98, // Platforms which support configuration of the RTCM 1033 Antenna Descriptor
     // Note: when adding new variants or hybrids, update settingAvailableOnPlatform in menuComands.ino to match
 } Facet_FP_Variant;
 
@@ -1683,8 +1687,11 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // RTC (Real Time Clock)
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRtcSync, "enablePrintRtcSync", nullptr, },
 
-    // RTCM Buffers
+    // RTCM
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugRtcmBuffers, "debugRtcmBuffers", nullptr, },
+    { 1, 1, 0, 0, 1, 1, 1, R33, 1, tCharArry, sizeof(settings.rtcm1033AntennaDescriptor), & settings.rtcm1033AntennaDescriptor, "rtcm1033AntennaDescriptor", nullptr, },
+    { 1, 1, 0, 0, 1, 1, 1, R33, 1, tCharArry, sizeof(settings.rtcm1033AntennaSerialNr), & settings.rtcm1033AntennaSerialNr, "rtcm1033AntennaSerialNr", nullptr, },
+    { 1, 1, 0, 0, 1, 1, 1, R33, 1, _uint8_t,  0, & settings.rtcm1033AntennaSetupID, "rtcm1033AntennaSetupID", nullptr, },
 
 //                F
 //    i           a
@@ -1960,6 +1967,8 @@ struct struct_present
     bool loraDedicatedUart = false; // Platforms may have a dedicated or shared UART interface to the LoRa radio
 
     const char *gnssUpdatePort = ""; // "CH342 Channel A" etc.
+
+    bool rtcm1033AntennaDescription = false; // RTCM 1033 Antenna Descriptor - supported on X5, LG290P and UM980
 } present;
 
 // Monitor which devices on the device are on or offline.
