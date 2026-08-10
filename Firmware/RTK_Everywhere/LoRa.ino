@@ -1927,7 +1927,7 @@ bool stm32StreamFirmware(NetworkClient * stream,
                          size_t fileBytes,
                          uint32_t expectedCrc,
                          uint8_t * buffer,
-                         size_t bufferBytes)
+                         size_t packetBytes)
 {
     uint32_t crc = 0;
 
@@ -1960,7 +1960,7 @@ bool stm32StreamFirmware(NetworkClient * stream,
         }
 
         // Read the received data
-        size_t toRead = min(available, sizeof(buffer));
+        size_t toRead = min(available, packetBytes);
         int bytesRead = stream->readBytes(buffer, toRead);
         if (bytesRead <= 0)
             break;

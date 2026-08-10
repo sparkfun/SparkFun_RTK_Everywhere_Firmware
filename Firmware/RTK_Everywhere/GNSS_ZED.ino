@@ -2222,7 +2222,7 @@ bool GNSS_ZED::setMessagesNMEA()
                 // Set NMEA messages to user's settings on UART1 interface
                 response &= _zed->addCfgValset(ubxMessages[messageNumber].msgConfigKey,
                                                rate); // msgConfigKey defaults to UART1
-                
+
                 // Disable NMEA on I2C : UBLOX_CFG UART1 - 1 = I2C
                 if (ubxMessages[messageNumber].msgClass == UBX_CLASS_NMEA)
                     response &= _zed->addCfgValset(ubxMessages[messageNumber].msgConfigKey - 1, 0);
@@ -4248,7 +4248,7 @@ bool x20pStreamFirmware(NetworkClient * stream,
                         size_t fileBytes,
                         uint32_t expectedCrc,
                         uint8_t * buffer,
-                        size_t bufferBytes)
+                        size_t packetBytes)
 {
     uint32_t crc = 0;
 
@@ -4283,7 +4283,7 @@ bool x20pStreamFirmware(NetworkClient * stream,
         }
 
         // Read the received data
-        size_t toRead = min(available, sizeof(buffer));
+        size_t toRead = min(available, packetBytes);
         int bytesRead = stream->readBytes(buffer, toRead);
         if (bytesRead <= 0)
             break;

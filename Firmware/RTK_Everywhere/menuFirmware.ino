@@ -648,7 +648,7 @@ bool otaEsp32StreamFirmware(NetworkClient * stream,
                             size_t fileBytes,
                             uint32_t expectedCrc,
                             uint8_t * buffer,
-                            size_t bufferBytes)
+                            size_t packetBytes)
 {
     uint32_t crc = 0;
 
@@ -682,7 +682,7 @@ bool otaEsp32StreamFirmware(NetworkClient * stream,
         }
 
         // Read the received data
-        size_t bytesToRead = (availableBytes > bufferBytes) ? bufferBytes : availableBytes;
+        size_t bytesToRead = (availableBytes > packetBytes) ? packetBytes : availableBytes;
         int bytesRead = stream->readBytes(buffer, bytesToRead);
         if (bytesRead <= 0)
             continue;

@@ -318,7 +318,7 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
                                                  target->_fileBytes,
                                                  target->_crc,
                                                  otaFirmwareBuffer,
-                                                 OTA_BUFFER_BYTES);
+                                                 subsystemInfo->_packetBytes);
         if ((success == false) && (subsystemIndex == OTA_SUBSYSTEM_ESP32))
         {
             webServerSendString((char *)"gettingNewFirmware,ERROR,");
