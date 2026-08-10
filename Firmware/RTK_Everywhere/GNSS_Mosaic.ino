@@ -602,7 +602,7 @@ bool GNSS_MOSAIC::configureBase()
     if (present.rtcm1033AntennaDescription)
     {
         String setting =
-            String("sao,,,,,\"" + String(settings.rtcm1033AntennaDescriptor) + "\",\""
+            String("sao,Main,,,,\"" + String(settings.rtcm1033AntennaDescriptor) + "\",\""
             + String(settings.rtcm1033AntennaSerialNr) + "\","
             + String(settings.rtcm1033AntennaSetupID)
             + "\n\r");
