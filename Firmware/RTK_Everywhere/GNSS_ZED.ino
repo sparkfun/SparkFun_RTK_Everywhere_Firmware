@@ -3615,8 +3615,6 @@ void f9pNewClass()
 //  x20pFirmwareUpdateBegin(), freed in x20pFirmwareUpdateEnd().
 // ==================================================================
 
-static uint8_t *x20pPageBuffer = nullptr; // Accumulates incoming bytes; flushed every PACKET_SIZE bytes
-static uint16_t x20pBufferIndex = 0;
 static uint32_t x20pCurrentAddress = FW_BASE_ADDR; // Next flash address to write; advances as pages are flashed
 
 static bool x20pEraseComplete = false; // In/out state shared with x20pWriteChunk across calls (see its header comment)
@@ -3830,7 +3828,11 @@ void x20pSendDataFrame(HardwareSerial &ser, uint32_t address, const uint8_t *chu
  * eraseComplete / eraseCompleteAt are in/out: once the CERASE response is
  * seen they are set and remain true for all subsequent packet calls.
  */
-bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk, uint16_t chunkLen, bool &eraseComplete,
+bool x20pWriteChunk(HardwareSerial &ser,
+                    uint32_t address,
+                    const uint8_t *chunk,
+                    uint16_t chunkLen,
+                    bool &eraseComplete,
                     uint32_t &eraseCompleteAt)
 {
     if (chunkLen == 0 || chunkLen > PACKET_SIZE)
@@ -3955,24 +3957,14 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
     if (x20pUpdateFailed)
         return false; // A prior chunk write failed - stop touching the page buffer/flash
 
-    for (uint32_t i = 0; i < numBytes; i++)
+    if (!x20pWriteChunk(ser, x20pCurrentAddress, data, numBytes, x20pEraseComplete,
+                        x20pEraseCompleteAt))
     {
-        x20pPageBuffer[x20pBufferIndex++] = data[i];
-
-        if (x20pBufferIndex == PACKET_SIZE)
-        {
-            if (!x20pWriteChunk(ser, x20pCurrentAddress, x20pPageBuffer, PACKET_SIZE, x20pEraseComplete,
-                                x20pEraseCompleteAt))
-            {
-                systemPrintf("  ERROR: write failed at address 0x%08X\r\n", x20pCurrentAddress);
-                x20pUpdateFailed = true;
-                return false;
-            }
-            x20pCurrentAddress += PACKET_SIZE;
-            x20pBufferIndex = 0;
-        }
+        systemPrintf("  ERROR: write failed at address 0x%08X\r\n", x20pCurrentAddress);
+        x20pUpdateFailed = true;
+        return false;
     }
-
+    x20pCurrentAddress += numBytes;
     return true;
 }
 
@@ -4167,10 +4159,7 @@ bool x20pFirmwareUpdateBegin()
     x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x16, nullptr, 0);
     // Do NOT wait for chip erase ACK here - it arrives while packet 0 is in flight.
 
-    // Allocate the page-accumulation buffer and reset streaming state for this update.
-    if (x20pPageBuffer == nullptr)
-        x20pPageBuffer = (uint8_t *)malloc(PACKET_SIZE);
-    x20pBufferIndex = 0;
+    // Reset streaming state for this update.
     x20pCurrentAddress = FW_BASE_ADDR;
     x20pEraseComplete = false;
     x20pEraseCompleteAt = 0;
@@ -4197,18 +4186,6 @@ bool x20pFirmwareUpdateBegin()
 bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
 {
     bool success = uploadSucceeded && !x20pUpdateFailed;
-
-    if (success && x20pBufferIndex > 0)
-    {
-        success = x20pWriteChunk(*serialGNSS, x20pCurrentAddress, x20pPageBuffer, x20pBufferIndex, x20pEraseComplete,
-                                 x20pEraseCompleteAt);
-        if (!success)
-            systemPrintf("  ERROR: final chunk write failed at address 0x%08X\r\n", x20pCurrentAddress);
-    }
-
-    free(x20pPageBuffer);
-    x20pPageBuffer = nullptr;
-
     if (success)
     {
         // ----------------------------------------------------------
