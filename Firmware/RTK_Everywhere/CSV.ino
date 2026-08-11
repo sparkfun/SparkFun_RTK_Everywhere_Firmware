@@ -253,6 +253,9 @@ bool csvGetProductLines(char * fileData,
     {
         if ((strcmp("*", buffer) != 0) && (strcmp(product, buffer) != 0))
             buffer = csvNextLine(buffer, bufferEnd, fieldCount);
+        else if (otaIsChipSupported(csvGetField(fileData, fieldCount, buffer, "subsystem"),
+                                    csvGetField(fileData, fieldCount, buffer, "chip")) == false)
+            buffer = csvNextLine(buffer, bufferEnd, fieldCount);
         else
         {
             // Determine if the line needs to be moved
