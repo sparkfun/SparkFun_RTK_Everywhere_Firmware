@@ -347,7 +347,7 @@ bool  GNSS_LG290P::configureRtcm1033()
             settings.rtcm1033AntennaDescriptor,
             settings.rtcm1033AntennaSetupID,
             settings.rtcm1033AntennaSerialNr);
-        return _lg290p->sendOkCommand("$PQTMANTINF", antInfo); // Set antenna information
+        return _lg290p->sendOkCommand("$PQTMCFGANTINF", antInfo); // Set antenna information
     }
 
     return true; // Return true to clear configuration
