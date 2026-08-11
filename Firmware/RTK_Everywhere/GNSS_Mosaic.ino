@@ -598,17 +598,6 @@ bool GNSS_MOSAIC::configureBase()
     // Set the model to static for Base mode
     response &= setModel(MOSAIC_DYN_MODEL_STATIC);
 
-    // Set the RTCM 1033 Antenna Description
-    if (present.rtcm1033AntennaDescription)
-    {
-        String setting =
-            String("sao,Main,,,,\"" + String(settings.rtcm1033AntennaDescriptor) + "\",\""
-            + String(settings.rtcm1033AntennaSerialNr) + "\","
-            + String(settings.rtcm1033AntennaSetupID)
-            + "\n\r");
-        response &= sendWithResponse(setting, "AntennaOffset");
-    }
-
     gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
 
     if (response == false)
@@ -706,6 +695,24 @@ bool GNSS_MOSAIC::configureRover()
         systemPrintln("mosaic-X5 Rover failed to configure");
 
     return (response);
+}
+
+//----------------------------------------
+// Configure the RTCM 1033 Antenna Description
+//----------------------------------------
+bool GNSS_MOSAIC::configureRtcm1033()
+{
+    if (present.rtcm1033AntennaDescription)
+    {
+        String setting =
+            String("sao,Main,,,,\"" + String(settings.rtcm1033AntennaDescriptor) + "\",\""
+            + String(settings.rtcm1033AntennaSerialNr) + "\","
+            + String(settings.rtcm1033AntennaSetupID)
+            + "\n\r");
+        return sendWithResponse(setting, "AntennaOffset");
+    }
+
+    return true; // Return true to clear configuration
 }
 
 //----------------------------------------

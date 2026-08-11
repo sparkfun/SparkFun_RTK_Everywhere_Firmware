@@ -112,6 +112,11 @@ class GNSS
     //   Returns true if successfully configured and false upon failure
     virtual bool configureRover();
 
+    // Configure the RTCM 1033 Antenna Description
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    virtual bool configureRtcm1033();
+
     // Responds with the messages supported on this platform
     // Inputs:
     //   returnText: String to receive message names

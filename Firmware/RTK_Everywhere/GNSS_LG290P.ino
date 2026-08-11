@@ -288,17 +288,6 @@ bool GNSS_LG290P::configureBase()
     }
     else
     {
-        // Set the RTCM 1033 Antenna Description
-        if (present.rtcm1033AntennaDescription)
-        {
-            char antInfo[60];
-            snprintf(antInfo, sizeof(antInfo), ",W,%s,%d,%s",
-                settings.rtcm1033AntennaDescriptor,
-                settings.rtcm1033AntennaSetupID,
-                settings.rtcm1033AntennaSerialNr);
-            response &= _lg290p->sendOkCommand("$PQTMANTINF", antInfo); // Set antenna information
-        }
-
         // When switching between modes, we have to do a save, reset, then
         // enable messages. Because of how GNSS.ino works, we force the
         // save/reset here.
@@ -344,6 +333,24 @@ bool GNSS_LG290P::configureRover()
     gnssConfigure(GNSS_CONFIG_RESET); // Mode change requires reset
 
     return (response);
+}
+
+//----------------------------------------
+// Configure the RTCM 1033 Antenna Description
+//----------------------------------------
+bool  GNSS_LG290P::configureRtcm1033()
+{
+    if (present.rtcm1033AntennaDescription)
+    {
+        char antInfo[60];
+        snprintf(antInfo, sizeof(antInfo), ",W,%s,%d,%s",
+            settings.rtcm1033AntennaDescriptor,
+            settings.rtcm1033AntennaSetupID,
+            settings.rtcm1033AntennaSerialNr);
+        return _lg290p->sendOkCommand("$PQTMANTINF", antInfo); // Set antenna information
+    }
+
+    return true; // Return true to clear configuration
 }
 
 //----------------------------------------

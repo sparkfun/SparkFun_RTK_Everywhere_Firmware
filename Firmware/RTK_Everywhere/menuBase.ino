@@ -489,10 +489,7 @@ void menuRTCM1033AntennaDescription()
             if (getUserInputString(userEntry, sizeof(userEntry)) == INPUT_RESPONSE_VALID)
             {
                 strcpy(settings.rtcm1033AntennaSerialNr, userEntry);
-                // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
-                // This prevents a user, while in Rover mode but changing a Base setting, from entering Base mode
-                if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
-                    gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_RTCM_1033); // Request receiver to use new settings
             }
         }
         else if (incoming == 2)
@@ -500,8 +497,7 @@ void menuRTCM1033AntennaDescription()
             if (getNewSetting("Enter the Antenna Setup ID", 0, 255,
                               &settings.rtcm1033AntennaSetupID) == INPUT_RESPONSE_VALID)
             {
-                if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
-                    gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_RTCM_1033); // Request receiver to use new settings
             }
         }
         else if (incoming == 3)
@@ -511,8 +507,7 @@ void menuRTCM1033AntennaDescription()
             if (getUserInputString(userEntry, sizeof(userEntry)) == INPUT_RESPONSE_VALID)
             {
                 strcpy(settings.rtcm1033AntennaDescriptor, userEntry);
-                if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
-                    gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+                gnssConfigure(GNSS_CONFIG_RTCM_1033); // Request receiver to use new settings
             }
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
