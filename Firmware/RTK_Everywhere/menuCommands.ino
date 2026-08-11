@@ -3067,10 +3067,8 @@ bool settingAvailableOnPlatform(int i)
             {
                 if (settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P)
                     break;
-                if (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P)
+                if (settings.detectedGnssReceiver == GNSS_RECEIVER_MOSAIC_X5)
                     break;
-                if (settings.detectedGnssReceiver == GNSS_RECEIVER_F9P)
-                    break; // Possible future product
                 if (settings.detectedGnssReceiver == GNSS_RECEIVER_UM980)
                     break; // Possible future product
             }
