@@ -1957,8 +1957,19 @@ bool GNSS_ZED::setBaudRateData(uint32_t baudRate)
 
 bool GNSS_ZED::setBaudRateRadio(uint32_t baudRate)
 {
+    // If the I2C bus is busy on Facet FPX, it can take > 1100ms for the VALSET to be ACK'd,
+    // causing a timeout. The solution is to gradually increase maxWait on successive attempts.
+    static uint16_t maxWait = 1100;
     if (online.gnss)
-        return _zed->setVal32(UBLOX_CFG_UART2_BAUDRATE, baudRate, VAL_LAYER_ALL);
+    {
+        bool res = _zed->setVal32(UBLOX_CFG_UART2_BAUDRATE, baudRate, VAL_LAYER_ALL, maxWait);
+        if (res)
+            maxWait = 1100; // Success - restore maxWait
+        if (!res && (maxWait < 5000))
+            maxWait += 1000; // Fail - increase maxWait by 1s for the next try
+        return res;
+    }
+
     return false;
 }
 //----------------------------------------
