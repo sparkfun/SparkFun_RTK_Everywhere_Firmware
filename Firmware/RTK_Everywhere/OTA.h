@@ -84,7 +84,7 @@ typedef bool (*OTA_STREAM_FIRMWARE)(NetworkClient * stream,
                                     size_t contentLength,
                                     uint32_t expectedCrc,
                                     uint8_t * buffer,
-                                    size_t bufferBytes);
+                                    size_t packetBytes);
 
 typedef struct _OTA_SUBSYSTEM_INFO
 {

@@ -3780,15 +3780,12 @@ bool lg290pFirmwareUpdateBegin(size_t fileBytes, uint32_t expectedCrc)
 }
 
 //----------------------------------------
-// Given a chunk of bytes, feed the LG290P firmware update machine
+// Write firmware to the LG290P
 //----------------------------------------
-bool lg290pFirmwareUpdate(uint8_t *dataArray, uint16_t bytesToWrite, bool sendLastLine)
+bool lg290pFirmwareUpdate(const uint8_t * buffer, size_t dataBytes)
 {
-    if (sendLastLine == true)
-        return (((GNSS_LG290P *)gnss)->updateFirmwareEnd());
-
     // Bytes will be aggregated into 4096 chunks, then written to the LG290P
-    return ((GNSS_LG290P *)gnss)->updateFirmware(dataArray, bytesToWrite);
+    return ((GNSS_LG290P *)gnss)->updateFirmware(buffer, dataBytes);
 }
 
 //----------------------------------------
@@ -3813,7 +3810,7 @@ bool lg290pStreamFirmware(NetworkClient * stream,
                           size_t fileBytes,
                           uint32_t expectedCrc,
                           uint8_t * buffer,
-                          size_t bufferBytes)
+                          size_t packetBytes)
 {
     uint32_t crc = 0;
 
@@ -3821,12 +3818,13 @@ bool lg290pStreamFirmware(NetworkClient * stream,
     if (lg290pFirmwareUpdateBegin(fileBytes, expectedCrc) == false)
     {
         systemPrintln(otaEqualSigns);
-        systemPrintln("ERROR: Failed to erase LG290P flash!\r\n");
+        systemPrintln("ERROR: lg290pFirmwareUpdateBegin failed!\r\n");
         systemPrintln(otaEqualSigns);
         return false;
     }
     systemPrintln("Starting LG290P firmware update...");
     unsigned long lastDataTime = millis();
+    size_t validData = 0;
     while (stream->connected() && (fileBytes > 0))
     {
         // Wait until some data is available
@@ -3843,50 +3841,52 @@ bool lg290pStreamFirmware(NetworkClient * stream,
         }
 
         // Read the received data
-        size_t bytesToRead = (availableBytes > bufferBytes) ? bufferBytes : availableBytes;
-        int bytesRead = stream->readBytes(buffer, bytesToRead);
+        size_t bytesToRead = min(availableBytes, packetBytes - validData);
+        int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
         if (bytesRead <= 0)
+            break;
+        validData += bytesRead;
+
+        // Fill the packet
+        if ((validData < packetBytes) && (validData != fileBytes))
             continue;
 
         // Compute the CRC
-        crc = crc32Compute(crc, buffer, bytesRead);
+        crc = crc32Compute(crc, buffer, validData);
 
         // Validate the computed CRC matches the expected CRC
-        bool lastPacket = (fileBytes == bytesRead);
-        if (lastPacket && (crc != expectedCrc))
+        if ((fileBytes == validData) && (crc != expectedCrc))
         {
             systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
             break;
         }
 
         // Update this portion of the firmware
-        if (lg290pFirmwareUpdate(buffer, bytesRead, lastPacket) == false)
+        if (lg290pFirmwareUpdate(buffer, validData) == false)
         {
             systemPrintln("LG290P OTA update failed during write");
-            return false;
+            break;
         }
+        delay(1);
 
         // Account for this data
-        fileBytes -= bytesRead;
-        firmwareUpdateProgressCallback("LG290P", (uint16_t)bytesRead);
+        fileBytes -= validData;
+        firmwareUpdateProgressCallback("LG290P", (uint16_t)validData);
         lastDataTime = millis();
+        validData = 0;
     }
 
+    // Release the buffers in the LG290P driver
+    lg290pFirmwareUpdateEnd();
+
+    // Done with the firmware update
     systemPrintln(otaEqualSigns);
     if (fileBytes > 0)
-    {
         systemPrintln("LG290P OTA update failed during writeStream");
-        return false;
-    }
-
-    if (lg290pFirmwareUpdateEnd() == false)
-    {
-        systemPrintf("LG290P failed to reboot\r\n");
-        return false;
-    }
-    systemPrintln("LG290P update successfully completed.");
+    else
+        systemPrintln("LG290P update successfully completed.");
     systemPrintln(otaEqualSigns);
-    return true;
+    return (fileBytes == 0);
 }
 
 #endif // COMPILE_LG290P

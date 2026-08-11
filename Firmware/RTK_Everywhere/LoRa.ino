@@ -1927,7 +1927,7 @@ bool stm32StreamFirmware(NetworkClient * stream,
                          size_t fileBytes,
                          uint32_t expectedCrc,
                          uint8_t * buffer,
-                         size_t bufferBytes)
+                         size_t packetBytes)
 {
     uint32_t crc = 0;
 
@@ -1944,6 +1944,7 @@ bool stm32StreamFirmware(NetworkClient * stream,
     }
 
     unsigned long lastDataTime = millis();
+    size_t validData = 0;
     while (stream->connected() && (fileBytes > 0))
     {
         // Wait until some data is available
@@ -1960,32 +1961,38 @@ bool stm32StreamFirmware(NetworkClient * stream,
         }
 
         // Read the received data
-        size_t toRead = min(available, sizeof(buffer));
-        int bytesRead = stream->readBytes(buffer, toRead);
+        size_t toRead = min(available, packetBytes - validData);
+        int bytesRead = stream->readBytes(&buffer[validData], toRead);
         if (bytesRead <= 0)
             break;
+        validData += bytesRead;
+
+        // Fill the packet
+        if ((validData < packetBytes) && (validData != fileBytes))
+            continue;
 
         // Compute the CRC
-        crc = crc32Compute(crc, buffer, bytesRead);
+        crc = crc32Compute(crc, buffer, validData);
 
         // Validate the computed CRC matches the expected CRC
-        if ((bytesRead >= fileBytes) && (crc != expectedCrc))
+        if ((validData >= fileBytes) && (crc != expectedCrc))
         {
             systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
             break;
         }
 
         // Update this portion of the firmware
-        if (stm32UpdateFirmware(buffer, (uint16_t)bytesRead) == false)
+        if (stm32UpdateFirmware(buffer, (uint16_t)validData) == false)
         {
             loraSharedPrintln("LoRa/STM32 update failed during WiFi data upload.");
             break;
         }
 
         // Account for this data
-        fileBytes -= bytesRead;
-        firmwareUpdateProgressCallback("LoRa/STM32", bytesRead);
+        fileBytes -= validData;
+        firmwareUpdateProgressCallback("LoRa/STM32", validData);
         lastDataTime = millis();
+        validData = 0;
     }
 
     loraSharedPrintln(otaEqualSigns);

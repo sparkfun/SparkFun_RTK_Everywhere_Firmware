@@ -648,7 +648,7 @@ bool otaEsp32StreamFirmware(NetworkClient * stream,
                             size_t fileBytes,
                             uint32_t expectedCrc,
                             uint8_t * buffer,
-                            size_t bufferBytes)
+                            size_t packetBytes)
 {
     uint32_t crc = 0;
 
@@ -666,6 +666,7 @@ bool otaEsp32StreamFirmware(NetworkClient * stream,
 
     // Stream the firmware in chunks so we can report progress via
     // firmwareUpdateProgressCallback() along the way.
+    size_t validData = 0;
     while (stream->connected() && (fileBytes > 0))
     {
         // Wait until some data is available
@@ -682,32 +683,38 @@ bool otaEsp32StreamFirmware(NetworkClient * stream,
         }
 
         // Read the received data
-        size_t bytesToRead = (availableBytes > bufferBytes) ? bufferBytes : availableBytes;
-        int bytesRead = stream->readBytes(buffer, bytesToRead);
+        size_t bytesToRead = min(availableBytes, packetBytes - validData);
+        int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
         if (bytesRead <= 0)
+            break;
+        validData += bytesRead;
+
+        // Fill the packet
+        if ((validData < packetBytes) && (validData != fileBytes))
             continue;
 
         // Compute the CRC
-        crc = crc32Compute(crc, buffer, bytesRead);
+        crc = crc32Compute(crc, buffer, validData);
 
         // Validate the computed CRC matches the expected CRC
-        if ((fileBytes == 0) && (crc != expectedCrc))
+        if ((fileBytes == validData) && (crc != expectedCrc))
         {
             systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
             break;
         }
 
         // Update this portion of the firmware
-        if (Update.write(buffer, bytesRead) != (size_t)bytesRead)
+        if (Update.write(buffer, validData) != (size_t)validData)
         {
             systemPrintln("ESP32 OTA update failed during write");
             return false;
         }
 
         // Account for this data
-        fileBytes -= bytesRead;
-        firmwareUpdateProgressCallback("ESP32", (uint16_t)bytesRead);
+        fileBytes -= validData;
+        firmwareUpdateProgressCallback("ESP32", (uint16_t)validData);
         lastDataTime = millis();
+        validData = 0;
     }
 
     systemPrintln(otaEqualSigns);
