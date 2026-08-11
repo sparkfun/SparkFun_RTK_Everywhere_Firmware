@@ -72,6 +72,9 @@ const uint32_t nvmCrc32Polynomial = 0x04c11db7;
 
 const char * nvmSettingsFileHasCrc = "settingsFileHasCrc";
 
+#define NVM_SETTING_NAME_LENGTH     64
+#define NVM_LINE_LENGTH             192
+
 //----------------------------------------
 // Locals
 //----------------------------------------
@@ -133,6 +136,12 @@ bool loadSettingsUsingTempSetting(bool startFromDefault)
     // This will fail if LFS has been erased, a read error occurs or the file is
     // corrupt.
     loadSuccessful = loadSystemSettingsFromFileLFS(settingsFileName, tempSettings);
+    if ((loadSuccessful == false) && (settings.debugSettings == false))
+    {
+        settings.debugSettings = true;
+        loadSystemSettingsFromFileLFS(settingsFileName, tempSettings);
+        settings.debugSettings = false;
+    }
     if (settingsAllocated)
     {
         if (loadSuccessful)
@@ -153,6 +162,12 @@ bool loadSettingsUsingTempSetting(bool startFromDefault)
     // Load the settings from the SD card
     // This will fail if no SD is present. That's OK.
     loadSuccessful = loadSystemSettingsFromFileSD(settingsFileName, tempSettings);
+    if ((loadSuccessful == false) && (settings.debugSettings == false))
+    {
+        settings.debugSettings = true;
+        loadSystemSettingsFromFileSD(settingsFileName, tempSettings);
+        settings.debugSettings = false;
+    }
     if (settingsAllocated)
     {
         // Update the settings with the values read from the SD card
@@ -397,6 +412,12 @@ void loadSettingsPartial()
     // This will fail if LFS has been erased, a read error occurs or the file is
     // corrupt.
     loadSuccessful = loadSystemSettingsFromFileLFS(settingsFileName, tempSettings);
+    if ((loadSuccessful == false) && (settings.debugSettings == false))
+    {
+        settings.debugSettings = true;
+        loadSystemSettingsFromFileLFS(settingsFileName, tempSettings);
+        settings.debugSettings = false;
+    }
     if (settingsAllocated)
     {
         // Update the settings with the values read from NVM
@@ -881,10 +902,6 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "gnssUniqueId", gnssUniqueId);
 
-    // Firmware URLs
-    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "otaRcFirmwareJsonUrl", otaRcFirmwareJsonUrl);
-    SETTINGS_FILE_PRINTF_3("%s=%s\r\n", "otaFirmwareJsonUrl", otaFirmwareJsonUrl);
-
     //------------------------------------------------------------
     // Add any new settings above this line!
     //------------------------------------------------------------
@@ -996,6 +1013,13 @@ bool loadSystemSettingsFromFileSD(char *fileName,
                         // parse each line and load into settings
                         if (parseLine(line, tempSettings) == false)
                         {
+                            // Debug the parse failure
+                            if (settings.debugSettings == false)
+                            {
+                                settings.debugSettings = true;
+                                parseLine(line, tempSettings);
+                                settings.debugSettings = false;
+                            }
                             line[strlen(line) - 1] = 0; // Remove \n for printing
                             systemPrintf("Failed to parse SD:%s line %d: %s\r\n", fileName, lineNumber, line);
                             if (lineNumber == 0)
@@ -1185,6 +1209,13 @@ bool loadSystemSettingsFromFileLFS(char *fileName,
                 // parse each line and load into settings
                 if (parseLine(line, tempSettings) == false)
                 {
+                    // Debug the parse failure
+                    if (settings.debugSettings == false)
+                    {
+                        settings.debugSettings = true;
+                        parseLine(line, tempSettings);
+                        settings.debugSettings = false;
+                    }
                     line[strlen(line) - 1] = 0; // Remove \n for printing
                     systemPrintf("Failed to parse LFS:%s line %d: %s\r\n", fileName, lineNumber, line);
                     if (lineNumber == 0)
@@ -1295,7 +1326,7 @@ bool printSystemSettingsFromFileLFS(char *fileName)
         return (false);
     }
 
-    char line[100];
+    char line[NVM_LINE_LENGTH];
     int lineNumber = 0;
     bool status = true; // File is open. Default status to true
 
@@ -1365,8 +1396,8 @@ bool printSystemSettingsFromFileLFS(char *fileName)
 bool parseLine(const char *theLine, struct Settings * tempSettings)
 {
     // Make a copy. Manipulate the copy, not the original
-    size_t strLen = strnlen(theLine, 100);
-    if (strLen == 100)
+    size_t strLen = strnlen(theLine, NVM_LINE_LENGTH + NVM_SETTING_NAME_LENGTH);
+    if (strLen == (NVM_LINE_LENGTH + NVM_SETTING_NAME_LENGTH))
     {
         if (settings.debugSettings)
             systemPrintln("parseLine: line too long");
@@ -1394,11 +1425,11 @@ bool parseLine(const char *theLine, struct Settings * tempSettings)
     }
 
     // Store this setting name
-    char settingName[100];
+    char settingName[NVM_SETTING_NAME_LENGTH];
     snprintf(settingName, sizeof(settingName), "%s", strPtr);
 
     double d = 0.0;
-    char settingString[100] = "";
+    char settingString[NVM_LINE_LENGTH] = "";
 
     // Move pointer past where the = was
     strPtr = strtok_r(nullptr, "\n", &preservedPointer); // This will blow the \n away
@@ -1504,6 +1535,7 @@ bool parseLine(const char *theLine, struct Settings * tempSettings)
     {
         const char *table[] = {
             "gnssFirmwareVersion", "gnssUniqueId", "neoFirmwareVersion", "espFirmwareVersion", "rtkIdentifier",
+            "otaRcFirmwareJsonUrl", "otaFirmwareJsonUrl",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
@@ -1792,22 +1824,6 @@ bool parseLine(const char *theLine, struct Settings * tempSettings)
                 }
             }
         }
-    }
-
-    // Settings not part of settings.h/Settings struct
-    if (strcmp(settingName, "otaRcFirmwareJsonUrl") == 0)
-    {
-        String url = String(settingString);
-        memset(otaRcFirmwareJsonUrl, 0, sizeof(otaRcFirmwareJsonUrl));
-        strcpy(otaRcFirmwareJsonUrl, url.c_str());
-        knownSetting = true;
-    }
-    else if (strcmp(settingName, "otaFirmwareJsonUrl") == 0)
-    {
-        String url = String(settingString);
-        memset(otaFirmwareJsonUrl, 0, sizeof(otaFirmwareJsonUrl));
-        strcpy(otaFirmwareJsonUrl, url.c_str());
-        knownSetting = true;
     }
 
     // Last catch
@@ -2785,4 +2801,11 @@ void nvmVerifySdFileCrc(const char * fileName)
         endSD(gotSemaphore, true);
     else if (gotSemaphore)
         xSemaphoreGive(sdCardSemaphore);
+}
+
+void nvmVerifyTables()
+{
+    // Verify the line length in the settings files
+    if (NVM_LINE_LENGTH < OTA_FIRMWARE_CSV_URL_LENGTH)
+        reportFatalError("Increase NVM_LINE_LENGTH to >= OTA_FIRMWARE_CSV_URL_LENGTH\r\n");
 }

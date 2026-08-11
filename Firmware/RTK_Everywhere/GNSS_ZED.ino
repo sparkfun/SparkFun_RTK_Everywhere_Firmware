@@ -2222,6 +2222,10 @@ bool GNSS_ZED::setMessagesNMEA()
                 // Set NMEA messages to user's settings on UART1 interface
                 response &= _zed->addCfgValset(ubxMessages[messageNumber].msgConfigKey,
                                                rate); // msgConfigKey defaults to UART1
+                
+                // Disable NMEA on I2C : UBLOX_CFG UART1 - 1 = I2C
+                if (ubxMessages[messageNumber].msgClass == UBX_CLASS_NMEA)
+                    response &= _zed->addCfgValset(ubxMessages[messageNumber].msgConfigKey - 1, 0);
 
                 // Mark messages needed for other services (NTRIP Client, PointPerfect, etc) as enabled if rate
                 // > 0
@@ -2334,6 +2338,20 @@ bool GNSS_ZED::setMessagesRTCMBase()
     // (Secondary) USB in case the RTK device is used as an NTRIP caster connected to SBC or other
     // (Tertiary) UART1 in case RTK device is sending RTCM to a phone that is then NTRIP Caster
 
+    // On Facet FPX:
+    //
+    // Messages output on UART1 are parsed by the SEMP and logged / forwarded to clients as needed
+    // Messages output on UART2 are passed directly to LoRa or the Ext Radio JST connector
+    // Messages output on USB could be picked up through the USB Hub
+    // Messages output on I2C will be processed by the callbacks:
+    //   TIM_TM2 for events
+    //   PVT for basic date, time and fix type information
+    //   HPPOSLLH for high-precision position information and horizontal accuracy
+    //   TIM_TP for time pulse interrupts for NTP
+    //   MON_HW for antenna sort / open
+    //   MON_COMMS for the UART(2) byte counts
+    // Do we need to output RTCM and / or NMEA on I2C? I don't think we do...
+
     // ubxMessageRatesBase is an array of ~12 uint8_ts
     // ubxMessage is an array of ~80 messages
     // We use firstRTCMRecord as an offset for the keys, but use x as the rate
@@ -2350,8 +2368,9 @@ bool GNSS_ZED::setMessagesRTCMBase()
     {
         if (messageSupported(firstRTCMRecord + x))
         {
-            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
-                                           settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1 - 1 = I2C
+            // Disable RTCM on I2C : UBLOX_CFG UART1 - 1 = I2C
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1, 0);
+
             response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey,
                                            settings.ubxMessageRatesBase[x]); // UBLOX_CFG UART1
             response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
@@ -3025,7 +3044,10 @@ bool messageSupported(int messageNumber)
         if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].x20pFirmwareVersionSupported)
         {
             messageSupported = true;
-            if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].x20pFirmwareVersionNotSupported)
+            // If the message is supported, check if it is no longer supported
+            // We use 0 to indicate "all versions", so we need to be careful when we use >=
+            if ((ubxMessages[messageNumber].x20pFirmwareVersionNotSupported > 0)
+                && (gnssFirmwareVersionInt >= ubxMessages[messageNumber].x20pFirmwareVersionNotSupported))
                 messageSupported = false;
         }
     }
@@ -4216,17 +4238,19 @@ bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
     return success;
 }
 
+//----------------------------------------
 // Update the X20P firmware
 // Owns the full update sequence: enters bootloader mode, streams the image
 // over WiFi, then verifies/reboots - callers only need to call this one
 // function and do not need to know about Begin()/End().
-bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
+//----------------------------------------
+bool x20pStreamFirmware(NetworkClient * stream,
+                        size_t fileBytes,
+                        uint32_t expectedCrc,
+                        uint8_t * buffer,
+                        size_t bufferBytes)
 {
-    if (relativeFirmwareFileLocation == nullptr)
-    {
-        systemPrintln("Firmware file location is null.");
-        return false;
-    }
+    uint32_t crc = 0;
 
     systemPrintln("Starting X20P firmware update...");
 
@@ -4235,93 +4259,74 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
 
     if (x20pFirmwareUpdateBegin() == false)
     {
+        systemPrintln(otaEqualSigns);
         systemPrintln("Failed to enter bootloader mode.");
+        systemPrintln(otaEqualSigns);
         return false;
     }
-
     systemPrintln("Device is in bootloader mode.");
 
-    WiFiClientSecure client;
-    if (!otaSecurelyConnectGitHub(client))
+    unsigned long lastDataTime = millis();
+    while (stream->connected() && (fileBytes > 0))
     {
-        systemPrintln("Failed to securely connect to GitHub.");
-        return false;
-    }
-
-    bool success = true;
-
-    // if (settings.debugFirmwareUpdate)
-    systemPrintf("Starting HTTP GET for firmware: %s\r\n", otaGetGithubFileLocation(relativeFirmwareFileLocation));
-
-    HTTPClient http;
-    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
-    {
-        systemPrintln("Unable to begin HTTP request.");
-        success = false;
-    }
-    else
-    {
-        int httpCode = http.GET();
-        if (httpCode != HTTP_CODE_OK)
+        // Wait until some data is available
+        size_t available = stream->available();
+        if (available == 0)
         {
-            systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
-            success = false;
-        }
-        else
-        {
-            int contentLength = http.getSize();
-            if (contentLength > 0)
-                firmwareUpdateBytesToProcess = (uint32_t)contentLength;
-
-            WiFiClient *stream = http.getStreamPtr();
-            uint8_t buffer[256];
-
-            while (http.connected() && (contentLength > 0 || contentLength == -1))
+            if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
             {
-                size_t available = stream->available();
-                if (available == 0)
-                {
-                    if (!client.connected())
-                        break;
-                    delay(1);
-                    continue;
-                }
-
-                size_t toRead = min(available, sizeof(buffer));
-                int bytesRead = stream->readBytes(buffer, toRead);
-                if (bytesRead <= 0)
-                    break;
-
-                if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
-                {
-                    systemPrintln("Firmware update failed during WiFi data upload.");
-                    success = false;
-                    break;
-                }
-
-                firmwareUpdateProgressCallback(bytesRead);
-
-                if (contentLength > 0)
-                    contentLength -= bytesRead;
+                systemPrintln("X20P OTA update timed out waiting for data");
+                return false;
             }
-
-            if (success)
-                systemPrintln("Update successfully completed.");
+            delay(1);
+            continue;
         }
 
-        http.end();
+        // Read the received data
+        size_t toRead = min(available, sizeof(buffer));
+        int bytesRead = stream->readBytes(buffer, toRead);
+        if (bytesRead <= 0)
+            break;
+
+        // Compute the CRC
+        crc = crc32Compute(crc, buffer, bytesRead);
+
+        // Validate the computed CRC matches the expected CRC
+        bool lastPacket = (fileBytes == bytesRead);
+        if (lastPacket && (crc != expectedCrc))
+        {
+            systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
+            break;
+        }
+
+        // Update this portion of the firmware
+        if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
+        {
+            systemPrintln("Firmware update failed during WiFi data upload.");
+            break;
+        }
+
+        // Account for this data
+        fileBytes -= bytesRead;
+        firmwareUpdateProgressCallback("X20P", bytesRead);
+        lastDataTime = millis();
     }
 
-    if (success == false)
+    systemPrintln(otaEqualSigns);
+    bool success = (fileBytes == 0);
+    if (success)
+        systemPrintln("X20P update successfully completed.");
+    else
         systemPrintln("X20P firmware update failed.");
+    systemPrintln(otaEqualSigns);
 
     // x20pFirmwareUpdateBegin() succeeded above, so End() must always run -
     // it verifies (when success), frees the page buffer, and reboots the device.
     systemPrintln("Rebooting receiver...");
     bool updateOk = x20pFirmwareUpdateEnd(success);
-
     return updateOk;
 }
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of X20P firmware update functions.
 

@@ -193,6 +193,7 @@ RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
 // Product Variant used as part of device ID and whitelists. Do not reorder.
 typedef enum
 {
+    RTK_ALL = -1,
     RTK_EVK = 0, // 0x00
     // RTK_FACET_V2 = 1, // 0x01 - No L-Band
     RTK_FACET_MOSAIC = 2, // 0x02
@@ -836,6 +837,7 @@ struct Settings
     uint32_t autoFirmwareCheckMinutes = 24 * 60;
     bool debugFirmwareUpdate = false;
     bool enableAutoFirmwareUpdate = false;
+    char csvUrl[OTA_FIRMWARE_CSV_URL_LENGTH] = OTA_FIRMWARE_CSV_URL;
 
     // GNSS
     muxConnectionType_e dataPortChannel = MUX_GNSS_UART; // Mux default to GNSS UART
@@ -1275,18 +1277,18 @@ typedef struct
 
 #define COMMAND_PROFILE_0_INDEX            -1
 #define COMMAND_PROFILE_NUMBER             (COMMAND_PROFILE_0_INDEX - MAX_PROFILE_COUNT) // -1 - 8 = -9
-#define COMMAND_FIRMWARE_VERSION           (COMMAND_PROFILE_NUMBER - 1) // -9 - 1 = -10
-#define COMMAND_REMOTE_FIRMWARE_VERSION    (COMMAND_FIRMWARE_VERSION - 1) // -10 - 1 = -11
-#define COMMAND_ENABLE_RC_FIRMWARE         (COMMAND_REMOTE_FIRMWARE_VERSION - 1) // -11 - 1 = -12
-#define COMMAND_GNSS_MODULE_INFO           (COMMAND_ENABLE_RC_FIRMWARE - 1) // -12 - 1 = -13
-#define COMMAND_BATTERY_LEVEL_PERCENT      (COMMAND_GNSS_MODULE_INFO - 1) // -13 - 1 = -14
-#define COMMAND_BATTERY_VOLTAGE            (COMMAND_BATTERY_LEVEL_PERCENT - 1) // -13 - 1 = -14
-#define COMMAND_BATTERY_CHARGING_PERCENT   (COMMAND_BATTERY_VOLTAGE - 1) // -13 - 1 = -14
-#define COMMAND_BLUETOOTH_ID               (COMMAND_BATTERY_CHARGING_PERCENT - 1) // -13 - 1 = -14
-#define COMMAND_DEVICE_NAME                (COMMAND_BLUETOOTH_ID - 1) // -14 - 1 = -15
-#define COMMAND_DEVICE_ID                  (COMMAND_DEVICE_NAME - 1) // -15 - 1 = -16
-#define COMMAND_UNKNOWN                    (COMMAND_DEVICE_ID - 1) // -16 - 1 = -17
-#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN)) // 17
+#define COMMAND_FIRMWARE_VERSION           (COMMAND_PROFILE_NUMBER - 1)         //  -9 - 1 = -10
+#define COMMAND_REMOTE_FIRMWARE_VERSION    (COMMAND_FIRMWARE_VERSION - 1)       // -10 - 1 = -11
+#define COMMAND_ENABLE_RC_FIRMWARE         (COMMAND_REMOTE_FIRMWARE_VERSION - 1)// -11 - 1 = -12
+#define COMMAND_GNSS_MODULE_INFO           (COMMAND_ENABLE_RC_FIRMWARE - 1)     // -12 - 1 = -13
+#define COMMAND_BATTERY_LEVEL_PERCENT      (COMMAND_GNSS_MODULE_INFO - 1)       // -13 - 1 = -14
+#define COMMAND_BATTERY_VOLTAGE            (COMMAND_BATTERY_LEVEL_PERCENT - 1)  // -14 - 1 = -15
+#define COMMAND_BATTERY_CHARGING_PERCENT   (COMMAND_BATTERY_VOLTAGE - 1)        // -15 - 1 = -16
+#define COMMAND_BLUETOOTH_ID               (COMMAND_BATTERY_CHARGING_PERCENT - 1)// -16 - 1 = -17
+#define COMMAND_DEVICE_NAME                (COMMAND_BLUETOOTH_ID - 1)           // -17 - 1 = -18
+#define COMMAND_DEVICE_ID                  (COMMAND_DEVICE_NAME - 1)            // -18 - 1 = -19
+#define COMMAND_UNKNOWN                    (COMMAND_DEVICE_ID - 1)              // -19 - 1 = -20
+#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN))                 // -20
 
 // Exit types for processCommand
 typedef enum
@@ -1472,6 +1474,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.autoFirmwareCheckMinutes, "autoFirmwareCheckMinutes", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugFirmwareUpdate, "debugFirmwareUpdate", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableAutoFirmwareUpdate, "enableAutoFirmwareUpdate", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.csvUrl), & settings.csvUrl, "csvUrl", nullptr, },
 
     // GNSS UART
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.serialGNSSRxFullThreshold, "serialGNSSRxFullThreshold", nullptr, },

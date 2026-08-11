@@ -207,8 +207,16 @@ const uint16_t HTTPS_PORT = 443;                                                
 
 #include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack - Needed for settings.h
 
+#define OTA_FIRMWARE_CSV_URL_LENGTH     192
+//                                                                                                      1         1 1
+//            1         2         3         4         5         6         7         8         9         0         1 2
+//   12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678
+#define OTA_FIRMWARE_CSV_URL    \
+    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-Variants.csv"
+
 #include "settings.h"
 #include <esp_mac.h> // MAC address support
+#include "OTA.h"     // Over-The-Air (OTA) support
 
 #define MAX_CPU_CORES 2
 #define IDLE_COUNT_PER_SECOND 515400 // Found by empirical sketch
@@ -471,23 +479,7 @@ const char *wifiSoftApPassword = nullptr;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
 
-#define OTA_FIRMWARE_JSON_URL_LENGTH 128
-//                                                                                                      1         1 1
-//            1         2         3         4         5         6         7         8         9         0         1 2
-//   12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678
-#define OTA_FIRMWARE_JSON_URL                                                                                          \
-    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/"                       \
-    "RTK-Everywhere-Firmware.json"
-#define OTA_RC_FIRMWARE_JSON_URL                                                                                       \
-    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/"                       \
-    "RTK-Everywhere-RC-Firmware.json"
-char otaFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
-char otaRcFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
-
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
-
-#define OTA_FIRMWARE_SYSTEM_VARIANTS_JSON \
-    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-Variants.json"
 
 bool apConfigFirmwareUpdateInProcess; // Goes true once WiFi is connected and OTA pull begins
 
@@ -504,7 +496,6 @@ bool otaRequestFirmwareUpdate = false;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include "base64.h" //Built-in. Needed for NTRIP Client credential encoding.
 
-bool enableRCFirmware;      // Allows updating to the latest release candidate firmware.
 bool currentlyParsingData;  // Goes true when we hit 750ms timeout with new data
 bool tcpServerInCasterMode; // True when TCP server is running in caster mode
 
@@ -1447,7 +1438,7 @@ void setup()
 
     DMW_b("imuFirmwareCheckUpdate");
     if (imuCheckPassthroughFile() == true) // Check if updateImuFirmware.txt exists
-        imuBeginFirmwareUpdate();         // 
+        imuBeginFirmwareUpdate();         //
 
     DMW_b("commandIndexFillActual");
     commandIndexFillActual(); // Shrink the commandIndex table now we're certain what GNSS we have
