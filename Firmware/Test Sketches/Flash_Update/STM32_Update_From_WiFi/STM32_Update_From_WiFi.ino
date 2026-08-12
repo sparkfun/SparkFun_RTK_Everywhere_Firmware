@@ -114,7 +114,7 @@ void setup()
     else if (productVariant == RTK_FACET_FP)
     {
         beginGpioExpanderSwitches();
-        
+
         // Connect ESP32 UART2 to LoRa UART2 via SW3 for configuration and bootloading/firmware updates
         gpioExpanderSelectLoraConfigure();
     }
@@ -127,8 +127,16 @@ void setup()
 
     wifiConnect();
 
-    systemPrintln("u) Start update");
-    systemPrintln("r) Restart");
+    displayMenu();
+}
+
+void displayMenu()
+{
+    systemPrintln();
+    systemPrintln("Menu:");
+    systemPrintln("r) Reset");
+    systemPrintln("u) Update Firmware");
+    systemPrint("Make selection: ");
 }
 
 void loop()
@@ -136,6 +144,7 @@ void loop()
     if (Serial.available())
     {
         byte incoming = Serial.read();
+        Serial.printf("%c\r\n", incoming);
         if (incoming == 'r')
         {
             ESP.restart();
@@ -157,6 +166,7 @@ void loop()
             systemPrint(firmwareUpdateElapsed / 1000.0, 3);
             systemPrintln(" seconds");
         }
+        displayMenu();
     }
 }
 

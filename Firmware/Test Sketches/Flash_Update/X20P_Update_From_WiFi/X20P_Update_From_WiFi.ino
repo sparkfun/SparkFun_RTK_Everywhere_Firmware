@@ -101,9 +101,10 @@ void setup()
     Wire.begin(pin_SDA, pin_SCL);
     beginGpioExpanderSwitches();
     gpioExpanderConnectGNSSToESP32(); // Connect Facet FP GNSS receiver UART1 to ESP32 UART1 for normal comms
-    displayMenu();
 
     wifiConnect();
+
+    displayMenu();
 }
 
 void loop()
@@ -111,6 +112,7 @@ void loop()
     if (Serial.available())
     {
         byte incoming = Serial.read();
+        Serial.printf("%c\r\n", incoming);
         if (incoming == 'r')
         {
             ESP.restart();
@@ -122,7 +124,6 @@ void loop()
             delay(250);
             gpioExpanderGnssBoot();
             delay(250);
-            displayMenu();
         }
         else if (incoming == 'u')
         {
@@ -139,17 +140,19 @@ void loop()
             systemPrint("Firmware update time: ");
             systemPrint(firmwareUpdateElapsed / 1000.0, 3);
             systemPrintln(" seconds");
-            displayMenu();
         }
+        displayMenu();
     }
 }
 
 void displayMenu()
 {
     systemPrintln();
+    systemPrintln("Menu:");
     systemPrintf("g) Reset GNSS\r\n");
     systemPrintf("u) Update GNSS\r\n");
     systemPrintf("r) Reboot system\r\n");
+    systemPrint("Selection: ");
 }
 
 // Connects to the configured SSID and blocks until connected or the attempt times out.

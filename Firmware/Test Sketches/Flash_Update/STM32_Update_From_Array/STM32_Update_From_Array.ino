@@ -5,10 +5,10 @@
 
     This was written for FP hardware but should be adaptable to the Torch.
 
-    To test: load this sketch onto an FP. 
+    To test: load this sketch onto an FP.
     Press 'u' to start the update. Allow the update to complete.
-    Load RTK Everywhere and put the device into STM32 passthrough mode. 
-    Use STM32CubeProgrammer to read the flash and compare it against the contents of 'SparkPNT_LoRa_3.0.1.bin'. 
+    Load RTK Everywhere and put the device into STM32 passthrough mode.
+    Use STM32CubeProgrammer to read the flash and compare it against the contents of 'SparkPNT_LoRa_3.0.1.bin'.
     Files should be identical.
 
     All loaders should have similar structure:
@@ -77,6 +77,16 @@ void setup()
     gpioExpanderSelectLoraConfigure();
 
     systemPrintln("Serial LoRa started");
+    displayMenu();
+}
+
+void displayMenu()
+{
+    systemPrintln();
+    systemPrintln("Menu:");
+    systemPrintln("r) Reset");
+    systemPrintln("u) Update Firmware");
+    systemPrint("Make selection: ");
 }
 
 void loop()
@@ -84,6 +94,7 @@ void loop()
     if (Serial.available())
     {
         byte incoming = Serial.read();
+        Serial.printf("%c\r\n", incoming);
         if (incoming == 'r')
         {
             ESP.restart();
@@ -125,6 +136,7 @@ void loop()
             systemPrint(firmwareUpdateElapsed / 1000.0, 3);
             systemPrintln(" seconds");
         }
+        displayMenu();
     }
 }
 

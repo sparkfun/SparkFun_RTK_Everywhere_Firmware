@@ -131,9 +131,16 @@ void setup()
         systemPrintln(imuVersion);
     else
         systemPrintln("Version query failed.");
+    displayMenu();
+}
 
+void displayMenu()
+{
+    systemPrintln();
+    systemPrintln("Menu:");
     systemPrintln("r) Reset");
     systemPrintln("u) Update Firmware");
+    systemPrint("Make selection: ");
 }
 
 void loop()
@@ -141,6 +148,7 @@ void loop()
     if (Serial.available())
     {
         byte incoming = Serial.read();
+        Serial.printf("%c\r\n", incoming);
         if (incoming == 'r')
         {
             ESP.restart();
@@ -165,6 +173,7 @@ void loop()
                     systemPrintln("Version query failed.");
             }
         }
+        displayMenu();
     }
 }
 
