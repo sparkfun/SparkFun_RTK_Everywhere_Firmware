@@ -26,9 +26,8 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
+#include "secrets.h"
 
-const char *wifiSSID = "Roving";
-const char *wifiPassword = "sparkfun";
 char *firmwareURL = "/lora/stm32wl/SparkPNT_LoRa_3.0.1.bin";
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"

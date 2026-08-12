@@ -27,9 +27,8 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
+#include "secrets.h"
 
-const char *wifiSSID = "Roving";
-const char *wifiPassword = "sparkfun";
 // char *firmwareURL = "/gnss/zed-x20p/SparkPNT_LoRa_3.0.1.bin";
 char *firmwareURL = "/gnss/zed-x20p/UBX_20_HPG_202_ZED_F20P.329facb56ce18631d607fe15177834dc.bin";
 

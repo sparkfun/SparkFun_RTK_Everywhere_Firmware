@@ -24,9 +24,7 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
-
-const char *wifiSSID = "Roving";
-const char *wifiPassword = "sparkfun";
+#include "secrets.h"
 
 // v11.4.1
 const char *firmwareURL = "/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc";

@@ -23,9 +23,8 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <Update.h>
+#include "secrets.h"
 
-const char *wifiSSID = "Roving";
-const char *wifiPassword = "sparkfun";
 char *firmwareURL = "/RTK_Everywhere_Firmware_v3_3.bin";
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
