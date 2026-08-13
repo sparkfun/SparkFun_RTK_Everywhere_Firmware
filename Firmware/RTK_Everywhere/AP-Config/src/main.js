@@ -102,6 +102,7 @@ var divTables = {
     lg290pRtkReliabilityLevelConfig: ["lg290pRtkReliabilityLevel"],
     dynamicModelSettings: ["dynamicModel"],
     rtcm1033Settings: ["rtcm1033AntennaDescriptor"],
+    um980GnssSettings: ["enableMultipathMitigation", "um980FixedBaseLLHSubtractSeparation"],
 };
 
 function showHideDivs() {
@@ -895,11 +896,6 @@ function parseIncoming(msg) {
         // enableTiltCompensation setting is sent across for all FP models, even on non-tilt enabled units. Show section if special setting is present.
         else if (id.includes("hasTilt")) {
             show("tiltConfig");
-        }
-
-        // Only the UM980 has Multipath Mitigation
-        else if (id.includes("enableMultipathMitigation")) {
-            show("um980GnssSettings");
         }
 
         // PointPerfect configuration has been removed from the Web Config interface. It will be restored if u-blox offers

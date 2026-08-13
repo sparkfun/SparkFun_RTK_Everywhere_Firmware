@@ -327,6 +327,9 @@ class GNSS_UM980 : GNSS
     bool gnssInBaseSurveyInMode();
     bool gnssInRoverMode();
 
+    // Indicate if there are any additional settings specific to this GNSS
+    bool hasGnssSpecificConfiguration();
+
     bool isBlocking();
 
     // Date is confirmed once we have GNSS fix
@@ -380,6 +383,8 @@ class GNSS_UM980 : GNSS
 
     // Controls the constellations that are used to generate a fix and logged
     void menuConstellations();
+
+    void menuGnssSpecificConfiguration();
 
     void menuMessageBaseRtcm();
 

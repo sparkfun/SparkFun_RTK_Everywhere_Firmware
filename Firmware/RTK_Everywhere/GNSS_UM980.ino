@@ -315,10 +315,20 @@ bool GNSS_UM980::configureRtcm1033()
     if (present.rtcm1033AntennaDescription)
     {
         char antInfo[100];
-        snprintf(antInfo, sizeof(antInfo), "CONFIG BASEANTENNAMODEL \"%s\" \"%s\" %d NO",
-            settings.rtcm1033AntennaDescriptor,
-            settings.rtcm1033AntennaSerialNr,
-            settings.rtcm1033AntennaSetupID);
+        // If the antenna descriptor or serial number include a space, we must use quotes
+        // BUT the quotes are then included in 1033 and passed to the NTRIP Server!
+        // What a mess...
+        if ((strstr(settings.rtcm1033AntennaDescriptor, " ") != nullptr)
+            || (strstr(settings.rtcm1033AntennaSerialNr, " ") != nullptr))
+            snprintf(antInfo, sizeof(antInfo), "CONFIG BASEANTENNAMODEL \"%s\" \"%s\" %d NO",
+                settings.rtcm1033AntennaDescriptor,
+                settings.rtcm1033AntennaSerialNr,
+                settings.rtcm1033AntennaSetupID);
+        else
+            snprintf(antInfo, sizeof(antInfo), "CONFIG BASEANTENNAMODEL %s %s %d NO",
+                settings.rtcm1033AntennaDescriptor,
+                settings.rtcm1033AntennaSerialNr,
+                settings.rtcm1033AntennaSetupID);
         return _um980->sendCommand(antInfo); // Set antenna configuration
     }
 
@@ -462,6 +472,13 @@ bool GNSS_UM980::fixedBaseStart()
         // For example, if HAE is at 100.0m, + 2m stick + 73mm APC = 102.073
         float totalFixedAltitude =
             settings.fixedAltitude + ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+
+        // UM980 seems to add the geoidal separation to the fixed LLH Height?
+        // If settings.um980FixedBaseLLHSubtractSeparation is true, subtract the separation before applying
+        // Note: this only gets you close. I still see a height difference of 12.9cm at my Base with firmware 17548
+        // If you use ECEF coordinates, the Base position correct
+        if (settings.um980FixedBaseLLHSubtractSeparation)
+            totalFixedAltitude -= _um980->getGeoidalSeparation();
 
         _um980->setModeBaseGeodetic(settings.fixedLat, settings.fixedLong, totalFixedAltitude);
     }
@@ -968,6 +985,14 @@ bool GNSS_UM980::gnssInRoverMode()
     return (false);
 }
 
+//----------------------------------------
+// Indicate if there are any additional settings specific to this GNSS
+//----------------------------------------
+bool GNSS_UM980::hasGnssSpecificConfiguration()
+{
+    return true;
+}
+
 // If we issue a library command that must wait for a response, we don't want
 // the gnssReadTask() gobbling up the data before the library can use it
 // Check to see if the library is expecting a response
@@ -1411,6 +1436,44 @@ void GNSS_UM980::menuMessagesSubtype(float *localMessageRate, const char *messag
                 }
             }
         }
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
+}
+
+//----------------------------------------
+// Configure any settings specific to this GNSS
+//----------------------------------------
+void GNSS_UM980::menuGnssSpecificConfiguration()
+{
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: GNSS-Specific Configuration");
+
+        systemPrintf("1) Subtract geoidal separation from Fixed Base LLH coords: %s\r\n",
+            settings.um980FixedBaseLLHSubtractSeparation ? "Enabled" : "Disabled");
+
+        systemPrintln("x) Exit");
+
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+        if (incoming == 1)
+        {
+            settings.um980FixedBaseLLHSubtractSeparation ^= 1;
+            // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
+            // This prevents a user, while in Rover mode, but changing a Base setting, from entering Base mode
+            // GNSS_CONFIG_BASE is ignored if we are already in Base mode. Use GNSS_CONFIG_BASE_FIXED
+            if (gnss->gnssInBaseFixedMode())
+                gnssConfigure(GNSS_CONFIG_BASE_FIXED); // Request receiver to use new settings
+        }
+
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)

@@ -275,6 +275,12 @@ void menuBase()
                 if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
                     gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
                 // TODO Does any other hardware need to be reconfigured after this setting change? Tilt sensor?
+                // TODO I'm not sure if gnssConfigure(GNSS_CONFIG_BASE) is the right choice here - and in 9 other places?
+                // GNSS::configureBase can exit early if the unit is already in Base mode
+                // I think we should be using gnssConfigure(GNSS_CONFIG_BASE_FIXED) or
+                // gnssConfigure(GNSS_CONFIG_BASE_SURVEY) depending on which mode we are in?
+                // Oh... GNSS::fixedBaseStart() also exits early if the unit is already in fixed base...
+                // What to do? Do we need a way to force the fixed base / survey-in settings?
             }
         }
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 6)

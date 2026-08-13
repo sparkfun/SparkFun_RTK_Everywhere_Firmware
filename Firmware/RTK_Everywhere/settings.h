@@ -1117,6 +1117,7 @@ struct Settings
     float um980MessageRatesRTCMRover[MAX_UM980_RTCM_MSG] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Unicore recommended rates.
+    bool um980FixedBaseLLHSubtractSeparation = false; // Set true to subtract geoidal separation from fixed base LLH
 #endif // COMPILE_UM980
 
     // mosaic
@@ -1467,7 +1468,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.autoFirmwareCheckMinutes, "autoFirmwareCheckMinutes", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugFirmwareUpdate, "debugFirmwareUpdate", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableAutoFirmwareUpdate, "enableAutoFirmwareUpdate", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.csvUrl), & settings.csvUrl, "csvUrl", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.csvUrl), & settings.csvUrl, "csvUrl", nullptr, },
 
     // GNSS UART
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.serialGNSSRxFullThreshold, "serialGNSSRxFullThreshold", nullptr, },
@@ -1804,6 +1805,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // UM980 GNSS Receiver
 #ifdef  COMPILE_UM980
     { 1, 1, 1, 0, 0, 1, 0, U98, 0, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellation_", gnssCmdUpdateConstellations, },
+    { 1, 1, 0, 0, 0, 1, 0, U98, 0, _bool,     0, & settings.um980FixedBaseLLHSubtractSeparation, "um980FixedBaseLLHSubtractSeparation", nullptr },
     { 0, 1, 1, 0, 0, 1, 0, U98, 0, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 1, 0, U98, 0, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 1, 0, U98, 0, tUmMRRvRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
