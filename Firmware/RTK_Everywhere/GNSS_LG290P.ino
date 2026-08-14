@@ -3902,4 +3902,10 @@ bool lg290pStreamFirmware(NetworkClient *stream, size_t fileBytes, uint32_t expe
     return (fileBytes == 0);
 }
 
+void lg290pPrintNavModes()
+{
+    for (int i = 0; i < MAX_LG290P_NAV_MODES; i++)
+        systemPrintf("%d) %s\r\n", i + 1, lg290pNavModes[i].name);
+}
+
 #endif // COMPILE_LG290P

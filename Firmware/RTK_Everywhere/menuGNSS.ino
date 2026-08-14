@@ -326,8 +326,7 @@ void menuGNSS()
             else if (present.gnss_lg290p)
             {
                 systemPrintln("Enter the dynamic model to use: ");
-                for (int i = 0; i < MAX_LG290P_NAV_MODES; i++)
-                    systemPrintf("%d) %s\r\n", i + 1, lg290pNavModes[i].name);
+                lg290pPrintNavModes();
             }
 
             int dynamicModel = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long

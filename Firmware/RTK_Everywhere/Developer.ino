@@ -19,6 +19,7 @@ void lg290pHandler(uint8_t * buffer, int length) {}
 bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)   {return false;}
 void lg290pProcessRTCMIS(uint8_t * buffer, int length) {}
 void lg290pVerifyTables() {}
+void lg290pPrintNavModes() {}
 
 #endif // COMPILE_LG290P
 
