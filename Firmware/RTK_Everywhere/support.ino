@@ -1703,6 +1703,7 @@ bool openUrl(const char * url,
 
     // Locate the server
     server = getServerFromUrl(url);
+    client = nullptr;
 
     // Allocate the HTTP client
     https = new HTTPClient;
@@ -1765,8 +1766,11 @@ bool openUrl(const char * url,
         systemPrintf("ERROR: Failed to open url: %s, error: %d\r\n", url, httpResponseCode);
         delete https;
         https = nullptr;
-        delete client;
-        client = nullptr;
+        if (client)
+        {
+            delete client;
+            client = nullptr;
+        }
         return false;
     }
 

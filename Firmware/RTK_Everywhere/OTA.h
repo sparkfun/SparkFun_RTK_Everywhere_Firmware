@@ -14,6 +14,20 @@ OTA.h
 // Constants
 //----------------------------------------
 
+enum OTA_CHIP
+{
+    OTA_CHIP_ESP32 = 0,
+    OTA_CHIP_LG290P,
+    OTA_CHIP_MOSAIC_X5,
+    OTA_CHIP_UM980,
+    OTA_CHIP_ZED_F9P,
+    OTA_CHIP_ZED_X20P,
+    OTA_CHIP_LORA,
+    OTA_CHIP_IM19,
+    // Add new chips above this line
+    OTA_CHIP_MAX
+};
+
 enum OTA_SUBSYSTEM
 {
     OTA_SUBSYSTEM_ESP32 = 0,
@@ -70,12 +84,13 @@ typedef bool (*OTA_STREAM_FIRMWARE)(NetworkClient * stream,
                                     size_t contentLength,
                                     uint32_t expectedCrc,
                                     uint8_t * buffer,
-                                    size_t bufferBytes);
+                                    size_t packetBytes);
 
 typedef struct _OTA_SUBSYSTEM_INFO
 {
     ProductVariant _productVariant;
     uint8_t _subsystem;
+    uint8_t _chip;
     const bool * _present;
     OTA_GET_VERSION _getVersion;
     OTA_FIRMWARE_UPDATE _firmwareUpdate;

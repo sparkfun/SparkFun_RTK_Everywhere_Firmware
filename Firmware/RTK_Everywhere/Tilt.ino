@@ -1900,7 +1900,7 @@ static bool im19StreamMissingRanges(const char *url)
 bool im19FirmwareUpdate(const OTA_TARGET * target,
                         const OTA_SUBSYSTEM_INFO * subsystemInfo,
                         uint8_t * buffer,
-                        size_t bufferBytes)
+                        size_t packetBytes)
 {
     WiFiClientSecure client;
     if (!otaSecurelyConnectGitHub(client))

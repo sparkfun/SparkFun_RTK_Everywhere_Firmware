@@ -1957,8 +1957,19 @@ bool GNSS_ZED::setBaudRateData(uint32_t baudRate)
 
 bool GNSS_ZED::setBaudRateRadio(uint32_t baudRate)
 {
+    // If the I2C bus is busy on Facet FPX, it can take > 1100ms for the VALSET to be ACK'd,
+    // causing a timeout. The solution is to gradually increase maxWait on successive attempts.
+    static uint16_t maxWait = 1100;
     if (online.gnss)
-        return _zed->setVal32(UBLOX_CFG_UART2_BAUDRATE, baudRate, VAL_LAYER_ALL);
+    {
+        bool res = _zed->setVal32(UBLOX_CFG_UART2_BAUDRATE, baudRate, VAL_LAYER_ALL, maxWait);
+        if (res)
+            maxWait = 1100; // Success - restore maxWait
+        if (!res && (maxWait < 5000))
+            maxWait += 1000; // Fail - increase maxWait by 1s for the next try
+        return res;
+    }
+
     return false;
 }
 //----------------------------------------
@@ -2222,7 +2233,7 @@ bool GNSS_ZED::setMessagesNMEA()
                 // Set NMEA messages to user's settings on UART1 interface
                 response &= _zed->addCfgValset(ubxMessages[messageNumber].msgConfigKey,
                                                rate); // msgConfigKey defaults to UART1
-                
+
                 // Disable NMEA on I2C : UBLOX_CFG UART1 - 1 = I2C
                 if (ubxMessages[messageNumber].msgClass == UBX_CLASS_NMEA)
                     response &= _zed->addCfgValset(ubxMessages[messageNumber].msgConfigKey - 1, 0);
@@ -3615,8 +3626,6 @@ void f9pNewClass()
 //  x20pFirmwareUpdateBegin(), freed in x20pFirmwareUpdateEnd().
 // ==================================================================
 
-static uint8_t *x20pPageBuffer = nullptr; // Accumulates incoming bytes; flushed every PACKET_SIZE bytes
-static uint16_t x20pBufferIndex = 0;
 static uint32_t x20pCurrentAddress = FW_BASE_ADDR; // Next flash address to write; advances as pages are flashed
 
 static bool x20pEraseComplete = false; // In/out state shared with x20pWriteChunk across calls (see its header comment)
@@ -3830,7 +3839,11 @@ void x20pSendDataFrame(HardwareSerial &ser, uint32_t address, const uint8_t *chu
  * eraseComplete / eraseCompleteAt are in/out: once the CERASE response is
  * seen they are set and remain true for all subsequent packet calls.
  */
-bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk, uint16_t chunkLen, bool &eraseComplete,
+bool x20pWriteChunk(HardwareSerial &ser,
+                    uint32_t address,
+                    const uint8_t *chunk,
+                    uint16_t chunkLen,
+                    bool &eraseComplete,
                     uint32_t &eraseCompleteAt)
 {
     if (chunkLen == 0 || chunkLen > PACKET_SIZE)
@@ -3955,24 +3968,14 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
     if (x20pUpdateFailed)
         return false; // A prior chunk write failed - stop touching the page buffer/flash
 
-    for (uint32_t i = 0; i < numBytes; i++)
+    if (!x20pWriteChunk(ser, x20pCurrentAddress, data, numBytes, x20pEraseComplete,
+                        x20pEraseCompleteAt))
     {
-        x20pPageBuffer[x20pBufferIndex++] = data[i];
-
-        if (x20pBufferIndex == PACKET_SIZE)
-        {
-            if (!x20pWriteChunk(ser, x20pCurrentAddress, x20pPageBuffer, PACKET_SIZE, x20pEraseComplete,
-                                x20pEraseCompleteAt))
-            {
-                systemPrintf("  ERROR: write failed at address 0x%08X\r\n", x20pCurrentAddress);
-                x20pUpdateFailed = true;
-                return false;
-            }
-            x20pCurrentAddress += PACKET_SIZE;
-            x20pBufferIndex = 0;
-        }
+        systemPrintf("  ERROR: write failed at address 0x%08X\r\n", x20pCurrentAddress);
+        x20pUpdateFailed = true;
+        return false;
     }
-
+    x20pCurrentAddress += numBytes;
     return true;
 }
 
@@ -4167,10 +4170,7 @@ bool x20pFirmwareUpdateBegin()
     x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x16, nullptr, 0);
     // Do NOT wait for chip erase ACK here - it arrives while packet 0 is in flight.
 
-    // Allocate the page-accumulation buffer and reset streaming state for this update.
-    if (x20pPageBuffer == nullptr)
-        x20pPageBuffer = (uint8_t *)malloc(PACKET_SIZE);
-    x20pBufferIndex = 0;
+    // Reset streaming state for this update.
     x20pCurrentAddress = FW_BASE_ADDR;
     x20pEraseComplete = false;
     x20pEraseCompleteAt = 0;
@@ -4197,18 +4197,6 @@ bool x20pFirmwareUpdateBegin()
 bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
 {
     bool success = uploadSucceeded && !x20pUpdateFailed;
-
-    if (success && x20pBufferIndex > 0)
-    {
-        success = x20pWriteChunk(*serialGNSS, x20pCurrentAddress, x20pPageBuffer, x20pBufferIndex, x20pEraseComplete,
-                                 x20pEraseCompleteAt);
-        if (!success)
-            systemPrintf("  ERROR: final chunk write failed at address 0x%08X\r\n", x20pCurrentAddress);
-    }
-
-    free(x20pPageBuffer);
-    x20pPageBuffer = nullptr;
-
     if (success)
     {
         // ----------------------------------------------------------
@@ -4248,7 +4236,7 @@ bool x20pStreamFirmware(NetworkClient * stream,
                         size_t fileBytes,
                         uint32_t expectedCrc,
                         uint8_t * buffer,
-                        size_t bufferBytes)
+                        size_t packetBytes)
 {
     uint32_t crc = 0;
 
@@ -4267,11 +4255,12 @@ bool x20pStreamFirmware(NetworkClient * stream,
     systemPrintln("Device is in bootloader mode.");
 
     unsigned long lastDataTime = millis();
+    size_t validData = 0;
     while (stream->connected() && (fileBytes > 0))
     {
         // Wait until some data is available
-        size_t available = stream->available();
-        if (available == 0)
+        size_t availableBytes = stream->available();
+        if (availableBytes == 0)
         {
             if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
             {
@@ -4283,33 +4272,38 @@ bool x20pStreamFirmware(NetworkClient * stream,
         }
 
         // Read the received data
-        size_t toRead = min(available, sizeof(buffer));
-        int bytesRead = stream->readBytes(buffer, toRead);
+        size_t toRead = min(availableBytes, packetBytes - validData);
+        int bytesRead = stream->readBytes(&buffer[validData], toRead);
         if (bytesRead <= 0)
             break;
+        validData += bytesRead;
+
+        // Fill the packet
+        if ((validData < packetBytes) && (validData != fileBytes))
+            continue;
 
         // Compute the CRC
-        crc = crc32Compute(crc, buffer, bytesRead);
+        crc = crc32Compute(crc, buffer, validData);
 
         // Validate the computed CRC matches the expected CRC
-        bool lastPacket = (fileBytes == bytesRead);
-        if (lastPacket && (crc != expectedCrc))
+        if ((fileBytes == validData) && (crc != expectedCrc))
         {
             systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
             break;
         }
 
         // Update this portion of the firmware
-        if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
+        if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)validData) == false)
         {
             systemPrintln("Firmware update failed during WiFi data upload.");
             break;
         }
 
         // Account for this data
-        fileBytes -= bytesRead;
-        firmwareUpdateProgressCallback("X20P", bytesRead);
+        fileBytes -= validData;
+        firmwareUpdateProgressCallback("X20P", validData);
         lastDataTime = millis();
+        validData = 0;
     }
 
     systemPrintln(otaEqualSigns);

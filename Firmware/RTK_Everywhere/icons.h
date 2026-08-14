@@ -558,6 +558,35 @@ const uint8_t Antenna_Open[] = {0x00, 0x00, 0x00, 0x60, 0x70, 0x1F, 0x0F, 0xC0, 
                                 0x00, 0x00, 0x00, 0x00, 0x00, 0x1E, 0x1F, 0x01, 0x00, 0x00, 0x00, 0x00};
 
 /*
+    Tilt [15, 15]
+
+                      1
+             123456789012345
+            .---------------.
+        0x01|   ***         |
+        0x02|  ****         |
+        0x04| ****          |
+        0x08|****           |
+        0x10|*** *          |
+        0x20|**   *         |
+        0x40|      *        |
+        0x80|       *       |
+        0x01|        *      |
+        0x02|        **     |
+        0x04|      **  *    |
+        0x08|     *     *   |
+        0x10|     *      *  |
+        0x20|    *        * |
+        0x40|***************|
+            '---------------'
+*/
+
+const int Tilt_Height = 15;
+const int Tilt_Width = 15;
+const uint8_t TiltIcon[] = {0x38, 0x3C, 0x1E, 0x0F, 0x17, 0x23, 0x40, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x40, 0x40, 0x40, 0x40, 0x60, 0x58, 0x44, 0x44, 0x43, 0x42, 0x44, 0x48, 0x50, 0x60, 0x40};
+
+/*
     BaseTemporary [14, 12]
 
                       1
@@ -2138,9 +2167,9 @@ const iconClockProperties ClockIconProperties = {{{{&Clock_Icon_0, Clock_Icon_Wi
 
 const uint8_t SIVIconXPos64x48 = 2; // This aligns the SIV icon neatly under the accuracy icon. But it causes challenges elsewhere. See SIVTextStartXPosOffset
 const uint8_t SIVIconYPos64x48 = 35;
-const uint8_t SIVIconXPos128x64 = 74; // Just because we can, move SIV to the right on 128x64
+const uint8_t SIVIconXPos128x64 = 66;
 const uint8_t SIVIconYPos128x64 = 26;
-const uint8_t BaseSIVIconXPos128x64 = 74;        // Move SIV info below the 'Xmitting RTCM' text on 128x64
+const uint8_t BaseSIVIconXPos128x64 = 66;        // Move SIV info below the 'Xmitting RTCM' text on 128x64
 const uint8_t BaseSIVIconYPos128x64 = (26 + 14); // Assume font size 1;
 
 const int SIVTextStartXPosOffset[DISPLAY_MAX_NONE] = {-2, -2}; // This is a bodge to allow the paintBaseTempSurveyStarted text to be printed in the correct place
@@ -2160,6 +2189,13 @@ const iconProperties ShortIconProperties = {{{&Antenna_Short, Antenna_Short_Widt
                                              {&Antenna_Short, Antenna_Short_Width, Antenna_Short_Height, SIVIconXPos128x64, SIVIconYPos128x64}}};
 const iconProperties OpenIconProperties = {{{&Antenna_Open, Antenna_Open_Width, Antenna_Open_Height, SIVIconXPos64x48, SIVIconYPos64x48},
                                             {&Antenna_Open, Antenna_Open_Width, Antenna_Open_Height, SIVIconXPos128x64, SIVIconYPos128x64}}};
+
+const uint8_t TiltIconXPos128x64 = 111;
+const uint8_t TiltIconYPos128x64 = 26;
+
+// 128x64 only. 64x48 is just a dummy...
+const iconProperties TiltIconProperties = {{{ &TiltIcon, Tilt_Width, Tilt_Height, TiltIconXPos128x64, TiltIconYPos128x64 },
+                                            { &TiltIcon, Tilt_Width, Tilt_Height, TiltIconXPos128x64, TiltIconYPos128x64 }}};
 
 const uint8_t LoggingIconXPos64x48 = DisplayWidth[0] - Logging_Width; // Put the logging icon in the bottom right corner
 const uint8_t LoggingIconYPos64x48 = DisplayHeight[0] - Logging_Height;
@@ -2214,11 +2250,10 @@ const iconLoggingProperties PulseIconProperties = {{{{&Pulse_0, Logging_Width, L
                                                      {&Pulse_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64}}}};
 
 // Put the battery / Ethernet icon in the top right corner
-// Note: the "Width + 1" shouldn't be necessary, but I see corruption on column 0 without it...
 // https://github.com/sparkfun/SparkFun_Qwiic_OLED_Arduino_Library/issues/21
 const uint8_t BatteryIconXPos64x48 = DisplayWidth[0] - Battery_Width;
 const uint8_t BatteryIconYPos64x48 = 0;
-const uint8_t BatteryIconXPos128x64 = DisplayWidth[1] - (Battery_Width + 1);
+const uint8_t BatteryIconXPos128x64 = DisplayWidth[1] - Battery_Width;
 const uint8_t BatteryIconYPos128x64 = 0;
 
 const iconProperties EthernetIconProperties = {{{&Ethernet_Icon, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48},

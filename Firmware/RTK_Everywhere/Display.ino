@@ -325,6 +325,7 @@ void displayUpdate()
                                           0b01010101); // Single crosshair, blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
+                displayTiltIcon(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
@@ -339,6 +340,7 @@ void displayUpdate()
                     
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
+                displayTiltIcon(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
@@ -357,6 +359,7 @@ void displayUpdate()
 
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
+                displayTiltIcon(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
@@ -367,6 +370,7 @@ void displayUpdate()
                 displayRTKAccuracy(&iconPropertyList, &CrossHairDualProperties, true); // Dual crosshair, no blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
+                displayTiltIcon(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
@@ -1720,6 +1724,24 @@ void displayBaseSiv(std::vector<iconPropertyBlinking> *iconList)
         displayCoords textCoords = paintSIVIcon(iconList, &BaseSIVIconProperties, 0b11111111);
         paintSIVText(textCoords);
     }
+}
+
+void displayTiltIcon(std::vector<iconPropertyBlinking> *iconList)
+{
+#ifdef COMPILE_IM19_IMU
+    // Display tilt icon - but only on 128x64. 64x48 has no room.
+    if (present.display_type == DISPLAY_128x64)
+    {
+        if ((present.imu_im19 == true) && (settings.enableTiltCompensation == true) && (tiltState == TILT_CORRECTING))
+        {
+            const iconProperties *icon = &TiltIconProperties;
+            iconPropertyBlinking prop;
+            prop.icon = icon->iconDisplay[present.display_type];
+            prop.duty = 0b11111111;
+            iconList->push_back(prop);
+        }
+    }
+#endif
 }
 
 void displayHorizontalAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconProperties *icon, uint8_t duty)
