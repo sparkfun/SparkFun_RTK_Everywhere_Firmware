@@ -783,7 +783,7 @@ bool wifiSoftApOn(const char *fileName, uint32_t lineNumber)
     else
         wifiSoftApSsid = "RTK";
 
-    status = wifi.enable(wifiEspNowRunning, true, wifiStationRunning, __FILE__, __LINE__);
+    status = wifi.enable(settings.enableEspNow, true, wifiStationRunning, __FILE__, __LINE__);
 
     // Enable mDNS
     networkMulticastDNSUpdate(wifiSoftApOnline);
@@ -2525,7 +2525,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     stopping &= _started;
 
     // Determine the components that are being started
-    expected = (_started | starting) & allOnline;
+    expected = (starting | (_started & ~stopping)) & allOnline;
 
     // Determine which components are being restarted
     restarting = _started & stopping & starting;
@@ -2822,7 +2822,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Start the WiFi station radio protocols
         if (starting & (WIFI_EN_SET_PROTOCOLS | WIFI_STA_SET_PROTOCOLS))
         {
-            bool lrEnable = (starting & WIFI_EN_SET_PROTOCOLS) ? true : false;
+            // The long range protocol changes the beacon's basic rate set in a way that
+            // makes the soft AP invisible to phones, so only request it for ESP-NOW when
+            // the soft AP is not also online
+            bool apOnline = (starting | (_started & ~stopping)) & WIFI_AP_ONLINE;
+            bool lrEnable = ((starting & WIFI_EN_SET_PROTOCOLS) && !apOnline) ? true : false;
             if (!setWiFiProtocols(WIFI_IF_STA, true, lrEnable))
                 break;
             _started = _started | (starting & (WIFI_EN_SET_PROTOCOLS | WIFI_STA_SET_PROTOCOLS));
