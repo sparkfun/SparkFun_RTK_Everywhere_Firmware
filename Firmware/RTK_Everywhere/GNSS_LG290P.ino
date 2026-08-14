@@ -338,15 +338,13 @@ bool GNSS_LG290P::configureRover()
 //----------------------------------------
 // Configure the RTCM 1033 Antenna Description
 //----------------------------------------
-bool  GNSS_LG290P::configureRtcm1033()
+bool GNSS_LG290P::configureRtcm1033()
 {
     if (present.rtcm1033AntennaDescription)
     {
         char antInfo[60];
-        snprintf(antInfo, sizeof(antInfo), ",W,%s,%d,%s",
-            settings.rtcm1033AntennaDescriptor,
-            settings.rtcm1033AntennaSetupID,
-            settings.rtcm1033AntennaSerialNr);
+        snprintf(antInfo, sizeof(antInfo), ",W,%s,%d,%s", settings.rtcm1033AntennaDescriptor,
+                 settings.rtcm1033AntennaSetupID, settings.rtcm1033AntennaSerialNr);
         return _lg290p->sendOkCommand("$PQTMCFGANTINF", antInfo); // Set antenna information
     }
 
@@ -3740,9 +3738,7 @@ const char *lg290pGetNavModeNameFromModel(const uint8_t dynamicModel)
 // Reboot the module into bootloader mode, negotiate sync, query bootloader version,
 // send firmware metadata, and erase flash.
 //----------------------------------------
-bool GNSS_LG290P::updateFirmwareBegin(size_t fileBytes,
-                                      uint32_t firmwareCrc32,
-                                      bool skipSoftwareReset)
+bool GNSS_LG290P::updateFirmwareBegin(size_t fileBytes, uint32_t firmwareCrc32, bool skipSoftwareReset)
 {
     if (_lg290p == nullptr)
         return false;
@@ -3802,7 +3798,7 @@ bool lg290pFirmwareUpdateBegin(size_t fileBytes, uint32_t expectedCrc)
 //----------------------------------------
 // Write firmware to the LG290P
 //----------------------------------------
-bool lg290pFirmwareUpdate(const uint8_t * buffer, size_t dataBytes)
+bool lg290pFirmwareUpdate(const uint8_t *buffer, size_t dataBytes)
 {
     // Bytes will be aggregated into 4096 chunks, then written to the LG290P
     return ((GNSS_LG290P *)gnss)->updateFirmware(buffer, dataBytes);
@@ -3826,10 +3822,7 @@ bool lg290pFirmwareUpdateEnd()
 //----------------------------------------
 // Update the LG290P firmware
 //----------------------------------------
-bool lg290pStreamFirmware(NetworkClient * stream,
-                          size_t fileBytes,
-                          uint32_t expectedCrc,
-                          uint8_t * buffer,
+bool lg290pStreamFirmware(NetworkClient *stream, size_t fileBytes, uint32_t expectedCrc, uint8_t *buffer,
                           size_t packetBytes)
 {
     uint32_t crc = 0;
