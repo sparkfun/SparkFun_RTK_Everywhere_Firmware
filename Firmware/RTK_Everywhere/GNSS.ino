@@ -747,7 +747,16 @@ bool gnssDetectReceiverType()
             std::vector<int> gnssPresentByPriority;
             gnssPresentByPriority.clear(); // Redundant?
 
-            for (int8_t priority = 0; priority < GNSS_SUPPORT_ROUTINES_ENTRIES; priority++)
+            // Determine the highest priority value actually present, since it can exceed
+            // GNSS_SUPPORT_ROUTINES_ENTRIES if receivers are compile guarded out
+            int8_t maxPriority = -1;
+            for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+            {
+                if (gnssSupportRoutines[index]._present && gnssSupportRoutines[index]._presentPriority > maxPriority)
+                    maxPriority = gnssSupportRoutines[index]._presentPriority;
+            }
+
+            for (int8_t priority = 0; priority <= maxPriority; priority++)
             {
                 for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
                 {
