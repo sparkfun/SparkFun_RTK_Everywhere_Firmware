@@ -100,7 +100,13 @@ void checkGNSSArrayDefaults()
 
         if (settings.enableExtCorrRadio == 254)
         {
-            defaultsApplied = true;
+            // Careful! Torch does not support Ext Corr Radio
+            // settings.enableExtCorrRadio is not saved in the settings file
+            // After a restart, settings.enableExtCorrRadio == 254 will always be true
+            // So, set it to false, but do not set defaultsApplied = true
+            // Otherwise the settings.antennaPhaseCenter_mm will always be overwritten
+            // with the default!
+            // defaultsApplied = true; Nope!
             settings.enableExtCorrRadio = false;
         }
 
@@ -222,9 +228,9 @@ void checkGNSSArrayDefaults()
 
         if (settings.enableExtCorrRadio == 254)
         {
-            defaultsApplied = true;
             if (productVariant == RTK_POSTCARD)
             {
+                defaultsApplied = true;
                 if(lg290pFirmwareVersionInt >= 201)
                     // Firmware v2.01 supports PQTMRTCMIS. It is safe to enable Ext Radio by default
                     settings.enableExtCorrRadio = true;
@@ -234,6 +240,7 @@ void checkGNSSArrayDefaults()
             }
             else if (productVariant == RTK_FACET_FP)
             {
+                defaultsApplied = true;
                 if(lg290pFirmwareVersionInt >= 201)
                     // Firmware v2.01 supports PQTMRTCMIS. It is safe to enable Ext Radio by default
                     settings.enableExtCorrRadio = true;
@@ -246,7 +253,12 @@ void checkGNSSArrayDefaults()
                     settings.enableExtCorrRadio = false;
             }
             else if (productVariant == RTK_TORCH_X2)
+            {
+                // Careful! TX2 does not support Ext Corr Radio
+                // See notes above in UM980 / Torch
+                // defaultsApplied = true; Nope!
                 settings.enableExtCorrRadio = false; // GNSS UART1 isn't really accessible
+            }
             else
             {
                 settings.enableExtCorrRadio = false;
