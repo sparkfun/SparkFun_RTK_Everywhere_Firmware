@@ -698,6 +698,24 @@ bool GNSS_MOSAIC::configureRover()
 }
 
 //----------------------------------------
+// Configure the RTCM 1033 Antenna Description
+//----------------------------------------
+bool GNSS_MOSAIC::configureRtcm1033()
+{
+    if (present.rtcm1033AntennaDescription)
+    {
+        String setting =
+            String("sao,Main,,,,\"" + String(settings.rtcm1033AntennaDescriptor) + "\",\""
+            + String(settings.rtcm1033AntennaSerialNr) + "\","
+            + String(settings.rtcm1033AntennaSetupID)
+            + "\n\r");
+        return sendWithResponse(setting, "AntennaOffset");
+    }
+
+    return true; // Return true to clear configuration
+}
+
+//----------------------------------------
 // Responds with the messages supported on this platform
 // Inputs:
 //   returnText: String to receive message names
@@ -3873,6 +3891,7 @@ void mosaicNewClass()
     present.dynamicModel = true;
     present.mosaicMicroSd = true;
     // present.needsExternalPpl = true; // Nope. No L-Band support...
+    present.rtcm1033AntennaDescription = true;
 }
 
 //----------------------------------------

@@ -19,7 +19,7 @@ static const float maxSurveyInStartingAccuracy = 10.0;
 // Set the ECEF coordinates for a known location
 void menuBase()
 {
-    int ntripServerOptionOffset = 10; // NTRIP Server menus start at this value
+    int ntripServerOptionOffset = 11; // NTRIP Server menus start at this value
 
     while (1)
     {
@@ -110,7 +110,10 @@ void menuBase()
 
         systemPrintln("8) Set RTCM Message Rates for Base Mode");
 
-        systemPrint("9) Toggle NTRIP Server: ");
+        if (present.rtcm1033AntennaDescription)
+            systemPrintln("9) Set RTCM 1033 Antenna Description");
+
+        systemPrint("10) Toggle NTRIP Server: ");
         if (settings.enableNtripServer == true)
             systemPrintln("Enabled");
         else
@@ -125,8 +128,7 @@ void menuBase()
                 systemPrintf("NTRIP Server #%d\r\n", serverIndex + 1);
 
                 int menuEntry = (serverIndex * 7) + ntripServerOptionOffset;
-                systemPrintf("%d) Caster:             %s%s\r\n", 0 + menuEntry,
-                             (menuEntry < 10) ? " " : "",
+                systemPrintf("%d) Caster:             %s\r\n", 0 + menuEntry,
                              settings.ntripServer_CasterEnabled[serverIndex] ? "Enabled" : "Disabled");
                 systemPrintf("%d) Set Caster Address: %s\r\n", 1 + menuEntry,
                              &settings.ntripServer_CasterHost[serverIndex][0]);
@@ -273,6 +275,12 @@ void menuBase()
                 if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
                     gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
                 // TODO Does any other hardware need to be reconfigured after this setting change? Tilt sensor?
+                // TODO I'm not sure if gnssConfigure(GNSS_CONFIG_BASE) is the right choice here - and in 9 other places?
+                // GNSS::configureBase can exit early if the unit is already in Base mode
+                // I think we should be using gnssConfigure(GNSS_CONFIG_BASE_FIXED) or
+                // gnssConfigure(GNSS_CONFIG_BASE_SURVEY) depending on which mode we are in?
+                // Oh... GNSS::fixedBaseStart() also exits early if the unit is already in fixed base...
+                // What to do? Do we need a way to force the fixed base / survey-in settings?
             }
         }
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 6)
@@ -351,7 +359,12 @@ void menuBase()
             menuMessagesBaseRTCM(); // Set rates for RTCM during Base mode
         }
 
-        else if (incoming == 9)
+        else if (present.rtcm1033AntennaDescription && (incoming == 9))
+        {
+            menuRTCM1033AntennaDescription();
+        }
+
+        else if (incoming == 10)
         {
             settings.enableNtripServer ^= 1;
         }
@@ -448,6 +461,61 @@ void menuBase()
             }
         }
 
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
+}
+
+// Set RTCM 1033 Antenna Description
+void menuRTCM1033AntennaDescription()
+{
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: RTCM 1033 Antenna Description");
+
+        systemPrintf("1) Antenna Serial Number: %s\r\n", settings.rtcm1033AntennaSerialNr);
+        systemPrintf("2) Antenna Setup ID: %d\r\n", settings.rtcm1033AntennaSetupID);
+        systemPrintf("3) Antenna Descriptor: %s\r\n", settings.rtcm1033AntennaDescriptor);
+
+        systemPrintln("x) Exit");
+
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+        if (incoming == 1)
+        {
+            systemPrintln("Enter the Antenna Serial Number");
+            char userEntry[sizeof(settings.rtcm1033AntennaSerialNr)];
+            if (getUserInputString(userEntry, sizeof(userEntry)) == INPUT_RESPONSE_VALID)
+            {
+                strcpy(settings.rtcm1033AntennaSerialNr, userEntry);
+                gnssConfigure(GNSS_CONFIG_RTCM_1033); // Request receiver to use new settings
+            }
+        }
+        else if (incoming == 2)
+        {
+            if (getNewSetting("Enter the Antenna Setup ID", 0, 255,
+                              &settings.rtcm1033AntennaSetupID) == INPUT_RESPONSE_VALID)
+            {
+                gnssConfigure(GNSS_CONFIG_RTCM_1033); // Request receiver to use new settings
+            }
+        }
+        else if (incoming == 3)
+        {
+            systemPrintln("Enter the Antenna Descriptor");
+            char userEntry[sizeof(settings.rtcm1033AntennaDescriptor)];
+            if (getUserInputString(userEntry, sizeof(userEntry)) == INPUT_RESPONSE_VALID)
+            {
+                strcpy(settings.rtcm1033AntennaDescriptor, userEntry);
+                gnssConfigure(GNSS_CONFIG_RTCM_1033); // Request receiver to use new settings
+            }
+        }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)

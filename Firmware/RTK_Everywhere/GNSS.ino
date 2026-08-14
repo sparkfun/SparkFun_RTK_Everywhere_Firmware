@@ -155,6 +155,7 @@ enum
     GNSS_CONFIG_SAVE,            // Indicates current settings be saved to GNSS receiver NVM
     GNSS_CONFIG_RESET,           // Indicates receiver needs resetting
     GNSS_CONFIG_GNSS_SPECIFIC,   // Settings specific to this GNSS
+    GNSS_CONFIG_RTCM_1033,       // Configure the RTCM 1033 Antenna Description on X5 / LG290P / UM980
 
     // Add new entries above here
     GNSS_CONFIG_MAX,
@@ -186,6 +187,7 @@ static const char *gnssConfigDisplayNames[] = {
     "SAVE",
     "RESET",
     "GNSS_SPECIFIC",
+    "RTCM_1033",
 };
 
 static const int gnssConfigStateEntries = sizeof(gnssConfigDisplayNames) / sizeof(gnssConfigDisplayNames[0]);
@@ -341,6 +343,15 @@ void gnssUpdate()
             if (gnss->fixedBaseStart() == true)
             {
                 gnssConfigureClear(GNSS_CONFIG_BASE_FIXED);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
+        if (gnssConfigureRequested(GNSS_CONFIG_RTCM_1033))
+        {
+            if (gnss->configureRtcm1033() == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_RTCM_1033);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
         }

@@ -180,6 +180,11 @@ class GNSS_UM980 : GNSS
     //   Returns true if successfully configured and false upon failure
     bool configureRover();
 
+    // Configure the RTCM 1033 Antenna Description
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configureRtcm1033();
+
     // Responds with the messages supported on this platform
     // Inputs:
     //   returnText: String to receive message names
@@ -322,6 +327,9 @@ class GNSS_UM980 : GNSS
     bool gnssInBaseSurveyInMode();
     bool gnssInRoverMode();
 
+    // Indicate if there are any additional settings specific to this GNSS
+    bool hasGnssSpecificConfiguration();
+
     bool isBlocking();
 
     // Date is confirmed once we have GNSS fix
@@ -375,6 +383,8 @@ class GNSS_UM980 : GNSS
 
     // Controls the constellations that are used to generate a fix and logged
     void menuConstellations();
+
+    void menuGnssSpecificConfiguration();
 
     void menuMessageBaseRtcm();
 

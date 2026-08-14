@@ -28,7 +28,7 @@ typedef struct
 const ubxConstellation ubxConstellations[] = { // Constellations monitored/used for fix
     {UBLOX_CFG_SIGNAL_BDS_ENA, SFE_UBLOX_GNSS_ID_BEIDOU, "BeiDou", 0, 0, {0,0,0},},
     {UBLOX_CFG_SIGNAL_GAL_ENA, SFE_UBLOX_GNSS_ID_GALILEO, "Galileo", 0, 0, {0,0,0},},
-    {UBLOX_CFG_SIGNAL_GLO_ENA, SFE_UBLOX_GNSS_ID_GLONASS, "GLONASS", 0, 9999, {0,0,0},}, //X20P does not support GLO
+    {UBLOX_CFG_SIGNAL_GLO_ENA, SFE_UBLOX_GNSS_ID_GLONASS, "GLONASS", 0, 210, {0,0,0},}, //X20P v2.10 supports GLO
     {UBLOX_CFG_SIGNAL_GPS_ENA, SFE_UBLOX_GNSS_ID_GPS, "GPS", 0, 0, {0,0,0},},
     //{UBLOX_CFG_SIGNAL_QZSS_ENA, SFE_UBLOX_GNSS_ID_IMES, false, "IMES", 9999, 9999, {0,0,0},}, //Not yet supported? Config key does not
     // exist?
@@ -181,7 +181,7 @@ const ubxMsg ubxMessages[] = {
     {UBLOX_CFG_MSGOUT_NMEA_ID_RMC_UART1, UBX_NMEA_RMC, UBX_CLASS_NMEA, 1, "NMEA_RMC", SFE_UBLOX_FILTER_NMEA_RMC, 112,
      200, 0},
     {UBLOX_CFG_MSGOUT_NMEA_ID_VLW_UART1, UBX_NMEA_VLW, UBX_CLASS_NMEA, 0, "NMEA_VLW", SFE_UBLOX_FILTER_NMEA_VLW, 112,
-     200, 0},
+     200, 210}, // VLW not supported on X20P v2.10
     {UBLOX_CFG_MSGOUT_NMEA_ID_VTG_UART1, UBX_NMEA_VTG, UBX_CLASS_NMEA, 0, "NMEA_VTG", SFE_UBLOX_FILTER_NMEA_VTG, 112,
      200, 0},
     {UBLOX_CFG_MSGOUT_NMEA_ID_ZDA_UART1, UBX_NMEA_ZDA, UBX_CLASS_NMEA, 0, "NMEA_ZDA", SFE_UBLOX_FILTER_NMEA_ZDA, 112,
@@ -376,6 +376,14 @@ class GNSS_ZED : GNSS
     // Outputs:
     //   Returns true if successfully configured and false upon failure
     bool configureRover();
+
+    // Configure the RTCM 1033 Antenna Description
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configureRtcm1033()
+    {
+        return true; // Not supported on ZED. Return true to clear configuration
+    }
 
     // Responds with the messages supported on this platform
     // Inputs:

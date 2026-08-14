@@ -187,6 +187,7 @@ void beginBoard()
         present.minElevation = true;
         present.dynamicModel = true;
         present.display_type = DISPLAY_MAX_NONE;
+        present.rtcm1033AntennaDescription = true;
 
 #ifdef COMPILE_IM19_IMU
         present.imu_im19 = true; // Allow tiltUpdate() to run
@@ -445,6 +446,7 @@ void beginBoard()
         present.minElevation = true;
         present.needsExternalPpl = true; // Uses the PointPerfect Library for L-Band
         present.dynamicModel = true;
+        present.rtcm1033AntennaDescription = true;
 
         pin_muxA = 2;
         pin_muxB = 12;
@@ -515,6 +517,7 @@ void beginBoard()
         // We can't enable here because we don't know if lg290pFirmwareVersion is >= v1.5
         // present.minElevation = true;
         // present.minCN0 = true;
+        // present.rtcm1033AntennaDescription = true; // Added at protocol 1.1
 
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
@@ -664,6 +667,7 @@ void beginBoard()
         // We can't enable GNSS features here because we don't know if lg290pFirmwareVersion is >= v1.5
         // present.minElevation = true;
         // present.minCN0 = true;
+        // present.rtcm1033AntennaDescription = true; // Added at protocol 1.1
 
         pin_I2C0_SDA = 15;
         pin_I2C0_SCL = 4;

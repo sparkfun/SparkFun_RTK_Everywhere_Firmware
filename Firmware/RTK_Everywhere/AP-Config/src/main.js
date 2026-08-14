@@ -101,6 +101,8 @@ var divTables = {
     lg290pRtkDifferentialSourceTypeConfig: ["lg290pRtkDifferentialSourceType"],
     lg290pRtkReliabilityLevelConfig: ["lg290pRtkReliabilityLevel"],
     dynamicModelSettings: ["dynamicModel"],
+    rtcm1033Settings: ["rtcm1033AntennaDescriptor"],
+    um980GnssSettings: ["enableMultipathMitigation", "um980FixedBaseLLHSubtractSeparation"],
 };
 
 function showHideDivs() {
@@ -896,11 +898,6 @@ function parseIncoming(msg) {
             show("tiltConfig");
         }
 
-        // Only the UM980 has Multipath Mitigation
-        else if (id.includes("enableMultipathMitigation")) {
-            show("um980GnssSettings");
-        }
-
         // PointPerfect configuration has been removed from the Web Config interface. It will be restored if u-blox offers
         // the global corrections network.
         else if (id.includes("pointPerfectService")) {
@@ -1250,6 +1247,12 @@ function validateFields() {
         checkElementValue("ntripClientCasterPort", 1, 99999, "Must be 1 to 99999", "collapseGNSSConfig");
         checkElementString("ntripClientMountPoint", 1, 30, "Must be 1 to 30 characters", "collapseGNSSConfig");
         checkElementCasterUser("ntripClientCasterHost", "ntripClientCasterUser", "rtk2go.com", "User must use their email address", "collapseGNSSConfig");
+    }
+
+    if (isElementShown("rtcm1033Settings") == true) {
+        checkElementString("rtcm1033AntennaDescriptor", 0, 20, "Must be 0 to 20 characters", "collapseGNSSConfig");
+        checkElementString("rtcm1033AntennaSerialNr", 0, 20, "Must be 0 to 20 characters", "collapseGNSSConfig");
+        checkElementValue("rtcm1033AntennaSetupID", 0, 255, "Must be 0 to 255", "collapseGNSSConfig");
     }
 
     //Check all UBX message boxes

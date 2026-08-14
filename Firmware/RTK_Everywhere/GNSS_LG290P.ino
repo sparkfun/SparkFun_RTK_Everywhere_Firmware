@@ -155,6 +155,7 @@ void GNSS_LG290P::begin()
         // Supported starting in v1.5
         present.minElevation = true;
         present.minCN0 = true;
+        present.rtcm1033AntennaDescription = true;
     }
 
     // Determine if PPP temp firmware is detected.
@@ -332,6 +333,24 @@ bool GNSS_LG290P::configureRover()
     gnssConfigure(GNSS_CONFIG_RESET); // Mode change requires reset
 
     return (response);
+}
+
+//----------------------------------------
+// Configure the RTCM 1033 Antenna Description
+//----------------------------------------
+bool  GNSS_LG290P::configureRtcm1033()
+{
+    if (present.rtcm1033AntennaDescription)
+    {
+        char antInfo[60];
+        snprintf(antInfo, sizeof(antInfo), ",W,%s,%d,%s",
+            settings.rtcm1033AntennaDescriptor,
+            settings.rtcm1033AntennaSetupID,
+            settings.rtcm1033AntennaSerialNr);
+        return _lg290p->sendOkCommand("$PQTMCFGANTINF", antInfo); // Set antenna information
+    }
+
+    return true; // Return true to clear configuration
 }
 
 //----------------------------------------
@@ -3512,6 +3531,7 @@ void lg290pNewClass()
     present.minCN0 = true;
     present.minElevation = true;
     present.needsExternalPpl = true; // Uses the PointPerfect Library
+    present.rtcm1033AntennaDescription = true;
 }
 
 //----------------------------------------

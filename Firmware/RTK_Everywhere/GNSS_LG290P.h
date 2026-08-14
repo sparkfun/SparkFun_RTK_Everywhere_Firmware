@@ -222,6 +222,11 @@ class GNSS_LG290P : GNSS
     //   Returns true if successfully configured and false upon failure
     bool configureRover();
 
+    // Configure the RTCM 1033 Antenna Description
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configureRtcm1033();
+
     // Responds with the messages supported on this platform
     // Inputs:
     //   returnText: String to receive message names
