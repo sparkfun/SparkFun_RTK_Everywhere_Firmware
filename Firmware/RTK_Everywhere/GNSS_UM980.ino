@@ -475,7 +475,6 @@ bool GNSS_UM980::fixedBaseStart()
 
         // UM980 seems to add the geoidal separation to the fixed LLH Height?
         // If settings.um980FixedBaseLLHSubtractSeparation is true, subtract the separation before applying
-        // Note: this only gets you close. I still see a height difference of 12.9cm at my Base with firmware 17548
         // If you use ECEF coordinates, the Base position correct
         if (settings.um980FixedBaseLLHSubtractSeparation)
             totalFixedAltitude -= _um980->getGeoidalSeparation();
