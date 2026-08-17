@@ -1,3 +1,36 @@
+// Enable printfs to various endpoints
+// https://stackoverflow.com/questions/42131753/wrapper-for-printf
+void usbPrintf(const char *format, ...)
+{
+    va_list args;
+    va_list args2;
+
+    va_start(args, format);
+    va_copy(args2, args);
+    char buf[vsnprintf(nullptr, 0, format, args) + 1];
+    vsnprintf(buf, sizeof buf, format, args2);
+
+    // Connect UART 0 to the USB UART
+    if (productVariant == RTK_TORCH)
+    {
+        Serial.flush(); // Finishing any pending prints to before switching
+        muxSelectUsb(); // Reconnect USB to print to terminal
+    }
+
+    // Send the output to the USB UART
+    systemPrint(buf);
+    va_end(args);
+    va_end(args2);
+
+    // Connect UART 0 back to the LoRa
+    if (productVariant == RTK_TORCH)
+    {
+        Serial.flush();
+        muxSelectLoRaCommunication(); // Torch: Disconnect USB, connect to LoRa
+    }
+}
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // The following functions are for the STM32 firmware update process.
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -147,7 +180,10 @@ bool stm32UpdateFirmwareFlashBlock(uint32_t addr, uint8_t *data, uint16_t len)
     loraWrite(0x31);
     loraWrite(0xCE);
     if (stm32UpdateFirmwareWaitForAck() == false)
+    {
+        usbPrintf("Write memory command failed, addr: 0x%08x, len: 0x%04x\r\n", addr, len);
         return false;
+    }
 
     // Send Address + Checksum
     uint8_t addrBytes[4] = {(uint8_t)(addr >> 24), (uint8_t)(addr >> 16), (uint8_t)(addr >> 8), (uint8_t)addr};
@@ -156,7 +192,10 @@ bool stm32UpdateFirmwareFlashBlock(uint32_t addr, uint8_t *data, uint16_t len)
     loraWrite(checksum);
 
     if (stm32UpdateFirmwareWaitForAck() == false)
+    {
+        usbPrintf("Send address failed, addr: 0x%08x, len: 0x%04x\r\n", addr, len);
         return false;
+    }
 
     // Send Number of bytes - 1 (STM32 protocol requirement)
     uint8_t n = len - 1;
@@ -169,7 +208,12 @@ bool stm32UpdateFirmwareFlashBlock(uint32_t addr, uint8_t *data, uint16_t len)
     }
     loraWrite(checksum);
 
-    return stm32UpdateFirmwareWaitForAck();
+    if (stm32UpdateFirmwareWaitForAck() == false)
+    {
+        usbPrintf("Send bytes failed, addr: 0x%08x, len: 0x%04x\r\n", addr, len);
+        return false;
+    }
+    return true;
 }
 
 // Add data to the stm32PageBuffer. Write to STM32 when we hit 256 bytes.
