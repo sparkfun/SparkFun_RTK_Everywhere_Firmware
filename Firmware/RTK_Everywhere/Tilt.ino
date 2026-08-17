@@ -692,7 +692,7 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
         {
             // Extract the undulation
             strncpy(undulationStr, &nmeaSentence[undulationStart], undulationStop - undulationStart);
-            float undulation = (float)atof(undulationStr);
+            undulation = (float)atof(undulationStr);
         }
     }
 
