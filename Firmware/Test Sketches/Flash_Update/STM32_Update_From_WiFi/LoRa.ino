@@ -269,12 +269,14 @@ bool stm32UpdateFirmwareEnd()
     return success;
 }
 
+//----------------------------------------
 // Update the STM32 firmware
-bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
+//----------------------------------------
+bool stm32StreamFirmware(const char * url)
 {
     muxSelectLoRaCommunication(); // Mandatory for Torch: Connect ESP32 to LoRa for communication
 
-    if (relativeFirmwareFileLocation == nullptr)
+    if (url == nullptr)
     {
         loraSharedPrintln("Firmware file location is null.");
         return false;
@@ -288,7 +290,7 @@ bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
     }
 
     HTTPClient http;
-    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
+    if (!http.begin(client, url))
     {
         loraSharedPrintln("Unable to begin HTTP request.");
         return false;
