@@ -782,6 +782,10 @@ unsigned long lastTiltCheck;   // Limits polling on IM19 to 1Hz
 bool tiltFailedBegin;          // Goes true if IMU fails beginTilt()
 unsigned long lastTiltBeepMs;  // Emit a beep every 10s if tilt is active
 TiltState tiltState = TILT_DISABLED;
+// Forward routine declaration
+void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char *nmeaType,
+                           const int *latitudeComma, const int *longitudeComma,
+                           const int *altitudeComma = nullptr, const int *undulationComma = nullptr);
 #endif                         // COMPILE_IM19_IMU
 
 int imuFirmwareVersionInt;

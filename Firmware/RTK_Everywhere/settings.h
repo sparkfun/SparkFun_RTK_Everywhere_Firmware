@@ -613,10 +613,14 @@ typedef enum
 
 // Print the base coordinates in different formats, depending on the type the user has entered
 // These are the different supported types
+// Note: COORDINATE_INPUT_TYPE_DDDMM is needed by coordinateConvertInput for longitude only.
+//       coordinateIdentifyInputType will return COORDINATE_INPUT_TYPE_DDMM for both
+//       5-digit longitude and 4-digit latitude.
 typedef enum
 {
     COORDINATE_INPUT_TYPE_DD = 0,                   // Default DD.ddddddddd
     COORDINATE_INPUT_TYPE_DDMM,                     // DDMM.mmmmm
+    COORDINATE_INPUT_TYPE_DDDMM,                    // DDDMM.mmmmm - coordinateConvertInput longitude only
     COORDINATE_INPUT_TYPE_DD_MM,                    // DD MM.mmmmm
     COORDINATE_INPUT_TYPE_DD_MM_DASH,               // DD-MM.mmmmm
     COORDINATE_INPUT_TYPE_DD_MM_SYMBOL,             // DD°MM.mmmmmmm'
