@@ -806,19 +806,45 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
         // If tilt is active and outputTipAltitude is disabled, then subtract undulation from IMU altitude
         // and add pole+ARP. I.e. output altitude as if the pole were vertical.
         if (settings.outputTipAltitude == false)
+        {
             newAltitude = tiltSensor->getNaviAltitude() - undulation +
                           ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
 
+            if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                systemPrintf("Navi altitude (%.4f) - undulation (%.4f) + pole length (%.4f) + APC (%.4f) = %.4f\r\n",
+                             tiltSensor->getNaviAltitude(),
+                             undulation,
+                             settings.antennaHeight_mm / 1000.0,
+                             settings.antennaPhaseCenter_mm / 1000.0,
+                             newAltitude);
+        }
         // If tilt is active and outputTipAltitude is enabled, then subtract undulation from IMU altitude
         else if (settings.outputTipAltitude == true)
+        {
             newAltitude = tiltSensor->getNaviAltitude() - undulation;
+
+            if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                systemPrintf("Navi altitude (%.4f) - undulation (%.4f) = %.4f\r\n",
+                             tiltSensor->getNaviAltitude(),
+                             undulation,
+                             newAltitude);
+        }
     }
     else
     {
         // If tilt is off and outputTipAltitude is enabled, then assume the pole is vertical and
         // subtract pole+ARP from altitude
         if (settings.outputTipAltitude == true)
+        {
             newAltitude = altitude - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+
+            if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                systemPrintf("altitude (%.4f) - (pole length (%.4f) + APC (%.4f)) = %.4f\r\n",
+                             altitude,
+                             settings.antennaHeight_mm / 1000.0,
+                             settings.antennaPhaseCenter_mm / 1000.0,
+                             newAltitude);
+        }
 
         // If tilt is off and outputTipAltitude is disabled, then we should not be here
     }
