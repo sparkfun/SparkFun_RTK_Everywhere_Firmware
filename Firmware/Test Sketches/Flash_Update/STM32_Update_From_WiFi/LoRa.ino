@@ -46,20 +46,20 @@ uint32_t stm32CurrentAddress = 0x08000000; // Next flash address to write; advan
 // flashed every time a full 256 byte page accumulates.
 bool stm32UpdateFirmware(uint8_t *dataArray, uint16_t bytesToWrite)
 {
-    stm32UpdatePageBuffer(dataArray, bytesToWrite);
+    bool success = stm32UpdatePageBuffer(dataArray, bytesToWrite);
 
     if (productVariant == RTK_TORCH)
     {
         muxSelectUsb();                               // Reconnect USB to print to terminal
-        firmwareUpdateProgressCallback(bytesToWrite); // Notify callback
+        firmwareUpdateProgressCallback("LoRa", bytesToWrite); // Notify callback
         Serial.flush();
         muxSelectLoRaCommunication(); // Disconnect USB, connect to LoRa
     }
     else
     {
-        firmwareUpdateProgressCallback(bytesToWrite); // Notify callback
+        firmwareUpdateProgressCallback("LoRa", bytesToWrite); // Notify callback
     }
-    return true;
+    return success;
 }
 
 // Helper to send STM32 commands and wait for ACK (0x79)
