@@ -70,6 +70,10 @@ unsigned long firmwareUpdateElapsed = 0;
 uint32_t firmwareUpdateBytesToProcess = 0;
 uint32_t firmwareUpdateBytesProcessed = 0;
 
+const char * otaEqualSigns = "==================================================";
+
+#define OTA_DATA_TIMEOUT        (15 * 1000)
+
 void setup()
 {
     Serial.begin(115200);
@@ -156,7 +160,7 @@ void loop()
             // Start timer before erase
             firmwareUpdateStartTime = millis();
 
-            stm32StreamFirmware(firmwareURL);
+            stm32FirmwareUpdate(firmwareURL);
 
             muxSelectUsb(); // Mandatory for Torch. Reconnect USB to print to terminal
 

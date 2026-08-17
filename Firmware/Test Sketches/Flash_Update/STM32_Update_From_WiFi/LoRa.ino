@@ -46,20 +46,7 @@ uint32_t stm32CurrentAddress = 0x08000000; // Next flash address to write; advan
 // flashed every time a full 256 byte page accumulates.
 bool stm32UpdateFirmware(uint8_t *dataArray, uint16_t bytesToWrite)
 {
-    bool success = stm32UpdatePageBuffer(dataArray, bytesToWrite);
-
-    if (productVariant == RTK_TORCH)
-    {
-        muxSelectUsb();                               // Reconnect USB to print to terminal
-        firmwareUpdateProgressCallback("LoRa", bytesToWrite); // Notify callback
-        Serial.flush();
-        muxSelectLoRaCommunication(); // Disconnect USB, connect to LoRa
-    }
-    else
-    {
-        firmwareUpdateProgressCallback("LoRa", bytesToWrite); // Notify callback
-    }
-    return success;
+    return stm32UpdatePageBuffer(dataArray, bytesToWrite);
 }
 
 // Helper to send STM32 commands and wait for ACK (0x79)
@@ -272,7 +259,89 @@ bool stm32UpdateFirmwareEnd()
 //----------------------------------------
 // Update the STM32 firmware
 //----------------------------------------
-bool stm32StreamFirmware(const char * url)
+bool stm32StreamFirmware(NetworkClient * stream,
+                         size_t fileBytes,
+                         uint8_t * buffer,
+                         size_t packetBytes)
+{
+    muxSelectLoRaCommunication(); // Mandatory for Torch: Connect ESP32 to LoRa for communication
+
+    loraSharedPrintln("Starting LoRa/STM32 firmware update...");
+
+    if (stm32UpdateFirmwareBegin() == false)
+    {
+        usbPrintf("%s\r\n", otaEqualSigns);
+        usbPrintf("LoRa/STM32 update failed.\r\n");
+        usbPrintf("%s\r\n", otaEqualSigns);
+        return false;
+    }
+
+    unsigned long lastDataTime = millis();
+    size_t validData = 0;
+    while (stream->connected() && (fileBytes > 0))
+    {
+        // Wait until some data is available
+        size_t available = stream->available();
+        if (available == 0)
+        {
+            if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+            {
+                usbPrintf("LoRa OTA update timed out waiting for data\r\n");
+                return false;
+            }
+            delay(1);
+            continue;
+        }
+
+        // Read the received data
+        size_t toRead = min(available, packetBytes - validData);
+        int bytesRead = stream->readBytes(&buffer[validData], toRead);
+        if (bytesRead <= 0)
+            break;
+        validData += bytesRead;
+
+        // Fill the packet
+        if ((validData < packetBytes) && (validData != fileBytes))
+            continue;
+
+        // Update this portion of the firmware
+        if (stm32UpdateFirmware(buffer, (uint16_t)validData) == false)
+        {
+            usbPrintf("LoRa/STM32 update failed during WiFi data upload.\r\n");
+            break;
+        }
+
+        // Display the progress
+        if (productVariant == RTK_TORCH)
+        {
+            muxSelectUsb();                               // Reconnect USB to print to terminal
+            firmwareUpdateProgressCallback("LoRa/STM32", validData); // Notify callback
+            Serial.flush();
+            muxSelectLoRaCommunication(); // Disconnect USB, connect to LoRa
+        }
+        else
+            firmwareUpdateProgressCallback("LoRa/STM32", validData); // Notify callback
+
+        // Account for this data
+        fileBytes -= validData;
+        lastDataTime = millis();
+        validData = 0;
+    }
+
+    usbPrintf("%s\r\n", otaEqualSigns);
+    bool success = (fileBytes == 0) && stm32UpdateFirmwareEnd();
+    if (success)
+        usbPrintf("LoRa/STM32 updated successfully.\r\n");
+    else
+        usbPrintf("LoRa/STM32 update failed.\r\n");
+    usbPrintf("%s\r\n", otaEqualSigns);
+    return success;
+}
+
+//----------------------------------------
+// Update the STM32 firmware
+//----------------------------------------
+bool stm32FirmwareUpdate(const char * url)
 {
     muxSelectLoRaCommunication(); // Mandatory for Torch: Connect ESP32 to LoRa for communication
 
@@ -305,60 +374,18 @@ bool stm32StreamFirmware(const char * url)
         return false;
     }
 
-    int contentLength = http.getSize();
-    if (contentLength > 0)
-        firmwareUpdateBytesToProcess = (uint32_t)contentLength;
+    size_t fileBytes = http.getSize();
+    if ((ssize_t)fileBytes > 0)
+        firmwareUpdateBytesToProcess = fileBytes;
 
     WiFiClient *stream = http.getStreamPtr();
     uint8_t buffer[256];
 
-    bool success = true;
-
-    loraSharedPrintln("Starting STM32 firmware update...");
-
-    if (stm32UpdateFirmwareBegin() == false)
-    {
-        http.end();
-        return false;
-    }
-
-    while (http.connected() && (contentLength > 0 || contentLength == -1))
-    {
-        size_t available = stream->available();
-        if (available == 0)
-        {
-            if (!client.connected())
-                break;
-            delay(1);
-            continue;
-        }
-
-        size_t toRead = min(available, sizeof(buffer));
-        int bytesRead = stream->readBytes(buffer, toRead);
-        if (bytesRead <= 0)
-            break;
-
-        if (stm32UpdateFirmware(buffer, (uint16_t)bytesRead) == false)
-        {
-            loraSharedPrintln("Firmware update failed during WiFi data upload.");
-            success = false;
-            break;
-        }
-
-        if (contentLength > 0)
-            contentLength -= bytesRead;
-    }
-
-    if (success == true && stm32UpdateFirmwareEnd() == false)
-        success = false;
-
-    if (success)
-        loraSharedPrintln("LoRa/STM32 updated successfully.");
-    else
-        loraSharedPrintln("LoRa/STM32 update failed.");
-
-    http.end();
-    return success;
+    return stm32StreamFirmware(stream,
+                               fileBytes,
+                               buffer,
+                               sizeof(buffer));
 }
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of LoRa/STM32 firmware update functions.
