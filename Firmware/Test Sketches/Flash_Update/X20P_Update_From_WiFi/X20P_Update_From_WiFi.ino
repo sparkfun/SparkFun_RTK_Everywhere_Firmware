@@ -27,9 +27,8 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
+#include "secrets.h"
 
-const char *wifiSSID = "Roving";
-const char *wifiPassword = "sparkfun";
 // char *firmwareURL = "/gnss/zed-x20p/SparkPNT_LoRa_3.0.1.bin";
 char *firmwareURL = "/gnss/zed-x20p/UBX_20_HPG_202_ZED_F20P.329facb56ce18631d607fe15177834dc.bin";
 
@@ -102,9 +101,10 @@ void setup()
     Wire.begin(pin_SDA, pin_SCL);
     beginGpioExpanderSwitches();
     gpioExpanderConnectGNSSToESP32(); // Connect Facet FP GNSS receiver UART1 to ESP32 UART1 for normal comms
-    displayMenu();
 
     wifiConnect();
+
+    displayMenu();
 }
 
 void loop()
@@ -112,6 +112,7 @@ void loop()
     if (Serial.available())
     {
         byte incoming = Serial.read();
+        Serial.printf("%c\r\n", incoming);
         if (incoming == 'r')
         {
             ESP.restart();
@@ -123,7 +124,6 @@ void loop()
             delay(250);
             gpioExpanderGnssBoot();
             delay(250);
-            displayMenu();
         }
         else if (incoming == 'u')
         {
@@ -140,17 +140,19 @@ void loop()
             systemPrint("Firmware update time: ");
             systemPrint(firmwareUpdateElapsed / 1000.0, 3);
             systemPrintln(" seconds");
-            displayMenu();
         }
+        displayMenu();
     }
 }
 
 void displayMenu()
 {
     systemPrintln();
+    systemPrintln("Menu:");
     systemPrintf("g) Reset GNSS\r\n");
     systemPrintf("u) Update GNSS\r\n");
     systemPrintf("r) Reboot system\r\n");
+    systemPrint("Selection: ");
 }
 
 // Connects to the configured SSID and blocks until connected or the attempt times out.
