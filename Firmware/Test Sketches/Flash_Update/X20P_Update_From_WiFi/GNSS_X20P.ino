@@ -251,6 +251,40 @@ bool x20pPollMsg(HardwareSerial &ser, uint8_t cls, uint8_t id, const uint8_t *pa
     return x20pWaitForMsg(ser, cls, id, out, timeoutMs);
 }
 
+// Poll UBX-MON-VER and print the module's software/hardware version strings.
+// Assumes ser is already communicating with the module at the correct baud rate
+// (works both in normal application firmware and in the bootloader).
+// Returns true if a version response was received and parsed.
+bool x20pPrintVersion(HardwareSerial &ser)
+{
+    UbxMsg monVer;
+    if (x20pPollMsg(ser, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, monVer, TIMEOUT_POLL) == false)
+    {
+        systemPrintln("Firmware version: no response from module.");
+        return false;
+    }
+
+    if (monVer.len < 40)
+    {
+        systemPrintln("Firmware version: response too short to parse.");
+        return false;
+    }
+
+    char swVersion[31];
+    char hwVersion[11];
+    memcpy(swVersion, monVer.payload, 30);
+    swVersion[30] = '\0';
+    memcpy(hwVersion, monVer.payload + 30, 10);
+    hwVersion[10] = '\0';
+
+    systemPrint("Firmware version: ");
+    systemPrint(swVersion);
+    systemPrint("  Hardware version: ");
+    systemPrintln(hwVersion);
+
+    return true;
+}
+
 // ==================================================================
 //  PUBLIC API
 // ==================================================================

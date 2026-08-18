@@ -29,18 +29,22 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include <HTTPClient.h>
 #include "secrets.h"
 
-// char *firmwareURL = "/gnss/zed-x20p/SparkPNT_LoRa_3.0.1.bin";
+// 2.02
 char *firmwareURL = "/gnss/zed-x20p/UBX_20_HPG_202_ZED_F20P.329facb56ce18631d607fe15177834dc.bin";
+
+// 2.10
+//char *firmwareURL = "/gnss/zed-x20p/UBX_20_HPG_210_ZED_X20P-01B.512369040097ce18fd3475e71e7c627f.bin";
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
 
 // ==================================================================
 //  RECEIVE BUFFER
-//  ACK / response payloads are tiny (2–5 bytes).  Only the first
-//  X20P_RX_PAYLOAD_MAX bytes of any incoming payload are stored.
+//  ACK / response payloads are tiny (2–5 bytes), but UBX-MON-VER's
+//  swVersion (30 bytes) + hwVersion (10 bytes) needs 40.  Only the
+//  first X20P_RX_PAYLOAD_MAX bytes of any incoming payload are stored.
 // ==================================================================
 
-#define X20P_RX_PAYLOAD_MAX 16u
+#define X20P_RX_PAYLOAD_MAX 40u
 
 struct UbxMsg
 {
@@ -102,6 +106,8 @@ void setup()
     beginGpioExpanderSwitches();
     gpioExpanderConnectGNSSToESP32(); // Connect Facet FP GNSS receiver UART1 to ESP32 UART1 for normal comms
 
+    x20pPrintVersion(*serialGNSS);
+
     wifiConnect();
 
     displayMenu();
@@ -140,6 +146,15 @@ void loop()
             systemPrint("Firmware update time: ");
             systemPrint(firmwareUpdateElapsed / 1000.0, 3);
             systemPrintln(" seconds");
+
+            // Bootload always ends with a reboot (fire-and-forget) into the module's normal
+            // operating baud rate, regardless of whether the update itself succeeded.
+            systemPrintln("Waiting for module to boot...");
+            delay(2000);
+            serialGNSS->updateBaudRate(38400);
+            while (serialGNSS->available())
+                serialGNSS->read();
+            x20pPrintVersion(*serialGNSS);
         }
         displayMenu();
     }
