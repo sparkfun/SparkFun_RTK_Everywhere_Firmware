@@ -3101,7 +3101,7 @@ Compatibility Icons
 <div class="highlight"><pre><span></span><code>$SPGET,ntripClientCasterUserPW*35
 </code></pre></div>
 <p>Receive:</p>
-<div class="highlight"><pre><span></span><code>$SPGET,ntripClientCasterUserPW,&quot;pwWith\&quot;quote&quot;*38
+<div class="highlight"><pre><span></span><code>$SPGET,ntripClientCasterUserPW,"pwWith\"quote"*38
 </code></pre></div>
 <p>Setting the Configuration Values</p>
 <p>To set a configuration value, the client sends the following.</p>
@@ -3126,33 +3126,33 @@ Compatibility Icons
 <p>Using the $SPSET command only sets the configuration value in the firmware memory. The settings are not applied until an APPLY action is executed.</p>
 <p>Settings containing strings must be surrounded by quotes:</p>
 <p>Send:</p>
-<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,&quot;MyPass&quot;*08
+<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,"MyPass"*08
 </code></pre></div>
 <p>Receive:</p>
-<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,&quot;MyPass&quot;,OK*20
+<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,"MyPass",OK*20
 </code></pre></div>
 <p>Below, quotes are allowed within the string but must be escaped. Response will also be escaped, but the device will store the setting with escape characters removed:</p>
 <p>Send:</p>
-<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,&quot;pwWith\&quot;quote&quot;*2C
+<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,"pwWith\"quote"*2C
 </code></pre></div>
 <p>Receive:</p>
-<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,&quot;pwWith\&quot;quote&quot;,OK*04
+<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,"pwWith\"quote",OK*04
 </code></pre></div>
 <p><em>ntripClientCasterUserPW</em> will be set to: <code>pwWith"quote</code></p>
 <p>Below, commas are allowed within the string but must be between two quotes:</p>
 <p>Send:</p>
-<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,&quot;complex,password&quot;*5E
+<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,"complex,password"*5E
 </code></pre></div>
 <p>Receive:</p>
-<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,&quot;complex,password&quot;,OK*76
+<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,"complex,password",OK*76
 </code></pre></div>
 <p><em>ntripClientCasterUserPW</em> will be set to: <code>complex,password</code></p>
 <p>Below is a combination of an internal escaped quote, and comma within a setting:</p>
 <p>Send:</p>
-<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,&quot;a55G\&quot;e,e#&quot;*5A
+<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,"a55G\"e,e#"*5A
 </code></pre></div>
 <p>Receive:</p>
-<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,&quot;a55G\&quot;e,e#&quot;,OK*72
+<div class="highlight"><pre><span></span><code>$SPSET,ntripClientCasterUserPW,"a55G\"e,e#",OK*72
 </code></pre></div>
 <p><em>ntripClientCasterUserPW</em> set to: <code>a55G"e,e#</code></p>
 <h2 id="receiver-actions">Receiver Actions<a class="headerlink" href="#receiver-actions" title="Permanent link"></a></h2>
