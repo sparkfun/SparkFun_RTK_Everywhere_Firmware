@@ -30,6 +30,24 @@ void usbPrintf(const char *format, ...)
     }
 }
 
+void loraRxFlush()
+{
+    if (productVariant == RTK_TORCH)
+    {
+        while (Serial.available())
+            Serial.read();
+        return;
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        while (SerialForLoRa->available())
+            SerialForLoRa->read();
+        return;
+    }
+
+    systemPrintln("loraRxFlush - invalid ProductVariant");
+}
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // The following functions are for the STM32 firmware update process.
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -96,6 +114,10 @@ bool stm32UpdateFirmwareBegin()
     loraPowerOn(); // Regardless of previous state, turn on the STM32
 
     loraEnterBootloader(); // Push boot pin high and reset STM32
+
+    // Discard any characters in the RX FIFO
+    // If we are talking to the boot loader all we should receive are ACKs
+    loraRxFlush();
 
     // Send 0x7F for auto-baud detection
     loraWrite(0x7F);
