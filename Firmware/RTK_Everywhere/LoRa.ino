@@ -1722,12 +1722,16 @@ bool stm32UpdateFirmware(uint8_t *dataArray, uint16_t bytesToWrite)
 // Helper to send STM32 commands and wait for ACK (0x79)
 bool stm32UpdateFirmwareWaitForAck()
 {
+    uint32_t data;
     uint32_t startTime = millis();
     while (millis() - startTime < 1000)
     {
         if (loraAvailable())
         {
-            if (loraRead() == 0x79)
+            data = loraRead();
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                usbPrintf("0x%02x\r\n", data);
+            if (data == 0x79)
                 return true;
         }
         else
