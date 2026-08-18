@@ -84,6 +84,7 @@ unsigned long firmwareUpdateElapsed = 0;
 // Global variables used by firmwareUpdateProgressCallback, called by all firmware update procedures
 uint32_t firmwareUpdateBytesToProcess = 0;
 uint32_t firmwareUpdateBytesProcessed = 0;
+uint8_t firmwareUpdateLastPercent = 0;
 
 // To be removed / obtained from JSON file in the future
 uint32_t fileSize;

@@ -81,9 +81,6 @@ static uint8_t *x20pPageBuffer = nullptr; // Accumulates incoming bytes; flushed
 static uint16_t x20pBufferIndex = 0;
 static uint32_t x20pCurrentAddress = FW_BASE_ADDR; // Next flash address to write; advances as pages are flashed
 
-static bool x20pEraseComplete = false; // In/out state shared with x20pWriteChunk across calls (see its header comment)
-static uint32_t x20pEraseCompleteAt = 0;
-
 static bool x20pUpdateFailed = false; // Set once a chunk write fails; halts further processing until the next Begin()
 
 // Write one byte to ser, updating the running Fletcher-8 checksum.
@@ -312,35 +309,23 @@ void x20pSendDataFrame(HardwareSerial &ser, uint32_t address, const uint8_t *chu
 /*
  * x20pWriteChunk()
  *
- * Send one frame and wait for the device's 5-byte ACK.
- * Handles the concurrent chip-erase case
- *   - Packet 0 is sent while CERASE is in flight; the device ignores it.
- *   - When the CERASE completion arrives, the deadline is tightened to
- *     TIMEOUT_WRITE (3 s) from that completion time (not from the original
- *     send time - erase duration is unpredictable and often exceeds
- *     TIMEOUT_WRITE on its own).
- *   - On timeout, the packet is resent (up to WRITE_RETRIES times).
- *   - For packets 1+, eraseComplete is already true and the shorter
- *     TIMEOUT_WRITE deadline is used from the start.
- *
- * eraseComplete / eraseCompleteAt are in/out: once the CERASE response is
- * seen they are set and remain true for all subsequent packet calls.
+ * Send one frame and wait for the device's 5-byte ACK, retrying up to
+ * WRITE_RETRIES times on timeout. Assumes the chip erase has already
+ * completed (see x20pChipErase()) before the first call, so every
+ * write gets the short TIMEOUT_WRITE deadline - no concurrent-erase
+ * bookkeeping is needed here.
  */
-bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk, uint16_t chunkLen, bool &eraseComplete,
-                    uint32_t &eraseCompleteAt)
+bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk, uint16_t chunkLen)
 {
     if (chunkLen == 0 || chunkLen > PACKET_SIZE)
         return false;
 
-    x20pSendDataFrame(ser, address, chunk, chunkLen);
-    ser.flush();
-    uint32_t sendTime = millis();
-
-    // If erase is already done, expect the ACK quickly; otherwise allow the full chip-erase window.
-    uint32_t deadline = eraseComplete ? (millis() + TIMEOUT_WRITE) : (sendTime + TIMEOUT_CHIP_ERASE);
-
     for (uint8_t retries = 0; retries <= WRITE_RETRIES; retries++)
     {
+        x20pSendDataFrame(ser, address, chunk, chunkLen);
+        ser.flush();
+        uint32_t deadline = millis() + TIMEOUT_WRITE;
+
         while ((int32_t)(millis() - deadline) < 0)
         {
             UbxMsg m;
@@ -351,33 +336,7 @@ bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk,
                 continue; // CRC noise - keep waiting
             }
 
-            if (m.cls == UBX_CLASS_UPD && m.id == 0x16) // Chip erase response
-            {
-                if (!eraseComplete && m.len >= 1 && m.payload[0] == 1)
-                {
-                    eraseComplete = true;
-                    eraseCompleteAt = millis();
-                    systemPrint("    [DBG] CERASE done, t=");
-                    systemPrint(eraseCompleteAt - sendTime);
-                    systemPrintln(" ms after send");
-                    // Tighten deadline to a full TIMEOUT_WRITE window from *now* (erase-complete
-                    // time), not from the original send time. Erase duration is unpredictable and
-                    // routinely exceeds TIMEOUT_WRITE, so anchoring to sendTime could put fireAt in
-                    // the past and leave zero time for packet 0's actual ACK to arrive, causing a
-                    // spurious timeout/retry right after every erase.
-                    deadline = eraseCompleteAt + TIMEOUT_WRITE;
-                }
-                else if (m.len >= 1 && m.payload[0] != 1)
-                {
-                    systemPrintln("    [DBG] CERASE reported failure");
-                    return false;
-                }
-            }
-            else if (m.cls == UBX_CLASS_ACK)
-            {
-                // ACK-ACK or NAK for FLDET/CERASE - ignore
-            }
-            else if (m.cls == UBX_CLASS_UPD && m.id == 0x2A) // Write data response
+            if (m.cls == UBX_CLASS_UPD && m.id == 0x2A) // Write data response
             {
                 if (m.len != 5)
                 {
@@ -394,33 +353,13 @@ bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk,
                 }
                 return true; // success
             }
-            else
-            {
-                systemPrint("    [DBG] rx cls=0x");
-                systemPrint(m.cls, HEX);
-                systemPrint(" id=0x");
-                systemPrint(m.id, HEX);
-                systemPrint(" len=");
-                systemPrintln(m.len);
-            }
+            // Ignore ACK-ACK/NAK and any other frames while waiting for the data response
         }
 
-        // Deadline expired. If CERASE never came, we have a hard failure.
-        if (!eraseComplete)
-        {
-            systemPrintln("    [DBG] CERASE did not complete within 45 s");
-            return false;
-        }
-
-        // Erase done but no Data ACK - retry.
         if (retries < WRITE_RETRIES)
         {
             systemPrint("    [DBG] write timeout, retry ");
             systemPrintln(retries + 1);
-            x20pSendDataFrame(ser, address, chunk, chunkLen);
-            ser.flush();
-            sendTime = millis();
-            deadline = millis() + TIMEOUT_WRITE;
         }
     }
 
@@ -457,8 +396,7 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
 
         if (x20pBufferIndex == PACKET_SIZE)
         {
-            if (!x20pWriteChunk(ser, x20pCurrentAddress, x20pPageBuffer, PACKET_SIZE, x20pEraseComplete,
-                                x20pEraseCompleteAt))
+            if (!x20pWriteChunk(ser, x20pCurrentAddress, x20pPageBuffer, PACKET_SIZE))
             {
                 systemPrintf("  ERROR: write failed at address 0x%08X\r\n", x20pCurrentAddress);
                 x20pUpdateFailed = true;
@@ -473,17 +411,20 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
 }
 
 /*
- * x20pFirmwareUpdateBegin()
+ * x20pEnterBootloaderMode()
  *
- * Resets the GNSS into bootloader mode, finds its current baud rate,
- * starts the flash-loader task, switches UART1 to X20P_FIRMWARE_UPDATE_BAUD, kicks
- * off the chip erase (fire-and-forget - its completion races the
- * first packet write, handled inside x20pWriteChunk), and allocates
- * the page-accumulation buffer used by x20pUpdateFirmware().
+ * Hardware-resets the GNSS, autobauds to find its current comms rate,
+ * tells the ROM to start the flash-loader (LDR) task, then switches
+ * UART1 to X20P_FIRMWARE_UPDATE_BAUD for faster transfers.
+ *
+ * Called twice per update: once to reach a loader task for the chip
+ * erase, and again afterward - with flash now blank - to force a
+ * genuine ROM LDR bootloader boot, which is the only state that
+ * accepts write-data commands (see x20pFirmwareUpdateBegin()).
  *
  * Returns true on success.
  */
-bool x20pFirmwareUpdateBegin()
+bool x20pEnterBootloaderMode()
 {
     systemPrintln("Resetting GNSS");
     gpioExpanderGnssReset();
@@ -652,24 +593,90 @@ bool x20pFirmwareUpdateBegin()
         systemPrintln("  Baud switch OK.");
     }
 
-    // ----------------------------------------------------------
-    // Chip erase - concurrent write path.
-    //    This device has no flash-retention footer so FLASHRET/FLREST
-    //    are not used.  CERASE is sent immediately; packet 0 will be
-    //    sent concurrently and the write loop handles the retry after
-    //    the erase completes.
-    // ----------------------------------------------------------
+    return true;
+}
+
+/*
+ * x20pChipErase()
+ *
+ * Sends UBX-UPD CERASE (full chip erase) and blocks until the device
+ * confirms completion (up to TIMEOUT_CHIP_ERASE), unlike the old
+ * concurrent-erase path this replaces. Must be called while the
+ * device is in the ROM loader task (see x20pEnterBootloaderMode()).
+ * This device has no flash-retention footer, so FLASHRET/FLREST are
+ * not used.
+ *
+ * Returns true if the erase completed successfully.
+ */
+bool x20pChipErase()
+{
     systemPrintln("Starting chip erase...");
     x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x16, nullptr, 0);
-    // Do NOT wait for chip erase ACK here - it arrives while packet 0 is in flight.
+
+    uint32_t deadline = millis() + TIMEOUT_CHIP_ERASE;
+    while ((int32_t)(millis() - deadline) < 0)
+    {
+        UbxMsg m;
+        if (!x20pReceive(*serialGNSS, m, deadline))
+        {
+            if ((int32_t)(millis() - deadline) >= 0)
+                break;
+            continue; // CRC noise - keep waiting
+        }
+
+        if (m.cls == UBX_CLASS_UPD && m.id == 0x16) // Chip erase response
+        {
+            if (m.len >= 1 && m.payload[0] == 1)
+            {
+                systemPrintln("  Chip erase complete.");
+                return true;
+            }
+            systemPrintln("  ERROR: chip erase reported failure");
+            return false;
+        }
+        // Ignore stray ACKs/other frames while waiting for the CERASE response
+    }
+
+    systemPrintln("  ERROR: chip erase did not complete within 45 s");
+    return false;
+}
+
+/*
+ * x20pFirmwareUpdateBegin()
+ *
+ * Owns the full pre-write sequence:
+ *   1. Enter the bootloader (reset + autobaud + start loader task + baud switch).
+ *      When the module was still running full application firmware, this
+ *      lands in an app-hosted loader shim: it answers MON-VER and CERASE,
+ *      but does not accept the write-data command at all (confirmed on the
+ *      bench - writes silently get zero response from that state, every
+ *      time, while they succeed immediately from a genuine ROM LDR boot).
+ *   2. Perform a full chip erase and wait for it to complete. Flash is now
+ *      blank, so the ROM has nothing else to boot into.
+ *   3. Reset the module again. With flash blank it can only land in the
+ *      real ROM LDR bootloader, which does accept writes.
+ *   4. Allocate the page-accumulation buffer used by x20pUpdateFirmware()
+ *      so bootloading of the new code can begin.
+ *
+ * Returns true on success.
+ */
+bool x20pFirmwareUpdateBegin()
+{
+    if (x20pEnterBootloaderMode() == false)
+        return false;
+
+    if (x20pChipErase() == false)
+        return false;
+
+    systemPrintln("Resetting module to guarantee true ROM LDR bootloader...");
+    if (x20pEnterBootloaderMode() == false)
+        return false;
 
     // Allocate the page-accumulation buffer and reset streaming state for this update.
     if (x20pPageBuffer == nullptr)
         x20pPageBuffer = (uint8_t *)malloc(PACKET_SIZE);
     x20pBufferIndex = 0;
     x20pCurrentAddress = FW_BASE_ADDR;
-    x20pEraseComplete = false;
-    x20pEraseCompleteAt = 0;
     x20pUpdateFailed = false;
 
     return true;
@@ -696,8 +703,7 @@ bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
 
     if (success && x20pBufferIndex > 0)
     {
-        success = x20pWriteChunk(*serialGNSS, x20pCurrentAddress, x20pPageBuffer, x20pBufferIndex, x20pEraseComplete,
-                                 x20pEraseCompleteAt);
+        success = x20pWriteChunk(*serialGNSS, x20pCurrentAddress, x20pPageBuffer, x20pBufferIndex);
         if (!success)
             systemPrintf("  ERROR: final chunk write failed at address 0x%08X\r\n", x20pCurrentAddress);
     }
@@ -746,10 +752,28 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
         return false;
     }
 
+    systemPrintln("Starting X20P firmware update...");
+
+    firmwareUpdateProgressReset();
+
+    // Enter the bootloader and erase flash before opening the GitHub connection.
+    // This sequence involves two hardware resets and autobaud probing and can take
+    // 30+ seconds; opening the HTTPS GET first and leaving it idle that long risked
+    // the connection going stale (and a stalled TLS read blocking forever) before a
+    // single body byte was ever consumed.
+    if (x20pFirmwareUpdateBegin() == false)
+    {
+        systemPrintln("Failed to enter bootloader mode.");
+        return false;
+    }
+
+    systemPrintln("Device is in bootloader mode.");
+
     WiFiClientSecure client;
     if (!otaSecurelyConnectGitHub(client))
     {
         systemPrintln("Failed to securely connect to GitHub.");
+        x20pFirmwareUpdateEnd(false);
         return false;
     }
 
@@ -757,6 +781,7 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
     if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
     {
         systemPrintln("Unable to begin HTTP request.");
+        x20pFirmwareUpdateEnd(false);
         return false;
     }
 
@@ -765,6 +790,7 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
     {
         systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
         http.end();
+        x20pFirmwareUpdateEnd(false);
         return false;
     }
 
@@ -776,16 +802,6 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
     uint8_t buffer[256];
 
     bool success = true;
-
-    systemPrintln("Starting X20P firmware update...");
-
-    if (x20pFirmwareUpdateBegin() == false)
-    {
-        systemPrintln("Failed to enter bootloader mode.");
-        return false;
-    }
-
-    systemPrintln("Device is in bootloader mode.");
 
     while (http.connected() && (contentLength > 0 || contentLength == -1))
     {
