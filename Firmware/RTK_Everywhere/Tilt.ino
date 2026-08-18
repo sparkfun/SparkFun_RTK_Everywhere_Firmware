@@ -39,6 +39,7 @@ Tilt.ino
 
 
 uint32_t tiltCrc;
+float previousGGAUndulation = -9999.9999;
 
 // Tilt compensation sensor state machine
 void tiltUpdate()
@@ -682,6 +683,34 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
             // Extract the undulation
             strncpy(undulationStr, &nmeaSentence[undulationStart], undulationStop - undulationStart);
             undulation = (float)atof(undulationStr);
+
+            // If this is GGA, store the undulation so we can compare in GNS
+            if (strncmp(nmeaType, "GGA", sizeof(nmeaType)) == 0)
+                previousGGAUndulation = undulation;
+
+            // IM19 always uses WGS-84 (from GGA)
+            // GNS can use an alternate reference datum
+            // If this is GNS, check if the undulation matches GGA
+            // If it doesn't match - because the reference datum is different -
+            // adjust the undulation so that our corrected height will be correct
+            const float undulationMismatchThreshold_m = 0.1;
+            if ((previousGGAUndulation > -9900.0) // Check if previousGGAUndulation has been recorded
+                 && (strncmp(nmeaType, "GNS", sizeof(nmeaType)) == 0) // If this is GNS
+                 && (abs(previousGGAUndulation - undulation) > undulationMismatchThreshold_m))
+            {
+                // If the difference in the undulation is bigger than 10cm
+                // (what's a safe threshold to use here?!)
+                // then adjust undulation by the difference
+                // *** TODO *** - validate this - especially the sign of the difference!
+                if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                    systemPrintf("GNS undulation (%.4f) does not match GGA undulation (%.4f)\r\n",
+                                    undulation, previousGGAUndulation);
+                float newUndulation = undulation - (previousGGAUndulation - undulation);
+                if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                    systemPrintf("Adjusting undulation from %.4f to %.4f\r\n",
+                                    undulation, newUndulation);
+                undulation = newUndulation;
+            }
         }
     }
 
