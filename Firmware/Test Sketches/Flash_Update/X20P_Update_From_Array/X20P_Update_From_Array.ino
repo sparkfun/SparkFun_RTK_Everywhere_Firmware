@@ -108,6 +108,7 @@ void loop()
     if (Serial.available())
     {
         byte incoming = Serial.read();
+        Serial.printf("%c\r\n", incoming);
         if (incoming == 'r')
         {
             ESP.restart();
@@ -161,7 +162,9 @@ void loop()
 void displayMenu()
 {
     Serial.println();
+    Serial.println("Menu:");
     Serial.printf("g) Reset GNSS\r\n");
     Serial.printf("u) Update GNSS\r\n");
     Serial.printf("r) Reboot system\r\n");
+    Serial.print("Selection: ");
 }

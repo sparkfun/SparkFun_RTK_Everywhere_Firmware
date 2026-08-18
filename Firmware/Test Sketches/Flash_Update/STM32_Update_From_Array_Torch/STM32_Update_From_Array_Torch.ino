@@ -76,6 +76,16 @@ void setup()
     pinMode(pin_muxA, OUTPUT);
     pinMode(pin_muxB, OUTPUT);
     muxSelectUsb(); // On Torch: connect ESP UART0 to CH340 Serial
+    displayMenu();
+}
+
+void displayMenu()
+{
+    systemPrintln();
+    systemPrintln("Menu:");
+    systemPrintln("r) Reset");
+    systemPrintln("u) Update Firmware");
+    systemPrint("Make selection: ");
 }
 
 void loop()
@@ -83,6 +93,7 @@ void loop()
     if (Serial.available())
     {
         byte incoming = Serial.read();
+        Serial.printf("%c\r\n", incoming);
         if (incoming == 'r')
         {
             ESP.restart();
@@ -134,6 +145,7 @@ void loop()
             else
                 systemPrintln("LoRa/STM32 update failed.");
         }
+        displayMenu();
     }
 }
 

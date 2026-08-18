@@ -24,9 +24,7 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
-
-const char *wifiSSID = "Roving";
-const char *wifiPassword = "sparkfun";
+#include "secrets.h"
 
 // v11.4.1
 const char *firmwareURL = "/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc";
@@ -133,9 +131,16 @@ void setup()
         systemPrintln(imuVersion);
     else
         systemPrintln("Version query failed.");
+    displayMenu();
+}
 
+void displayMenu()
+{
+    systemPrintln();
+    systemPrintln("Menu:");
     systemPrintln("r) Reset");
     systemPrintln("u) Update Firmware");
+    systemPrint("Make selection: ");
 }
 
 void loop()
@@ -143,6 +148,7 @@ void loop()
     if (Serial.available())
     {
         byte incoming = Serial.read();
+        Serial.printf("%c\r\n", incoming);
         if (incoming == 'r')
         {
             ESP.restart();
@@ -167,6 +173,7 @@ void loop()
                     systemPrintln("Version query failed.");
             }
         }
+        displayMenu();
     }
 }
 
