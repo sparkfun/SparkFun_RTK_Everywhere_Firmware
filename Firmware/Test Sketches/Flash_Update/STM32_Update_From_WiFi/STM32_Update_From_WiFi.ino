@@ -23,10 +23,10 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 
 #include "settings.h"
 
+#include "secrets.h"
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
-#include "secrets.h"
 
 char *firmwareURL = "/lora/stm32wl/SparkPNT_LoRa_3.0.1.bin";
 
@@ -125,6 +125,8 @@ void setup()
             delay(1000);
     }
 
+    loraGetVersion(); // Query the STM32 LoRa firmware version over AT+V?
+
     wifiConnect();
 
     displayMenu();
@@ -156,7 +158,7 @@ void loop()
             // Start timer before erase
             firmwareUpdateStartTime = millis();
 
-            stm32StreamFirmware(firmwareURL);
+            bool updateSuccess = stm32StreamFirmware(firmwareURL);
 
             muxSelectUsb(); // Mandatory for Torch. Reconnect USB to print to terminal
 
@@ -165,6 +167,9 @@ void loop()
             systemPrint("Firmware update time: ");
             systemPrint(firmwareUpdateElapsed / 1000.0, 3);
             systemPrintln(" seconds");
+
+            if (updateSuccess)
+                loraGetVersion(); // Confirm the new firmware version took effect
         }
         displayMenu();
     }
