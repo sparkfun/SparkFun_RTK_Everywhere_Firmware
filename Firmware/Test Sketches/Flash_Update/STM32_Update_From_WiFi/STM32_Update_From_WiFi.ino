@@ -28,7 +28,7 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include <WiFiClientSecure.h>
 #include "secrets.h"
 
-char *firmwareURL = "/lora/stm32wl/SparkPNT_LoRa_3.0.1.bin";
+const char * firmwareURL = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/lora/stm32wl/SparkPNT_LoRa_3.0.1.bin";
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
 
@@ -69,6 +69,10 @@ unsigned long firmwareUpdateElapsed = 0;
 // Global variables used by firmwareUpdateProgressCallback, called by all firmware update procedures
 uint32_t firmwareUpdateBytesToProcess = 0;
 uint32_t firmwareUpdateBytesProcessed = 0;
+
+const char * otaEqualSigns = "==================================================";
+
+#define OTA_DATA_TIMEOUT        (15 * 1000)
 
 void setup()
 {
@@ -156,7 +160,7 @@ void loop()
             // Start timer before erase
             firmwareUpdateStartTime = millis();
 
-            stm32StreamFirmware(firmwareURL);
+            stm32FirmwareUpdate(firmwareURL);
 
             muxSelectUsb(); // Mandatory for Torch. Reconnect USB to print to terminal
 
