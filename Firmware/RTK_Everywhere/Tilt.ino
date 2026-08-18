@@ -525,16 +525,9 @@ void nmeaApplyCompensation(char *nmeaSentence, int sentenceLength)
 }
 
 // Modify a GGA sentence with tilt compensation
-//$GNGGA,213441.00,4005.4176871,N,10511.1034563,W,1,12,99.99,1581.450,M,-21.3612,M,,*7D - Original
-//$GNGGA,213441.00,4005.41769994,N,10507.40740734,W,1,12,99.99,1602.348,M,-21.3612,M,,*4C - Modified
-// 1580.987 is what is provided by the IMU and is the ellisoidal height
-//'Ellipsoidal height' includes the MSL + undulation
-// To get mean sea level: 1580.987 - -21.3612 = 1602.3482
-// 1602.3482 is the orthometric height in meters (MSL reference) that we need to insert into the NMEA sentence
-// See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
-// https://support.virtual-surveyor.com/support/solutions/articles/1000261349-the-difference-between-ellipsoidal-geoid-and-orthometric-elevations-
 void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
 {
+    //$GNGGA,213441.00,4005.41769994,N,10507.40740734,W,1,12,99.99,1602.348,M,-21.3612,M,,*4C
     const int latitudeComma = 2;
     const int longitudeComma = 4;
     const int altitudeComma = 9;
@@ -544,16 +537,9 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
 }
 
 // Modify a GNS sentence with tilt compensation
-//$GNGNS,024034.00,4004.73854216,N,11614.19720023,E,ANAAA,28,0.8,1574.406,-8.4923,,,S*71 - Original
-//$GNGNS,024034.00,4004.73854216,N,11614.19720023,E,ANAAA,28,0.8,1589.4793,-8.4923,,,S*7E - Modified
-// 1580.987 is what is provided by the IMU and is the ellisoidal height
-// 1580.987 is called 'ellipsoidal height' in SW Maps and includes the MSL + undulation
-// To get mean sea level: 1580.987 - -8.4923 = 1589.4793
-// 1589.4793 is the orthometric height in meters (MSL reference) that we need to insert into the NMEA sentence
-// See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
-// https://support.virtual-surveyor.com/support/solutions/articles/1000261349-the-difference-between-ellipsoidal-geoid-and-orthometric-elevations-
 void applyCompensationGNS(char *nmeaSentence, int sentenceLength)
 {
+    //$GNGNS,024034.00,4004.73854216,N,11614.19720023,E,ANAAA,28,0.8,1589.4793,-8.4923,,,S*48
     const int latitudeComma = 2;
     const int longitudeComma = 4;
     const int altitudeComma = 9;
@@ -563,14 +549,13 @@ void applyCompensationGNS(char *nmeaSentence, int sentenceLength)
 }
 
 // Modify a GLL sentence with tilt compensation
-//$GNGLL,4005.4176871,N,10511.1034563,W,214210.00,A,A*68 - Original
-//$GNGLL,4005.41769994,N,10507.40740734,W,214210.00,A,A*6D - Modified
 void applyCompensationGLL(char *nmeaSentence, int sentenceLength)
 {
     // GLL only needs to be changed in tilt mode
     if (tiltIsCorrecting() == false)
         return;
 
+    //$GNGLL,4005.41769994,N,10507.40740734,W,214210.00,A,A*6D
     const int latitudeComma = 1;
     const int longitudeComma = 3;
 
@@ -578,14 +563,13 @@ void applyCompensationGLL(char *nmeaSentence, int sentenceLength)
 }
 
 // Modify a RMC sentence with tilt compensation
-//$GNRMC,214210.00,A,4005.4176871,N,10511.1034563,W,0.000,,070923,,,A,V*04 - Original
-//$GNRMC,214210.00,A,4005.41769994,N,10507.40740734,W,0.000,,070923,,,A,V*01 - Modified
 void applyCompensationRMC(char *nmeaSentence, int sentenceLength)
 {
     // RMC only needs to be changed in tilt mode
     if (tiltIsCorrecting() == false)
         return;
 
+    //$GNRMC,214210.00,A,4005.41769994,N,10507.40740734,W,0.000,,070923,,,A,V*01
     const int latitudeComma = 3;
     const int longitudeComma = 5;
 
@@ -593,7 +577,12 @@ void applyCompensationRMC(char *nmeaSentence, int sentenceLength)
 }
 
 // Given a NMEA sentence, modify the sentence to use the latest tilt-compensated lat/lon/alt
-// Modifies the sentence directly. Updates sentence CRC.
+// Modifies the sentence directly. Updates sentence CRC
+// Note that the IM19 IMU outputs height above ellipsoid, not orthometric height
+// We need to subtract the Geoidal separation (undulation) to convert height above ellipsoid back into
+// orthometric height (altitude above mean sea level)
+// See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
+// https://support.virtual-surveyor.com/support/solutions/articles/1000261349-the-difference-between-ellipsoidal-geoid-and-orthometric-elevations-
 // For GLL and RMC, altitudeComma and undulationComma are nullptr
 // Four possible compensations:
 // If tilt is active, and outputTipAltitude is enabled, then subtract undulation from IMU altitude, and
@@ -712,6 +701,7 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
         strncat(newSentence, nmeaSentence, latitudeStart);
 
         // Convert tilt-compensated latitude to DDMM
+        // This will add 8 decimal places - which may need to be adjusted to match GNSS
         coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                                sizeof(coordinateStringDDMM));
 
@@ -719,8 +709,11 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
         if (strlen(coordinateStringDDMM) != (latitudeStop - latitudeStart))
         {
             if (settings.enableImuCompensationDebug == true && !inMainMenu)
-                systemPrintf("Compensated latitude length has changed! Orig: %d New: %d\r\n",
-                             (latitudeStop - latitudeStart), strlen(coordinateStringDDMM));
+                systemPrintf("Compensated latitude length needs to be %s by %d: %s\r\n",
+                             strlen(coordinateStringDDMM) > (latitudeStop - latitudeStart) ?
+                             "truncated" : "padded",
+                             abs((int)strlen(coordinateStringDDMM) - (latitudeStop - latitudeStart)),
+                             coordinateStringDDMM);
         }
 
         // Add tilt-compensated Latitude
@@ -738,6 +731,7 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
         strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
 
         // Convert tilt-compensated longitude to DDDMM
+        // This will add 8 decimal places - which may need to be adjusted to match GNSS
         coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDDMM, coordinateStringDDMM,
                                sizeof(coordinateStringDDMM));
 
@@ -745,8 +739,11 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
         if (strlen(coordinateStringDDMM) != (longitudeStop - longitudeStart))
         {
             if (settings.enableImuCompensationDebug == true && !inMainMenu)
-                systemPrintf("Compensated longitude length has changed! Orig: %d New: %d\r\n",
-                             (longitudeStop - longitudeStart), strlen(coordinateStringDDMM));
+                systemPrintf("Compensated longitude length needs to be %s by %d: %s\r\n",
+                             strlen(coordinateStringDDMM) > (longitudeStop - longitudeStart) ?
+                             "truncated" : "padded",
+                             abs((int)strlen(coordinateStringDDMM) - (longitudeStop - longitudeStart)),
+                             coordinateStringDDMM);
         }
 
         // Add tilt-compensated Longitude
@@ -847,17 +844,28 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
         }
 
         // If tilt is off and outputTipAltitude is disabled, then we should not be here
+        else if (settings.outputTipAltitude == false)
+        {
+            newAltitude = altitude; // Nothing to do
+
+            if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                systemPrintln("altitude unchanged");
+        }
     }
 
     // Convert altitude double to string
-    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", newAltitude);
+    // Add 4 decimal places - which may need to be adjusted to match GNSS
+    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.4f", newAltitude);
 
     // Check if altitude length has changed
     if (strlen(coordinateStringDDMM) != (altitudeStop - altitudeStart))
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("Compensated altitude length has changed! Orig: %d New: %d\r\n",
-                         (altitudeStop - altitudeStart), strlen(coordinateStringDDMM));
+            systemPrintf("Compensated altitude length needs to be %s by %d: %s\r\n",
+                            strlen(coordinateStringDDMM) > (altitudeStop - altitudeStart) ?
+                            "truncated" : "padded",
+                            abs((int)strlen(coordinateStringDDMM) - (altitudeStop - altitudeStart)),
+                            coordinateStringDDMM);
     }
 
     // Add tilt-compensated Altitude
