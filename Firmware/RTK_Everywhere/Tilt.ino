@@ -1929,6 +1929,17 @@ bool im19FirmwareUpdate(const OTA_TARGET * target,
         return false;
     }
 
+    // Validate the file size
+    if (fileBytes != target->_fileBytes)
+    {
+        systemPrintln(otaEqualSigns);
+        systemPrintf("ERROR: File size has changed, expecting %d bytes, actual %d bytes\r\n",
+                     target->_fileBytes, fileBytes);
+        systemPrintln(otaEqualSigns);
+        http.end();
+        return false;
+    }
+
     // Stream the firmware in chunks so we can report progress via
     // firmwareUpdateProgressCallback() along the way.
     firmwareUpdateBytesProcessed = 0;
