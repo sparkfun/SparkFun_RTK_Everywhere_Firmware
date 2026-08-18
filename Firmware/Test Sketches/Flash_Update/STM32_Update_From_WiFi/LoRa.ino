@@ -18,7 +18,7 @@ void usbPrintf(const char *format, ...)
     }
 
     // Send the output to the USB UART
-    systemPrint(buf);
+    Serial.print(buf);
     va_end(args);
     va_end(args2);
 
