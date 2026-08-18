@@ -443,18 +443,29 @@ bool x20pEnterBootloaderMode()
 
         serialGNSS->updateBaudRate(baudCandidates[i]);
 
-        delay(10);
-        while (serialGNSS->available())
-            serialGNSS->read();
+        // The module boots straight into its application firmware and streams NMEA
+        // continuously (confirmed via raw-byte capture - it is never silent). A single
+        // poll attempt can land mid-sentence and burn its whole TIMEOUT_POLL budget just
+        // scanning past NMEA text before ever reaching the real UBX reply, so retry a few
+        // times with a fresh drain each time rather than giving up on baud after one try.
+        bool gotResponse = false;
+        for (uint8_t attempt = 0; attempt < 3 && !gotResponse; attempt++)
+        {
+            delay(10);
+            while (serialGNSS->available())
+                serialGNSS->read();
 
-        // Training sequence - helps the module's autobaud lock on
-        serialGNSS->write(0x55);
-        serialGNSS->write(0x55);
-        delay(10);
+            // Training sequence - helps the module's autobaud lock on
+            serialGNSS->write(0x55);
+            serialGNSS->write(0x55);
+            delay(10);
 
-        // Confirm UBX communication with a MON-VER poll
-        UbxMsg monVer;
-        if (x20pPollMsg(*serialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, monVer, TIMEOUT_POLL) == true)
+            // Confirm UBX communication with a MON-VER poll
+            UbxMsg monVer;
+            gotResponse = x20pPollMsg(*serialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, monVer, TIMEOUT_POLL);
+        }
+
+        if (gotResponse)
         {
             systemPrintf("  OK at %d baud.\r\n", baudCandidates[i]);
             foundBaud = true;
