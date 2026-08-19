@@ -395,6 +395,8 @@ void menuWiFi()
 
         systemPrintf("d) Set default WiFi channel: %d\r\n", wifiChannel);
 
+        systemPrintf("t) Set WiFi timeout: %d mSec\r\n", settings.wifiConnectTimeoutMs);
+
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -447,6 +449,15 @@ void menuWiFi()
                         systemPrintf("Please start ESP-NOW to use channel %d.", settings.wifiChannel);
                 }
             }
+        }
+
+        // Set the WiFi timeout
+        else if (incoming == 't')
+        {
+            systemPrintf("Enter timeout in mSec: ");
+            uint32_t timeout = getUserInputNumber();
+            if ((timeout != INPUT_RESPONSE_GETNUMBER_EXIT) && (timeout != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+                settings.wifiConnectTimeoutMs = timeout;
         }
 
         else if (incoming == 'x')

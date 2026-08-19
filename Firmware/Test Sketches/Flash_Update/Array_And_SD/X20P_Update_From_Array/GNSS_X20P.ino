@@ -164,7 +164,16 @@ bool x20pReceive(HardwareSerial &ser, UbxMsg &out, uint32_t deadline)
     if ((ckb = x20pReadByte(ser, deadline)) < 0)
         return false;
 
-    return (ca == (uint8_t)cka) && (cb == (uint8_t)ckb);
+    bool crcOk = (ca == (uint8_t)cka) && (cb == (uint8_t)ckb);
+    if (!crcOk)
+    {
+        // A synced-but-corrupt frame is a very different problem than plain silence: it means
+        // bytes ARE arriving but getting mangled (framing/noise/overrun), not that nothing is
+        // being sent. Report it so a run of silent timeouts isn't confused with this.
+        Serial.printf("    [DBG] CRC fail: cls=0x%02X id=0x%02X len=%u (expected %02X %02X, got %02X %02X)\r\n",
+                      out.cls, out.id, out.len, ca, cb, (uint8_t)cka, (uint8_t)ckb);
+    }
+    return crcOk;
 }
 
 // Wait for a UBX message matching class/id (pass -1 to match any).
@@ -354,6 +363,26 @@ bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk,
             sendTime = millis();
             deadline = millis() + TIMEOUT_WRITE;
         }
+    }
+
+    // Final diagnostic: capture whatever shows up right after giving up, to tell apart true
+    // silence (nothing left to receive - module wedged/not listening) from a message that just
+    // never matched cls=UPD/id=0x2A (would already have been logged above by the "rx cls=" branch).
+    {
+        uint32_t rawEnd = millis() + 200;
+        uint8_t rawCount = 0;
+        Serial.print("    [DBG] post-timeout raw rx:");
+        while ((int32_t)(millis() - rawEnd) < 0 && rawCount < 32)
+        {
+            if (ser.available())
+            {
+                uint8_t b = ser.read();
+                Serial.print(b < 0x10 ? " 0" : " ");
+                Serial.print(b, HEX);
+                rawCount++;
+            }
+        }
+        Serial.println(rawCount ? "" : " (silence)");
     }
 
     Serial.println("    [DBG] write retries exhausted");
@@ -600,19 +629,30 @@ bool x20pFirmwareUpdateBegin()
         Serial.printf("Checking communication at %d...\r\n", baudCandidates[i]);
 
         SerialGNSS.updateBaudRate(baudCandidates[i]);
-        
-        delay(10);
-        while(SerialGNSS.available())
-            SerialGNSS.read();
 
-        // Training sequence — helps the module's autobaud lock on
-        SerialGNSS.write(0x55);
-        SerialGNSS.write(0x55);
-        delay(10);
+        // The module boots straight into its application firmware and streams NMEA
+        // continuously (confirmed via raw-byte capture — it is never silent). A single
+        // poll attempt can land mid-sentence and burn its whole TIMEOUT_POLL budget just
+        // scanning past NMEA text before ever reaching the real UBX reply, so retry a few
+        // times with a fresh drain each time rather than giving up on baud after one try.
+        bool gotResponse = false;
+        for (uint8_t attempt = 0; attempt < 3 && !gotResponse; attempt++)
+        {
+            delay(10);
+            while (SerialGNSS.available())
+                SerialGNSS.read();
 
-        // Confirm UBX communication with a MON-VER poll
-        UbxMsg monVer;
-        if (x20pPollMsg(SerialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, monVer, TIMEOUT_POLL) == true)
+            // Training sequence — helps the module's autobaud lock on
+            SerialGNSS.write(0x55);
+            SerialGNSS.write(0x55);
+            delay(10);
+
+            // Confirm UBX communication with a MON-VER poll
+            UbxMsg monVer;
+            gotResponse = x20pPollMsg(SerialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, monVer, TIMEOUT_POLL);
+        }
+
+        if (gotResponse)
         {
             Serial.printf("  OK at %d baud.\r\n", baudCandidates[i]);
             return true;

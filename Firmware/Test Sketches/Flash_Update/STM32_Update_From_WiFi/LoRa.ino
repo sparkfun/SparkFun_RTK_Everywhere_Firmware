@@ -316,3 +316,4 @@ bool stm32StreamFirmware(char *relativeFirmwareFileLocation)
 }
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of LoRa/STM32 firmware update functions.
+

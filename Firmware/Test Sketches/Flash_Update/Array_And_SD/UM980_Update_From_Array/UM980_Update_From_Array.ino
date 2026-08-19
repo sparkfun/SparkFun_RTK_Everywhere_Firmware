@@ -426,7 +426,16 @@ void setup()
   pinMode(pin_GNSS_reset, OUTPUT);
   digitalWrite(pin_GNSS_reset, HIGH); // Keep out of reset
 
-  // runUpdate();
+    displayMenu();
+}
+
+void displayMenu()
+{
+    Serial.println();
+    Serial.println("Menu:");
+    Serial.println("r) Reset");
+    Serial.println("u) Update Firmware");
+    Serial.print("Make selection: ");
 }
 
 void loop()
@@ -434,6 +443,7 @@ void loop()
   if (Serial.available())
   {
     byte incoming = Serial.read();
+    Serial.printf("%c\r\n", incoming);
     if (incoming == 'r')
     {
       ESP.restart();
@@ -442,6 +452,7 @@ void loop()
     {
       runUpdate();
     }
+    displayMenu();
   }
 }
 

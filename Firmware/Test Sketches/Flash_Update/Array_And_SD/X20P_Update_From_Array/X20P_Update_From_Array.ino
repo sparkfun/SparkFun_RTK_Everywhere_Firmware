@@ -87,6 +87,41 @@ uint32_t firmwareUpdateBytesProcessed = 0;
 uint32_t fileSize;
 uint32_t crc;
 
+// Core that owns the GNSS UART hardware and its RX/TX interrupts (matches RTK_Everywhere's
+// default settings.gnssUartInterruptsCore). See espressif/arduino-esp32#3386.
+const uint8_t gnssUartInterruptsCore = 1;
+volatile bool gnssUartPinnedTaskRunning = false;
+
+// Runs once, pinned to gnssUartInterruptsCore, so the UART driver's interrupt handler is
+// allocated on that core. Calling SerialGNSS.begin() from the wrong core can silently leave RX
+// interrupts unserviced, so .available() never returns data regardless of baud rate.
+void gnssUartPinnedTask(void *pvParameters)
+{
+    SerialGNSS.setRxBufferSize(1024 * 2);
+    SerialGNSS.setTimeout(1);
+    SerialGNSS.begin(38400, SERIAL_8N1, pin_UART1_RX, pin_UART1_TX);
+
+    gnssUartPinnedTaskRunning = false;
+    vTaskDelete(nullptr); // Delete task once it has run once
+}
+
+void beginGnssUartPinned()
+{
+    gnssUartPinnedTaskRunning = true;
+
+    TaskHandle_t taskHandle;
+    if (xTaskCreatePinnedToCore(gnssUartPinnedTask, "GnssUartStart", 2000, nullptr, 0, &taskHandle,
+                                gnssUartInterruptsCore) != pdPASS)
+    {
+        Serial.println("ERROR: Failed to create GnssUartStart task");
+        gnssUartPinnedTaskRunning = false;
+        return;
+    }
+
+    while (gnssUartPinnedTaskRunning == true) // Wait for task to complete
+        delay(1);
+}
+
 void setup()
 {
     Serial.begin(115200);
@@ -94,12 +129,20 @@ void setup()
 
     Serial.println("=== ZED-X20P Firmware Updater ===");
 
-    SerialGNSS.begin(38400, SERIAL_8N1, pin_UART1_RX, pin_UART1_TX);
-    Serial.println("Serial GNSS started");
-
+    // Match RTK_Everywhere's Begin.ino ordering: I2C and the GPIO expander (which drives the
+    // GNSS out of reset and routes SW5 to the ESP32) must be brought up BEFORE the GNSS UART is
+    // opened. Opening SerialGNSS first leaves SW5/GNSS_Reset floating (PCA9534 pins power up as
+    // inputs), so the ESP32's UART1 may not actually be wired to the module yet.
     Wire.begin(pin_SDA, pin_SCL);
     beginGpioExpanderSwitches();
     gpioExpanderConnectGNSSToESP32(); // Connect Facet FP GNSS receiver UART1 to ESP32 UART1 for normal comms
+
+    beginGnssUartPinned(); // Match RTK_Everywhere's beginGnssUart(): starts SerialGNSS from a task
+                           // pinned to gnssUartInterruptsCore. See espressif/arduino-esp32#3386 -
+                           // starting a HardwareSerial from the wrong core can leave its RX
+                           // interrupt unserviced, so .available() never returns data at any baud.
+    Serial.println("Serial GNSS started");
+
     displayMenu();
 }
 
@@ -108,6 +151,7 @@ void loop()
     if (Serial.available())
     {
         byte incoming = Serial.read();
+        Serial.printf("%c\r\n", incoming);
         if (incoming == 'r')
         {
             ESP.restart();
@@ -161,7 +205,9 @@ void loop()
 void displayMenu()
 {
     Serial.println();
+    Serial.println("Menu:");
     Serial.printf("g) Reset GNSS\r\n");
     Serial.printf("u) Update GNSS\r\n");
     Serial.printf("r) Reboot system\r\n");
+    Serial.print("Selection: ");
 }

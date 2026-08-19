@@ -23,9 +23,8 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <Update.h>
+#include "secrets.h"
 
-const char *wifiSSID = "Roving";
-const char *wifiPassword = "sparkfun";
 char *firmwareURL = "/RTK_Everywhere_Firmware_v3_3.bin";
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
@@ -71,7 +70,16 @@ void setup()
 
     wifiConnect();
 
-    systemPrintln("u) Start update");
+    displayMenu();
+}
+
+void displayMenu()
+{
+    systemPrintln();
+    systemPrintln("Menu:");
+    systemPrintln("r) Reset");
+    systemPrintln("u) Update Firmware");
+    systemPrint("Make selection: ");
 }
 
 void loop()
@@ -79,6 +87,7 @@ void loop()
     if (Serial.available())
     {
         byte incoming = Serial.read();
+        Serial.printf("%c\r\n", incoming);
         if (incoming == 'r')
         {
             ESP.restart();
@@ -102,5 +111,6 @@ void loop()
 
             ESP.restart();
         }
+        displayMenu();
     }
 }
