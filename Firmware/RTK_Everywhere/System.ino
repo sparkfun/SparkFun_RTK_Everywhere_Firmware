@@ -625,6 +625,10 @@ void printReports()
 }
 
 // Given a user's string, try to identify the type and return the coordinate in DD.ddddddddd format
+// Note: CoordinateInputType will be COORDINATE_INPUT_TYPE_DDMM for both 5-digit (DDDMM) longitude
+//       and 4-digit (DDMM) latitude
+//       CoordinateInputType will be COORDINATE_INPUT_TYPE_DDMMSS for both 7-digit (DDDMMSS) longitude
+//       and 6-digit (DDMMSS) latitude
 CoordinateInputType coordinateIdentifyInputType(const char *userEntryOriginal, double *coordinate)
 {
     char userEntry[50];
@@ -663,7 +667,7 @@ CoordinateInputType coordinateIdentifyInputType(const char *userEntryOriginal, d
 
     // Seven possible entry types
     // DD.ddddddddd
-    // DDMM.mmmmmmm
+    // DDMM.mmmmmmm (or DDDMM.mmmmmmmm)
     // DD MM.mmmmmmm
     // DD-MM.mmmmmmm
     // DDMMSS.ssssss
@@ -820,7 +824,9 @@ void coordinateConvertInput(double coordinate, CoordinateInputType coordinateInp
     {
         snprintf(coordinateString, sizeOfCoordinateString, "%0.9f", coordinate);
     }
-    else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM || coordinateInputType == COORDINATE_INPUT_TYPE_DDMM ||
+    else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM ||
+             coordinateInputType == COORDINATE_INPUT_TYPE_DDMM ||
+             coordinateInputType == COORDINATE_INPUT_TYPE_DDDMM ||
              coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM_DASH ||
              coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM_SYMBOL)
     {
@@ -832,6 +838,8 @@ void coordinateConvertInput(double coordinate, CoordinateInputType coordinateInp
 
         if (coordinateInputType == COORDINATE_INPUT_TYPE_DDMM)
             snprintf(coordinateString, sizeOfCoordinateString, "%02d%011.8f", longitudeDegrees, coordinate);
+        else if (coordinateInputType == COORDINATE_INPUT_TYPE_DDDMM)
+            snprintf(coordinateString, sizeOfCoordinateString, "%03d%011.8f", longitudeDegrees, coordinate);
         else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM_DASH)
             snprintf(coordinateString, sizeOfCoordinateString, "%02d-%011.8f", longitudeDegrees, coordinate);
         else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM_SYMBOL)

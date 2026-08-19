@@ -69,8 +69,12 @@ void menuBase()
 
                 systemPrint(", ");
 
-                coordinateConvertInput(settings.fixedLong, settings.coordinateInputType, coordinatePrintable,
-                                       sizeof(coordinatePrintable));
+                if (settings.coordinateInputType == COORDINATE_INPUT_TYPE_DDMM)
+                    coordinateConvertInput(settings.fixedLong, COORDINATE_INPUT_TYPE_DDDMM, coordinatePrintable,
+                                           sizeof(coordinatePrintable));
+                else
+                    coordinateConvertInput(settings.fixedLong, settings.coordinateInputType, coordinatePrintable,
+                                           sizeof(coordinatePrintable));
                 systemPrint(coordinatePrintable);
 
                 systemPrint(", ");
