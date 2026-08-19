@@ -394,13 +394,7 @@ Im19UpdateResult im19UpdateFirmwareEnd()
     return IM19_UPDATE_FAILED;
 }
 
-//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-// WiFi streaming: pulls bytes from the URL and feeds them to the IM19 update state
-// machine above. A retry only re-requests (via HTTP Range) the byte ranges the IM19
-// says it's still missing - the rest of the file is never re-downloaded or re-sent.
-//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-// Reads 'byteCount' bytes starting at 'startOffset' from an already-open file object
+// Reads 'byteCount' bytes starting at 'startOffset' from the global file object
 // and feeds them to the IM19, reporting progress as it goes.
 static bool im19PumpFileToDevice(const char *fileName, uint32_t startOffset, uint32_t byteCount)
 {
@@ -426,7 +420,10 @@ static bool im19PumpFileToDevice(const char *fileName, uint32_t startOffset, uin
             break;
 
         if (!im19UpdateFirmware(buffer, (uint32_t)bytesRead))
+        {
+            file.close();
             return false;
+        }
 
         received += bytesRead;
         firmwareUpdateProgressCallback((uint16_t)bytesRead);
@@ -509,7 +506,7 @@ bool im19StreamFirmwareFromFile(const char *fileName)
     uint32_t fileSize = (uint32_t)file.fileSize();
     firmwareUpdateBytesToProcess = fileSize;
 
-    file.close();
+    file.close(); // Close the file. im19PumpFileToDevice will re-open
 
     if (!im19UpdateFirmwareBegin(fileSize))
     {
