@@ -1349,7 +1349,7 @@ static void im19ResetImu()
         // On FP, the GNSS and IMU reset is shared
         // Putting the LG290P Flex Module into reset can bring down the I2C bus
         // gpioExpanderDetectGnssForced() will perfrom a very quick reset if needed
-        gpioExpanderDetectGnssForced()
+        gpioExpanderDetectGnssForced();
     }
     else
     {
