@@ -1332,10 +1332,29 @@ static bool im19SendATCommand(const char *cmd, const char *response, int retries
 // Hardware-resets the GNSS/IMU module ahead of entering the bootloader.
 static void im19ResetImu()
 {
-    pinMode(pin_GNSS_DR_Reset, OUTPUT);
-    digitalWrite(pin_GNSS_DR_Reset, LOW);
-    delay(100);
-    digitalWrite(pin_GNSS_DR_Reset, HIGH);
+    if (productVariant == RTK_TORCH)
+    {
+        // ESP32 UART2 is connected directly to IM19 UART1
+
+        gnssReset();
+        delay(50);
+        gnssBoot();
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        // On FP, confirm SW3 is in the correct position
+        // linking ESP32 UART2 to IMU UART1 on Flex Module (Flex UART3)
+        gpioExpanderSelectImu();
+
+        // On FP, the GNSS and IMU reset is shared
+        // Putting the LG290P Flex Module into reset can bring down the I2C bus
+        // gpioExpanderDetectGnssForced() will perfrom a very quick reset if needed
+        gpioExpanderDetectGnssForced()
+    }
+    else
+    {
+        reportFatalError("im19ResetImu: unknown product variant");
+    }
 }
 
 // Puts the IM19 into its bootloader and gets ready to receive frames for a file of
