@@ -1287,6 +1287,11 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
     {
         if (settings.debugNetworkLayer)
             systemPrintf("%s stop sequencer running, not marking interface online\r\n", networkGetNameByIndex(index));
+
+        // The stop sequence may finish shortly after this check. Re-arm the event so
+        // networkUpdate() retries on a later pass instead of losing it permanently,
+        // which otherwise leaves the interface with a valid IP but never marked online.
+        networkEventInternetAvailable[index] = true;
         return;
     }
 
