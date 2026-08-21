@@ -755,14 +755,8 @@ bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
 // Owns the full update sequence: enters bootloader mode, streams the image
 // over WiFi, then verifies/reboots - callers only need to call this one
 // function and do not need to know about Begin()/End().
-bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
+bool x20pStreamFirmware(const char * url)
 {
-    if (relativeFirmwareFileLocation == nullptr)
-    {
-        systemPrintln("Firmware file location is null.");
-        return false;
-    }
-
     systemPrintln("Starting X20P firmware update...");
 
     firmwareUpdateProgressReset();
@@ -788,8 +782,9 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
         return false;
     }
 
+    systemPrintf("Starting HTTP GET for firmware: %s\r\n", url);
     HTTPClient http;
-    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
+    if (!http.begin(client, url))
     {
         systemPrintln("Unable to begin HTTP request.");
         x20pFirmwareUpdateEnd(false);

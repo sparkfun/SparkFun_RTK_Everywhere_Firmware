@@ -30,10 +30,10 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include "secrets.h"
 
 // 2.02
-char *firmwareURL = "/gnss/zed-x20p/UBX_20_HPG_202_ZED_F20P.329facb56ce18631d607fe15177834dc.bin";
+const char *firmwareURL = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/gnss/zed-x20p/UBX_20_HPG_202_ZED_F20P.329facb56ce18631d607fe15177834dc.bin";
 
 // 2.10
-//char *firmwareURL = "/gnss/zed-x20p/UBX_20_HPG_210_ZED_X20P-01B.512369040097ce18fd3475e71e7c627f.bin";
+//const char *firmwareURL = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/gnss/zed-x20p/UBX_20_HPG_210_ZED_X20P-01B.512369040097ce18fd3475e71e7c627f.bin";
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
 
