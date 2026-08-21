@@ -855,6 +855,7 @@ bool x20pStreamFirmware(NetworkClient * stream,
     firmwareUpdateProgressReset(fileBytes);
 
     unsigned long lastDataTime = millis();
+    size_t validData = 0;
     if (settings.debugFirmwareUpdate)
         systemPrintf("stream->connected(): %d\r\n", stream->connected());
     while (stream->connected() && (fileBytes > 0))
@@ -875,26 +876,32 @@ bool x20pStreamFirmware(NetworkClient * stream,
             systemPrintf("availableBytes: %d\r\n", availableBytes);
 
         // Read the received data
-        size_t toRead = min(availableBytes, packetBytes);
-        int bytesRead = stream->readBytes(buffer, toRead);
+        size_t toRead = min(availableBytes, packetBytes - validData);
+        int bytesRead = stream->readBytes(&buffer[validData], toRead);
         if (settings.debugFirmwareUpdate && otaDebugVerbose)
             systemPrintf("bytesRead: %d\r\n", bytesRead);
         if (bytesRead <= 0)
             break;
+        validData += bytesRead;
+
+        // Fill the packet
+        if ((validData < packetBytes) && (validData != fileBytes))
+            continue;
 
         // Update this portion of the firmware
-        if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
+        if (x20pUpdateFirmware(*serialGNSS, buffer, validData) == false)
         {
             systemPrintln("X20P firmware update failed during write");
             break;
         }
 
         // Display the progress
-        firmwareUpdateProgressCallback(bytesRead);
+        firmwareUpdateProgressCallback(validData);
 
         // Account for this data
-        fileBytes -= bytesRead;
+        fileBytes -= validData;
         lastDataTime = millis();
+        validData = 0;
     }
 
     bool success = (fileBytes == 0);
