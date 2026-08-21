@@ -779,8 +779,6 @@ bool x20pStreamFirmware(const char * url)
 {
     systemPrintln("Starting X20P firmware update...");
 
-    firmwareUpdateProgressReset();
-
     // Enter the bootloader and erase flash before opening the GitHub connection.
     // This sequence involves two hardware resets and autobaud probing and can take
     // 30+ seconds; opening the HTTPS GET first and leaving it idle that long risked
@@ -820,14 +818,14 @@ bool x20pStreamFirmware(const char * url)
         return false;
     }
 
-    int fileBytes = http.getSize();
-    if (fileBytes > 0)
-        firmwareUpdateBytesToProcess = (uint32_t)fileBytes;
+    size_t fileBytes = http.getSize();
 
     WiFiClient *stream = http.getStreamPtr();
     uint8_t buffer[256];
 
     bool success = true;
+
+    firmwareUpdateProgressReset(fileBytes);
 
     while (http.connected() && (fileBytes > 0 || fileBytes == -1))
     {

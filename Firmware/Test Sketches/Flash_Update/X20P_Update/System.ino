@@ -3,9 +3,9 @@
 // (bytesProcessed and lastPercent both already at their prior-run end
 // values), which suppresses every progress print on a second run since
 // percent is already 100 and "unchanged".
-void firmwareUpdateProgressReset()
+void firmwareUpdateProgressReset(size_t fileBytes)
 {
-    firmwareUpdateBytesToProcess = 0;
+    firmwareUpdateBytesToProcess = fileBytes;
     firmwareUpdateBytesProcessed = 0;
     firmwareUpdateLastPercent = 0;
 }
