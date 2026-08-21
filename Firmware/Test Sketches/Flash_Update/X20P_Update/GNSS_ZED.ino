@@ -428,7 +428,6 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
  */
 bool x20pEnterBootloaderMode()
 {
-    systemPrintln("Resetting X20P");
     gpioExpanderGnssReset();
     delay(25);
     gpioExpanderGnssBoot();
@@ -835,7 +834,7 @@ bool x20pStreamFirmware(NetworkClient * stream,
     // single body byte was ever consumed.
     if (x20pFirmwareUpdateBegin() == false)
     {
-        systemPrintln("Failed to enter bootloader mode.");
+        systemPrintln("X20P failed to enter bootloader mode.");
         return false;
     }
 
@@ -848,6 +847,8 @@ bool x20pStreamFirmware(NetworkClient * stream,
     // Initialize the progress bar
     firmwareUpdateProgressReset(fileBytes);
 
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("stream->connected(): %d\r\n", stream->connected());
     while (stream->connected() && (fileBytes > 0 || fileBytes == -1))
     {
         // Wait until some data is available
@@ -859,10 +860,14 @@ bool x20pStreamFirmware(NetworkClient * stream,
             delay(1);
             continue;
         }
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("availableBytes: %d\r\n", availableBytes);
 
         // Read the received data
         size_t toRead = min(availableBytes, sizeof(buffer));
         int bytesRead = stream->readBytes(buffer, toRead);
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("bytesRead: %d\r\n", bytesRead);
         if (bytesRead <= 0)
             break;
 
