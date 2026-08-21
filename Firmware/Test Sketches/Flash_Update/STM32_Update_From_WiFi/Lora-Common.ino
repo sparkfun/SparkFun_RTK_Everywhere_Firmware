@@ -218,35 +218,45 @@ bool loraWaitForVersionResponse(unsigned long timeoutMs)
                 delay(10);
                 while (loraAvailable())
                 {
-                    char incoming = loraRead();
-                    if (responseSpot < (responseLen - 1))
-                        response[responseSpot++] = incoming;
+                    if (responseLen - 1 == responseSpot)
+                    {
+                        for (int i = 1; i < responseLen; i++)
+                            response[i - 1] = response[i]; // Shift the FIFO along by 1
+                        responseSpot--;
+                    }
+                    response[responseSpot++] = loraRead();
+                    response[responseSpot] = 0;
                 }
-                response[responseSpot] = 0;
 
                 char *versionPtr = strstr(response, "version:");
-                versionPtr += strlen("version:");
-                while ((*versionPtr == ' ') || (*versionPtr == '\t'))
-                    versionPtr++;
-
-                int versionSpot = 0;
-                while ((versionPtr[versionSpot] >= '0' && versionPtr[versionSpot] <= '9') ||
-                       (versionPtr[versionSpot] == '.'))
+                if (versionPtr != nullptr)
                 {
-                    if (versionSpot >= (int)(sizeof(loraFirmwareVersionStr) - 1))
-                        break;
-                    loraFirmwareVersionStr[versionSpot] = versionPtr[versionSpot];
-                    versionSpot++;
+                    versionPtr += strlen("version:");
+                    while ((*versionPtr == ' ') || (*versionPtr == '\t'))
+                        versionPtr++;
+
+                    int versionSpot = 0;
+                    while ((versionPtr[versionSpot] >= '0' && versionPtr[versionSpot] <= '9') ||
+                        (versionPtr[versionSpot] == '.'))
+                    {
+                        if (versionSpot >= (int)(sizeof(loraFirmwareVersionStr) - 1))
+                            break;
+                        loraFirmwareVersionStr[versionSpot] = versionPtr[versionSpot];
+                        versionSpot++;
+                    }
+                    loraFirmwareVersionStr[versionSpot] = 0;
+
+                    int verMajor = 0;
+                    int verMinor = 0;
+                    int verPatch = 0;
+                    if (sscanf(loraFirmwareVersionStr, "%d.%d.%d", &verMajor, &verMinor, &verPatch) == 3)
+                    {
+                        loraFirmwareVersionInt = (verMajor * 100) + (verMinor * 10) + (verPatch);
+                        return true;
+                    }
                 }
-                loraFirmwareVersionStr[versionSpot] = 0;
 
-                int verMajor = 0;
-                int verMinor = 0;
-                int verPatch = 0;
-                if (sscanf(loraFirmwareVersionStr, "%d.%d.%d", &verMajor, &verMinor, &verPatch) == 3)
-                    loraFirmwareVersionInt = (verMajor * 100) + (verMinor * 10) + (verPatch);
-
-                return true;
+                return false;
             }
         }
         else
