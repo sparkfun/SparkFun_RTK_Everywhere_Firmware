@@ -296,6 +296,8 @@ bool im19UpdateFirmwareBegin(uint32_t fileSize)
     {
         imuReset();
         delay(1000);
+        while (SerialForTilt->available()) // Ensure the RX buffer is clear
+            SerialForTilt->read();
         if (im19SendATCommand("AT+UPDATE_APP\r\n", "OK", 5, nullptr, 0, nullptr))
             return true;
     }

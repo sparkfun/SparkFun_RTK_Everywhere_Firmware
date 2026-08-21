@@ -1323,7 +1323,7 @@ static bool im19SendATCommand(const char *cmd, const char *response, int retries
         delay(50);
         im19Serial()->setTimeout(50);
         int buf_len = im19Serial()->readBytes(buf, sizeof(buf));
-        if (buf_len > 0 && im19FindStr(buf, buf_len, response))
+        if ((buf_len > 0) && im19FindStr(buf, buf_len, response))
             return true;
     }
     return false;
@@ -1378,6 +1378,8 @@ bool im19UpdateFirmwareBegin(uint32_t fileSize)
     {
         im19ResetImu();
         delay(1000);
+        while (im19Serial()->available()) // Ensure the RX buffer is clear
+            im19Serial()->read();
         if (im19SendATCommand("AT+UPDATE_APP\r\n", "OK", 5))
             return true;
     }
