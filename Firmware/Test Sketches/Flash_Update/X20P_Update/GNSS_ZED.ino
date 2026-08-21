@@ -800,7 +800,14 @@ bool x20pFirmwareUpdate(const char * url)
         return false;
     }
 
+    // Get the file size
     size_t fileBytes = http.getSize();
+    if ((ssize_t)fileBytes <= 0)
+    {
+        systemPrintf("ERROR: Invalid file size: %d, must be > 0\r\n", fileBytes);
+        http.end();
+        return false;
+    }
 
     WiFiClient *stream = http.getStreamPtr();
 
@@ -842,15 +849,13 @@ bool x20pStreamFirmware(NetworkClient * stream,
 
     uint8_t buffer[256];
 
-    bool success = true;
-
     // Initialize the progress bar
     firmwareUpdateProgressReset(fileBytes);
 
     unsigned long lastDataTime = millis();
     if (settings.debugFirmwareUpdate)
         systemPrintf("stream->connected(): %d\r\n", stream->connected());
-    while (stream->connected() && (fileBytes > 0 || fileBytes == -1))
+    while (stream->connected() && (fileBytes > 0))
     {
         // Wait until some data is available
         size_t availableBytes = stream->available();
@@ -859,7 +864,6 @@ bool x20pStreamFirmware(NetworkClient * stream,
             if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
             {
                 systemPrintf("X20P firmware update timed out waiting for data\r\n");
-                success = false;
                 break;
             }
             delay(1);
@@ -880,7 +884,6 @@ bool x20pStreamFirmware(NetworkClient * stream,
         if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
         {
             systemPrintln("X20P firmware update failed during write");
-            success = false;
             break;
         }
 
@@ -888,11 +891,11 @@ bool x20pStreamFirmware(NetworkClient * stream,
         firmwareUpdateProgressCallback(bytesRead);
 
         // Account for this data
-        if (fileBytes > 0)
-            fileBytes -= bytesRead;
+        fileBytes -= bytesRead;
         lastDataTime = millis();
     }
 
+    bool success = (fileBytes == 0);
     if (success)
         systemPrintln("X20P firmware update successfully completed.");
     else
