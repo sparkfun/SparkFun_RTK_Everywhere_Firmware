@@ -800,16 +800,16 @@ bool x20pStreamFirmware(const char * url)
         return false;
     }
 
-    int contentLength = http.getSize();
-    if (contentLength > 0)
-        firmwareUpdateBytesToProcess = (uint32_t)contentLength;
+    int fileBytes = http.getSize();
+    if (fileBytes > 0)
+        firmwareUpdateBytesToProcess = (uint32_t)fileBytes;
 
     WiFiClient *stream = http.getStreamPtr();
     uint8_t buffer[256];
 
     bool success = true;
 
-    while (http.connected() && (contentLength > 0 || contentLength == -1))
+    while (http.connected() && (fileBytes > 0 || fileBytes == -1))
     {
         size_t available = stream->available();
         if (available == 0)
@@ -834,8 +834,8 @@ bool x20pStreamFirmware(const char * url)
 
         firmwareUpdateProgressCallback(bytesRead);
 
-        if (contentLength > 0)
-            contentLength -= bytesRead;
+        if (fileBytes > 0)
+            fileBytes -= bytesRead;
     }
 
     http.end();
