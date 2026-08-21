@@ -992,8 +992,8 @@ void gnssFirmwareDirectConnectHardware() // Facet FP only
             char c = Serial.read();
             if ((c == 'r') || (c == 'R'))
                 // If the GNSS is a LG290P, putting it into reset will bring down I2C
-                // So use the fast GNSS-detect routine to do the reset
-                gpioExpanderDetectGnssForced();
+                // So use the fast GNSS reset
+                gpioExpanderGnssResetFast();
             else
                 break; // Break on any other character
         }
