@@ -77,6 +77,7 @@
 //  x20pFirmwareUpdateBegin(), freed in x20pFirmwareUpdateEnd().
 // ==================================================================
 
+uint8_t buffer[PACKET_SIZE];
 static uint8_t *x20pPageBuffer = nullptr; // Accumulates incoming bytes; flushed every PACKET_SIZE bytes
 static uint16_t x20pBufferIndex = 0;
 static uint32_t x20pCurrentAddress = FW_BASE_ADDR; // Next flash address to write; advances as pages are flashed
@@ -811,7 +812,7 @@ bool x20pFirmwareUpdate(const char * url)
 
     WiFiClient *stream = http.getStreamPtr();
 
-    bool success = x20pStreamFirmware(stream, fileBytes);
+    bool success = x20pStreamFirmware(stream, fileBytes, buffer, sizeof(buffer));
 
     http.end();
 
@@ -830,7 +831,9 @@ bool x20pFirmwareUpdate(const char * url)
  * Returns true upon successful firmware update and false upon failure.
  */
 bool x20pStreamFirmware(NetworkClient * stream,
-                        size_t fileBytes)
+                        size_t fileBytes,
+                        uint8_t * buffer,
+                        size_t packetBytes)
 {
     systemPrintln("Starting X20P firmware update...");
 
@@ -847,7 +850,6 @@ bool x20pStreamFirmware(NetworkClient * stream,
 
     systemPrintln("X20P is in bootloader mode.");
 
-    uint8_t buffer[256];
 
     // Initialize the progress bar
     firmwareUpdateProgressReset(fileBytes);
@@ -873,7 +875,7 @@ bool x20pStreamFirmware(NetworkClient * stream,
             systemPrintf("availableBytes: %d\r\n", availableBytes);
 
         // Read the received data
-        size_t toRead = min(availableBytes, sizeof(buffer));
+        size_t toRead = min(availableBytes, packetBytes);
         int bytesRead = stream->readBytes(buffer, toRead);
         if (settings.debugFirmwareUpdate && otaDebugVerbose)
             systemPrintf("bytesRead: %d\r\n", bytesRead);
