@@ -89,6 +89,7 @@ uint8_t firmwareUpdateLastPercent = 0;
 // To be removed / obtained from JSON file in the future
 uint32_t fileSize;
 uint32_t crc;
+bool otaDebugVerbose;
 
 void setup()
 {
@@ -126,6 +127,11 @@ void loop()
         {
             ESP.restart();
         }
+        else if (incoming == 'd')
+        {
+            settings.debugFirmwareUpdate ^= 1;
+            otaDebugVerbose = false;
+        }
         else if (incoming == 'g')
         {
             systemPrintln("Resetting GNSS");
@@ -162,6 +168,8 @@ void loop()
                 serialGNSS->read();
             x20pPrintVersion(*serialGNSS);
         }
+        else if (incoming == 'v')
+            otaDebugVerbose ^= 1;
         displayMenu();
     }
 }
@@ -174,6 +182,8 @@ void displayMenu()
     systemPrintf("p) Update GNSS to 2.02\r\n");
     systemPrintf("u) Update GNSS to 2.10\r\n");
     systemPrintf("r) Reboot system\r\n");
+    systemPrintf("d) Debug: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
+    systemPrintf("v) Verbose output: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
     systemPrint("Selection: ");
 }
 
