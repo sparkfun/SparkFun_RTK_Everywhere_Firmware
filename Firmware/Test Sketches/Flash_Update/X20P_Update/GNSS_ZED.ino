@@ -400,7 +400,7 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
         {
             if (!x20pWriteChunk(ser, x20pCurrentAddress, x20pPageBuffer, PACKET_SIZE))
             {
-                systemPrintf("  ERROR: write failed at address 0x%08X\r\n", x20pCurrentAddress);
+                systemPrintf("ERROR: X20P write failed at address 0x%08X\r\n", x20pCurrentAddress);
                 x20pUpdateFailed = true;
                 return false;
             }
@@ -428,6 +428,7 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
  */
 bool x20pEnterBootloaderMode()
 {
+    systemPrintln("Resetting X20P");
     gpioExpanderGnssReset();
     delay(25);
     gpioExpanderGnssBoot();
@@ -791,7 +792,7 @@ bool x20pStreamFirmware(const char * url)
         return false;
     }
 
-    systemPrintln("Device is in bootloader mode.");
+    systemPrintln("X20P is in bootloader mode.");
 
     WiFiClientSecure client;
     if (!otaSecurelyConnectGitHub(client))
@@ -846,7 +847,7 @@ bool x20pStreamFirmware(const char * url)
 
         if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
         {
-            systemPrintln("X20P firmware update failed during WiFi data upload.");
+            systemPrintln("X20P firmware update failed during write");
             success = false;
             break;
         }
@@ -860,14 +861,14 @@ bool x20pStreamFirmware(const char * url)
     http.end();
 
     if (success)
-        systemPrintln("X20P update successfully completed.");
+        systemPrintln("X20P firmware update successfully completed.");
     else
         systemPrintln("X20P firmware update failed.");
 
     // x20pFirmwareUpdateBegin() succeeded above, so End() must always run -
     // it verifies (when success), frees the page buffer, and reboots the device.
     if (settings.debugFirmwareUpdate)
-        systemPrintln("Rebooting receiver...");
+        systemPrintln("Rebooting X20P...");
     bool updateOk = x20pFirmwareUpdateEnd(success);
 
     return updateOk;
