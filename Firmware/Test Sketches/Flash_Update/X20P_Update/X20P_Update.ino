@@ -30,10 +30,10 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include "secrets.h"
 
 // 2.02
-const char *firmwareURL = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/gnss/zed-x20p/UBX_20_HPG_202_ZED_F20P.329facb56ce18631d607fe15177834dc.bin";
+const char * url_2_02 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/gnss/zed-x20p/UBX_20_HPG_202_ZED_F20P.329facb56ce18631d607fe15177834dc.bin";
 
 // 2.10
-//const char *firmwareURL = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/gnss/zed-x20p/UBX_20_HPG_210_ZED_X20P-01B.512369040097ce18fd3475e71e7c627f.bin";
+const char * url_2_10 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/gnss/zed-x20p/UBX_20_HPG_210_ZED_X20P-01B.512369040097ce18fd3475e71e7c627f.bin";
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
 
@@ -116,6 +116,8 @@ void setup()
 
 void loop()
 {
+    const char * url;
+
     if (Serial.available())
     {
         byte incoming = Serial.read();
@@ -132,12 +134,15 @@ void loop()
             gpioExpanderGnssBoot();
             delay(250);
         }
-        else if (incoming == 'u')
+        else if ((incoming == 'p') || (incoming == 'u'))
         {
+            url = (incoming == 'p') ? url_2_02 : url_2_10;
+
             // Start timer before erase
             firmwareUpdateStartTime = millis();
 
-            if (x20pStreamFirmware(firmwareURL) == true)
+            // Attempt to update the firmware
+            if (x20pStreamFirmware(url) == true)
                 systemPrintln("ZED-X20P updated successfully.");
             else
                 systemPrintln("ZED-X20P update failed.");
@@ -166,7 +171,8 @@ void displayMenu()
     systemPrintln();
     systemPrintln("Menu:");
     systemPrintf("g) Reset GNSS\r\n");
-    systemPrintf("u) Update GNSS\r\n");
+    systemPrintf("p) Update GNSS to 2.02\r\n");
+    systemPrintf("u) Update GNSS to 2.10\r\n");
     systemPrintf("r) Reboot system\r\n");
     systemPrint("Selection: ");
 }
