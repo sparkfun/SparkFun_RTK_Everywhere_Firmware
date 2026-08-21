@@ -935,6 +935,80 @@ bool loraSendCommand(const char *command, char *response, int *responseSize, con
     return (false);
 }
 
+// Reads incoming bytes looking for "version:x.y.z" in the response to AT+V?.
+// Parses and stores the version into loraFirmwareVersionStr/loraFirmwareVersionInt if found.
+bool loraWaitForVersionResponse(unsigned long timeoutMs)
+{
+    const int responseLen = 48; // Enough to capture "version:x.y.z" and nearby response text
+    char response[responseLen];
+    int responseSpot = 0;
+
+    unsigned long startTime = millis();
+    while ((millis() - startTime) < timeoutMs)
+    {
+        if (loraAvailable())
+        {
+            if (responseLen - 1 == responseSpot)
+            {
+                for (int i = 1; i < responseLen; i++)
+                    response[i - 1] = response[i]; // Shift the FIFO along by 1
+                responseSpot--;
+            }
+            response[responseSpot++] = loraRead();
+            response[responseSpot] = 0;
+
+            if (strstr(response, "version:"))
+            {
+                // Read in the entire response
+                delay(10);
+                while (loraAvailable())
+                {
+                    if (responseLen - 1 == responseSpot)
+                    {
+                        for (int i = 1; i < responseLen; i++)
+                            response[i - 1] = response[i]; // Shift the FIFO along by 1
+                        responseSpot--;
+                    }
+                    response[responseSpot++] = loraRead();
+                    response[responseSpot] = 0;
+                }
+
+                // Capture the version so loraGetVersion does not need a second AT+V? query
+                char *versionPtr = strstr(response, "version:");
+                if (versionPtr != nullptr)
+                {
+                    versionPtr += strlen("version:");
+                    while ((*versionPtr == ' ') || (*versionPtr == '\t'))
+                        versionPtr++;
+
+                    int versionSpot = 0;
+                    while ((versionPtr[versionSpot] >= '0' && versionPtr[versionSpot] <= '9') ||
+                           (versionPtr[versionSpot] == '.'))
+                    {
+                        if (versionSpot >= (int)(sizeof(loraFirmwareVersionStr) - 1))
+                            break;
+                        loraFirmwareVersionStr[versionSpot] = versionPtr[versionSpot];
+                        versionSpot++;
+                    }
+                    loraFirmwareVersionStr[versionSpot] = 0;
+
+                    int verMajor = 0;
+                    int verMinor = 0;
+                    int verPatch = 0;
+                    if (sscanf(loraFirmwareVersionStr, "%d.%d.%d", &verMajor, &verMinor, &verPatch) == 3)
+                    {
+                        loraFirmwareVersionInt = (verMajor * 100) + (verMinor * 10) + (verPatch);
+                        return (true);
+                    }
+                }
+            }
+        }
+        delay(1);
+    }
+
+    return false;
+}
+
 // On the Torch, USB and LoRa radio are shared, so disconnects from USB are required
 // On the Facet FP, LoRa UART2 is on ESP32 UART2
 // Sends AT+V?, if response, we are already in command mode -> Reconnects to USB, Return
@@ -942,9 +1016,8 @@ bool loraSendCommand(const char *command, char *response, int *responseSize, con
 // Sends AT+V?, if response, record the version number, we are in command mode -> Reconnects to USB, Return
 bool loraEnterCommandMode()
 {
-    const int responseLen = 48; // Enough to capture "version:x.y.z" and nearby response text
-    char response[responseLen];
-    int responseSpot = 0;
+    loraFirmwareVersionStr[0] = 0; // Clear any previously cached version before re-querying
+    loraFirmwareVersionInt = 0;
 
     loraReset(); // Needed for Torch
 
@@ -960,134 +1033,24 @@ bool loraEnterCommandMode()
     // Send version query. Wait up to 2000ms for a response
     // From the logic analyzer, "version:3.0.1\r\n\r\nOK\r\n" is typically sent after ~5ms
     loraPrint("AT+V?\r\n");
-    unsigned long startTime = millis();
-    while ((millis() - startTime) < 2000)
+    bool gotResponse = loraWaitForVersionResponse(2000);
+
+    if (gotResponse == false)
     {
-        if (loraAvailable())
-        {
-            if (responseLen - 1 == responseSpot)
-            {
-                for (int i = 1; i < responseLen; i++)
-                    response[i - 1] = response[i]; // Shift the FIFO along by 1
-            }
-            response[responseSpot++] = loraRead();
-            response[responseSpot] = 0;
+        // No response so send +++
+        loraPrint("+++\r\n");
+        delay(100); // Allow STM32 time to enter command mode
 
-            if (strstr(response, "version:"))
-            {
-                // Read in the entire response
-                delay(10);
-                while (loraAvailable())
-                {
-                    char incoming = loraRead();
-                    if (responseSpot < (responseLen - 1))
-                        response[responseSpot++] = incoming;
-                }
-                response[responseSpot] = 0;
-
-                // Capture the version so loraGetVersion does not need a second AT+V? query
-                char *versionPtr = strstr(response, "version:");
-                if (versionPtr != nullptr)
-                {
-                    versionPtr += strlen("version:");
-                    while ((*versionPtr == ' ') || (*versionPtr == '\t'))
-                        versionPtr++;
-
-                    int versionSpot = 0;
-                    while ((versionPtr[versionSpot] >= '0' && versionPtr[versionSpot] <= '9') ||
-                           (versionPtr[versionSpot] == '.'))
-                    {
-                        if (versionSpot >= (int)(sizeof(loraFirmwareVersionStr) - 1))
-                            break;
-                        loraFirmwareVersionStr[versionSpot] = versionPtr[versionSpot];
-                        versionSpot++;
-                    }
-                    loraFirmwareVersionStr[versionSpot] = 0;
-
-                    int verMajor = 0;
-                    int verMinor = 0;
-                    int verPatch = 0;
-                    if (sscanf(loraFirmwareVersionStr, "%d.%d.%d", &verMajor, &verMinor, &verPatch) == 3)
-                        loraFirmwareVersionInt = (verMajor * 100) + (verMinor * 10) + (verPatch);
-                }
-
-                muxSelectUsb(); // Connect USB
-                endLoRaConfigureCommunicationOnFacet();
-                return (true);
-            }
-        }
-        delay(1);
-    }
-
-    // No response so send +++
-    loraPrint("+++\r\n");
-    delay(100); // Allow STM32 time to enter command mode
-
-    // Send version query. Wait up to 2000ms for a response
-    loraPrint("AT+V?\r\n");
-    startTime = millis();
-    while ((millis() - startTime) < 2000)
-    {
-        if (loraAvailable())
-        {
-            if (responseLen - 1 == responseSpot)
-            {
-                for (int i = 1; i < responseLen; i++)
-                    response[i - 1] = response[i]; // Shift the FIFO along by 1
-            }
-            response[responseSpot++] = loraRead();
-            response[responseSpot] = 0;
-
-            if (strstr(response, "version:"))
-            {
-                // Read in the entire response
-                delay(10);
-                while (loraAvailable())
-                {
-                    char incoming = loraRead();
-                    if (responseSpot < (responseLen - 1))
-                        response[responseSpot++] = incoming;
-                }
-                response[responseSpot] = 0;
-
-                // Capture the version so loraGetVersion does not need a second AT+V? query
-                char *versionPtr = strstr(response, "version:");
-                if (versionPtr != nullptr)
-                {
-                    versionPtr += strlen("version:");
-                    while ((*versionPtr == ' ') || (*versionPtr == '\t'))
-                        versionPtr++;
-
-                    int versionSpot = 0;
-                    while ((versionPtr[versionSpot] >= '0' && versionPtr[versionSpot] <= '9') ||
-                           (versionPtr[versionSpot] == '.'))
-                    {
-                        if (versionSpot >= (int)(sizeof(loraFirmwareVersionStr) - 1))
-                            break;
-                        loraFirmwareVersionStr[versionSpot] = versionPtr[versionSpot];
-                        versionSpot++;
-                    }
-                    loraFirmwareVersionStr[versionSpot] = 0;
-
-                    int verMajor = 0;
-                    int verMinor = 0;
-                    int verPatch = 0;
-                    if (sscanf(loraFirmwareVersionStr, "%d.%d.%d", &verMajor, &verMinor, &verPatch) == 3)
-                        loraFirmwareVersionInt = (verMajor * 100) + (verMinor * 10) + (verPatch);
-                }
-
-                muxSelectUsb(); // Connect USB
-                endLoRaConfigureCommunicationOnFacet();
-                return (true);
-            }
-        }
-        delay(1);
+        // Send version query. Wait up to 2000ms for a response
+        loraPrint("AT+V?\r\n");
+        gotResponse = loraWaitForVersionResponse(2000);
     }
 
     muxSelectUsb(); // Connect USB
     endLoRaConfigureCommunicationOnFacet();
-    systemPrintln("LoRa Error: Unable to enter command mode");
-    return (false);
+    if (!gotResponse)
+        systemPrintln("LoRa Error: Unable to enter command mode");
+    return (gotResponse);
 }
 
 // Stores the current LoRa radio firmware version
