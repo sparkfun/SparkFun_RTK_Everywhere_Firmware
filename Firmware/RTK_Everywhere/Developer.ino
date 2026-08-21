@@ -23,6 +23,10 @@ void lg290pPrintNavModes() {}
 
 #endif // COMPILE_LG290P
 
+#if !defined(COMPILE_LG290P) || !defined(COMPILE_WIFI)
+bool lg290pStreamFirmware() {return false;}
+#endif // COMPILE_LG290P / COMPILE_WIFI
+
 //----------------------------------------
 // mosaic-X5
 //----------------------------------------
@@ -75,6 +79,10 @@ void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros) {
 }
 
 #endif // COMPILE_ZED
+
+#if !defined(COMPILE_ZED) || !defined(COMPILE_WIFI)
+bool x20pStreamFirmware() {return false;}
+#endif // COMPILE_ZED / COMPILE_WIFI
 
 //======================================================================
 // Network Hardware
@@ -135,6 +143,9 @@ void wifiVerifyTables()                         {}
 
 #ifndef COMPILE_NETWORK
 
+static const char *AWS_PUBLIC_CERT = "";
+static const char *GITHUB_RAW_PUBLIC_CERT = "";
+
 void menuTcpUdp() {systemPrint("**Network not compiled**");}
 void networkBegin() {}
 void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char * fileName, uint32_t lineNumber) {}
@@ -179,6 +190,18 @@ void deviceFirmwareStateSet(DEVICE_FIRMWARE_CTX * ctx, int newState) {}
 void dfuNetworkCleanup(DEVICE_FIRMWARE_CTX * ctx, DFU_BUFFER_DATA * bufferData) {}
 ssize_t dfuNetworkRead(DEVICE_FIRMWARE_CTX * ctx, uint8_t * buffer, size_t bytesToRead) {return 0;}
 
+//----------------------------------------
+// CSV file for OTA updates
+//----------------------------------------
+bool csvOpenCsvFile(const char * url,
+                    const char * cert,
+                    uint8_t ** fileData,
+                    size_t * fileBytes,
+                    int * fieldCount,
+                    int * lineCount,
+                    bool debug,
+                    bool verbose) {return false;}
+
 #endif // COMPILE_NETWORK
 
 //----------------------------------------
@@ -187,7 +210,9 @@ ssize_t dfuNetworkRead(DEVICE_FIRMWARE_CTX * ctx, uint8_t * buffer, size_t bytes
 
 #ifndef COMPILE_OTA_AUTO
 
+void firmwareMenu() {systemPrintln("**OTA Auto not compiled**");}
 void otaAutoUpdate() {}
+bool otaIsChipSupported(const char * subsystem, const char * chip) {return false;}
 void otaMenuDisplay(char * currentVersion) {}
 bool otaMenuProcessInput(byte incoming) {return false;}
 void otaUpdate() {}
@@ -350,6 +375,17 @@ void tiltStop() {}
 void tiltUpdate() {}
 
 #endif  // COMPILE_IM19_IMU
+
+#if !defined(COMPILE_TILT) || !defined(COMPILE_WIFI)
+
+bool im19FirmwareUpdate(const OTA_TARGET * target,
+                        const OTA_SUBSYSTEM_INFO * subsystemInfo,
+                        uint8_t * buffer,
+                        size_t packetBytes) {return false;}
+bool im19PumpStreamToDevice() {return false;}
+bool im19StreamRange(const char *url, uint32_t startByte, uint32_t endByte) {return false;}
+
+#endif // COMPILE_TILT / COMPILE_WIFI
 
 //----------------------------------------
 // MFi authentication coprocessor

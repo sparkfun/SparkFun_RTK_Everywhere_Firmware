@@ -3822,6 +3822,7 @@ bool lg290pFirmwareUpdateEnd()
 //----------------------------------------
 // Update the LG290P firmware
 //----------------------------------------
+#if defined(COMPILE_WIFI) && defined(COMPILE_LG290P)
 bool lg290pStreamFirmware(NetworkClient *stream, size_t fileBytes, uint32_t expectedCrc, uint8_t *buffer,
                           size_t packetBytes)
 {
@@ -3901,6 +3902,7 @@ bool lg290pStreamFirmware(NetworkClient *stream, size_t fileBytes, uint32_t expe
     systemPrintln(otaEqualSigns);
     return (fileBytes == 0);
 }
+#endif // COMPILE_WIFI
 
 void lg290pPrintNavModes()
 {

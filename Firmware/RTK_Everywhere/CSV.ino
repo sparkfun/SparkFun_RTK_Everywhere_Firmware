@@ -2,6 +2,7 @@
 CSV.ino
 
   Comma Separated Values (CSV) support
+  Read the CSV file on the server for subsystem firmware versions and firmware locations
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
@@ -377,6 +378,7 @@ char * csvNextLine(const char * buffer,
 //----------------------------------------
 // Open the URL for the CSV file
 //----------------------------------------
+#ifdef COMPILE_NETWORK
 bool csvOpenCsvFile(const char * url,
                     const char * cert,
                     uint8_t ** fileData,
@@ -468,6 +470,7 @@ bool csvOpenCsvFile(const char * url,
     }
     return false;
 }
+#endif // COMPILE_NETWORK
 
 //----------------------------------------
 // Locate a field in an entry in the CSV file

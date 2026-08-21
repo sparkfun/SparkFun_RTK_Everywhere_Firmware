@@ -1480,6 +1480,7 @@ Im19UpdateResult im19UpdateFirmwareEnd()
 
 // Reads 'byteCount' bytes starting at 'startOffset' from an already-open HTTP stream
 // and feeds them to the IM19, reporting progress as it goes.
+#if defined(COMPILE_WIFI) && defined(COMPILE_TILT)
 static bool im19PumpStreamToDevice(WiFiClient *stream, WiFiClientSecure *client, HTTPClient *http, uint32_t startOffset,
                                    uint32_t byteCount)
 {
@@ -1563,6 +1564,7 @@ static bool im19StreamRange(const char *url, uint32_t startByte, uint32_t endByt
     http.end();
     return success;
 }
+#endif // COMPILE_WIFI && COMPILE_TILT
 
 // Walks im19FrameMap for runs of missing frames and re-requests just those byte
 // ranges from the source URL, instead of re-streaming the entire firmware image.
@@ -1605,6 +1607,7 @@ static bool im19StreamMissingRanges(const char *url)
 //      only those byte ranges (im19StreamMissingRanges) and ask again - up to a few
 //      attempts - rather than re-streaming the whole binary.
 //----------------------------------------
+#if defined(COMPILE_WIFI) && defined(COMPILE_TILT)
 bool im19FirmwareUpdate(const OTA_TARGET * target,
                         const OTA_SUBSYSTEM_INFO * subsystemInfo,
                         uint8_t * buffer,
@@ -1731,6 +1734,7 @@ bool im19FirmwareUpdate(const OTA_TARGET * target,
     systemPrintln(otaEqualSigns);
     return false;
 }
+#endif // COMPILE_WIFI && COMPILE_TILT
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of IM19 firmware update functions.

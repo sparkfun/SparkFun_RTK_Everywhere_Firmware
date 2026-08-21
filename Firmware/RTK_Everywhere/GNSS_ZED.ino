@@ -4232,6 +4232,7 @@ bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
 // over WiFi, then verifies/reboots - callers only need to call this one
 // function and do not need to know about Begin()/End().
 //----------------------------------------
+#if defined(COMPILE_WIFI) && defined(COMPILE_ZED)
 bool x20pStreamFirmware(NetworkClient * stream,
                         size_t fileBytes,
                         uint32_t expectedCrc,
@@ -4320,6 +4321,7 @@ bool x20pStreamFirmware(NetworkClient * stream,
     bool updateOk = x20pFirmwareUpdateEnd(success);
     return updateOk;
 }
+#endif // COMPILE_WIFI && COMPILE_ZED
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of X20P firmware update functions.

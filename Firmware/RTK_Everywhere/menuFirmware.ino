@@ -22,6 +22,7 @@ bool firmwareCheckForRcBuild()
 //----------------------------------------
 // Update firmware if bin files found
 //----------------------------------------
+#ifdef COMPILE_OTA_AUTO
 void firmwareMenu()
 {
     bool developerOptions;
@@ -79,6 +80,7 @@ void firmwareMenu()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
+#endif // COMPILE_OTA_AUTO
 
 #endif // COMPILE_MENU_FIRMWARE
 

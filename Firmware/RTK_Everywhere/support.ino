@@ -1686,6 +1686,7 @@ String getServerFromUrl(const char * url)
 //----------------------------------------
 // Open the URL
 //----------------------------------------
+#ifdef COMPILE_NETWORK
 bool openUrl(const char * url,
              const char * cert,
              String &server,
@@ -1787,3 +1788,4 @@ bool openUrl(const char * url,
         *networkClient = https->getStreamPtr();
     return true;
 }
+#endif // COMPILE_NETWORK
