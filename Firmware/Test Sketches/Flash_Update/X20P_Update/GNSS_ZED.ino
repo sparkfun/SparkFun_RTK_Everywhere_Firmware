@@ -775,7 +775,56 @@ bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
 // Owns the full update sequence: enters bootloader mode, streams the image
 // over WiFi, then verifies/reboots - callers only need to call this one
 // function and do not need to know about Begin()/End().
-bool x20pStreamFirmware(const char * url)
+bool x20pFirmwareUpdate(const char * url)
+{
+    // Verify secure connection is possible
+    WiFiClientSecure client;
+    if (!otaSecurelyConnectGitHub(client))
+    {
+        systemPrintln("Failed to securely connect to GitHub.");
+        return false;
+    }
+
+    systemPrintf("Starting HTTP GET for firmware: %s\r\n", url);
+    HTTPClient http;
+    if (!http.begin(client, url))
+    {
+        systemPrintln("Unable to begin HTTP request.");
+        return false;
+    }
+
+    int httpCode = http.GET();
+    if (httpCode != HTTP_CODE_OK)
+    {
+        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
+        http.end();
+        return false;
+    }
+
+    size_t fileBytes = http.getSize();
+
+    WiFiClient *stream = http.getStreamPtr();
+
+    bool success = x20pStreamFirmware(stream, fileBytes);
+
+    http.end();
+
+    return success;
+}
+
+/*
+ * x20pStreamFirmware()
+ *
+ * Update the X20P firmware
+ *
+ * Owns the full update sequence: enters bootloader mode, streams the image
+ * over WiFi, then verifies/reboots - callers only need to call this one
+ * function and do not need to know about Begin()/End().
+ *
+ * Returns true upon successful firmware update and false upon failure.
+ */
+bool x20pStreamFirmware(NetworkClient * stream,
+                        size_t fileBytes)
 {
     systemPrintln("Starting X20P firmware update...");
 
@@ -792,57 +841,32 @@ bool x20pStreamFirmware(const char * url)
 
     systemPrintln("X20P is in bootloader mode.");
 
-    WiFiClientSecure client;
-    if (!otaSecurelyConnectGitHub(client))
-    {
-        systemPrintln("Failed to securely connect to GitHub.");
-        x20pFirmwareUpdateEnd(false);
-        return false;
-    }
-
-    systemPrintf("URL: %s\r\n", url);
-    HTTPClient http;
-    if (!http.begin(client, url))
-    {
-        systemPrintln("Unable to begin HTTP request.");
-        x20pFirmwareUpdateEnd(false);
-        return false;
-    }
-
-    int httpCode = http.GET();
-    if (httpCode != HTTP_CODE_OK)
-    {
-        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
-        http.end();
-        x20pFirmwareUpdateEnd(false);
-        return false;
-    }
-
-    size_t fileBytes = http.getSize();
-
-    WiFiClient *stream = http.getStreamPtr();
     uint8_t buffer[256];
 
     bool success = true;
 
+    // Initialize the progress bar
     firmwareUpdateProgressReset(fileBytes);
 
-    while (http.connected() && (fileBytes > 0 || fileBytes == -1))
+    while (stream->connected() && (fileBytes > 0 || fileBytes == -1))
     {
+        // Wait until some data is available
         size_t available = stream->available();
         if (available == 0)
         {
-            if (!client.connected())
+            if (!stream->connected())
                 break;
             delay(1);
             continue;
         }
 
+        // Read the received data
         size_t toRead = min(available, sizeof(buffer));
         int bytesRead = stream->readBytes(buffer, toRead);
         if (bytesRead <= 0)
             break;
 
+        // Update this portion of the firmware
         if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
         {
             systemPrintln("X20P firmware update failed during write");
@@ -850,13 +874,13 @@ bool x20pStreamFirmware(const char * url)
             break;
         }
 
+        // Display the progress
         firmwareUpdateProgressCallback(bytesRead);
 
+        // Account for this data
         if (fileBytes > 0)
             fileBytes -= bytesRead;
     }
-
-    http.end();
 
     if (success)
         systemPrintln("X20P firmware update successfully completed.");
@@ -871,5 +895,6 @@ bool x20pStreamFirmware(const char * url)
 
     return updateOk;
 }
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of X20P firmware update functions.

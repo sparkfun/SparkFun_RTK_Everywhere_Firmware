@@ -148,7 +148,7 @@ void loop()
             firmwareUpdateStartTime = millis();
 
             // Attempt to update the firmware
-            if (x20pStreamFirmware(url) == true)
+            if (x20pFirmwareUpdate(url) == true)
                 systemPrintln("ZED-X20P updated successfully.");
             else
                 systemPrintln("ZED-X20P update failed.");
