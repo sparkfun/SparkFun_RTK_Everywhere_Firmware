@@ -91,6 +91,8 @@ uint32_t fileSize;
 uint32_t crc;
 bool otaDebugVerbose;
 
+#define OTA_DATA_TIMEOUT        (15 * 1000)
+
 void setup()
 {
     Serial.begin(115200);

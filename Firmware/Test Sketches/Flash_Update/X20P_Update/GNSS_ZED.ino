@@ -847,6 +847,7 @@ bool x20pStreamFirmware(NetworkClient * stream,
     // Initialize the progress bar
     firmwareUpdateProgressReset(fileBytes);
 
+    unsigned long lastDataTime = millis();
     if (settings.debugFirmwareUpdate)
         systemPrintf("stream->connected(): %d\r\n", stream->connected());
     while (stream->connected() && (fileBytes > 0 || fileBytes == -1))
@@ -855,8 +856,12 @@ bool x20pStreamFirmware(NetworkClient * stream,
         size_t availableBytes = stream->available();
         if (availableBytes == 0)
         {
-            if (!stream->connected())
+            if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+            {
+                systemPrintf("X20P firmware update timed out waiting for data\r\n");
+                success = false;
                 break;
+            }
             delay(1);
             continue;
         }
@@ -885,6 +890,7 @@ bool x20pStreamFirmware(NetworkClient * stream,
         // Account for this data
         if (fileBytes > 0)
             fileBytes -= bytesRead;
+        lastDataTime = millis();
     }
 
     if (success)
