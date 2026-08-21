@@ -340,15 +340,16 @@ bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk,
             {
                 if (m.len != 5)
                 {
-                    systemPrint("    [DBG] Data ACK wrong length: ");
-                    systemPrintln(m.len);
+                    if (settings.debugFirmwareUpdate)
+                        systemPrintf("    [DBG] Data ACK wrong length: %d\r\n", m.len);
                     return false;
                 }
                 if (m.payload[4] != 1)
                 {
                     uint32_t devAddr = (uint32_t)m.payload[0] | ((uint32_t)m.payload[1] << 8) |
                                        ((uint32_t)m.payload[2] << 16) | ((uint32_t)m.payload[3] << 24);
-                    systemPrintf("    [DBG] Data NACK at 0x%08X\r\n", devAddr);
+                    if (settings.debugFirmwareUpdate)
+                        systemPrintf("    [DBG] Data NACK at 0x%08X\r\n", devAddr);
                     return false;
                 }
                 return true; // success
@@ -358,12 +359,13 @@ bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk,
 
         if (retries < WRITE_RETRIES)
         {
-            systemPrint("    [DBG] write timeout, retry ");
-            systemPrintln(retries + 1);
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("    [DBG] write timeout, retry %d\r\n", retries + 1);
         }
     }
 
-    systemPrintln("    [DBG] write retries exhausted");
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("    [DBG] write retries exhausted");
     return false;
 }
 
@@ -426,7 +428,6 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
  */
 bool x20pEnterBootloaderMode()
 {
-    systemPrintln("Resetting GNSS");
     gpioExpanderGnssReset();
     delay(25);
     gpioExpanderGnssBoot();
@@ -439,7 +440,8 @@ bool x20pEnterBootloaderMode()
 
     for (uint8_t i = 0; i < (sizeof(baudCandidates) / sizeof(baudCandidates[0])); i++)
     {
-        systemPrintf("Checking communication at %d...\r\n", baudCandidates[i]);
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("Checking communication at %d...\r\n", baudCandidates[i]);
 
         serialGNSS->updateBaudRate(baudCandidates[i]);
 
@@ -467,11 +469,13 @@ bool x20pEnterBootloaderMode()
 
         if (gotResponse)
         {
-            systemPrintf("  OK at %d baud.\r\n", baudCandidates[i]);
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("X20P communication at %d baud.\r\n", baudCandidates[i]);
             foundBaud = true;
             break;
         }
-        systemPrintf("  No response at %d baud.\r\n", baudCandidates[i]);
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("  No response at %d baud.\r\n", baudCandidates[i]);
     }
 
     if (!foundBaud)
@@ -482,26 +486,27 @@ bool x20pEnterBootloaderMode()
     //    Payload 0x01 tells the ROM to start the flash-loader
     //    task instead of entering full safeboot.
     // ----------------------------------------------------------
-    systemPrintln("Starting flash loader task...");
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("Starting X20P bootloader...");
     const uint8_t startLoaderPayload[] = {0x01};
     int ack = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_UPD, 0x07, startLoaderPayload, 1,
                                  TIMEOUT_POLL); // Enter safeboot, start loader task
     if (ack == -1)
     {
-        systemPrintln("  ERROR: timed out");
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintln("  ERROR: timed out");
         return false;
     }
-    systemPrint("  Loader ");
-    systemPrintln(ack ? "ACK" : "NAK (continuing - normal on some ROM versions)");
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintf("  Loader %s\r\n", ack ? "ACK" : "NAK (continuing - normal on some ROM versions)");
 
     // ----------------------------------------------------------
     // Switch UART1 to X20P_FIRMWARE_UPDATE_BAUD for faster transfers.
     //      We wait for the ACK at the old baud rate; the device sends the ACK
     //      then switches. A NAK means the loader rejected the requested rate.
     // ----------------------------------------------------------
-    systemPrint("Switching to ");
-    systemPrint(X20P_FIRMWARE_UPDATE_BAUD);
-    systemPrintln(" baud...");
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintf("Switching to %d baud...", X20P_FIRMWARE_UPDATE_BAUD);
     {
         const uint32_t nb = X20P_FIRMWARE_UPDATE_BAUD;
         const uint8_t cfgPayload[32] = {0x00,
@@ -539,11 +544,12 @@ bool x20pEnterBootloaderMode()
         // Wait for ACK at old rate - device sends ACK then applies new baud.
         int cfgAck = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_CFG, UBX_CFG_VALSET, cfgPayload, sizeof(cfgPayload),
                                         TIMEOUT_POLL);
-        systemPrint("  [DBG] CFG-VALSET ");
-        systemPrintln(cfgAck == 1 ? "ACK" : cfgAck == 0 ? "NAK" : "no-ACK (timeout)");
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("  [DBG] CFG-VALSET: %s\r\n", cfgAck == 1 ? "ACK" : cfgAck == 0 ? "NAK" : "no-ACK (timeout)");
         if (cfgAck == 0)
         {
-            systemPrintln("  ERROR: device NAK'd baud rate change - rate unsupported in loader");
+            if (settings.debugFirmwareUpdate)
+                systemPrintln("  ERROR: X20P NAK'd baud rate change - rate unsupported in loader");
             return false;
         }
         serialGNSS->flush();
@@ -566,18 +572,23 @@ bool x20pEnterBootloaderMode()
         {
             uint32_t rawEnd = millis() + 500;
             uint8_t rawCount = 0;
-            systemPrint("  [DBG] raw rx:");
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrint("  [DBG] raw rx:");
             while ((int32_t)(millis() - rawEnd) < 0 && rawCount < 24)
             {
                 if (serialGNSS->available())
                 {
                     uint8_t b = serialGNSS->read();
-                    systemPrint(b < 0x10 ? " 0" : " ");
-                    systemPrint(b, HEX);
+                    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                    {
+                        systemPrint(b < 0x10 ? " 0" : " ");
+                        systemPrint(b, HEX);
+                    }
                     rawCount++;
                 }
             }
-            systemPrintln(rawCount ? "" : " (silence)");
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintln(rawCount ? "" : " (silence)");
             while (serialGNSS->available())
                 serialGNSS->read();
         }
@@ -598,10 +609,12 @@ bool x20pEnterBootloaderMode()
         }
         if (!baudOk)
         {
-            systemPrintln("  ERROR: baud rate switch failed - check X20P_FIRMWARE_UPDATE_BAUD");
+            if (settings.debugFirmwareUpdate)
+                systemPrintln("  ERROR: baud rate switch failed - check X20P_FIRMWARE_UPDATE_BAUD");
             return false;
         }
-        systemPrintln("  Baud switch OK.");
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintln("  Baud switch OK.");
     }
 
     return true;
@@ -621,7 +634,8 @@ bool x20pEnterBootloaderMode()
  */
 bool x20pChipErase()
 {
-    systemPrintln("Starting chip erase...");
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintln("Starting chip erase...");
     x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x16, nullptr, 0);
 
     uint32_t deadline = millis() + TIMEOUT_CHIP_ERASE;
@@ -639,16 +653,17 @@ bool x20pChipErase()
         {
             if (m.len >= 1 && m.payload[0] == 1)
             {
-                systemPrintln("  Chip erase complete.");
+                if (settings.debugFirmwareUpdate)
+                    systemPrintln("  Chip erase complete.");
                 return true;
             }
-            systemPrintln("  ERROR: chip erase reported failure");
+            systemPrintln("  ERROR: X20P chip erase reported failure");
             return false;
         }
         // Ignore stray ACKs/other frames while waiting for the CERASE response
     }
 
-    systemPrintln("  ERROR: chip erase did not complete within 45 s");
+    systemPrintln("  ERROR: X20P chip erase did not complete within 45 s");
     return false;
 }
 
@@ -673,13 +688,16 @@ bool x20pChipErase()
  */
 bool x20pFirmwareUpdateBegin()
 {
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("Resetting X20P");
     if (x20pEnterBootloaderMode() == false)
         return false;
 
     if (x20pChipErase() == false)
         return false;
 
-    systemPrintln("Resetting module to guarantee true ROM LDR bootloader...");
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("Resetting X20P to guarantee true ROM LDR bootloader...");
     if (x20pEnterBootloaderMode() == false)
         return false;
 
@@ -730,19 +748,20 @@ bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
         //    validate the written image in flash, returning ACK/NAK.
         //    Version field in payload must be 0.
         // ----------------------------------------------------------
-        systemPrintln("Verifying image...");
+        if (settings.debugFirmwareUpdate)
+            systemPrintln("Verifying image...");
         const uint8_t verPayload[4] = {0, 0, 0, 0};
         int ack = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_UPD, 0x2B, verPayload, 4, TIMEOUT_VERIFY); // Verify
         if (ack != 1)
         {
-            systemPrint("  ERROR: verify ");
-            systemPrintln(ack == 0 ? "NAK" : "timeout");
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("  ERROR: verify %s\r\n", ack == 0 ? "NAK" : "timeout");
             success = false;
         }
-        else
+        else if (settings.debugFirmwareUpdate && otaDebugVerbose)
             systemPrintln("  Verify OK.");
     }
-    else
+    else if (settings.debugFirmwareUpdate && otaDebugVerbose)
         systemPrintln("Skipping verify - firmware upload did not complete successfully.");
 
     // Reboot (fire-and-forget - device does not send a response)
@@ -782,7 +801,7 @@ bool x20pStreamFirmware(const char * url)
         return false;
     }
 
-    systemPrintf("Starting HTTP GET for firmware: %s\r\n", url);
+    systemPrintf("URL: %s\r\n", url);
     HTTPClient http;
     if (!http.begin(client, url))
     {
@@ -827,7 +846,7 @@ bool x20pStreamFirmware(const char * url)
 
         if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
         {
-            systemPrintln("Firmware update failed during WiFi data upload.");
+            systemPrintln("X20P firmware update failed during WiFi data upload.");
             success = false;
             break;
         }
@@ -847,7 +866,8 @@ bool x20pStreamFirmware(const char * url)
 
     // x20pFirmwareUpdateBegin() succeeded above, so End() must always run -
     // it verifies (when success), frees the page buffer, and reboots the device.
-    systemPrintln("Rebooting receiver...");
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("Rebooting receiver...");
     bool updateOk = x20pFirmwareUpdateEnd(success);
 
     return updateOk;
