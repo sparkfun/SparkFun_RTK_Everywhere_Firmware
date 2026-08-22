@@ -891,5 +891,15 @@ void x20pDisplayVersion()
     x20pPrintVersion(*serialGNSS);
 }
 
+// Perform the flash update using an array
+bool x20pArrayFlashUpdate()
+{
+    dataArray.init();
+    return x20pStreamFirmware((NetworkClient *)&dataArray,
+                              dataArray.available(),
+                              buffer,
+                              sizeof(buffer));
+}
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of X20P firmware update functions.
