@@ -652,8 +652,6 @@ bool otaEsp32StreamFirmware(NetworkClient * stream,
                             uint8_t * buffer,
                             size_t packetBytes)
 {
-    uint32_t crc = 0;
-
     if (Update.begin(fileBytes) == false)
     {
         systemPrintln(otaEqualSigns);
@@ -664,10 +662,15 @@ bool otaEsp32StreamFirmware(NetworkClient * stream,
 
     systemPrintln("Starting ESP32 firmware update...");
 
-    unsigned long lastDataTime = millis();
+    // Initialize the progress bar
+    firmwareUpdateProgressReset(fileBytes);
+
+    // Compute the CRC across the entire file
+    uint32_t crc = 0;
 
     // Stream the firmware in chunks so we can report progress via
     // firmwareUpdateProgressCallback() along the way.
+    unsigned long lastDataTime = millis();
     size_t validData = 0;
     while (stream->connected() && (fileBytes > 0))
     {

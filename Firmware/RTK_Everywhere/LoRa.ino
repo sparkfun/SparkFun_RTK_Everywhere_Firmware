@@ -1777,7 +1777,6 @@ bool stm32UpdateFirmwareBegin()
 
     stm32BufferIndex = 0;
     stm32CurrentAddress = 0x08000000; // Reset to Flash start for this update
-    firmwareUpdateBytesProcessed = 0;
 
     return true;
 }
@@ -1892,8 +1891,6 @@ bool stm32StreamFirmware(NetworkClient * stream,
                          uint8_t * buffer,
                          size_t packetBytes)
 {
-    uint32_t crc = 0;
-
     muxSelectLoRaCommunication(); // Mandatory for Torch: Connect ESP32 to LoRa for communication
 
     loraSharedPrintln("Starting LoRa/STM32 firmware update...");
@@ -1905,6 +1902,12 @@ bool stm32StreamFirmware(NetworkClient * stream,
         loraSharedPrintln(otaEqualSigns);
         return false;
     }
+
+    // Initialize the progress bar
+    firmwareUpdateProgressReset(fileBytes);
+
+    // Compute the CRC across the entire file
+    uint32_t crc = 0;
 
     unsigned long lastDataTime = millis();
     size_t validData = 0;
