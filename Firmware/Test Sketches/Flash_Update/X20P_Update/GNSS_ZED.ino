@@ -851,8 +851,8 @@ bool x20pStreamFirmware(NetworkClient * stream,
     while (stream->connected() && (fileBytes > 0 || fileBytes == -1))
     {
         // Wait until some data is available
-        size_t available = stream->available();
-        if (available == 0)
+        size_t availableBytes = stream->available();
+        if (availableBytes == 0)
         {
             if (!stream->connected())
                 break;
@@ -861,7 +861,7 @@ bool x20pStreamFirmware(NetworkClient * stream,
         }
 
         // Read the received data
-        size_t toRead = min(available, sizeof(buffer));
+        size_t toRead = min(availableBytes, sizeof(buffer));
         int bytesRead = stream->readBytes(buffer, toRead);
         if (bytesRead <= 0)
             break;
