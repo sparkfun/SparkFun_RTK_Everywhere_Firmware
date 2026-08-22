@@ -35,7 +35,22 @@ const char * url_2_02 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK
 // 2.10
 const char * url_2_10 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/gnss/zed-x20p/UBX_20_HPG_210_ZED_X20P-01B.512369040097ce18fd3475e71e7c627f.bin";
 
+const char * ulrFileServer = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/gnss/zed-x20p/";
+
+const char * urlDirectory = "https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/gnss/zed-x20p";
+
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
+
+const char * otaRawHead = "/raw/refs/heads/main";
+const char * otaTree = "},\"tree";
+const char * otaFileTree = ":{\"fileTree\":{\"";
+const char * otaItems = "\":{\"items\":[";
+const char * otaListEnd = "]";
+const char * otaName = "\"name\":\"";
+const char * otaNameEnd = "\"";
+
+#define rtkMalloc(bytes, description)       malloc(bytes)
+#define rtkFree(buffer, description)        free(buffer)
 
 // ==================================================================
 //  RECEIVE BUFFER
@@ -165,6 +180,38 @@ void loop()
                 }
             }
         }
+        else if (incoming == 'l')
+        {
+            do
+            {
+                // Get the SparkFun directory page
+                String urlString = otaSelectFileFromWebPageDirectoryListing(urlDirectory,
+                                                                            otaFileTree,
+                                                                            otaListEnd,
+                                                                            otaItems,
+                                                                            otaName,
+                                                                            otaNameEnd,
+                                                                            "UBX_",
+                                                                            ".bin",
+                                                                            ulrFileServer);
+                if (urlString.length() == 0)
+                    break;
+                url = urlString.c_str();
+
+                // Start timer before erase
+                firmwareUpdateStartTime = millis();
+
+                // Attempt to update the firmware
+                if (x20pFirmwareUpdate(url) == true)
+                {
+                    // Stop timer and print elapsed time
+                    firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
+                    systemPrint("Firmware update time: ");
+                    systemPrint(firmwareUpdateElapsed / 1000.0, 3);
+                    systemPrintln(" seconds");
+                }
+            } while (0);
+        }
         else if ((incoming == 'p') || (incoming == 'u'))
         {
             url = (incoming == 'p') ? url_2_02 : url_2_10;
@@ -197,6 +244,7 @@ void displayMenu()
     systemPrintf("u) Update GNSS to 2.10\r\n");
     systemPrintf("r) Reboot system\r\n");
     systemPrintf("e) Enter URL\r\n");
+    systemPrintf("l) List all versions\r\n");
     systemPrintf("d) Debug: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
     systemPrintf("v) Verbose output: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
     systemPrint("Selection: ");
