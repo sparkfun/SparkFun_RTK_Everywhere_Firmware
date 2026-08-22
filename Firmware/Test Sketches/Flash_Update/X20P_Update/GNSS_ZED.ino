@@ -793,10 +793,11 @@ bool x20pStreamFirmware(NetworkClient * stream,
     // single body byte was ever consumed.
     if (x20pFirmwareUpdateBegin() == false)
     {
+        systemPrintln(otaEqualSigns);
         systemPrintln("X20P failed to enter bootloader mode.");
+        systemPrintln(otaEqualSigns);
         return false;
     }
-
     systemPrintln("X20P is in bootloader mode.");
 
     // Initialize the progress bar
@@ -852,6 +853,7 @@ bool x20pStreamFirmware(NetworkClient * stream,
         validData = 0;
     }
 
+    systemPrintf("%s\r\n", otaEqualSigns);
     bool success = (fileBytes == 0) && x20pFirmwareUpdateEnd();
     if (success)
         systemPrintln("X20P firmware update successfully completed.");
@@ -865,6 +867,7 @@ bool x20pStreamFirmware(NetworkClient * stream,
 
     // Display the version number
     x20pDisplayVersion();
+    systemPrintf("%s\r\n", otaEqualSigns);
     return success;
 }
 
