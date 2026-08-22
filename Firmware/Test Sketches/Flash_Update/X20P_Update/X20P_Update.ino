@@ -140,7 +140,7 @@ void loop()
             gpioExpanderGnssReset();
             delay(250);
             gpioExpanderGnssBoot();
-            delay(250);
+            x20pDisplayVersion();
         }
         else if ((incoming == 'p') || (incoming == 'u'))
         {
@@ -151,24 +151,13 @@ void loop()
 
             // Attempt to update the firmware
             if (x20pFirmwareUpdate(url) == true)
-                systemPrintln("ZED-X20P updated successfully.");
-            else
-                systemPrintln("ZED-X20P update failed.");
-
-            // Stop timer and print elapsed time
-            firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
-            systemPrint("Firmware update time: ");
-            systemPrint(firmwareUpdateElapsed / 1000.0, 3);
-            systemPrintln(" seconds");
-
-            // Bootload always ends with a reboot (fire-and-forget) into the module's normal
-            // operating baud rate, regardless of whether the update itself succeeded.
-            systemPrintln("Waiting for module to boot...");
-            delay(2000);
-            serialGNSS->updateBaudRate(38400);
-            while (serialGNSS->available())
-                serialGNSS->read();
-            x20pPrintVersion(*serialGNSS);
+            {
+                // Stop timer and print elapsed time
+                firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
+                systemPrint("Firmware update time: ");
+                systemPrint(firmwareUpdateElapsed / 1000.0, 3);
+                systemPrintln(" seconds");
+            }
         }
         else if (incoming == 'v')
             otaDebugVerbose ^= 1;

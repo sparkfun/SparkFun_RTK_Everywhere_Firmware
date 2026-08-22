@@ -863,7 +863,20 @@ bool x20pStreamFirmware(NetworkClient * stream,
         systemPrintln("Rebooting X20P...");
     x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x0E, nullptr, 0); // Reboot
 
+    // Display the version number
+    x20pDisplayVersion();
     return success;
+}
+
+// Display the firmware version number
+void x20pDisplayVersion()
+{
+    // Display the version number
+    delay(2000);
+    serialGNSS->updateBaudRate(38400);
+    while (serialGNSS->available())
+        serialGNSS->read();
+    x20pPrintVersion(*serialGNSS);
 }
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
