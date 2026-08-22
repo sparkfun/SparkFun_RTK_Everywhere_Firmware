@@ -144,6 +144,27 @@ void loop()
             gpioExpanderGnssBoot();
             x20pDisplayVersion();
         }
+        else if (incoming == 'e')
+        {
+            // Get the URL
+            systemPrint("Enter URL: ");
+            String urlString = systemGetStringFromUser();
+            if (urlString.length())
+            {
+                // Start timer before erase
+                firmwareUpdateStartTime = millis();
+
+                // Attempt to update the firmware
+                if (x20pFirmwareUpdate(urlString.c_str()) == true)
+                {
+                    // Stop timer and print elapsed time
+                    firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
+                    systemPrint("Firmware update time: ");
+                    systemPrint(firmwareUpdateElapsed / 1000.0, 3);
+                    systemPrintln(" seconds");
+                }
+            }
+        }
         else if ((incoming == 'p') || (incoming == 'u'))
         {
             url = (incoming == 'p') ? url_2_02 : url_2_10;
@@ -175,6 +196,7 @@ void displayMenu()
     systemPrintf("p) Update GNSS to 2.02\r\n");
     systemPrintf("u) Update GNSS to 2.10\r\n");
     systemPrintf("r) Reboot system\r\n");
+    systemPrintf("e) Enter URL\r\n");
     systemPrintf("d) Debug: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
     systemPrintf("v) Verbose output: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
     systemPrint("Selection: ");
