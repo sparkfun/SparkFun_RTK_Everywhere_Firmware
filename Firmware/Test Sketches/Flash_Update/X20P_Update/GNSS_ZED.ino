@@ -78,8 +78,6 @@
 // ==================================================================
 
 uint8_t buffer[PACKET_SIZE];
-static uint8_t *x20pPageBuffer = nullptr; // Accumulates incoming bytes; flushed every PACKET_SIZE bytes
-static uint16_t x20pBufferIndex = 0;
 static uint32_t x20pCurrentAddress = FW_BASE_ADDR; // Next flash address to write; advances as pages are flashed
 
 static bool x20pUpdateFailed = false; // Set once a chunk write fails; halts further processing until the next Begin()
@@ -316,7 +314,10 @@ void x20pSendDataFrame(HardwareSerial &ser, uint32_t address, const uint8_t *chu
  * write gets the short TIMEOUT_WRITE deadline - no concurrent-erase
  * bookkeeping is needed here.
  */
-bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk, uint16_t chunkLen)
+bool x20pWriteChunk(HardwareSerial &ser,
+                    uint32_t address,
+                    const uint8_t *chunk,
+                    uint16_t chunkLen)
 {
     if (chunkLen == 0 || chunkLen > PACKET_SIZE)
         return false;
@@ -390,26 +391,12 @@ bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk,
  */
 bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBytes)
 {
-    if (x20pUpdateFailed)
-        return false; // A prior chunk write failed - stop touching the page buffer/flash
-
-    for (uint32_t i = 0; i < numBytes; i++)
+    if (!x20pWriteChunk(ser, x20pCurrentAddress, data, numBytes))
     {
-        x20pPageBuffer[x20pBufferIndex++] = data[i];
-
-        if (x20pBufferIndex == PACKET_SIZE)
-        {
-            if (!x20pWriteChunk(ser, x20pCurrentAddress, x20pPageBuffer, PACKET_SIZE))
-            {
-                systemPrintf("ERROR: X20P write failed at address 0x%08X\r\n", x20pCurrentAddress);
-                x20pUpdateFailed = true;
-                return false;
-            }
-            x20pCurrentAddress += PACKET_SIZE;
-            x20pBufferIndex = 0;
-        }
+        systemPrintf("ERROR: X20P write failed at address 0x%08X\r\n", x20pCurrentAddress);
+        return false;
     }
-
+    x20pCurrentAddress += numBytes;
     return true;
 }
 
@@ -682,8 +669,6 @@ bool x20pChipErase()
  *      blank, so the ROM has nothing else to boot into.
  *   3. Reset the module again. With flash blank it can only land in the
  *      real ROM LDR bootloader, which does accept writes.
- *   4. Allocate the page-accumulation buffer used by x20pUpdateFirmware()
- *      so bootloading of the new code can begin.
  *
  * Returns true on success.
  */
@@ -701,13 +686,6 @@ bool x20pFirmwareUpdateBegin()
         systemPrintln("Resetting X20P to guarantee true ROM LDR bootloader...");
     if (x20pEnterBootloaderMode() == false)
         return false;
-
-    // Allocate the page-accumulation buffer and reset streaming state for this update.
-    if (x20pPageBuffer == nullptr)
-        x20pPageBuffer = (uint8_t *)malloc(PACKET_SIZE);
-    x20pBufferIndex = 0;
-    x20pCurrentAddress = FW_BASE_ADDR;
-    x20pUpdateFailed = false;
 
     return true;
 }
@@ -730,17 +708,6 @@ bool x20pFirmwareUpdateBegin()
 bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
 {
     bool success = uploadSucceeded && !x20pUpdateFailed;
-
-    if (success && x20pBufferIndex > 0)
-    {
-        success = x20pWriteChunk(*serialGNSS, x20pCurrentAddress, x20pPageBuffer, x20pBufferIndex);
-        if (!success)
-            systemPrintf("  ERROR: final chunk write failed at address 0x%08X\r\n", x20pCurrentAddress);
-    }
-
-    free(x20pPageBuffer);
-    x20pPageBuffer = nullptr;
-
     if (success)
     {
         // ----------------------------------------------------------
@@ -849,7 +816,6 @@ bool x20pStreamFirmware(NetworkClient * stream,
     }
 
     systemPrintln("X20P is in bootloader mode.");
-
 
     // Initialize the progress bar
     firmwareUpdateProgressReset(fileBytes);
