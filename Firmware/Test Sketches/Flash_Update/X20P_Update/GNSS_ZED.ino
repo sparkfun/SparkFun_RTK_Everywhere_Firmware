@@ -80,8 +80,6 @@
 uint8_t buffer[PACKET_SIZE];
 static uint32_t x20pCurrentAddress = FW_BASE_ADDR; // Next flash address to write; advances as pages are flashed
 
-static bool x20pUpdateFailed = false; // Set once a chunk write fails; halts further processing until the next Begin()
-
 // Write one byte to ser, updating the running Fletcher-8 checksum.
 static inline void x20pWriteByte(HardwareSerial &s, uint8_t v, uint8_t &ca, uint8_t &cb)
 {
@@ -693,48 +691,32 @@ bool x20pFirmwareUpdateBegin()
 /*
  * x20pFirmwareUpdateEnd()
  *
- * Flushes any partial trailing page left in the accumulation buffer,
- * verifies the written image, frees the buffer, and reboots the
- * device (fire-and-forget) into the new firmware.
- *
- * uploadSucceeded should be the return value of x20pStreamFirmware().
- * If the WiFi upload itself failed partway (TLS/HTTP error, dropped
- * connection, etc.) the flash image is known incomplete, so the final
- * flush and verify are skipped - verifying a partial image against the
- * device is pointless and just produces a misleading NAK.
+ * Verifies the written image.
  *
  * Returns true only if the upload, flush, and verify all succeeded.
  */
-bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
+bool x20pFirmwareUpdateEnd()
 {
-    bool success = uploadSucceeded && !x20pUpdateFailed;
-    if (success)
+    bool success = true;
+
+    // ----------------------------------------------------------
+    // Verify
+    //    Verify triggers the device to re-read and
+    //    validate the written image in flash, returning ACK/NAK.
+    //    Version field in payload must be 0.
+    // ----------------------------------------------------------
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("Verifying image...");
+    const uint8_t verPayload[4] = {0, 0, 0, 0};
+    int ack = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_UPD, 0x2B, verPayload, 4, TIMEOUT_VERIFY); // Verify
+    if (ack != 1)
     {
-        // ----------------------------------------------------------
-        // Verify
-        //    Verify triggers the device to re-read and
-        //    validate the written image in flash, returning ACK/NAK.
-        //    Version field in payload must be 0.
-        // ----------------------------------------------------------
         if (settings.debugFirmwareUpdate)
-            systemPrintln("Verifying image...");
-        const uint8_t verPayload[4] = {0, 0, 0, 0};
-        int ack = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_UPD, 0x2B, verPayload, 4, TIMEOUT_VERIFY); // Verify
-        if (ack != 1)
-        {
-            if (settings.debugFirmwareUpdate)
-                systemPrintf("  ERROR: verify %s\r\n", ack == 0 ? "NAK" : "timeout");
-            success = false;
-        }
-        else if (settings.debugFirmwareUpdate && otaDebugVerbose)
-            systemPrintln("  Verify OK.");
+            systemPrintf("  ERROR: verify %s\r\n", ack == 0 ? "NAK" : "timeout");
+        success = false;
     }
     else if (settings.debugFirmwareUpdate && otaDebugVerbose)
-        systemPrintln("Skipping verify - firmware upload did not complete successfully.");
-
-    // Reboot (fire-and-forget - device does not send a response)
-    x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x0E, nullptr, 0); // Reboot
-
+        systemPrintln("  Verify OK.");
     return success;
 }
 
@@ -870,19 +852,18 @@ bool x20pStreamFirmware(NetworkClient * stream,
         validData = 0;
     }
 
-    bool success = (fileBytes == 0);
+    bool success = (fileBytes == 0) && x20pFirmwareUpdateEnd();
     if (success)
         systemPrintln("X20P firmware update successfully completed.");
     else
         systemPrintln("X20P firmware update failed.");
 
-    // x20pFirmwareUpdateBegin() succeeded above, so End() must always run -
-    // it verifies (when success), frees the page buffer, and reboots the device.
+    // Reboot (fire-and-forget - device does not send a response)
     if (settings.debugFirmwareUpdate)
         systemPrintln("Rebooting X20P...");
-    bool updateOk = x20pFirmwareUpdateEnd(success);
+    x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x0E, nullptr, 0); // Reboot
 
-    return updateOk;
+    return success;
 }
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
