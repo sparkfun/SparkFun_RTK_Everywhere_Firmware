@@ -845,7 +845,7 @@ bool x20pStreamFirmware(NetworkClient * stream,
         }
 
         // Display the progress
-        firmwareUpdateProgressCallback(validData);
+        firmwareUpdateProgressCallback("X20P", validData);
 
         // Account for this data
         fileBytes -= validData;
