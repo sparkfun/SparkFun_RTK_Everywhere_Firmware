@@ -786,6 +786,13 @@ bool x20pStreamFirmware(NetworkClient * stream,
                         uint8_t * buffer,
                         size_t packetBytes)
 {
+    // Display the parameters
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+    {
+        systemPrintf("fileBytes: %d\r\n", fileBytes);
+        systemPrintf("packetBytes: %d\r\n", packetBytes);
+    }
+
     systemPrintln("Starting X20P firmware update...");
 
     // Enter the bootloader and erase flash before opening the GitHub connection.
