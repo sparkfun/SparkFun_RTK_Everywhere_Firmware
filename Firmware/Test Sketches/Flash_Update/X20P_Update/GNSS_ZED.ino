@@ -40,6 +40,8 @@
 
 // MON message IDs
 #define UBX_MON_VER 0x04u
+#define UBX_MON_VER_SW_BYTES 30
+#define UBX_MON_VER_HW_BYTES 10
 
 // ==================================================================
 //  TIMING (ms)
@@ -258,18 +260,18 @@ bool x20pPrintVersion(HardwareSerial &ser)
         return false;
     }
 
-    if (monVer.len < 40)
+    if (monVer.len < (UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES))
     {
         systemPrintln("Firmware version: response too short to parse.");
         return false;
     }
 
-    char swVersion[31];
-    char hwVersion[11];
-    memcpy(swVersion, monVer.payload, 30);
-    swVersion[30] = '\0';
-    memcpy(hwVersion, monVer.payload + 30, 10);
-    hwVersion[10] = '\0';
+    char swVersion[UBX_MON_VER_SW_BYTES + 1];
+    char hwVersion[UBX_MON_VER_HW_BYTES + 1];
+    memcpy(swVersion, monVer.payload, UBX_MON_VER_SW_BYTES);
+    swVersion[UBX_MON_VER_SW_BYTES] = '\0';
+    memcpy(hwVersion, monVer.payload + UBX_MON_VER_SW_BYTES, UBX_MON_VER_HW_BYTES);
+    hwVersion[UBX_MON_VER_HW_BYTES] = '\0';
 
     systemPrint("Firmware version: ");
     systemPrint(swVersion);
