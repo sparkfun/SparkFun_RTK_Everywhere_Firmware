@@ -834,8 +834,8 @@ bool x20pStreamFirmware(NetworkClient * stream,
             systemPrintf("availableBytes: %d\r\n", availableBytes);
 
         // Read the received data
-        size_t toRead = min(availableBytes, packetBytes - validData);
-        int bytesRead = stream->readBytes(&buffer[validData], toRead);
+        size_t bytesToRead = min(availableBytes, packetBytes - validData);
+        int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
         if (settings.debugFirmwareUpdate && otaDebugVerbose)
             systemPrintf("bytesRead: %d\r\n", bytesRead);
         if (bytesRead <= 0)
