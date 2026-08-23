@@ -4414,6 +4414,17 @@ void x20pDisplayVersion()
 
 #endif // COMPILE_WIFI
 
+// Verify assumptions
+void zedVerifyTables()
+{
+    if (X20P_RX_PAYLOAD_MAX < (UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES))
+    {
+        systemPrintf("Increase X20P_RX_PAYLOAD_MAX from %d to >= %d\r\n",
+                     X20P_RX_PAYLOAD_MAX, UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES);
+        reportFatalError("Set X20P_RX_PAYLOAD_MAX >= (UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES)");
+    }
+}
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of X20P firmware update functions.
 

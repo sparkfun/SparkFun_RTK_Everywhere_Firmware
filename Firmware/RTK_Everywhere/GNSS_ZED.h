@@ -285,7 +285,7 @@ const ubxCmd ubxCommands[] = {
 //  X20P_RX_PAYLOAD_MAX bytes of any incoming payload are stored.
 // ==================================================================
 
-#define X20P_RX_PAYLOAD_MAX 16u
+#define X20P_RX_PAYLOAD_MAX     40
 
 struct UbxMsg
 {
