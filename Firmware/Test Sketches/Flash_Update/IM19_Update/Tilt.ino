@@ -432,8 +432,11 @@ static bool im19StreamFirmware(WiFiClient * stream,
 
     im19UpdateFirmwareSeek(startOffset);
 
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("stream->connected(): %d\r\n", stream->connected());
     while (stream->connected() && (fileBytes > 0))
     {
+        // Wait until some data is available
         size_t availableBytes = stream->available();
         if (availableBytes == 0)
         {
@@ -442,15 +445,22 @@ static bool im19StreamFirmware(WiFiClient * stream,
             delay(1);
             continue;
         }
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("availableBytes: %d\r\n", availableBytes);
 
+        // Read the received data
         size_t bytesToRead = min(availableBytes, packetBytes);
         int bytesRead = stream->readBytes(buffer, bytesToRead);
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("bytesRead: %d\r\n", bytesRead);
         if (bytesRead <= 0)
             break;
 
+        // Update this portion of the firmware
         if (!im19UpdateFirmware(buffer, (uint32_t)bytesRead))
             return false;
 
+        // Account for this data
         fileBytes -= bytesRead;
         firmwareUpdateProgressCallback((uint16_t)bytesRead);
     }
