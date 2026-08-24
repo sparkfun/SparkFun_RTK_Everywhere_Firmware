@@ -434,8 +434,8 @@ static bool im19StreamFirmware(WiFiClient * stream,
 
     while (stream->connected() && (fileBytes > 0))
     {
-        size_t available = stream->available();
-        if (available == 0)
+        size_t availableBytes = stream->available();
+        if (availableBytes == 0)
         {
             if (!stream->connected())
                 break;
@@ -443,7 +443,7 @@ static bool im19StreamFirmware(WiFiClient * stream,
             continue;
         }
 
-        size_t toRead = min(available, packetBytes);
+        size_t toRead = min(availableBytes, packetBytes);
         int bytesRead = stream->readBytes(buffer, toRead);
         if (bytesRead <= 0)
             break;
