@@ -443,8 +443,8 @@ static bool im19StreamFirmware(WiFiClient * stream,
             continue;
         }
 
-        size_t toRead = min(availableBytes, packetBytes);
-        int bytesRead = stream->readBytes(buffer, toRead);
+        size_t bytesToRead = min(availableBytes, packetBytes);
+        int bytesRead = stream->readBytes(buffer, bytesToRead);
         if (bytesRead <= 0)
             break;
 
