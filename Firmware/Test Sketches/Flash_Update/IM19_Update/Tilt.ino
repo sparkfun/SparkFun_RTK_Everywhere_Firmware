@@ -414,9 +414,19 @@ Im19UpdateResult im19UpdateFirmwareEnd()
 
 // Reads 'byteCount' bytes starting at 'startOffset' from an already-open HTTP stream
 // and feeds them to the IM19, reporting progress as it goes.
-static bool im19PumpStreamToDevice(WiFiClient *stream, WiFiClientSecure *client, HTTPClient *http, uint32_t startOffset,
+static bool im19PumpStreamToDevice(WiFiClient * stream,
+                                   WiFiClientSecure * client,
+                                   HTTPClient * http,
+                                   uint32_t startOffset,
                                    uint32_t byteCount)
 {
+    // Display the parameters
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+    {
+        systemPrintf("startOffset: %d\r\n", startOffset);
+        systemPrintf("byteCount: %d\r\n", byteCount);
+    }
+
     im19UpdateFirmwareSeek(startOffset);
 
     uint8_t buffer[512];
