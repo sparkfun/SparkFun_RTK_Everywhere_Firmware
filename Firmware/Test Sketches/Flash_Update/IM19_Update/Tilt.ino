@@ -71,6 +71,8 @@ static uint8_t *im19FrameAssembly = nullptr; // accumulates bytes until a full f
 static uint32_t im19FrameAssemblyLen = 0;
 static uint32_t im19NextFrameID = 0; // frame ID that the next assembled byte belongs to
 
+static uint8_t rxBuffer[IM19_FRAME_PAYLOAD_SIZE];
+
 static void im19ReleaseBuffers()
 {
     if (im19FrameMap != nullptr)
@@ -416,18 +418,20 @@ Im19UpdateResult im19UpdateFirmwareEnd()
 // and feeds them to the IM19, reporting progress as it goes.
 static bool im19PumpStreamToDevice(WiFiClient * stream,
                                    uint32_t startOffset,
-                                   size_t fileBytes)
+                                   size_t fileBytes,
+                                   uint8_t * buffer,
+                                   size_t packetBytes)
 {
     // Display the parameters
     if (settings.debugFirmwareUpdate && otaDebugVerbose)
     {
         systemPrintf("startOffset: %d\r\n", startOffset);
         systemPrintf("fileBytes: %d\r\n", fileBytes);
+        systemPrintf("packetBytes: %d\r\n", packetBytes);
     }
 
     im19UpdateFirmwareSeek(startOffset);
 
-    uint8_t buffer[512];
     size_t received = 0;
 
     while (stream->connected() && received < fileBytes)
@@ -441,9 +445,7 @@ static bool im19PumpStreamToDevice(WiFiClient * stream,
             continue;
         }
 
-        size_t toRead = min(available, (size_t)(fileBytes - received));
-        toRead = min(toRead, sizeof(buffer));
-
+        size_t toRead = min(available, packetBytes);
         int bytesRead = stream->readBytes(buffer, toRead);
         if (bytesRead <= 0)
             break;
@@ -490,7 +492,11 @@ static bool im19StreamRange(const char * url, uint32_t startByte, uint32_t endBy
         return false;
     }
 
-    bool success = im19PumpStreamToDevice(http.getStreamPtr(), startByte, endByte - startByte + 1);
+    bool success = im19PumpStreamToDevice(http.getStreamPtr(),
+                                          startByte,
+                                          endByte - startByte + 1,
+                                          rxBuffer,
+                                          sizeof(rxBuffer));
     http.end();
     return success;
 }
@@ -594,7 +600,11 @@ bool im19FirmwareUpdate(const char * url)
 
     // Now that the IM19 is in its bootloader and waiting, stream the already-open
     // response body straight to it.
-    bool streamed = im19PumpStreamToDevice(http.getStreamPtr(), 0, fileBytes);
+    bool streamed = im19PumpStreamToDevice(http.getStreamPtr(),
+                                           0,
+                                           fileBytes,
+                                           rxBuffer,
+                                           sizeof(rxBuffer));
     http.end();
 
     if (!streamed)
