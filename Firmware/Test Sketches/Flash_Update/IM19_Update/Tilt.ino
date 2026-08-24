@@ -279,13 +279,6 @@ bool im19UpdateFirmwareBegin(size_t fileBytes)
     return false;
 }
 
-// Repositions the frame-assembly cursor to a frame-aligned byte offset. Used before
-// streaming a retry range so its bytes land in the right frame IDs.
-void im19UpdateFirmwareSeek(uint32_t byteOffset)
-{
-    im19NextFrameID = byteOffset / IM19_FRAME_PAYLOAD_SIZE;
-}
-
 // Feeds a chunk of firmware bytes (any length, any alignment) to the IM19. Internally
 // groups them into 256 byte protocol frames and sends each as it fills.
 bool im19UpdateFirmware(const uint8_t * data, uint32_t numBytes)
@@ -370,7 +363,6 @@ Im19UpdateResult im19UpdateFirmwareEnd()
 // Reads 'byteCount' bytes starting at 'startOffset' from an already-open HTTP stream
 // and feeds them to the IM19, reporting progress as it goes.
 static bool im19StreamFirmware(WiFiClient * stream,
-                               uint32_t startOffset,
                                size_t fileBytes,
                                uint8_t * buffer,
                                size_t packetBytes)
@@ -378,12 +370,9 @@ static bool im19StreamFirmware(WiFiClient * stream,
     // Display the parameters
     if (settings.debugFirmwareUpdate && otaDebugVerbose)
     {
-        systemPrintf("startOffset: %d\r\n", startOffset);
         systemPrintf("fileBytes: %d\r\n", fileBytes);
         systemPrintf("packetBytes: %d\r\n", packetBytes);
     }
-
-    im19UpdateFirmwareSeek(startOffset);
 
     unsigned long lastDataTime = millis();
     size_t validData = 0;
@@ -471,8 +460,8 @@ static bool im19StreamRange(const char * url, uint32_t startByte, uint32_t endBy
         return false;
     }
 
+    im19NextFrameID = startByte / IM19_FRAME_PAYLOAD_SIZE;
     bool success = im19StreamFirmware(http.getStreamPtr(),
-                                      startByte,
                                       endByte - startByte + 1,
                                       rxBuffer,
                                       sizeof(rxBuffer));
@@ -579,8 +568,8 @@ bool im19FirmwareUpdate(const char * url)
 
     // Now that the IM19 is in its bootloader and waiting, stream the already-open
     // response body straight to it.
+    im19NextFrameID = 0;
     bool streamed = im19StreamFirmware(http.getStreamPtr(),
-                                       0,
                                        fileBytes,
                                        rxBuffer,
                                        sizeof(rxBuffer));
