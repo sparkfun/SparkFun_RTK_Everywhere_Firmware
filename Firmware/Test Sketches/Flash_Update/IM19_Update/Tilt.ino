@@ -352,6 +352,9 @@ static bool im19StreamFirmware(WiFiClient * stream,
         systemPrintf("packetBytes: %d\r\n", packetBytes);
     }
 
+    // Initialize the progress bar
+    firmwareUpdateProgressReset(fileBytes);
+
     unsigned long lastDataTime = millis();
     size_t validData = 0;
     if (settings.debugFirmwareUpdate)
@@ -544,7 +547,6 @@ bool im19FirmwareUpdate(const char * url)
             errorMsg = "IM19 firmware update, web server did not report a firmware size.";
             break;
         }
-        firmwareUpdateBytesToProcess = fileBytes;
 
         if (!im19UpdateFirmwareBegin(fileBytes))
         {
