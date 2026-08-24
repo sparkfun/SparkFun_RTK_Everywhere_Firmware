@@ -138,6 +138,9 @@ void setup()
         systemPrintln(imuVersion);
     else
         systemPrintln("Version query failed.");
+
+    wifiConnect();
+
     displayMenu();
 }
 
@@ -169,9 +172,10 @@ void loop()
         }
         else if (incoming == 'u')
         {
-            wifiConnect();
+            // Start timer before erase
             firmwareUpdateStartTime = millis();
 
+            // Attempt to update the firmware
             if (im19FirmwareUpdate((char *)url_11_4_1) == true)
             {
                 firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
