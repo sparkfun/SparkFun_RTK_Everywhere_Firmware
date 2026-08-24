@@ -145,7 +145,9 @@ void displayMenu()
 {
     systemPrintln();
     systemPrintln("Menu:");
-    systemPrintln("u) Update Firmware");
+    systemPrintln("o) Update IM19 to 6.1");
+    systemPrintln("p) Update IM19 to 11.1");
+    systemPrintln("u) Update IM19 to 11.4.1");
     systemPrintln("r) Reset");
     systemPrintln("e) Enter URL");
     systemPrintf("d) Debug: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
@@ -175,6 +177,10 @@ void loop()
             String urlString = systemGetStringFromUser();
             firmwareUpdate(urlString.c_str());
         }
+        else if (incoming == 'o')
+            firmwareUpdate(url_6_1);
+        else if (incoming == 'p')
+            firmwareUpdate(url_11_1);
         else if (incoming == 'u')
             firmwareUpdate(url_11_4_1);
         else if (incoming == 'v')
