@@ -460,9 +460,11 @@ static bool im19StreamFirmware(WiFiClient * stream,
         if (!im19UpdateFirmware(buffer, (uint32_t)bytesRead))
             return false;
 
+        // Display the progress
+        firmwareUpdateProgressCallback("IM19", bytesRead);
+
         // Account for this data
         fileBytes -= bytesRead;
-        firmwareUpdateProgressCallback((uint16_t)bytesRead);
     }
 
     bool success = (fileBytes == 0);
