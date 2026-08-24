@@ -461,7 +461,7 @@ static bool im19PumpStreamToDevice(WiFiClient * stream,
 }
 
 // Re-downloads only [startByte, endByte] (inclusive) and streams it to the IM19.
-static bool im19StreamRange(const char *relativeFirmwareFileLocation, uint32_t startByte, uint32_t endByte)
+static bool im19StreamRange(const char * url, uint32_t startByte, uint32_t endByte)
 {
     WiFiClientSecure client;
     if (!otaSecurelyConnectGitHub(client))
@@ -471,7 +471,7 @@ static bool im19StreamRange(const char *relativeFirmwareFileLocation, uint32_t s
     }
 
     HTTPClient http;
-    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
+    if (!http.begin(client, url))
     {
         systemPrintln("Unable to begin HTTP request.");
         return false;
@@ -499,7 +499,7 @@ static bool im19StreamRange(const char *relativeFirmwareFileLocation, uint32_t s
 
 // Walks im19FrameMap for runs of missing frames and re-requests just those byte
 // ranges from the source URL, instead of re-streaming the entire firmware image.
-static bool im19StreamMissingRanges(const char *relativeFirmwareFileLocation)
+static bool im19StreamMissingRanges(const char * url)
 {
     if (im19FrameMap == nullptr)
         return false;
@@ -536,7 +536,7 @@ static bool im19StreamMissingRanges(const char *relativeFirmwareFileLocation)
                      (unsigned long)runStart, (unsigned long)(frame - 1), (unsigned long)(endByte - startByte + 1),
                      (unsigned long)(missingRateTenthsPct / 10), (unsigned long)(missingRateTenthsPct % 10));
 
-        if (!im19StreamRange(relativeFirmwareFileLocation, startByte, endByte))
+        if (!im19StreamRange(url, startByte, endByte))
             return false;
     }
     return true;
@@ -551,7 +551,7 @@ static bool im19StreamMissingRanges(const char *relativeFirmwareFileLocation)
 //   4. im19UpdateFirmwareEnd() asks the IM19 what it's missing. If anything, re-request
 //      only those byte ranges (im19StreamMissingRanges) and ask again - up to a few
 //      attempts - rather than re-streaming the whole binary.
-bool im19FirmwareUpdate(const char *relativeFirmwareFileLocation)
+bool im19FirmwareUpdate(const char * url)
 {
     WiFiClientSecure client;
     if (!otaSecurelyConnectGitHub(client))
@@ -560,8 +560,11 @@ bool im19FirmwareUpdate(const char *relativeFirmwareFileLocation)
         return false;
     }
 
+    if(settings.debugFirmwareUpdate)
+        systemPrintf("URL: %s\r\n", url);
+
     HTTPClient http;
-    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
+    if (!http.begin(client, url))
     {
         systemPrintln("Unable to begin HTTP request.");
         return false;
@@ -621,7 +624,7 @@ bool im19FirmwareUpdate(const char *relativeFirmwareFileLocation)
 
         // IM19_UPDATE_RETRY - the IM19 told us exactly which frames it's missing.
         systemPrintf("Attempt %d: IM19 reports missing frames.\r\n", attempt);
-        if (!im19StreamMissingRanges(relativeFirmwareFileLocation))
+        if (!im19StreamMissingRanges(url))
         {
             systemPrintln("Firmware update failed while re-requesting missing frames.");
             im19ReleaseBuffers();

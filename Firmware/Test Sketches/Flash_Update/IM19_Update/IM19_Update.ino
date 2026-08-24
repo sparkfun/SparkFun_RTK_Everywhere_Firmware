@@ -27,13 +27,13 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include "secrets.h"
 
 // v11.4.1
-const char *firmwareURL = "/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc";
+const char * url_11_4_1 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc";
 
 // v11.1
-// const char *firmwareURL = "/imu/im19/20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc";
+const char * url_11_1 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc";
 
 // v6.1
-// const char *firmwareURL = "/imu/im19/20230419111130_VH2_B2.2_A6.1_2eea4d4c024538bf5ed52.enc";
+const char * url_6_1 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20230419111130_VH2_B2.2_A6.1_2eea4d4c024538bf5ed52.enc";
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
 
@@ -170,7 +170,7 @@ void loop()
             firmwareUpdateBytesToProcess = 0;
             firmwareUpdateStartTime = millis();
 
-            if (im19FirmwareUpdate((char *)firmwareURL) == true)
+            if (im19FirmwareUpdate((char *)url_11_4_1) == true)
             {
                 firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
                 systemPrintf("IM19 firmware update complete in %0.2f s.\r\n", firmwareUpdateElapsed / 1000.0);
