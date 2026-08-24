@@ -601,6 +601,9 @@ bool im19FirmwareUpdate(const char * url)
         systemPrintln("IM19 firmware update completed successfully");
     else
         systemPrintf("%s\r\n", errorMsg);
+
+    // Attempt to display the IM19 firmware version
+    im19GetVersionString();
     systemPrintln(otaEqualSigns);
 
     // Release the resources
@@ -609,34 +612,61 @@ bool im19FirmwareUpdate(const char * url)
     return success;
 }
 
-// Sends AT+VERSION and copies the returned "Version:" line into versionOut.
+// Sends AT+VERSION and copies the returned "Version:" line into imuFirmwareVersionStr.
 // Returns true if "Version:" is seen in the response
-bool im19GetVersionString(char *versionOut, size_t versionOutSize)
+bool im19GetVersionString()
 {
-    if (versionOut == nullptr || versionOutSize < 2)
-        return false;
+    int imuFirmwareVersionInt;
+    char imuFirmwareVersionStr[32];    // Ex: IM19_H2_B2.2_A11.4.1
+    bool success = false;
+    IM19 * tiltSensor = nullptr;
+    do
+    {
+        imuReset();
+        delay(5000);
 
-    versionOut[0] = '\0';
-    uint8_t responseBuf[256];
+        // Use UART2 on the ESP32 to receive IMU corrections
+        // Shown as UART2 on these schematics: Torch, Facet FP
+        beginUart2Serial();
+        if (SerialForTilt == nullptr)
+            break;
 
-    if (!im19SendATCommand("AT+VERSION\r\n", "Version:", 3, responseBuf, sizeof(responseBuf), nullptr))
-        return false;
+        tiltSensor = new IM19();
+        if (tiltSensor == nullptr)
+        {
+            systemPrintln("ERROR: IM19 firmware upload fail to allocate tiltSensor");
+            break;
+        }
 
-    char *versionStart = strstr((char *)responseBuf, "Version:");
-    if (versionStart == nullptr)
-        return false;
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            tiltSensor->enableDebugging(); // Print all debug to Serial
 
-    char *lineEnd = strchr(versionStart, '\r');
-    if (lineEnd == nullptr)
-        lineEnd = strchr(versionStart, '\n');
+        if (tiltSensor->begin(*SerialForTilt) == false) // Give the serial port over to the library
+            break;
 
-    size_t copyLen = lineEnd != nullptr ? (size_t)(lineEnd - versionStart) : strlen(versionStart);
-    if (copyLen >= versionOutSize)
-        copyLen = versionOutSize - 1;
+        success = true;
+        success &= tiltSensor->getAppVersion(imuFirmwareVersionInt);
+        char rawFirmwareVersionStr[32]; // Ex: IM19_H2_B2.2_A11.4.1
+        success &= tiltSensor->getVersion(rawFirmwareVersionStr, sizeof(rawFirmwareVersionStr));
 
-    memcpy(versionOut, versionStart, copyLen);
-    versionOut[copyLen] = '\0';
-    return true;
+        // Pull the pure number app version out of the full version string Ex: IM19_H2_B2.2_A11.4.1 -> 11.4.1
+        char *appVersionPtr = strstr(rawFirmwareVersionStr, "A");
+        if (appVersionPtr != nullptr)
+            snprintf(imuFirmwareVersionStr, sizeof(imuFirmwareVersionStr), "%s", appVersionPtr + 1);
+        else
+        {
+            systemPrintln("IM19 App Version not found in full version string");
+            imuFirmwareVersionStr[0] = '\0';
+        }
+
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("IM19 Full Version: %s\r\n", rawFirmwareVersionStr);
+        else
+            systemPrintf("IMU firmware: %s\r\n", imuFirmwareVersionStr);
+    } while (0);
+    if (tiltSensor)
+        delete tiltSensor;
+    return success;
 }
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
