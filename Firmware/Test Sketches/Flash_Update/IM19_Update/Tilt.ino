@@ -66,10 +66,7 @@ static const int IM19_CPL_RESPONSE_RETRIES = 10; // up to IM19_CPL_RESPONSE_RETR
 static uint8_t *im19FrameMap = nullptr; // bit set = IM19 has confirmed receipt of that frame
 static uint32_t im19TotalFrames = 0;
 static uint32_t im19FileBytes = 0;
-
-static uint8_t *im19FrameAssembly = nullptr; // accumulates bytes until a full frame is ready
-static uint32_t im19FrameAssemblyLen = 0;
-static uint32_t im19NextFrameID = 0; // frame ID that the next assembled byte belongs to
+static uint32_t im19NextFrameID; // frame ID that the next assembled byte belongs to
 
 static uint8_t rxBuffer[IM19_FRAME_PAYLOAD_SIZE];
 
@@ -80,12 +77,6 @@ static void im19ReleaseBuffers()
         free(im19FrameMap);
         im19FrameMap = nullptr;
     }
-
-    if (im19FrameAssembly != nullptr)
-    {
-        free(im19FrameAssembly);
-        im19FrameAssembly = nullptr;
-    }
 }
 
 static bool im19AllocateBuffers()
@@ -95,13 +86,6 @@ static bool im19AllocateBuffers()
     im19FrameMap = (uint8_t *)malloc(IM19_FRAME_MAP_SIZE);
     if (im19FrameMap == nullptr)
         return false;
-
-    im19FrameAssembly = (uint8_t *)malloc(IM19_FRAME_PAYLOAD_SIZE);
-    if (im19FrameAssembly == nullptr)
-    {
-        im19ReleaseBuffers();
-        return false;
-    }
 
     return true;
 }
@@ -144,18 +128,6 @@ static void im19BuildFrame(uint16_t type, uint32_t id, uint8_t *frame)
     frame[5] = (check >> 8) & 0xFF;
     frame[6] = (check >> 16) & 0xFF;
     frame[7] = (check >> 24) & 0xFF;
-}
-
-// Sends one 256 byte firmware chunk as frame 'frameID'.
-static bool im19SendOneFrame(uint32_t frameID, const uint8_t *payload)
-{
-    uint8_t frame[IM19_FRAME_TOTAL_SIZE] = {0};
-    memcpy(&frame[12], payload, IM19_FRAME_PAYLOAD_SIZE);
-    im19BuildFrame(IM19_FRAME_TYPE_BIN, frameID, frame);
-    SerialForTilt->write(frame, sizeof(frame));
-    SerialForTilt->flush(); // Block until the frame is actually on the wire, not just queued
-    delay(IM19_FRAME_PACING_MS);
-    return true;
 }
 
 // Sends a command frame (CPL to ask what's missing, or RDY to tell the IM19 to boot).
@@ -291,7 +263,6 @@ bool im19UpdateFirmwareBegin(size_t fileBytes)
     memset(im19FrameMap, 0, IM19_FRAME_MAP_SIZE);
     im19TotalFrames = totalFrames;
     im19FileBytes = fileBytes;
-    im19FrameAssemblyLen = 0;
     im19NextFrameID = 0;
 
     for (int retry = 0; retry < 3; retry++)
@@ -313,36 +284,27 @@ bool im19UpdateFirmwareBegin(size_t fileBytes)
 void im19UpdateFirmwareSeek(uint32_t byteOffset)
 {
     im19NextFrameID = byteOffset / IM19_FRAME_PAYLOAD_SIZE;
-    im19FrameAssemblyLen = 0;
 }
 
 // Feeds a chunk of firmware bytes (any length, any alignment) to the IM19. Internally
 // groups them into 256 byte protocol frames and sends each as it fills.
-bool im19UpdateFirmware(const uint8_t *data, uint32_t length)
+bool im19UpdateFirmware(const uint8_t * data, uint32_t numBytes)
 {
-    if (im19FrameAssembly == nullptr)
-        return false;
+    uint8_t frame[IM19_FRAME_TOTAL_SIZE] = {0};
 
-    uint32_t consumed = 0;
-    while (consumed < length)
-    {
-        uint32_t copyLen = length - consumed;
-        uint32_t space = IM19_FRAME_PAYLOAD_SIZE - im19FrameAssemblyLen;
-        if (copyLen > space)
-            copyLen = space;
+    // Add the payload to the frame
+    memcpy(&frame[12], data, numBytes);
+    if (numBytes < IM19_FRAME_PAYLOAD_SIZE)
+        memset(&frame[12 + numBytes], 0, IM19_FRAME_PAYLOAD_SIZE - numBytes);
+    im19BuildFrame(IM19_FRAME_TYPE_BIN, im19NextFrameID, frame);
 
-        memcpy(im19FrameAssembly + im19FrameAssemblyLen, data + consumed, copyLen);
-        im19FrameAssemblyLen += copyLen;
-        consumed += copyLen;
+    // Send the firmware bytes to the IM19
+    SerialForTilt->write(frame, sizeof(frame));
+    SerialForTilt->flush(); // Block until the frame is actually on the wire, not just queued
+    delay(IM19_FRAME_PACING_MS);
 
-        if (im19FrameAssemblyLen == IM19_FRAME_PAYLOAD_SIZE)
-        {
-            if (!im19SendOneFrame(im19NextFrameID, im19FrameAssembly))
-                return false;
-            im19NextFrameID++;
-            im19FrameAssemblyLen = 0;
-        }
-    }
+    // Account for this frame
+    im19NextFrameID++;
     return true;
 }
 
@@ -365,17 +327,8 @@ static bool im19VerifyFirmwareRunning()
 // or FAILED if the IM19 never responds.
 Im19UpdateResult im19UpdateFirmwareEnd()
 {
-    if (im19FrameMap == nullptr || im19FrameAssembly == nullptr)
+    if (im19FrameMap == nullptr)
         return IM19_UPDATE_FAILED;
-
-    // The last frame of the file is usually short - zero-pad and send it now.
-    if (im19FrameAssemblyLen > 0)
-    {
-        memset(im19FrameAssembly + im19FrameAssemblyLen, 0, IM19_FRAME_PAYLOAD_SIZE - im19FrameAssemblyLen);
-        im19SendOneFrame(im19NextFrameID, im19FrameAssembly);
-        im19NextFrameID++;
-        im19FrameAssemblyLen = 0;
-    }
 
     im19SendCmdFrame(IM19_FRAME_TYPE_CPL, im19TotalFrames);
 
