@@ -416,11 +416,11 @@ Im19UpdateResult im19UpdateFirmwareEnd()
 
 // Reads 'byteCount' bytes starting at 'startOffset' from an already-open HTTP stream
 // and feeds them to the IM19, reporting progress as it goes.
-static bool im19PumpStreamToDevice(WiFiClient * stream,
-                                   uint32_t startOffset,
-                                   size_t fileBytes,
-                                   uint8_t * buffer,
-                                   size_t packetBytes)
+static bool im19StreamFirmware(WiFiClient * stream,
+                               uint32_t startOffset,
+                               size_t fileBytes,
+                               uint8_t * buffer,
+                               size_t packetBytes)
 {
     // Display the parameters
     if (settings.debugFirmwareUpdate && otaDebugVerbose)
@@ -491,11 +491,11 @@ static bool im19StreamRange(const char * url, uint32_t startByte, uint32_t endBy
         return false;
     }
 
-    bool success = im19PumpStreamToDevice(http.getStreamPtr(),
-                                          startByte,
-                                          endByte - startByte + 1,
-                                          rxBuffer,
-                                          sizeof(rxBuffer));
+    bool success = im19StreamFirmware(http.getStreamPtr(),
+                                      startByte,
+                                      endByte - startByte + 1,
+                                      rxBuffer,
+                                      sizeof(rxBuffer));
     http.end();
     return success;
 }
@@ -599,11 +599,11 @@ bool im19FirmwareUpdate(const char * url)
 
     // Now that the IM19 is in its bootloader and waiting, stream the already-open
     // response body straight to it.
-    bool streamed = im19PumpStreamToDevice(http.getStreamPtr(),
-                                           0,
-                                           fileBytes,
-                                           rxBuffer,
-                                           sizeof(rxBuffer));
+    bool streamed = im19StreamFirmware(http.getStreamPtr(),
+                                       0,
+                                       fileBytes,
+                                       rxBuffer,
+                                       sizeof(rxBuffer));
     http.end();
 
     if (!streamed)
