@@ -432,6 +432,7 @@ static bool im19StreamFirmware(WiFiClient * stream,
 
     im19UpdateFirmwareSeek(startOffset);
 
+    unsigned long lastDataTime = millis();
     if (settings.debugFirmwareUpdate)
         systemPrintf("stream->connected(): %d\r\n", stream->connected());
     while (stream->connected() && (fileBytes > 0))
@@ -440,8 +441,11 @@ static bool im19StreamFirmware(WiFiClient * stream,
         size_t availableBytes = stream->available();
         if (availableBytes == 0)
         {
-            if (!stream->connected())
+            if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+            {
+                systemPrintf("IM19 firmware update timed out waiting for data\r\n");
                 break;
+            }
             delay(1);
             continue;
         }
@@ -465,6 +469,7 @@ static bool im19StreamFirmware(WiFiClient * stream,
 
         // Account for this data
         fileBytes -= bytesRead;
+        lastDataTime = millis();
     }
 
     bool success = (fileBytes == 0);
