@@ -82,6 +82,8 @@ char imuVersion[96];
 
 bool otaDebugVerbose;
 
+const char * otaEqualSigns = "==================================================";
+
 #define OTA_DATA_TIMEOUT        (15 * 1000)
 
 void setup()

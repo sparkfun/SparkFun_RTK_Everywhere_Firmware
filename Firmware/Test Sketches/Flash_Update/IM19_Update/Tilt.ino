@@ -594,10 +594,12 @@ bool im19FirmwareUpdate(const char * url)
 
     // Display the firmware update status
     bool success = (errorMsg == nullptr);
+    systemPrintln(otaEqualSigns);
     if (success)
         systemPrintln("IM19 firmware update completed successfully");
     else
         systemPrintf("%s\r\n", errorMsg);
+    systemPrintln(otaEqualSigns);
 
     // Release the resources
     http.end();
