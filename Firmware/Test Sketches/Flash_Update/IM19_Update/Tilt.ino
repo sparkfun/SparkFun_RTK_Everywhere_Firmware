@@ -65,7 +65,7 @@ static const int IM19_CPL_RESPONSE_RETRIES = 10; // up to IM19_CPL_RESPONSE_RETR
 
 static uint8_t *im19FrameMap = nullptr; // bit set = IM19 has confirmed receipt of that frame
 static uint32_t im19TotalFrames = 0;
-static uint32_t im19FileSize = 0;
+static uint32_t im19FileBytes = 0;
 
 static uint8_t *im19FrameAssembly = nullptr; // accumulates bytes until a full frame is ready
 static uint32_t im19FrameAssemblyLen = 0;
@@ -270,13 +270,13 @@ static bool im19SendATCommand(const char *cmd, const char *response, int retries
 }
 
 // Puts the IM19 into its bootloader and gets ready to receive frames for a file of
-// 'fileSize' bytes. Mallocs nothing - the frame map is a fixed, small static buffer.
-bool im19UpdateFirmwareBegin(uint32_t fileSize)
+// 'fileBytes' bytes. Mallocs nothing - the frame map is a fixed, small static buffer.
+bool im19UpdateFirmwareBegin(size_t fileBytes)
 {
-    uint32_t totalFrames = (fileSize + IM19_FRAME_PAYLOAD_SIZE - 1) / IM19_FRAME_PAYLOAD_SIZE;
+    uint32_t totalFrames = (fileBytes + IM19_FRAME_PAYLOAD_SIZE - 1) / IM19_FRAME_PAYLOAD_SIZE;
     if (totalFrames > (uint32_t)IM19_FRAME_MAP_SIZE * 8)
     {
-        systemPrintf("Firmware image too large for the IM19 update protocol (%lu bytes).\r\n", (unsigned long)fileSize);
+        systemPrintf("Firmware image too large for the IM19 update protocol (%lu bytes).\r\n", fileBytes);
         return false;
     }
 
@@ -288,7 +288,7 @@ bool im19UpdateFirmwareBegin(uint32_t fileSize)
 
     memset(im19FrameMap, 0, IM19_FRAME_MAP_SIZE);
     im19TotalFrames = totalFrames;
-    im19FileSize = fileSize;
+    im19FileBytes = fileBytes;
     im19FrameAssemblyLen = 0;
     im19NextFrameID = 0;
 
@@ -418,21 +418,21 @@ static bool im19PumpStreamToDevice(WiFiClient * stream,
                                    WiFiClientSecure * client,
                                    HTTPClient * http,
                                    uint32_t startOffset,
-                                   uint32_t byteCount)
+                                   size_t fileBytes)
 {
     // Display the parameters
     if (settings.debugFirmwareUpdate && otaDebugVerbose)
     {
         systemPrintf("startOffset: %d\r\n", startOffset);
-        systemPrintf("byteCount: %d\r\n", byteCount);
+        systemPrintf("fileBytes: %d\r\n", fileBytes);
     }
 
     im19UpdateFirmwareSeek(startOffset);
 
     uint8_t buffer[512];
-    uint32_t received = 0;
+    size_t received = 0;
 
-    while (http->connected() && received < byteCount)
+    while (http->connected() && received < fileBytes)
     {
         size_t available = stream->available();
         if (available == 0)
@@ -443,7 +443,7 @@ static bool im19PumpStreamToDevice(WiFiClient * stream,
             continue;
         }
 
-        size_t toRead = min(available, (size_t)(byteCount - received));
+        size_t toRead = min(available, (size_t)(fileBytes - received));
         toRead = min(toRead, sizeof(buffer));
 
         int bytesRead = stream->readBytes(buffer, toRead);
@@ -457,7 +457,7 @@ static bool im19PumpStreamToDevice(WiFiClient * stream,
         firmwareUpdateProgressCallback((uint16_t)bytesRead);
     }
 
-    return received == byteCount;
+    return received == fileBytes;
 }
 
 // Re-downloads only [startByte, endByte] (inclusive) and streams it to the IM19.
@@ -530,7 +530,7 @@ static bool im19StreamMissingRanges(const char *relativeFirmwareFileLocation)
             frame++;
 
         uint32_t startByte = runStart * IM19_FRAME_PAYLOAD_SIZE;
-        uint32_t endByte = min(frame * IM19_FRAME_PAYLOAD_SIZE, im19FileSize) - 1;
+        uint32_t endByte = min(frame * IM19_FRAME_PAYLOAD_SIZE, im19FileBytes) - 1;
 
         systemPrintf("Requesting missing frames %lu-%lu (%lu bytes) from source (failure rate: %lu.%lu%%).\r\n",
                      (unsigned long)runStart, (unsigned long)(frame - 1), (unsigned long)(endByte - startByte + 1),
@@ -575,17 +575,16 @@ bool im19StreamFirmware(const char *relativeFirmwareFileLocation)
         return false;
     }
 
-    int contentLength = http.getSize();
-    if (contentLength <= 0)
+    size_t fileBytes = http.getSize();
+    if (fileBytes <= 0)
     {
         systemPrintln("Server did not report a firmware size.");
         http.end();
         return false;
     }
-    uint32_t fileSize = (uint32_t)contentLength;
-    firmwareUpdateBytesToProcess = fileSize;
+    firmwareUpdateBytesToProcess = fileBytes;
 
-    if (!im19UpdateFirmwareBegin(fileSize))
+    if (!im19UpdateFirmwareBegin(fileBytes))
     {
         systemPrintln("IM19 did not respond to the bootloader entry command.");
         http.end();
@@ -594,7 +593,7 @@ bool im19StreamFirmware(const char *relativeFirmwareFileLocation)
 
     // Now that the IM19 is in its bootloader and waiting, stream the already-open
     // response body straight to it.
-    bool streamed = im19PumpStreamToDevice(http.getStreamPtr(), &client, &http, 0, fileSize);
+    bool streamed = im19PumpStreamToDevice(http.getStreamPtr(), &client, &http, 0, fileBytes);
     http.end();
 
     if (!streamed)
