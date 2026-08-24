@@ -145,8 +145,9 @@ void displayMenu()
 {
     systemPrintln();
     systemPrintln("Menu:");
-    systemPrintln("r) Reset");
     systemPrintln("u) Update Firmware");
+    systemPrintln("r) Reset");
+    systemPrintln("e) Enter URL");
     systemPrintf("d) Debug: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
     systemPrintf("v) Verbose output: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
     systemPrint("Make selection: ");
@@ -167,21 +168,41 @@ void loop()
             settings.debugFirmwareUpdate ^= 1;
             otaDebugVerbose = false;
         }
-        else if (incoming == 'u')
+        else if (incoming == 'e')
         {
-            // Start timer before erase
-            firmwareUpdateStartTime = millis();
-
-            // Attempt to update the firmware
-            if (im19FirmwareUpdate((char *)url_11_4_1) == true)
-            {
-                firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
-                systemPrintf("IM19 firmware update complete in %0.2f s.\r\n", firmwareUpdateElapsed / 1000.0);
-            }
+            // Get the URL
+            systemPrint("Enter URL: ");
+            String urlString = systemGetStringFromUser();
+            firmwareUpdate(urlString.c_str());
         }
+        else if (incoming == 'u')
+            firmwareUpdate(url_11_4_1);
         else if (incoming == 'v')
             otaDebugVerbose ^= 1;
         displayMenu();
+    }
+}
+
+// Perform the firmware update
+void firmwareUpdate(const char * url)
+{
+    // Verify the url
+    if ((url == nullptr) || (strlen(url) == 0))
+        systemPrintf("No URL specified\r\n");
+    else
+    {
+        // Start timer before erase
+        firmwareUpdateStartTime = millis();
+
+        // Attempt to update the firmware
+        if (im19FirmwareUpdate(url) == true)
+        {
+            // Stop timer and print elapsed time
+            firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
+            systemPrint("Firmware update time: ");
+            systemPrint(firmwareUpdateElapsed / 1000.0, 3);
+            systemPrintln(" seconds");
+        }
     }
 }
 
