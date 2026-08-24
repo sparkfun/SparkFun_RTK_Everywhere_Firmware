@@ -81,8 +81,6 @@ static void im19ReleaseBuffers()
 
 static bool im19AllocateBuffers()
 {
-    im19ReleaseBuffers();
-
     im19FrameMap = (uint8_t *)malloc(IM19_FRAME_MAP_SIZE);
     if (im19FrameMap == nullptr)
         return false;
@@ -169,8 +167,6 @@ static int im19CheckResponse(uint8_t *frameMap, uint32_t timeoutMs)
         switch (im19BufToUint16(p + 2))
         {
         case IM19_FRAME_TYPE_REQ:
-            if (frameMap == nullptr)
-                return -1;
             memcpy(frameMap, p + 12, IM19_FRAME_MAP_SIZE);
             return IM19_FRAME_TYPE_REQ;
         case IM19_FRAME_TYPE_RDY:
@@ -185,9 +181,6 @@ static int im19CheckResponse(uint8_t *frameMap, uint32_t timeoutMs)
 // True if every frame in [0, totalFrame) is marked present in frameMap.
 static bool im19AllFramesPresent(const uint8_t *frameMap, uint32_t totalFrame)
 {
-    if (frameMap == nullptr)
-        return false;
-
     for (uint32_t frame = 0; frame < totalFrame; frame++)
     {
         uint8_t bit = 0x01 << (frame % 8);
@@ -254,12 +247,6 @@ bool im19UpdateFirmwareBegin(size_t fileBytes)
         return false;
     }
 
-    if (!im19AllocateBuffers())
-    {
-        systemPrintln("Unable to allocate IM19 update buffers.");
-        return false;
-    }
-
     memset(im19FrameMap, 0, IM19_FRAME_MAP_SIZE);
     im19TotalFrames = totalFrames;
     im19FileBytes = fileBytes;
@@ -274,8 +261,6 @@ bool im19UpdateFirmwareBegin(size_t fileBytes)
         if (im19SendATCommand("AT+UPDATE_APP\r\n", "OK", 5, nullptr, 0, nullptr))
             return true;
     }
-
-    im19ReleaseBuffers();
     return false;
 }
 
@@ -320,9 +305,6 @@ static bool im19VerifyFirmwareRunning()
 // or FAILED if the IM19 never responds.
 Im19UpdateResult im19UpdateFirmwareEnd()
 {
-    if (im19FrameMap == nullptr)
-        return IM19_UPDATE_FAILED;
-
     im19SendCmdFrame(IM19_FRAME_TYPE_CPL, im19TotalFrames);
 
     int retry = IM19_CPL_RESPONSE_RETRIES;
@@ -333,7 +315,6 @@ Im19UpdateResult im19UpdateFirmwareEnd()
         if (response == IM19_FRAME_TYPE_RDY)
         {
             Im19UpdateResult result = im19VerifyFirmwareRunning() ? IM19_UPDATE_SUCCESS : IM19_UPDATE_FAILED;
-            im19ReleaseBuffers();
             return result;
         }
 
@@ -343,14 +324,11 @@ Im19UpdateResult im19UpdateFirmwareEnd()
             {
                 im19SendCmdFrame(IM19_FRAME_TYPE_RDY, im19TotalFrames);
                 Im19UpdateResult result = im19VerifyFirmwareRunning() ? IM19_UPDATE_SUCCESS : IM19_UPDATE_FAILED;
-                im19ReleaseBuffers();
                 return result;
             }
             return IM19_UPDATE_RETRY;
         }
     }
-
-    im19ReleaseBuffers();
     return IM19_UPDATE_FAILED;
 }
 
@@ -473,9 +451,6 @@ static bool im19StreamRange(const char * url, uint32_t startByte, uint32_t endBy
 // ranges from the source URL, instead of re-streaming the entire firmware image.
 static bool im19StreamMissingRanges(const char * url)
 {
-    if (im19FrameMap == nullptr)
-        return false;
-
     uint32_t totalMissingFrames = 0;
     for (uint32_t i = 0; i < im19TotalFrames; i++)
     {
@@ -525,92 +500,109 @@ static bool im19StreamMissingRanges(const char * url)
 //      attempts - rather than re-streaming the whole binary.
 bool im19FirmwareUpdate(const char * url)
 {
-    WiFiClientSecure client;
-    if (!otaSecurelyConnectGitHub(client))
-    {
-        systemPrintln("Failed to securely connect to GitHub.");
-        return false;
-    }
-
-    if(settings.debugFirmwareUpdate)
-        systemPrintf("URL: %s\r\n", url);
-
+    const char * errorMsg;
     HTTPClient http;
-    if (!http.begin(client, url))
-    {
-        systemPrintln("Unable to begin HTTP request.");
-        return false;
-    }
+    char msgBuffer[40];
 
-    int httpCode = http.GET();
-    if (httpCode != HTTP_CODE_OK)
+    do
     {
-        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
-        http.end();
-        return false;
-    }
+        errorMsg = nullptr;
+        im19FrameMap = nullptr;
+        if (!im19AllocateBuffers())
+        {
+            errorMsg = "IM19 firmware update unable to allocate buffers.";
+            break;
+        }
 
-    size_t fileBytes = http.getSize();
-    if (fileBytes <= 0)
-    {
-        systemPrintln("Server did not report a firmware size.");
-        http.end();
-        return false;
-    }
-    firmwareUpdateBytesToProcess = fileBytes;
+        WiFiClientSecure client;
+        if (!otaSecurelyConnectGitHub(client))
+        {
+            errorMsg = "IM19 firmware update failed to securely connect to GitHub.";
+            break;
+        }
 
-    if (!im19UpdateFirmwareBegin(fileBytes))
-    {
-        systemPrintln("IM19 did not respond to the bootloader entry command.");
-        http.end();
-        return false;
-    }
+        if(settings.debugFirmwareUpdate)
+            systemPrintf("URL: %s\r\n", url);
 
-    // Now that the IM19 is in its bootloader and waiting, stream the already-open
-    // response body straight to it.
-    im19NextFrameID = 0;
-    bool streamed = im19StreamFirmware(http.getStreamPtr(),
-                                       fileBytes,
-                                       rxBuffer,
-                                       sizeof(rxBuffer));
+        if (!http.begin(client, url))
+        {
+            errorMsg = "IM19 firmware update unable to begin HTTP request.";
+            break;
+        }
+
+        int httpCode = http.GET();
+        if (httpCode != HTTP_CODE_OK)
+        {
+            sprintf(msgBuffer, "IM19 firmware update failed HTTP GET request, code: %d", httpCode);
+            errorMsg = msgBuffer;
+            break;
+        }
+
+        size_t fileBytes = http.getSize();
+        if (fileBytes <= 0)
+        {
+            errorMsg = "IM19 firmware update, web server did not report a firmware size.";
+            break;
+        }
+        firmwareUpdateBytesToProcess = fileBytes;
+
+        if (!im19UpdateFirmwareBegin(fileBytes))
+        {
+            errorMsg = "IM19 did not respond to the bootloader entry command.";
+            break;
+        }
+
+        // Now that the IM19 is in its bootloader and waiting, stream the already-open
+        // response body straight to it.
+        im19NextFrameID = 0;
+        bool streamed = im19StreamFirmware(http.getStreamPtr(),
+                                           fileBytes,
+                                           rxBuffer,
+                                           sizeof(rxBuffer));
+        if (!streamed)
+        {
+            errorMsg = "IM19 firmware update failed during initial WiFi download.";
+            break;
+        }
+
+        const int maxAttempts = 5;
+        errorMsg = "IM19 firmware update failed: too many retries.";
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            Im19UpdateResult result = im19UpdateFirmwareEnd();
+            if (result == IM19_UPDATE_SUCCESS)
+            {
+                errorMsg = nullptr;
+                break;
+            }
+
+            if (result == IM19_UPDATE_FAILED)
+            {
+                errorMsg = "IM19 firmware update failed: no response from IM19.";
+                break;
+            }
+
+            // IM19_UPDATE_RETRY - the IM19 told us exactly which frames it's missing.
+            systemPrintf("Attempt %d: IM19 reports missing frames.\r\n", attempt);
+            if (!im19StreamMissingRanges(url))
+            {
+                errorMsg = "IM19 firmware update failed while re-requesting missing frames.";
+                break;
+            }
+        }
+    } while (0);
+
+    // Display the firmware update status
+    bool success = (errorMsg == nullptr);
+    if (success)
+        systemPrintln("IM19 firmware update completed successfully");
+    else
+        systemPrintf("%s\r\n", errorMsg);
+
+    // Release the resources
     http.end();
-
-    if (!streamed)
-    {
-        systemPrintln("Firmware update failed during initial WiFi download.");
-        im19ReleaseBuffers();
-        return false;
-    }
-
-    const int maxAttempts = 5;
-    for (int attempt = 1; attempt <= maxAttempts; attempt++)
-    {
-        Im19UpdateResult result = im19UpdateFirmwareEnd();
-
-        if (result == IM19_UPDATE_SUCCESS)
-        {
-            return true;
-        }
-
-        if (result == IM19_UPDATE_FAILED)
-        {
-            systemPrintln("IM19 firmware update failed: no response from IM19.");
-            return false;
-        }
-
-        // IM19_UPDATE_RETRY - the IM19 told us exactly which frames it's missing.
-        systemPrintf("Attempt %d: IM19 reports missing frames.\r\n", attempt);
-        if (!im19StreamMissingRanges(url))
-        {
-            systemPrintln("Firmware update failed while re-requesting missing frames.");
-            im19ReleaseBuffers();
-            return false;
-        }
-    }
-
-    systemPrintln("IM19 firmware update failed: too many retries.");
     im19ReleaseBuffers();
-    return false;
+    return success;
 }
 
 // Sends AT+VERSION and copies the returned "Version:" line into versionOut.
