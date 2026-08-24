@@ -432,9 +432,7 @@ static bool im19PumpStreamToDevice(WiFiClient * stream,
 
     im19UpdateFirmwareSeek(startOffset);
 
-    size_t received = 0;
-
-    while (stream->connected() && received < fileBytes)
+    while (stream->connected() && (fileBytes > 0))
     {
         size_t available = stream->available();
         if (available == 0)
@@ -453,11 +451,12 @@ static bool im19PumpStreamToDevice(WiFiClient * stream,
         if (!im19UpdateFirmware(buffer, (uint32_t)bytesRead))
             return false;
 
-        received += bytesRead;
+        fileBytes -= bytesRead;
         firmwareUpdateProgressCallback((uint16_t)bytesRead);
     }
 
-    return received == fileBytes;
+    bool success = (fileBytes == 0);
+    return success;
 }
 
 // Re-downloads only [startByte, endByte] (inclusive) and streams it to the IM19.
