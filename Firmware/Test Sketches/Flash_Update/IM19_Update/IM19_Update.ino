@@ -170,7 +170,7 @@ void loop()
             firmwareUpdateBytesToProcess = 0;
             firmwareUpdateStartTime = millis();
 
-            if (im19StreamFirmware((char *)firmwareURL) == true)
+            if (im19FirmwareUpdate((char *)firmwareURL) == true)
             {
                 firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
                 systemPrintf("IM19 firmware update complete in %0.2f s.\r\n", firmwareUpdateElapsed / 1000.0);

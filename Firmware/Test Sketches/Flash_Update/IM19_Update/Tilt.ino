@@ -551,7 +551,7 @@ static bool im19StreamMissingRanges(const char *relativeFirmwareFileLocation)
 //   4. im19UpdateFirmwareEnd() asks the IM19 what it's missing. If anything, re-request
 //      only those byte ranges (im19StreamMissingRanges) and ask again - up to a few
 //      attempts - rather than re-streaming the whole binary.
-bool im19StreamFirmware(const char *relativeFirmwareFileLocation)
+bool im19FirmwareUpdate(const char *relativeFirmwareFileLocation)
 {
     WiFiClientSecure client;
     if (!otaSecurelyConnectGitHub(client))
