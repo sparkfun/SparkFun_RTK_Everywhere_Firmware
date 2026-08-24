@@ -415,8 +415,6 @@ Im19UpdateResult im19UpdateFirmwareEnd()
 // Reads 'byteCount' bytes starting at 'startOffset' from an already-open HTTP stream
 // and feeds them to the IM19, reporting progress as it goes.
 static bool im19PumpStreamToDevice(WiFiClient * stream,
-                                   WiFiClientSecure * client,
-                                   HTTPClient * http,
                                    uint32_t startOffset,
                                    size_t fileBytes)
 {
@@ -432,12 +430,12 @@ static bool im19PumpStreamToDevice(WiFiClient * stream,
     uint8_t buffer[512];
     size_t received = 0;
 
-    while (http->connected() && received < fileBytes)
+    while (stream->connected() && received < fileBytes)
     {
         size_t available = stream->available();
         if (available == 0)
         {
-            if (!client->connected())
+            if (!stream->connected())
                 break;
             delay(1);
             continue;
@@ -492,7 +490,7 @@ static bool im19StreamRange(const char * url, uint32_t startByte, uint32_t endBy
         return false;
     }
 
-    bool success = im19PumpStreamToDevice(http.getStreamPtr(), &client, &http, startByte, endByte - startByte + 1);
+    bool success = im19PumpStreamToDevice(http.getStreamPtr(), startByte, endByte - startByte + 1);
     http.end();
     return success;
 }
@@ -596,7 +594,7 @@ bool im19FirmwareUpdate(const char * url)
 
     // Now that the IM19 is in its bootloader and waiting, stream the already-open
     // response body straight to it.
-    bool streamed = im19PumpStreamToDevice(http.getStreamPtr(), &client, &http, 0, fileBytes);
+    bool streamed = im19PumpStreamToDevice(http.getStreamPtr(), 0, fileBytes);
     http.end();
 
     if (!streamed)
