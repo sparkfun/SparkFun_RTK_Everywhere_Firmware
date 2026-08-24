@@ -80,6 +80,8 @@ uint32_t firmwareUpdateBytesProcessed = 0;
 
 char imuVersion[96];
 
+bool otaDebugVerbose;
+
 void setup()
 {
     Serial.begin(115200);
@@ -140,6 +142,8 @@ void displayMenu()
     systemPrintln("Menu:");
     systemPrintln("r) Reset");
     systemPrintln("u) Update Firmware");
+    systemPrintf("d) Debug: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
+    systemPrintf("v) Verbose output: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
     systemPrint("Make selection: ");
 }
 
@@ -152,6 +156,11 @@ void loop()
         if (incoming == 'r')
         {
             ESP.restart();
+        }
+        else if (incoming == 'd')
+        {
+            settings.debugFirmwareUpdate ^= 1;
+            otaDebugVerbose = false;
         }
         else if (incoming == 'u')
         {
@@ -173,6 +182,8 @@ void loop()
                     systemPrintln("Version query failed.");
             }
         }
+        else if (incoming == 'v')
+            otaDebugVerbose ^= 1;
         displayMenu();
     }
 }

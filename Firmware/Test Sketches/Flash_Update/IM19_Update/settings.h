@@ -14,6 +14,13 @@ typedef enum
 } ProductVariant;
 ProductVariant productVariant = RTK_UNKNOWN;
 
+// This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
+// Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
+struct Settings
+{
+    bool debugFirmwareUpdate = false;
+} settings;
+
 // Result of a single im19UpdateFirmwareEnd() handshake with the IM19 bootloader.
 // ISRG Root X1 (Let's Encrypt). Used to validate raw.githubusercontent.com's server cert chain.
 static const char GITHUB_RAW_PUBLIC_CERT[] PROGMEM = R"EOF(
