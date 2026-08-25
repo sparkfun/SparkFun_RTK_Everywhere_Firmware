@@ -61,9 +61,11 @@ Firmware/Test\ Sketches/*/*/build/*
 Firmware/?/*
 Firmware/RTK_Everywhere/*.txt
 Firmware/Test\ Sketches/?/*
+Firmware/Test\ Sketches/Flash_Update/?/*
 
 # Executables
 Compare
+File_CRC
 NMEA_Client
 Read_Map_File
 RTK_Reset
