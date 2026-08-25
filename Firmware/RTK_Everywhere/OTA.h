@@ -114,7 +114,7 @@ typedef struct _OTA_TARGET
     char * _url;            // URL built from file name or URL in CSV file
     size_t _fileBytes;      // File size
     uint32_t _crc;          // CRC
-    uint8_t _requestType;   // Type of request for this subssystem
+    uint8_t _requestType;   // Type of request for this subsystem
     bool _valid;            // Valid contents
     int _localVersion[5];   // Current firmware version
     int _remoteVersion[5];  // New firmware version
