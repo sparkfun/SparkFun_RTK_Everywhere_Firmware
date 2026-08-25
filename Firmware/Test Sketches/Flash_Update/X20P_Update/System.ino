@@ -83,3 +83,71 @@ bool otaSecurelyConnectGitHub(WiFiClientSecure &client)
     client.stop();
     return true;
 }
+
+// Get a string from the user
+String systemGetStringFromUser()
+{
+    uint32_t start = millis();
+
+    // Build the string as the user inputs a character at a time
+    String input;
+    while (1)
+    {
+        // Check for timeout
+        if ((millis() - start) > (15 * 1000))
+        {
+            input = "";
+            break;
+        }
+
+        // Wait for a character
+        if (Serial.available() == false)
+            delay(10);
+        else
+        {
+            // Get the character
+            int incoming = Serial.read();
+
+            // Handle end-of-line
+            if ((incoming == '\r') || (incoming == '\n'))
+            {
+                systemPrintln();
+                break;
+            }
+
+            // Handle backspace
+            else if (incoming == '\b')
+            {
+                if (input.length() == 0)
+                    systemWrite('\a');
+                else
+                {
+                    systemPrint("\b \b");
+                    input = input.substring(0, input.length() - 1);
+                }
+            }
+
+            // Save the character
+            else
+            {
+                systemWrite(incoming);
+                input += (char)incoming;
+            }
+        }
+    }
+    return input;
+}
+
+// Get a number from the user
+bool systemGetNumberFromUser(int * value)
+{
+    // Get the URL
+    String string = systemGetStringFromUser();
+
+    // Check for no entry or timeout
+    if (string.length() == 0)
+        return false;
+
+    // Attempt to convert the string to a value
+    return sscanf(string.c_str(), "%d", value);
+}
