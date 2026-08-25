@@ -1,9 +1,20 @@
+// Resets the progress-bar state. Must be called once at the start of each
+// firmware update - these otherwise carry over from the previous update
+// (bytesProcessed and lastPercent both already at their prior-run end
+// values), which suppresses every progress print on a second run since
+// percent is already 100 and "unchanged".
+void firmwareUpdateProgressReset(size_t fileBytes)
+{
+    firmwareUpdateBytesToProcess = fileBytes;
+    firmwareUpdateBytesProcessed = 0;
+    firmwareUpdateLastPercent = 0;
+}
+
 // Callback for all firmware update targets. Called with the number of bytes written to flash so far. Used to track and
 // print progress.
-void firmwareUpdateProgressCallback(uint16_t bytesProcessed)
+void firmwareUpdateProgressCallback(const char * subsystem, uint16_t bytesProcessed)
 {
     const uint8_t progressBarWidth = 20;
-    static uint8_t lastUpdatePercent = 0;
 
     firmwareUpdateBytesProcessed += bytesProcessed;
 
@@ -17,12 +28,12 @@ void firmwareUpdateProgressCallback(uint16_t bytesProcessed)
     uint8_t filled = (progressPercent * progressBarWidth) / 100;
 
     // Don't update unless there is a change
-    if (progressPercent == lastUpdatePercent)
+    if (progressPercent == firmwareUpdateLastPercent)
         return;
 
-    lastUpdatePercent = progressPercent;
+    firmwareUpdateLastPercent = progressPercent;
 
-    systemPrint("Update Progress: [");
+    systemPrintf("%s Update Progress: [", subsystem);
     for (uint8_t i = 0; i < progressBarWidth; i++)
         systemWrite(i < filled ? '#' : '-');
 
@@ -81,4 +92,58 @@ bool i2cIsDevicePresent(uint8_t deviceAddress)
     if (Wire.endTransmission() == 0)
         return true;
     return false;
+}
+
+// Get a string from the user
+String systemGetStringFromUser()
+{
+    uint32_t start = millis();
+
+    // Build the string as the user inputs a character at a time
+    String input;
+    while (1)
+    {
+        // Check for timeout
+        if ((millis() - start) > (15 * 1000))
+        {
+            input = "";
+            break;
+        }
+
+        // Wait for a character
+        if (Serial.available() == false)
+            delay(10);
+        else
+        {
+            // Get the character
+            int incoming = Serial.read();
+
+            // Handle end-of-line
+            if ((incoming == '\r') || (incoming == '\n'))
+            {
+                systemPrintln();
+                break;
+            }
+
+            // Handle backspace
+            else if (incoming == '\b')
+            {
+                if (input.length() == 0)
+                    systemWrite('\a');
+                else
+                {
+                    systemPrint("\b \b");
+                    input = input.substring(0, input.length() - 1);
+                }
+            }
+
+            // Save the character
+            else
+            {
+                systemWrite(incoming);
+                input += (char)incoming;
+            }
+        }
+    }
+    return input;
 }

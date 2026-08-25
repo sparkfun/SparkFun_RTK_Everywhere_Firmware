@@ -21,23 +21,24 @@
 
 bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local BT TLS patch
 
-#include <HTTPClient.h>
+#include "settings.h"
+
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
+#include <HTTPClient.h>
 #include "secrets.h"
+#include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU
 
 // v11.4.1
-const char *firmwareURL = "/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc";
+const char * url_11_4_1 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc";
 
 // v11.1
-// const char *firmwareURL = "/imu/im19/20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc";
+const char * url_11_1 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc";
 
 // v6.1
-// const char *firmwareURL = "/imu/im19/20230419111130_VH2_B2.2_A6.1_2eea4d4c024538bf5ed52.enc";
+const char * url_6_1 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20230419111130_VH2_B2.2_A6.1_2eea4d4c024538bf5ed52.enc";
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
-
-#include "settings.h"
 
 // Reports firmware update progress to the shared system callback.
 void firmwareUpdateProgressCallback(uint16_t bytesProcessed);
@@ -77,8 +78,15 @@ unsigned long firmwareUpdateElapsed = 0;
 // Global variables used by firmwareUpdateProgressCallback, called by all firmware update procedures
 uint32_t firmwareUpdateBytesToProcess = 0;
 uint32_t firmwareUpdateBytesProcessed = 0;
+uint8_t firmwareUpdateLastPercent = 0;
 
 char imuVersion[96];
+
+bool otaDebugVerbose;
+
+const char * otaEqualSigns = "==================================================";
+
+#define OTA_DATA_TIMEOUT        (15 * 1000)
 
 void setup()
 {
@@ -126,11 +134,10 @@ void setup()
 
     beginUart2Serial(); // Init the UART that communicates between the ESP32 and the IM19.
 
-    systemPrint("Checking IM19 version: ");
-    if (im19GetVersionString(imuVersion, sizeof(imuVersion)))
-        systemPrintln(imuVersion);
-    else
-        systemPrintln("Version query failed.");
+    im19GetVersionString();
+
+    wifiConnect();
+
     displayMenu();
 }
 
@@ -138,8 +145,13 @@ void displayMenu()
 {
     systemPrintln();
     systemPrintln("Menu:");
+    systemPrintln("o) Update IM19 to 6.1");
+    systemPrintln("p) Update IM19 to 11.1");
+    systemPrintln("u) Update IM19 to 11.4.1");
     systemPrintln("r) Reset");
-    systemPrintln("u) Update Firmware");
+    systemPrintln("e) Enter URL");
+    systemPrintf("d) Debug: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
+    systemPrintf("v) Verbose output: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
     systemPrint("Make selection: ");
 }
 
@@ -153,27 +165,50 @@ void loop()
         {
             ESP.restart();
         }
-        else if (incoming == 'u')
+        else if (incoming == 'd')
         {
-            wifiConnect();
-
-            firmwareUpdateBytesProcessed = 0;
-            firmwareUpdateBytesToProcess = 0;
-            firmwareUpdateStartTime = millis();
-
-            if (im19StreamFirmware((char *)firmwareURL) == true)
-            {
-                firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
-                systemPrintf("IM19 firmware update complete in %0.2f s.\r\n", firmwareUpdateElapsed / 1000.0);
-
-                systemPrint("Checking IM19 version: ");
-                if (im19GetVersionString(imuVersion, sizeof(imuVersion)))
-                    systemPrintln(imuVersion);
-                else
-                    systemPrintln("Version query failed.");
-            }
+            settings.debugFirmwareUpdate ^= 1;
+            otaDebugVerbose = false;
         }
+        else if (incoming == 'e')
+        {
+            // Get the URL
+            systemPrint("Enter URL: ");
+            String urlString = systemGetStringFromUser();
+            firmwareUpdate(urlString.c_str());
+        }
+        else if (incoming == 'o')
+            firmwareUpdate(url_6_1);
+        else if (incoming == 'p')
+            firmwareUpdate(url_11_1);
+        else if (incoming == 'u')
+            firmwareUpdate(url_11_4_1);
+        else if (incoming == 'v')
+            otaDebugVerbose ^= 1;
         displayMenu();
+    }
+}
+
+// Perform the firmware update
+void firmwareUpdate(const char * url)
+{
+    // Verify the url
+    if ((url == nullptr) || (strlen(url) == 0))
+        systemPrintf("No URL specified\r\n");
+    else
+    {
+        // Start timer before erase
+        firmwareUpdateStartTime = millis();
+
+        // Attempt to update the firmware
+        if (im19FirmwareUpdate(url) == true)
+        {
+            // Stop timer and print elapsed time
+            firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
+            systemPrint("Firmware update time: ");
+            systemPrint(firmwareUpdateElapsed / 1000.0, 3);
+            systemPrintln(" seconds");
+        }
     }
 }
 

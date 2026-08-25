@@ -8,7 +8,7 @@
 # Source files
 ##########
 
-SKETCH=IM19_Update_From_WiFi
+SKETCH=IM19_Update
 ESP_CORE_VERSION=3.0.7
 ESP_IDF_VERSION=idf-release_v5.1-632e0c2a
 
