@@ -378,10 +378,7 @@ void tiltUpdate() {}
 
 #if !defined(COMPILE_TILT) || !defined(COMPILE_WIFI)
 
-bool im19FirmwareUpdate(const OTA_TARGET * target,
-                        const OTA_SUBSYSTEM_INFO * subsystemInfo,
-                        uint8_t * buffer,
-                        size_t packetBytes) {return false;}
+bool im19FirmwareUpdate() {return false;}
 bool im19PumpStreamToDevice() {return false;}
 bool im19StreamRange(const char *url, uint32_t startByte, uint32_t endByte) {return false;}
 
