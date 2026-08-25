@@ -3589,6 +3589,8 @@ void f9pNewClass()
 
 // MON message IDs
 #define UBX_MON_VER 0x04u
+#define UBX_MON_VER_SW_BYTES 30
+#define UBX_MON_VER_HW_BYTES 10
 
 // ==================================================================
 //  TIMING (ms)
@@ -3627,11 +3629,6 @@ void f9pNewClass()
 // ==================================================================
 
 static uint32_t x20pCurrentAddress = FW_BASE_ADDR; // Next flash address to write; advances as pages are flashed
-
-static bool x20pEraseComplete = false; // In/out state shared with x20pWriteChunk across calls (see its header comment)
-static uint32_t x20pEraseCompleteAt = 0;
-
-static bool x20pUpdateFailed = false; // Set once a chunk write fails; halts further processing until the next Begin()
 
 // Write one byte to ser, updating the running Fletcher-8 checksum.
 static inline void x20pWriteByte(HardwareSerial &s, uint8_t v, uint8_t &ca, uint8_t &cb)
@@ -3798,6 +3795,40 @@ bool x20pPollMsg(HardwareSerial &ser, uint8_t cls, uint8_t id, const uint8_t *pa
     return x20pWaitForMsg(ser, cls, id, out, timeoutMs);
 }
 
+// Poll UBX-MON-VER and print the module's software/hardware version strings.
+// Assumes ser is already communicating with the module at the correct baud rate
+// (works both in normal application firmware and in the bootloader).
+// Returns true if a version response was received and parsed.
+bool x20pPrintVersion(HardwareSerial &ser)
+{
+    UbxMsg monVer;
+    if (x20pPollMsg(ser, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, monVer, TIMEOUT_POLL) == false)
+    {
+        systemPrintln("Firmware version: no response from module.");
+        return false;
+    }
+
+    if (monVer.len < (UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES))
+    {
+        systemPrintln("Firmware version: response too short to parse.");
+        return false;
+    }
+
+    char swVersion[UBX_MON_VER_SW_BYTES + 1];
+    char hwVersion[UBX_MON_VER_HW_BYTES + 1];
+    memcpy(swVersion, monVer.payload, UBX_MON_VER_SW_BYTES);
+    swVersion[UBX_MON_VER_SW_BYTES] = '\0';
+    memcpy(hwVersion, monVer.payload + UBX_MON_VER_SW_BYTES, UBX_MON_VER_HW_BYTES);
+    hwVersion[UBX_MON_VER_HW_BYTES] = '\0';
+
+    systemPrint("Firmware version: ");
+    systemPrint(swVersion);
+    systemPrint("  Hardware version: ");
+    systemPrintln(hwVersion);
+
+    return true;
+}
+
 // ==================================================================
 //  PUBLIC API
 // ==================================================================
@@ -3825,39 +3856,26 @@ void x20pSendDataFrame(HardwareSerial &ser, uint32_t address, const uint8_t *chu
 /*
  * x20pWriteChunk()
  *
- * Send one frame and wait for the device's 5-byte ACK.
- * Handles the concurrent chip-erase case
- *   - Packet 0 is sent while CERASE is in flight; the device ignores it.
- *   - When the CERASE completion arrives, the deadline is tightened to
- *     TIMEOUT_WRITE (3 s) from that completion time (not from the original
- *     send time - erase duration is unpredictable and often exceeds
- *     TIMEOUT_WRITE on its own).
- *   - On timeout, the packet is resent (up to WRITE_RETRIES times).
- *   - For packets 1+, eraseComplete is already true and the shorter
- *     TIMEOUT_WRITE deadline is used from the start.
- *
- * eraseComplete / eraseCompleteAt are in/out: once the CERASE response is
- * seen they are set and remain true for all subsequent packet calls.
+ * Send one frame and wait for the device's 5-byte ACK, retrying up to
+ * WRITE_RETRIES times on timeout. Assumes the chip erase has already
+ * completed (see x20pChipErase()) before the first call, so every
+ * write gets the short TIMEOUT_WRITE deadline - no concurrent-erase
+ * bookkeeping is needed here.
  */
 bool x20pWriteChunk(HardwareSerial &ser,
                     uint32_t address,
                     const uint8_t *chunk,
-                    uint16_t chunkLen,
-                    bool &eraseComplete,
-                    uint32_t &eraseCompleteAt)
+                    uint16_t chunkLen)
 {
     if (chunkLen == 0 || chunkLen > PACKET_SIZE)
         return false;
 
-    x20pSendDataFrame(ser, address, chunk, chunkLen);
-    ser.flush();
-    uint32_t sendTime = millis();
-
-    // If erase is already done, expect the ACK quickly; otherwise allow the full chip-erase window.
-    uint32_t deadline = eraseComplete ? (millis() + TIMEOUT_WRITE) : (sendTime + TIMEOUT_CHIP_ERASE);
-
     for (uint8_t retries = 0; retries <= WRITE_RETRIES; retries++)
     {
+        x20pSendDataFrame(ser, address, chunk, chunkLen);
+        ser.flush();
+        uint32_t deadline = millis() + TIMEOUT_WRITE;
+
         while ((int32_t)(millis() - deadline) < 0)
         {
             UbxMsg m;
@@ -3868,80 +3886,36 @@ bool x20pWriteChunk(HardwareSerial &ser,
                 continue; // CRC noise - keep waiting
             }
 
-            if (m.cls == UBX_CLASS_UPD && m.id == 0x16) // Chip erase response
-            {
-                if (!eraseComplete && m.len >= 1 && m.payload[0] == 1)
-                {
-                    eraseComplete = true;
-                    eraseCompleteAt = millis();
-                    systemPrint("    [DBG] CERASE done, t=");
-                    systemPrint(eraseCompleteAt - sendTime);
-                    systemPrintln(" ms after send");
-                    // Tighten deadline to a full TIMEOUT_WRITE window from *now* (erase-complete
-                    // time), not from the original send time. Erase duration is unpredictable and
-                    // routinely exceeds TIMEOUT_WRITE, so anchoring to sendTime could put fireAt in
-                    // the past and leave zero time for packet 0's actual ACK to arrive, causing a
-                    // spurious timeout/retry right after every erase.
-                    deadline = eraseCompleteAt + TIMEOUT_WRITE;
-                }
-                else if (m.len >= 1 && m.payload[0] != 1)
-                {
-                    systemPrintln("    [DBG] CERASE reported failure");
-                    return false;
-                }
-            }
-            else if (m.cls == UBX_CLASS_ACK)
-            {
-                // ACK-ACK or NAK for FLDET/CERASE - ignore
-            }
-            else if (m.cls == UBX_CLASS_UPD && m.id == 0x2A) // Write data response
+            if (m.cls == UBX_CLASS_UPD && m.id == 0x2A) // Write data response
             {
                 if (m.len != 5)
                 {
-                    systemPrint("    [DBG] Data ACK wrong length: ");
-                    systemPrintln(m.len);
+                    if (settings.debugFirmwareUpdate)
+                        systemPrintf("    [DBG] Data ACK wrong length: %d\r\n", m.len);
                     return false;
                 }
                 if (m.payload[4] != 1)
                 {
                     uint32_t devAddr = (uint32_t)m.payload[0] | ((uint32_t)m.payload[1] << 8) |
                                        ((uint32_t)m.payload[2] << 16) | ((uint32_t)m.payload[3] << 24);
-                    systemPrintf("    [DBG] Data NACK at 0x%08X\r\n", devAddr);
+                    if (settings.debugFirmwareUpdate)
+                        systemPrintf("    [DBG] Data NACK at 0x%08X\r\n", devAddr);
                     return false;
                 }
                 return true; // success
             }
-            else
-            {
-                systemPrint("    [DBG] rx cls=0x");
-                systemPrint(m.cls, HEX);
-                systemPrint(" id=0x");
-                systemPrint(m.id, HEX);
-                systemPrint(" len=");
-                systemPrintln(m.len);
-            }
+            // Ignore ACK-ACK/NAK and any other frames while waiting for the data response
         }
 
-        // Deadline expired. If CERASE never came, we have a hard failure.
-        if (!eraseComplete)
-        {
-            systemPrintln("    [DBG] CERASE did not complete within 45 s");
-            return false;
-        }
-
-        // Erase done but no Data ACK - retry.
         if (retries < WRITE_RETRIES)
         {
-            systemPrint("    [DBG] write timeout, retry ");
-            systemPrintln(retries + 1);
-            x20pSendDataFrame(ser, address, chunk, chunkLen);
-            ser.flush();
-            sendTime = millis();
-            deadline = millis() + TIMEOUT_WRITE;
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("    [DBG] write timeout, retry %d\r\n", retries + 1);
         }
     }
 
-    systemPrintln("    [DBG] write retries exhausted");
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("    [DBG] write retries exhausted");
     return false;
 }
 
@@ -3965,14 +3939,9 @@ bool x20pWriteChunk(HardwareSerial &ser,
  */
 bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBytes)
 {
-    if (x20pUpdateFailed)
-        return false; // A prior chunk write failed - stop touching the page buffer/flash
-
-    if (!x20pWriteChunk(ser, x20pCurrentAddress, data, numBytes, x20pEraseComplete,
-                        x20pEraseCompleteAt))
+    if (!x20pWriteChunk(ser, x20pCurrentAddress, data, numBytes))
     {
-        systemPrintf("  ERROR: write failed at address 0x%08X\r\n", x20pCurrentAddress);
-        x20pUpdateFailed = true;
+        systemPrintf("ERROR: X20P write failed at address 0x%08X\r\n", x20pCurrentAddress);
         return false;
     }
     x20pCurrentAddress += numBytes;
@@ -3980,19 +3949,21 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
 }
 
 /*
- * x20pFirmwareUpdateBegin()
+ * x20pEnterBootloaderMode()
  *
- * Resets the GNSS into bootloader mode, finds its current baud rate,
- * starts the flash-loader task, switches UART1 to X20P_FIRMWARE_UPDATE_BAUD, kicks
- * off the chip erase (fire-and-forget - its completion races the
- * first packet write, handled inside x20pWriteChunk), and allocates
- * the page-accumulation buffer used by x20pUpdateFirmware().
+ * Hardware-resets the GNSS, autobauds to find its current comms rate,
+ * tells the ROM to start the flash-loader (LDR) task, then switches
+ * UART1 to X20P_FIRMWARE_UPDATE_BAUD for faster transfers.
+ *
+ * Called twice per update: once to reach a loader task for the chip
+ * erase, and again afterward - with flash now blank - to force a
+ * genuine ROM LDR bootloader boot, which is the only state that
+ * accepts write-data commands (see x20pFirmwareUpdateBegin()).
  *
  * Returns true on success.
  */
-bool x20pFirmwareUpdateBegin()
+bool x20pEnterBootloaderMode()
 {
-    systemPrintln("Resetting GNSS");
     gpioExpanderGnssReset();
     delay(25);
     gpioExpanderGnssBoot();
@@ -4005,28 +3976,42 @@ bool x20pFirmwareUpdateBegin()
 
     for (uint8_t i = 0; i < (sizeof(baudCandidates) / sizeof(baudCandidates[0])); i++)
     {
-        systemPrintf("Checking communication at %d...\r\n", baudCandidates[i]);
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("Checking communication at %d...\r\n", baudCandidates[i]);
 
         serialGNSS->updateBaudRate(baudCandidates[i]);
 
-        delay(10);
-        while (serialGNSS->available())
-            serialGNSS->read();
-
-        // Training sequence - helps the module's autobaud lock on
-        serialGNSS->write(0x55);
-        serialGNSS->write(0x55);
-        delay(10);
-
-        // Confirm UBX communication with a MON-VER poll
-        UbxMsg monVer;
-        if (x20pPollMsg(*serialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, monVer, TIMEOUT_POLL) == true)
+        // The module boots straight into its application firmware and streams NMEA
+        // continuously (confirmed via raw-byte capture - it is never silent). A single
+        // poll attempt can land mid-sentence and burn its whole TIMEOUT_POLL budget just
+        // scanning past NMEA text before ever reaching the real UBX reply, so retry a few
+        // times with a fresh drain each time rather than giving up on baud after one try.
+        bool gotResponse = false;
+        for (uint8_t attempt = 0; attempt < 3 && !gotResponse; attempt++)
         {
-            systemPrintf("  OK at %d baud.\r\n", baudCandidates[i]);
+            delay(10);
+            while (serialGNSS->available())
+                serialGNSS->read();
+
+            // Training sequence - helps the module's autobaud lock on
+            serialGNSS->write(0x55);
+            serialGNSS->write(0x55);
+            delay(10);
+
+            // Confirm UBX communication with a MON-VER poll
+            UbxMsg monVer;
+            gotResponse = x20pPollMsg(*serialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, monVer, TIMEOUT_POLL);
+        }
+
+        if (gotResponse)
+        {
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("X20P communication at %d baud.\r\n", baudCandidates[i]);
             foundBaud = true;
             break;
         }
-        systemPrintf("  No response at %d baud.\r\n", baudCandidates[i]);
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("  No response at %d baud.\r\n", baudCandidates[i]);
     }
 
     if (!foundBaud)
@@ -4037,26 +4022,27 @@ bool x20pFirmwareUpdateBegin()
     //    Payload 0x01 tells the ROM to start the flash-loader
     //    task instead of entering full safeboot.
     // ----------------------------------------------------------
-    systemPrintln("Starting flash loader task...");
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("Starting X20P bootloader...");
     const uint8_t startLoaderPayload[] = {0x01};
     int ack = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_UPD, 0x07, startLoaderPayload, 1,
                                  TIMEOUT_POLL); // Enter safeboot, start loader task
     if (ack == -1)
     {
-        systemPrintln("  ERROR: timed out");
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintln("  ERROR: timed out");
         return false;
     }
-    systemPrint("  Loader ");
-    systemPrintln(ack ? "ACK" : "NAK (continuing - normal on some ROM versions)");
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintf("  Loader %s\r\n", ack ? "ACK" : "NAK (continuing - normal on some ROM versions)");
 
     // ----------------------------------------------------------
     // Switch UART1 to X20P_FIRMWARE_UPDATE_BAUD for faster transfers.
     //      We wait for the ACK at the old baud rate; the device sends the ACK
     //      then switches. A NAK means the loader rejected the requested rate.
     // ----------------------------------------------------------
-    systemPrint("Switching to ");
-    systemPrint(X20P_FIRMWARE_UPDATE_BAUD);
-    systemPrintln(" baud...");
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintf("Switching to %d baud...", X20P_FIRMWARE_UPDATE_BAUD);
     {
         const uint32_t nb = X20P_FIRMWARE_UPDATE_BAUD;
         const uint8_t cfgPayload[32] = {0x00,
@@ -4094,11 +4080,12 @@ bool x20pFirmwareUpdateBegin()
         // Wait for ACK at old rate - device sends ACK then applies new baud.
         int cfgAck = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_CFG, UBX_CFG_VALSET, cfgPayload, sizeof(cfgPayload),
                                         TIMEOUT_POLL);
-        systemPrint("  [DBG] CFG-VALSET ");
-        systemPrintln(cfgAck == 1 ? "ACK" : cfgAck == 0 ? "NAK" : "no-ACK (timeout)");
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("  [DBG] CFG-VALSET: %s\r\n", cfgAck == 1 ? "ACK" : cfgAck == 0 ? "NAK" : "no-ACK (timeout)");
         if (cfgAck == 0)
         {
-            systemPrintln("  ERROR: device NAK'd baud rate change - rate unsupported in loader");
+            if (settings.debugFirmwareUpdate)
+                systemPrintln("  ERROR: X20P NAK'd baud rate change - rate unsupported in loader");
             return false;
         }
         serialGNSS->flush();
@@ -4121,18 +4108,23 @@ bool x20pFirmwareUpdateBegin()
         {
             uint32_t rawEnd = millis() + 500;
             uint8_t rawCount = 0;
-            systemPrint("  [DBG] raw rx:");
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrint("  [DBG] raw rx:");
             while ((int32_t)(millis() - rawEnd) < 0 && rawCount < 24)
             {
                 if (serialGNSS->available())
                 {
                     uint8_t b = serialGNSS->read();
-                    systemPrint(b < 0x10 ? " 0" : " ");
-                    systemPrint(b, HEX);
+                    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                    {
+                        systemPrint(b < 0x10 ? " 0" : " ");
+                        systemPrint(b, HEX);
+                    }
                     rawCount++;
                 }
             }
-            systemPrintln(rawCount ? "" : " (silence)");
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintln(rawCount ? "" : " (silence)");
             while (serialGNSS->available())
                 serialGNSS->read();
         }
@@ -4153,28 +4145,95 @@ bool x20pFirmwareUpdateBegin()
         }
         if (!baudOk)
         {
-            systemPrintln("  ERROR: baud rate switch failed - check X20P_FIRMWARE_UPDATE_BAUD");
+            if (settings.debugFirmwareUpdate)
+                systemPrintln("  ERROR: baud rate switch failed - check X20P_FIRMWARE_UPDATE_BAUD");
             return false;
         }
-        systemPrintln("  Baud switch OK.");
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintln("  Baud switch OK.");
     }
 
-    // ----------------------------------------------------------
-    // Chip erase - concurrent write path.
-    //    This device has no flash-retention footer so FLASHRET/FLREST
-    //    are not used.  CERASE is sent immediately; packet 0 will be
-    //    sent concurrently and the write loop handles the retry after
-    //    the erase completes.
-    // ----------------------------------------------------------
-    systemPrintln("Starting chip erase...");
-    x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x16, nullptr, 0);
-    // Do NOT wait for chip erase ACK here - it arrives while packet 0 is in flight.
+    return true;
+}
 
-    // Reset streaming state for this update.
-    x20pCurrentAddress = FW_BASE_ADDR;
-    x20pEraseComplete = false;
-    x20pEraseCompleteAt = 0;
-    x20pUpdateFailed = false;
+/*
+ * x20pChipErase()
+ *
+ * Sends UBX-UPD CERASE (full chip erase) and blocks until the device
+ * confirms completion (up to TIMEOUT_CHIP_ERASE), unlike the old
+ * concurrent-erase path this replaces. Must be called while the
+ * device is in the ROM loader task (see x20pEnterBootloaderMode()).
+ * This device has no flash-retention footer, so FLASHRET/FLREST are
+ * not used.
+ *
+ * Returns true if the erase completed successfully.
+ */
+bool x20pChipErase()
+{
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintln("Starting chip erase...");
+    x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x16, nullptr, 0);
+
+    uint32_t deadline = millis() + TIMEOUT_CHIP_ERASE;
+    while ((int32_t)(millis() - deadline) < 0)
+    {
+        UbxMsg m;
+        if (!x20pReceive(*serialGNSS, m, deadline))
+        {
+            if ((int32_t)(millis() - deadline) >= 0)
+                break;
+            continue; // CRC noise - keep waiting
+        }
+
+        if (m.cls == UBX_CLASS_UPD && m.id == 0x16) // Chip erase response
+        {
+            if (m.len >= 1 && m.payload[0] == 1)
+            {
+                if (settings.debugFirmwareUpdate)
+                    systemPrintln("  Chip erase complete.");
+                return true;
+            }
+            systemPrintln("  ERROR: X20P chip erase reported failure");
+            return false;
+        }
+        // Ignore stray ACKs/other frames while waiting for the CERASE response
+    }
+
+    systemPrintln("  ERROR: X20P chip erase did not complete within 45 s");
+    return false;
+}
+
+/*
+ * x20pFirmwareUpdateBegin()
+ *
+ * Owns the full pre-write sequence:
+ *   1. Enter the bootloader (reset + autobaud + start loader task + baud switch).
+ *      When the module was still running full application firmware, this
+ *      lands in an app-hosted loader shim: it answers MON-VER and CERASE,
+ *      but does not accept the write-data command at all (confirmed on the
+ *      bench - writes silently get zero response from that state, every
+ *      time, while they succeed immediately from a genuine ROM LDR boot).
+ *   2. Perform a full chip erase and wait for it to complete. Flash is now
+ *      blank, so the ROM has nothing else to boot into.
+ *   3. Reset the module again. With flash blank it can only land in the
+ *      real ROM LDR bootloader, which does accept writes.
+ *
+ * Returns true on success.
+ */
+bool x20pFirmwareUpdateBegin()
+{
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("Resetting X20P");
+    if (x20pEnterBootloaderMode() == false)
+        return false;
+
+    if (x20pChipErase() == false)
+        return false;
+
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("Resetting X20P to guarantee true ROM LDR bootloader...");
+    if (x20pEnterBootloaderMode() == false)
+        return false;
 
     return true;
 }
@@ -4182,81 +4241,90 @@ bool x20pFirmwareUpdateBegin()
 /*
  * x20pFirmwareUpdateEnd()
  *
- * Flushes any partial trailing page left in the accumulation buffer,
- * verifies the written image, frees the buffer, and reboots the
- * device (fire-and-forget) into the new firmware.
- *
- * uploadSucceeded should be the return value of x20pStreamFirmware().
- * If the WiFi upload itself failed partway (TLS/HTTP error, dropped
- * connection, etc.) the flash image is known incomplete, so the final
- * flush and verify are skipped - verifying a partial image against the
- * device is pointless and just produces a misleading NAK.
+ * Verifies the written image.
  *
  * Returns true only if the upload, flush, and verify all succeeded.
  */
-bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
+bool x20pFirmwareUpdateEnd()
 {
-    bool success = uploadSucceeded && !x20pUpdateFailed;
-    if (success)
-    {
-        // ----------------------------------------------------------
-        // Verify
-        //    Verify triggers the device to re-read and
-        //    validate the written image in flash, returning ACK/NAK.
-        //    Version field in payload must be 0.
-        // ----------------------------------------------------------
+    bool success = true;
+
+    // ----------------------------------------------------------
+    // Verify
+    //    Verify triggers the device to re-read and
+    //    validate the written image in flash, returning ACK/NAK.
+    //    Version field in payload must be 0.
+    // ----------------------------------------------------------
+    if (settings.debugFirmwareUpdate)
         systemPrintln("Verifying image...");
-        const uint8_t verPayload[4] = {0, 0, 0, 0};
-        int ack = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_UPD, 0x2B, verPayload, 4, TIMEOUT_VERIFY); // Verify
-        if (ack != 1)
-        {
-            systemPrint("  ERROR: verify ");
-            systemPrintln(ack == 0 ? "NAK" : "timeout");
-            success = false;
-        }
-        else
-            systemPrintln("  Verify OK.");
+    const uint8_t verPayload[4] = {0, 0, 0, 0};
+    int ack = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_UPD, 0x2B, verPayload, 4, TIMEOUT_VERIFY); // Verify
+    if (ack != 1)
+    {
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("  ERROR: verify %s\r\n", ack == 0 ? "NAK" : "timeout");
+        success = false;
     }
-    else
-        systemPrintln("Skipping verify - firmware upload did not complete successfully.");
-
-    // Reboot (fire-and-forget - device does not send a response)
-    x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x0E, nullptr, 0); // Reboot
-
+    else if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintln("  Verify OK.");
     return success;
 }
 
-//----------------------------------------
-// Update the X20P firmware
-// Owns the full update sequence: enters bootloader mode, streams the image
-// over WiFi, then verifies/reboots - callers only need to call this one
-// function and do not need to know about Begin()/End().
-//----------------------------------------
-#if defined(COMPILE_WIFI) && defined(COMPILE_ZED)
+/*
+ * x20pStreamFirmware()
+ *
+ * Update the X20P firmware
+ *
+ * Owns the full update sequence: enters bootloader mode, streams the image
+ * over WiFi, then verifies/reboots - callers only need to call this one
+ * function and do not need to know about Begin()/End().
+ *
+ * Returns true upon successful firmware update and false upon failure.
+ */
+#if defined(COMPILE_WIFI)
 bool x20pStreamFirmware(NetworkClient * stream,
                         size_t fileBytes,
                         uint32_t expectedCrc,
                         uint8_t * buffer,
                         size_t packetBytes)
 {
-    uint32_t crc = 0;
+    // Display the parameters
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+    {
+        systemPrintf("fileBytes: %d\r\n", fileBytes);
+        systemPrintf("expectedCrc: 0x%08x\r\n", expectedCrc);
+        systemPrintf("packetBytes: %d\r\n", packetBytes);
+    }
 
     systemPrintln("Starting X20P firmware update...");
 
     // Stop tasks that absorb serial data from the GNSS
     tasksStopGnssUart();
 
+    // Enter the bootloader and erase flash before opening the GitHub connection.
+    // This sequence involves two hardware resets and autobaud probing and can take
+    // 30+ seconds; opening the HTTPS GET first and leaving it idle that long risked
+    // the connection going stale (and a stalled TLS read blocking forever) before a
+    // single body byte was ever consumed.
     if (x20pFirmwareUpdateBegin() == false)
     {
         systemPrintln(otaEqualSigns);
-        systemPrintln("Failed to enter bootloader mode.");
+        systemPrintln("X20P failed to enter bootloader mode.");
         systemPrintln(otaEqualSigns);
         return false;
     }
-    systemPrintln("Device is in bootloader mode.");
+    systemPrintln("X20P is in bootloader mode.");
+
+    // Initialize the progress bar
+    firmwareUpdateProgressReset(fileBytes);
+
+    // Compute the CRC across the entire file
+    uint32_t crc = 0;
 
     unsigned long lastDataTime = millis();
     size_t validData = 0;
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("stream->connected(): %d\r\n", stream->connected());
     while (stream->connected() && (fileBytes > 0))
     {
         // Wait until some data is available
@@ -4265,16 +4333,20 @@ bool x20pStreamFirmware(NetworkClient * stream,
         {
             if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
             {
-                systemPrintln("X20P OTA update timed out waiting for data");
-                return false;
+                systemPrintf("X20P firmware update timed out waiting for data\r\n");
+                break;
             }
             delay(1);
             continue;
         }
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("availableBytes: %d\r\n", availableBytes);
 
         // Read the received data
-        size_t toRead = min(availableBytes, packetBytes - validData);
-        int bytesRead = stream->readBytes(&buffer[validData], toRead);
+        size_t bytesToRead = min(availableBytes, packetBytes - validData);
+        int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("bytesRead: %d\r\n", bytesRead);
         if (bytesRead <= 0)
             break;
         validData += bytesRead;
@@ -4290,38 +4362,68 @@ bool x20pStreamFirmware(NetworkClient * stream,
         if ((fileBytes == validData) && (crc != expectedCrc))
         {
             systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
+            systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n",
+                         expectedCrc, crc);
             break;
         }
 
         // Update this portion of the firmware
-        if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)validData) == false)
+        if (x20pUpdateFirmware(*serialGNSS, buffer, validData) == false)
         {
-            systemPrintln("Firmware update failed during WiFi data upload.");
+            systemPrintln("X20P firmware update failed during write");
             break;
         }
 
+        // Display the progress
+        firmwareUpdateProgressCallback("X20P", validData);
+
         // Account for this data
         fileBytes -= validData;
-        firmwareUpdateProgressCallback("X20P", validData);
         lastDataTime = millis();
         validData = 0;
     }
 
-    systemPrintln(otaEqualSigns);
-    bool success = (fileBytes == 0);
+    systemPrintf("%s\r\n", otaEqualSigns);
+    bool success = (fileBytes == 0) && x20pFirmwareUpdateEnd();
     if (success)
-        systemPrintln("X20P update successfully completed.");
+        systemPrintln("X20P firmware update successfully completed.");
     else
         systemPrintln("X20P firmware update failed.");
-    systemPrintln(otaEqualSigns);
 
-    // x20pFirmwareUpdateBegin() succeeded above, so End() must always run -
-    // it verifies (when success), frees the page buffer, and reboots the device.
-    systemPrintln("Rebooting receiver...");
-    bool updateOk = x20pFirmwareUpdateEnd(success);
-    return updateOk;
+    // Reboot (fire-and-forget - device does not send a response)
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("Rebooting X20P...");
+    x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x0E, nullptr, 0); // Reboot
+
+    // Display the version number
+    x20pDisplayVersion();
+    systemPrintf("%s\r\n", otaEqualSigns);
+    return success;
 }
-#endif // COMPILE_WIFI && COMPILE_ZED
+
+// Display the firmware version number
+void x20pDisplayVersion()
+{
+    // Display the version number
+    delay(2000);
+    serialGNSS->updateBaudRate(38400);
+    while (serialGNSS->available())
+        serialGNSS->read();
+    x20pPrintVersion(*serialGNSS);
+}
+
+#endif // COMPILE_WIFI
+
+// Verify assumptions
+void zedVerifyTables()
+{
+    if (X20P_RX_PAYLOAD_MAX < (UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES))
+    {
+        systemPrintf("Increase X20P_RX_PAYLOAD_MAX from %d to >= %d\r\n",
+                     X20P_RX_PAYLOAD_MAX, UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES);
+        reportFatalError("Set X20P_RX_PAYLOAD_MAX >= (UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES)");
+    }
+}
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of X20P firmware update functions.

@@ -772,6 +772,7 @@ void verifyTables()
     gnssVerifyTables();
     lg290pVerifyTables();
     nvmVerifyTables();
+    zedVerifyTables();
 
     if (CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");
