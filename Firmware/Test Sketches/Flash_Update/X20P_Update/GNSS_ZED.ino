@@ -40,6 +40,8 @@
 
 // MON message IDs
 #define UBX_MON_VER 0x04u
+#define UBX_MON_VER_SW_BYTES 30
+#define UBX_MON_VER_HW_BYTES 10
 
 // ==================================================================
 //  TIMING (ms)
@@ -77,11 +79,8 @@
 //  x20pFirmwareUpdateBegin(), freed in x20pFirmwareUpdateEnd().
 // ==================================================================
 
-static uint8_t *x20pPageBuffer = nullptr; // Accumulates incoming bytes; flushed every PACKET_SIZE bytes
-static uint16_t x20pBufferIndex = 0;
+uint8_t buffer[PACKET_SIZE];
 static uint32_t x20pCurrentAddress = FW_BASE_ADDR; // Next flash address to write; advances as pages are flashed
-
-static bool x20pUpdateFailed = false; // Set once a chunk write fails; halts further processing until the next Begin()
 
 // Write one byte to ser, updating the running Fletcher-8 checksum.
 static inline void x20pWriteByte(HardwareSerial &s, uint8_t v, uint8_t &ca, uint8_t &cb)
@@ -261,18 +260,18 @@ bool x20pPrintVersion(HardwareSerial &ser)
         return false;
     }
 
-    if (monVer.len < 40)
+    if (monVer.len < (UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES))
     {
         systemPrintln("Firmware version: response too short to parse.");
         return false;
     }
 
-    char swVersion[31];
-    char hwVersion[11];
-    memcpy(swVersion, monVer.payload, 30);
-    swVersion[30] = '\0';
-    memcpy(hwVersion, monVer.payload + 30, 10);
-    hwVersion[10] = '\0';
+    char swVersion[UBX_MON_VER_SW_BYTES + 1];
+    char hwVersion[UBX_MON_VER_HW_BYTES + 1];
+    memcpy(swVersion, monVer.payload, UBX_MON_VER_SW_BYTES);
+    swVersion[UBX_MON_VER_SW_BYTES] = '\0';
+    memcpy(hwVersion, monVer.payload + UBX_MON_VER_SW_BYTES, UBX_MON_VER_HW_BYTES);
+    hwVersion[UBX_MON_VER_HW_BYTES] = '\0';
 
     systemPrint("Firmware version: ");
     systemPrint(swVersion);
@@ -315,7 +314,10 @@ void x20pSendDataFrame(HardwareSerial &ser, uint32_t address, const uint8_t *chu
  * write gets the short TIMEOUT_WRITE deadline - no concurrent-erase
  * bookkeeping is needed here.
  */
-bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk, uint16_t chunkLen)
+bool x20pWriteChunk(HardwareSerial &ser,
+                    uint32_t address,
+                    const uint8_t *chunk,
+                    uint16_t chunkLen)
 {
     if (chunkLen == 0 || chunkLen > PACKET_SIZE)
         return false;
@@ -340,15 +342,16 @@ bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk,
             {
                 if (m.len != 5)
                 {
-                    systemPrint("    [DBG] Data ACK wrong length: ");
-                    systemPrintln(m.len);
+                    if (settings.debugFirmwareUpdate)
+                        systemPrintf("    [DBG] Data ACK wrong length: %d\r\n", m.len);
                     return false;
                 }
                 if (m.payload[4] != 1)
                 {
                     uint32_t devAddr = (uint32_t)m.payload[0] | ((uint32_t)m.payload[1] << 8) |
                                        ((uint32_t)m.payload[2] << 16) | ((uint32_t)m.payload[3] << 24);
-                    systemPrintf("    [DBG] Data NACK at 0x%08X\r\n", devAddr);
+                    if (settings.debugFirmwareUpdate)
+                        systemPrintf("    [DBG] Data NACK at 0x%08X\r\n", devAddr);
                     return false;
                 }
                 return true; // success
@@ -358,12 +361,13 @@ bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk,
 
         if (retries < WRITE_RETRIES)
         {
-            systemPrint("    [DBG] write timeout, retry ");
-            systemPrintln(retries + 1);
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("    [DBG] write timeout, retry %d\r\n", retries + 1);
         }
     }
 
-    systemPrintln("    [DBG] write retries exhausted");
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("    [DBG] write retries exhausted");
     return false;
 }
 
@@ -387,26 +391,12 @@ bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk,
  */
 bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBytes)
 {
-    if (x20pUpdateFailed)
-        return false; // A prior chunk write failed - stop touching the page buffer/flash
-
-    for (uint32_t i = 0; i < numBytes; i++)
+    if (!x20pWriteChunk(ser, x20pCurrentAddress, data, numBytes))
     {
-        x20pPageBuffer[x20pBufferIndex++] = data[i];
-
-        if (x20pBufferIndex == PACKET_SIZE)
-        {
-            if (!x20pWriteChunk(ser, x20pCurrentAddress, x20pPageBuffer, PACKET_SIZE))
-            {
-                systemPrintf("  ERROR: write failed at address 0x%08X\r\n", x20pCurrentAddress);
-                x20pUpdateFailed = true;
-                return false;
-            }
-            x20pCurrentAddress += PACKET_SIZE;
-            x20pBufferIndex = 0;
-        }
+        systemPrintf("ERROR: X20P write failed at address 0x%08X\r\n", x20pCurrentAddress);
+        return false;
     }
-
+    x20pCurrentAddress += numBytes;
     return true;
 }
 
@@ -426,7 +416,6 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
  */
 bool x20pEnterBootloaderMode()
 {
-    systemPrintln("Resetting GNSS");
     gpioExpanderGnssReset();
     delay(25);
     gpioExpanderGnssBoot();
@@ -439,7 +428,8 @@ bool x20pEnterBootloaderMode()
 
     for (uint8_t i = 0; i < (sizeof(baudCandidates) / sizeof(baudCandidates[0])); i++)
     {
-        systemPrintf("Checking communication at %d...\r\n", baudCandidates[i]);
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("Checking communication at %d...\r\n", baudCandidates[i]);
 
         serialGNSS->updateBaudRate(baudCandidates[i]);
 
@@ -467,11 +457,13 @@ bool x20pEnterBootloaderMode()
 
         if (gotResponse)
         {
-            systemPrintf("  OK at %d baud.\r\n", baudCandidates[i]);
+            if (settings.debugFirmwareUpdate)
+                systemPrintf("X20P communication at %d baud.\r\n", baudCandidates[i]);
             foundBaud = true;
             break;
         }
-        systemPrintf("  No response at %d baud.\r\n", baudCandidates[i]);
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("  No response at %d baud.\r\n", baudCandidates[i]);
     }
 
     if (!foundBaud)
@@ -482,26 +474,27 @@ bool x20pEnterBootloaderMode()
     //    Payload 0x01 tells the ROM to start the flash-loader
     //    task instead of entering full safeboot.
     // ----------------------------------------------------------
-    systemPrintln("Starting flash loader task...");
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("Starting X20P bootloader...");
     const uint8_t startLoaderPayload[] = {0x01};
     int ack = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_UPD, 0x07, startLoaderPayload, 1,
                                  TIMEOUT_POLL); // Enter safeboot, start loader task
     if (ack == -1)
     {
-        systemPrintln("  ERROR: timed out");
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintln("  ERROR: timed out");
         return false;
     }
-    systemPrint("  Loader ");
-    systemPrintln(ack ? "ACK" : "NAK (continuing - normal on some ROM versions)");
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintf("  Loader %s\r\n", ack ? "ACK" : "NAK (continuing - normal on some ROM versions)");
 
     // ----------------------------------------------------------
     // Switch UART1 to X20P_FIRMWARE_UPDATE_BAUD for faster transfers.
     //      We wait for the ACK at the old baud rate; the device sends the ACK
     //      then switches. A NAK means the loader rejected the requested rate.
     // ----------------------------------------------------------
-    systemPrint("Switching to ");
-    systemPrint(X20P_FIRMWARE_UPDATE_BAUD);
-    systemPrintln(" baud...");
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintf("Switching to %d baud...", X20P_FIRMWARE_UPDATE_BAUD);
     {
         const uint32_t nb = X20P_FIRMWARE_UPDATE_BAUD;
         const uint8_t cfgPayload[32] = {0x00,
@@ -539,11 +532,12 @@ bool x20pEnterBootloaderMode()
         // Wait for ACK at old rate - device sends ACK then applies new baud.
         int cfgAck = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_CFG, UBX_CFG_VALSET, cfgPayload, sizeof(cfgPayload),
                                         TIMEOUT_POLL);
-        systemPrint("  [DBG] CFG-VALSET ");
-        systemPrintln(cfgAck == 1 ? "ACK" : cfgAck == 0 ? "NAK" : "no-ACK (timeout)");
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("  [DBG] CFG-VALSET: %s\r\n", cfgAck == 1 ? "ACK" : cfgAck == 0 ? "NAK" : "no-ACK (timeout)");
         if (cfgAck == 0)
         {
-            systemPrintln("  ERROR: device NAK'd baud rate change - rate unsupported in loader");
+            if (settings.debugFirmwareUpdate)
+                systemPrintln("  ERROR: X20P NAK'd baud rate change - rate unsupported in loader");
             return false;
         }
         serialGNSS->flush();
@@ -566,18 +560,23 @@ bool x20pEnterBootloaderMode()
         {
             uint32_t rawEnd = millis() + 500;
             uint8_t rawCount = 0;
-            systemPrint("  [DBG] raw rx:");
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrint("  [DBG] raw rx:");
             while ((int32_t)(millis() - rawEnd) < 0 && rawCount < 24)
             {
                 if (serialGNSS->available())
                 {
                     uint8_t b = serialGNSS->read();
-                    systemPrint(b < 0x10 ? " 0" : " ");
-                    systemPrint(b, HEX);
+                    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                    {
+                        systemPrint(b < 0x10 ? " 0" : " ");
+                        systemPrint(b, HEX);
+                    }
                     rawCount++;
                 }
             }
-            systemPrintln(rawCount ? "" : " (silence)");
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintln(rawCount ? "" : " (silence)");
             while (serialGNSS->available())
                 serialGNSS->read();
         }
@@ -598,10 +597,12 @@ bool x20pEnterBootloaderMode()
         }
         if (!baudOk)
         {
-            systemPrintln("  ERROR: baud rate switch failed - check X20P_FIRMWARE_UPDATE_BAUD");
+            if (settings.debugFirmwareUpdate)
+                systemPrintln("  ERROR: baud rate switch failed - check X20P_FIRMWARE_UPDATE_BAUD");
             return false;
         }
-        systemPrintln("  Baud switch OK.");
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintln("  Baud switch OK.");
     }
 
     return true;
@@ -621,7 +622,8 @@ bool x20pEnterBootloaderMode()
  */
 bool x20pChipErase()
 {
-    systemPrintln("Starting chip erase...");
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintln("Starting chip erase...");
     x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x16, nullptr, 0);
 
     uint32_t deadline = millis() + TIMEOUT_CHIP_ERASE;
@@ -639,16 +641,17 @@ bool x20pChipErase()
         {
             if (m.len >= 1 && m.payload[0] == 1)
             {
-                systemPrintln("  Chip erase complete.");
+                if (settings.debugFirmwareUpdate)
+                    systemPrintln("  Chip erase complete.");
                 return true;
             }
-            systemPrintln("  ERROR: chip erase reported failure");
+            systemPrintln("  ERROR: X20P chip erase reported failure");
             return false;
         }
         // Ignore stray ACKs/other frames while waiting for the CERASE response
     }
 
-    systemPrintln("  ERROR: chip erase did not complete within 45 s");
+    systemPrintln("  ERROR: X20P chip erase did not complete within 45 s");
     return false;
 }
 
@@ -666,29 +669,23 @@ bool x20pChipErase()
  *      blank, so the ROM has nothing else to boot into.
  *   3. Reset the module again. With flash blank it can only land in the
  *      real ROM LDR bootloader, which does accept writes.
- *   4. Allocate the page-accumulation buffer used by x20pUpdateFirmware()
- *      so bootloading of the new code can begin.
  *
  * Returns true on success.
  */
 bool x20pFirmwareUpdateBegin()
 {
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("Resetting X20P");
     if (x20pEnterBootloaderMode() == false)
         return false;
 
     if (x20pChipErase() == false)
         return false;
 
-    systemPrintln("Resetting module to guarantee true ROM LDR bootloader...");
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("Resetting X20P to guarantee true ROM LDR bootloader...");
     if (x20pEnterBootloaderMode() == false)
         return false;
-
-    // Allocate the page-accumulation buffer and reset streaming state for this update.
-    if (x20pPageBuffer == nullptr)
-        x20pPageBuffer = (uint8_t *)malloc(PACKET_SIZE);
-    x20pBufferIndex = 0;
-    x20pCurrentAddress = FW_BASE_ADDR;
-    x20pUpdateFailed = false;
 
     return true;
 }
@@ -696,58 +693,32 @@ bool x20pFirmwareUpdateBegin()
 /*
  * x20pFirmwareUpdateEnd()
  *
- * Flushes any partial trailing page left in the accumulation buffer,
- * verifies the written image, frees the buffer, and reboots the
- * device (fire-and-forget) into the new firmware.
- *
- * uploadSucceeded should be the return value of x20pStreamFirmware().
- * If the WiFi upload itself failed partway (TLS/HTTP error, dropped
- * connection, etc.) the flash image is known incomplete, so the final
- * flush and verify are skipped - verifying a partial image against the
- * device is pointless and just produces a misleading NAK.
+ * Verifies the written image.
  *
  * Returns true only if the upload, flush, and verify all succeeded.
  */
-bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
+bool x20pFirmwareUpdateEnd()
 {
-    bool success = uploadSucceeded && !x20pUpdateFailed;
+    bool success = true;
 
-    if (success && x20pBufferIndex > 0)
-    {
-        success = x20pWriteChunk(*serialGNSS, x20pCurrentAddress, x20pPageBuffer, x20pBufferIndex);
-        if (!success)
-            systemPrintf("  ERROR: final chunk write failed at address 0x%08X\r\n", x20pCurrentAddress);
-    }
-
-    free(x20pPageBuffer);
-    x20pPageBuffer = nullptr;
-
-    if (success)
-    {
-        // ----------------------------------------------------------
-        // Verify
-        //    Verify triggers the device to re-read and
-        //    validate the written image in flash, returning ACK/NAK.
-        //    Version field in payload must be 0.
-        // ----------------------------------------------------------
+    // ----------------------------------------------------------
+    // Verify
+    //    Verify triggers the device to re-read and
+    //    validate the written image in flash, returning ACK/NAK.
+    //    Version field in payload must be 0.
+    // ----------------------------------------------------------
+    if (settings.debugFirmwareUpdate)
         systemPrintln("Verifying image...");
-        const uint8_t verPayload[4] = {0, 0, 0, 0};
-        int ack = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_UPD, 0x2B, verPayload, 4, TIMEOUT_VERIFY); // Verify
-        if (ack != 1)
-        {
-            systemPrint("  ERROR: verify ");
-            systemPrintln(ack == 0 ? "NAK" : "timeout");
-            success = false;
-        }
-        else
-            systemPrintln("  Verify OK.");
+    const uint8_t verPayload[4] = {0, 0, 0, 0};
+    int ack = x20pSendAndWaitAck(*serialGNSS, UBX_CLASS_UPD, 0x2B, verPayload, 4, TIMEOUT_VERIFY); // Verify
+    if (ack != 1)
+    {
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("  ERROR: verify %s\r\n", ack == 0 ? "NAK" : "timeout");
+        success = false;
     }
-    else
-        systemPrintln("Skipping verify - firmware upload did not complete successfully.");
-
-    // Reboot (fire-and-forget - device does not send a response)
-    x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x0E, nullptr, 0); // Reboot
-
+    else if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintln("  Verify OK.");
     return success;
 }
 
@@ -755,44 +726,21 @@ bool x20pFirmwareUpdateEnd(bool uploadSucceeded)
 // Owns the full update sequence: enters bootloader mode, streams the image
 // over WiFi, then verifies/reboots - callers only need to call this one
 // function and do not need to know about Begin()/End().
-bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
+bool x20pFirmwareUpdate(const char * url)
 {
-    if (relativeFirmwareFileLocation == nullptr)
-    {
-        systemPrintln("Firmware file location is null.");
-        return false;
-    }
-
-    systemPrintln("Starting X20P firmware update...");
-
-    firmwareUpdateProgressReset();
-
-    // Enter the bootloader and erase flash before opening the GitHub connection.
-    // This sequence involves two hardware resets and autobaud probing and can take
-    // 30+ seconds; opening the HTTPS GET first and leaving it idle that long risked
-    // the connection going stale (and a stalled TLS read blocking forever) before a
-    // single body byte was ever consumed.
-    if (x20pFirmwareUpdateBegin() == false)
-    {
-        systemPrintln("Failed to enter bootloader mode.");
-        return false;
-    }
-
-    systemPrintln("Device is in bootloader mode.");
-
+    // Verify secure connection is possible
     WiFiClientSecure client;
     if (!otaSecurelyConnectGitHub(client))
     {
         systemPrintln("Failed to securely connect to GitHub.");
-        x20pFirmwareUpdateEnd(false);
         return false;
     }
 
+    systemPrintf("Starting HTTP GET for firmware: %s\r\n", url);
     HTTPClient http;
-    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
+    if (!http.begin(client, url))
     {
         systemPrintln("Unable to begin HTTP request.");
-        x20pFirmwareUpdateEnd(false);
         return false;
     }
 
@@ -801,61 +749,147 @@ bool x20pStreamFirmware(char *relativeFirmwareFileLocation)
     {
         systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
         http.end();
-        x20pFirmwareUpdateEnd(false);
         return false;
     }
 
-    int contentLength = http.getSize();
-    if (contentLength > 0)
-        firmwareUpdateBytesToProcess = (uint32_t)contentLength;
+    // Get the file size
+    size_t fileBytes = http.getSize();
+    if ((ssize_t)fileBytes <= 0)
+    {
+        systemPrintf("ERROR: Invalid file size: %d, must be > 0\r\n", fileBytes);
+        http.end();
+        return false;
+    }
 
     WiFiClient *stream = http.getStreamPtr();
-    uint8_t buffer[256];
 
-    bool success = true;
-
-    while (http.connected() && (contentLength > 0 || contentLength == -1))
-    {
-        size_t available = stream->available();
-        if (available == 0)
-        {
-            if (!client.connected())
-                break;
-            delay(1);
-            continue;
-        }
-
-        size_t toRead = min(available, sizeof(buffer));
-        int bytesRead = stream->readBytes(buffer, toRead);
-        if (bytesRead <= 0)
-            break;
-
-        if (x20pUpdateFirmware(*serialGNSS, buffer, (uint32_t)bytesRead) == false)
-        {
-            systemPrintln("Firmware update failed during WiFi data upload.");
-            success = false;
-            break;
-        }
-
-        firmwareUpdateProgressCallback(bytesRead);
-
-        if (contentLength > 0)
-            contentLength -= bytesRead;
-    }
+    bool success = x20pStreamFirmware(stream, fileBytes, buffer, sizeof(buffer));
 
     http.end();
 
+    return success;
+}
+
+/*
+ * x20pStreamFirmware()
+ *
+ * Update the X20P firmware
+ *
+ * Owns the full update sequence: enters bootloader mode, streams the image
+ * over WiFi, then verifies/reboots - callers only need to call this one
+ * function and do not need to know about Begin()/End().
+ *
+ * Returns true upon successful firmware update and false upon failure.
+ */
+bool x20pStreamFirmware(NetworkClient * stream,
+                        size_t fileBytes,
+                        uint8_t * buffer,
+                        size_t packetBytes)
+{
+    // Display the parameters
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+    {
+        systemPrintf("fileBytes: %d\r\n", fileBytes);
+        systemPrintf("packetBytes: %d\r\n", packetBytes);
+    }
+
+    systemPrintln("Starting X20P firmware update...");
+
+    // Enter the bootloader and erase flash before opening the GitHub connection.
+    // This sequence involves two hardware resets and autobaud probing and can take
+    // 30+ seconds; opening the HTTPS GET first and leaving it idle that long risked
+    // the connection going stale (and a stalled TLS read blocking forever) before a
+    // single body byte was ever consumed.
+    if (x20pFirmwareUpdateBegin() == false)
+    {
+        systemPrintln(otaEqualSigns);
+        systemPrintln("X20P failed to enter bootloader mode.");
+        systemPrintln(otaEqualSigns);
+        return false;
+    }
+    systemPrintln("X20P is in bootloader mode.");
+
+    // Initialize the progress bar
+    firmwareUpdateProgressReset(fileBytes);
+
+    unsigned long lastDataTime = millis();
+    size_t validData = 0;
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("stream->connected(): %d\r\n", stream->connected());
+    while (stream->connected() && (fileBytes > 0))
+    {
+        // Wait until some data is available
+        size_t availableBytes = stream->available();
+        if (availableBytes == 0)
+        {
+            if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+            {
+                systemPrintf("X20P firmware update timed out waiting for data\r\n");
+                break;
+            }
+            delay(1);
+            continue;
+        }
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("availableBytes: %d\r\n", availableBytes);
+
+        // Read the received data
+        size_t bytesToRead = min(availableBytes, packetBytes - validData);
+        int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("bytesRead: %d\r\n", bytesRead);
+        if (bytesRead <= 0)
+            break;
+        validData += bytesRead;
+
+        // Fill the packet
+        if ((validData < packetBytes) && (validData != fileBytes))
+            continue;
+
+        // Update this portion of the firmware
+        if (x20pUpdateFirmware(*serialGNSS, buffer, validData) == false)
+        {
+            systemPrintln("X20P firmware update failed during write");
+            break;
+        }
+
+        // Display the progress
+        firmwareUpdateProgressCallback("X20P", validData);
+
+        // Account for this data
+        fileBytes -= validData;
+        lastDataTime = millis();
+        validData = 0;
+    }
+
+    systemPrintf("%s\r\n", otaEqualSigns);
+    bool success = (fileBytes == 0) && x20pFirmwareUpdateEnd();
     if (success)
-        systemPrintln("X20P update successfully completed.");
+        systemPrintln("X20P firmware update successfully completed.");
     else
         systemPrintln("X20P firmware update failed.");
 
-    // x20pFirmwareUpdateBegin() succeeded above, so End() must always run -
-    // it verifies (when success), frees the page buffer, and reboots the device.
-    systemPrintln("Rebooting receiver...");
-    bool updateOk = x20pFirmwareUpdateEnd(success);
+    // Reboot (fire-and-forget - device does not send a response)
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("Rebooting X20P...");
+    x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x0E, nullptr, 0); // Reboot
 
-    return updateOk;
+    // Display the version number
+    x20pDisplayVersion();
+    systemPrintf("%s\r\n", otaEqualSigns);
+    return success;
 }
+
+// Display the firmware version number
+void x20pDisplayVersion()
+{
+    // Display the version number
+    delay(2000);
+    serialGNSS->updateBaudRate(38400);
+    while (serialGNSS->available())
+        serialGNSS->read();
+    x20pPrintVersion(*serialGNSS);
+}
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of X20P firmware update functions.

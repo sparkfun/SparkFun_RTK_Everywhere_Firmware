@@ -30,10 +30,10 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include "secrets.h"
 
 // 2.02
-char *firmwareURL = "/gnss/zed-x20p/UBX_20_HPG_202_ZED_F20P.329facb56ce18631d607fe15177834dc.bin";
+const char * url_2_02 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/gnss/zed-x20p/UBX_20_HPG_202_ZED_F20P.329facb56ce18631d607fe15177834dc.bin";
 
 // 2.10
-//char *firmwareURL = "/gnss/zed-x20p/UBX_20_HPG_210_ZED_X20P-01B.512369040097ce18fd3475e71e7c627f.bin";
+const char * url_2_10 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/gnss/zed-x20p/UBX_20_HPG_210_ZED_X20P-01B.512369040097ce18fd3475e71e7c627f.bin";
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
 
@@ -89,6 +89,11 @@ uint8_t firmwareUpdateLastPercent = 0;
 // To be removed / obtained from JSON file in the future
 uint32_t fileSize;
 uint32_t crc;
+bool otaDebugVerbose;
+
+const char * otaEqualSigns = "==================================================";
+
+#define OTA_DATA_TIMEOUT        (15 * 1000)
 
 void setup()
 {
@@ -116,6 +121,8 @@ void setup()
 
 void loop()
 {
+    const char * url;
+
     if (Serial.available())
     {
         byte incoming = Serial.read();
@@ -124,39 +131,38 @@ void loop()
         {
             ESP.restart();
         }
+        else if (incoming == 'd')
+        {
+            settings.debugFirmwareUpdate ^= 1;
+            otaDebugVerbose = false;
+        }
         else if (incoming == 'g')
         {
             systemPrintln("Resetting GNSS");
             gpioExpanderGnssReset();
             delay(250);
             gpioExpanderGnssBoot();
-            delay(250);
+            x20pDisplayVersion();
         }
-        else if (incoming == 'u')
+        else if ((incoming == 'p') || (incoming == 'u'))
         {
+            url = (incoming == 'p') ? url_2_02 : url_2_10;
+
             // Start timer before erase
             firmwareUpdateStartTime = millis();
 
-            if (x20pStreamFirmware(firmwareURL) == true)
-                systemPrintln("ZED-X20P updated successfully.");
-            else
-                systemPrintln("ZED-X20P update failed.");
-
-            // Stop timer and print elapsed time
-            firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
-            systemPrint("Firmware update time: ");
-            systemPrint(firmwareUpdateElapsed / 1000.0, 3);
-            systemPrintln(" seconds");
-
-            // Bootload always ends with a reboot (fire-and-forget) into the module's normal
-            // operating baud rate, regardless of whether the update itself succeeded.
-            systemPrintln("Waiting for module to boot...");
-            delay(2000);
-            serialGNSS->updateBaudRate(38400);
-            while (serialGNSS->available())
-                serialGNSS->read();
-            x20pPrintVersion(*serialGNSS);
+            // Attempt to update the firmware
+            if (x20pFirmwareUpdate(url) == true)
+            {
+                // Stop timer and print elapsed time
+                firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
+                systemPrint("Firmware update time: ");
+                systemPrint(firmwareUpdateElapsed / 1000.0, 3);
+                systemPrintln(" seconds");
+            }
         }
+        else if (incoming == 'v')
+            otaDebugVerbose ^= 1;
         displayMenu();
     }
 }
@@ -166,8 +172,11 @@ void displayMenu()
     systemPrintln();
     systemPrintln("Menu:");
     systemPrintf("g) Reset GNSS\r\n");
-    systemPrintf("u) Update GNSS\r\n");
+    systemPrintf("p) Update GNSS to 2.02\r\n");
+    systemPrintf("u) Update GNSS to 2.10\r\n");
     systemPrintf("r) Reboot system\r\n");
+    systemPrintf("d) Debug: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
+    systemPrintf("v) Verbose output: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
     systemPrint("Selection: ");
 }
 
