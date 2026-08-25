@@ -27,7 +27,10 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
+#include "Firmware_Data_Stream.h"
 #include "secrets.h"
+#define COMPILE_ALL_FIRMWARE
+#include "TheData.h"
 
 // 2.02
 const char * url_2_02 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/gnss/zed-x20p/UBX_20_HPG_202_ZED_F20P.329facb56ce18631d607fe15177834dc.bin";
@@ -110,6 +113,8 @@ const char * otaEqualSigns = "==================================================
 
 #define OTA_DATA_TIMEOUT        (15 * 1000)
 
+Firmware_Data_Stream dataArray(firmwareData, sizeof(firmwareData));
+
 void setup()
 {
     Serial.begin(115200);
@@ -145,6 +150,20 @@ void loop()
         if (incoming == 'r')
         {
             ESP.restart();
+        }
+        else if (incoming == 'a')
+        {
+            // Start timer before erase
+            firmwareUpdateStartTime = millis();
+
+            if (x20pArrayFlashUpdate() == true)
+            {
+                // Stop timer and print elapsed time
+                firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
+                systemPrint("Firmware update time: ");
+                systemPrint(firmwareUpdateElapsed / 1000.0, 3);
+                systemPrintln(" seconds");
+            }
         }
         else if (incoming == 'd')
         {
@@ -240,6 +259,7 @@ void displayMenu()
     systemPrintln();
     systemPrintln("Menu:");
     systemPrintf("g) Reset GNSS\r\n");
+    systemPrintf("a) Update GNSS to 2.02 from array\r\n");
     systemPrintf("p) Update GNSS to 2.02\r\n");
     systemPrintf("u) Update GNSS to 2.10\r\n");
     systemPrintf("r) Reboot system\r\n");
