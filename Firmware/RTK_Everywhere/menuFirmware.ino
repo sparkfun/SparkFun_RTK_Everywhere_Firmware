@@ -644,6 +644,23 @@ void otaEsp32Reboot()
 }
 
 //----------------------------------------
+// Finish the ESP32 firmware update
+//----------------------------------------
+bool otaEsp32FirmwareUpdateEnd()
+{
+    bool success = Update.end();
+    if (success == false)
+        systemPrintln("ESP32 firmware error occurred. Error #: " + String(Update.getError()));
+    else
+    {
+        success = Update.isFinished();
+        if (success == false)
+            systemPrintln("ESP32 firmware update not finished? Something went wrong!");
+    }
+    return success;
+}
+
+//----------------------------------------
 // Update the ESP32 firmware
 //----------------------------------------
 bool otaEsp32StreamFirmware(NetworkClient * stream,
@@ -652,15 +669,23 @@ bool otaEsp32StreamFirmware(NetworkClient * stream,
                             uint8_t * buffer,
                             size_t packetBytes)
 {
-    if (Update.begin(fileBytes) == false)
+    // Display the parameters
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
     {
-        systemPrintln(otaEqualSigns);
-        systemPrintln("Update begin failed. Not enough partition space available.");
-        systemPrintln(otaEqualSigns);
-        return false;
+        systemPrintf("fileBytes: %d\r\n", fileBytes);
+        systemPrintf("expectedCrc: 0x%08x\r\n", expectedCrc);
+        systemPrintf("packetBytes: %d\r\n", packetBytes);
     }
 
     systemPrintln("Starting ESP32 firmware update...");
+
+    if (Update.begin(fileBytes) == false)
+    {
+        systemPrintln(otaEqualSigns);
+        systemPrintln("ESP32 firmware update failed, not enough partition space available.");
+        systemPrintln(otaEqualSigns);
+        return false;
+    }
 
     // Initialize the progress bar
     firmwareUpdateProgressReset(fileBytes);
@@ -672,6 +697,8 @@ bool otaEsp32StreamFirmware(NetworkClient * stream,
     // firmwareUpdateProgressCallback() along the way.
     unsigned long lastDataTime = millis();
     size_t validData = 0;
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("stream->connected(): %d\r\n", stream->connected());
     while (stream->connected() && (fileBytes > 0))
     {
         // Wait until some data is available
@@ -680,16 +707,20 @@ bool otaEsp32StreamFirmware(NetworkClient * stream,
         {
             if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
             {
-                systemPrintln("ESP32 OTA update timed out waiting for data");
-                return false;
+                systemPrintln("ESP32 firmware update timed out waiting for data");
+                break;
             }
             delay(1);
             continue;
         }
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("availableBytes: %d\r\n", availableBytes);
 
         // Read the received data
         size_t bytesToRead = min(availableBytes, packetBytes - validData);
         int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("bytesRead: %d\r\n", bytesRead);
         if (bytesRead <= 0)
             break;
         validData += bytesRead;
@@ -705,46 +736,35 @@ bool otaEsp32StreamFirmware(NetworkClient * stream,
         if ((fileBytes == validData) && (crc != expectedCrc))
         {
             systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
+            systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n",
+                         expectedCrc, crc);
             break;
         }
 
         // Update this portion of the firmware
-        if (Update.write(buffer, validData) != (size_t)validData)
+        if (Update.write(buffer, validData) != validData)
         {
-            systemPrintln("ESP32 OTA update failed during write");
-            return false;
+            systemPrintln("ESP32 firmware update failed during write");
+            break;
         }
+
+        // Display the progress
+        firmwareUpdateProgressCallback("X20P", validData);
 
         // Account for this data
         fileBytes -= validData;
-        firmwareUpdateProgressCallback("ESP32", (uint16_t)validData);
         lastDataTime = millis();
         validData = 0;
     }
 
     systemPrintln(otaEqualSigns);
-    if (fileBytes > 0)
-    {
-        systemPrintln("ESP32 OTA update failed during writeStream");
-        return false;
-    }
-
-    if (Update.end() == false)
-    {
-        systemPrintln("ESP32 OTA error occurred. Error #: " + String(Update.getError()));
-        return false;
-    }
-
-    systemPrintln("ESP32 OTA done!");
-    if (Update.isFinished() == false)
-    {
-        systemPrintln("ESP32 update not finished? Something went wrong!");
-        return false;
-    }
-
-    systemPrintln("ESP32 update successfully completed.");
+    bool success = (fileBytes == 0) && otaEsp32FirmwareUpdateEnd();
+    if (success)
+        systemPrintln("ESP32 firmware update successfully completed.");
+    else
+        systemPrintln("ESP32 firmware update failed.");
     systemPrintln(otaEqualSigns);
-    return true;
+    return success;
 }
 
 // Given a relative location, return the full GitHub raw URL for the firmware file.
