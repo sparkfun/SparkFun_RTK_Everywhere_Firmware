@@ -2,6 +2,8 @@
 System.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+static uint8_t firmwareUpdateLastPercent;
+
 // Initialize PSRAM if available
 void beginPsram()
 {
@@ -1335,11 +1337,22 @@ void gpioExpanderConnectGNSSToESP32()
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S5, LOW);
 }
 
+// Resets the progress-bar state. Must be called once at the start of each
+// firmware update - these otherwise carry over from the previous update
+// (bytesProcessed and lastPercent both already at their prior-run end
+// values), which suppresses every progress print on a second run since
+// percent is already 100 and "unchanged".
+void firmwareUpdateProgressReset(size_t fileBytes)
+{
+    firmwareUpdateBytesToProcess = fileBytes;
+    firmwareUpdateBytesProcessed = 0;
+    firmwareUpdateLastPercent = 0;
+}
+
 // Callback for all firmware update targets. Called with the number of bytes written to flash so far. Used to track and print progress.
 void firmwareUpdateProgressCallback(const char * subsystemName, uint16_t bytesProcessed)
 {
     const uint8_t progressBarWidth = 20;
-    static uint8_t lastUpdatePercent = 0;
 
     firmwareUpdateBytesProcessed += bytesProcessed;
 
@@ -1353,10 +1366,10 @@ void firmwareUpdateProgressCallback(const char * subsystemName, uint16_t bytesPr
     uint8_t filled = (progressPercent * progressBarWidth) / 100;
 
     // Don't update unless there is a change
-    if (progressPercent == lastUpdatePercent)
+    if (progressPercent == firmwareUpdateLastPercent)
         return;
 
-    lastUpdatePercent = progressPercent;
+    firmwareUpdateLastPercent = progressPercent;
 
     systemPrintf("%s Update Progress: [", subsystemName);
     for (uint8_t i = 0; i < progressBarWidth; i++)

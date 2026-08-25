@@ -1662,11 +1662,8 @@ bool im19FirmwareUpdate(const OTA_TARGET * target,
         return false;
     }
 
-    // Stream the firmware in chunks so we can report progress via
-    // firmwareUpdateProgressCallback() along the way.
-    firmwareUpdateBytesProcessed = 0;
-    firmwareUpdateBytesToProcess = fileBytes;
-    tiltCrc = 0;
+    // Initialize the progress bar
+    firmwareUpdateProgressReset(fileBytes);
 
     if (!im19UpdateFirmwareBegin(fileBytes))
     {
@@ -1676,6 +1673,9 @@ bool im19FirmwareUpdate(const OTA_TARGET * target,
         http.end();
         return false;
     }
+
+    // Initialize the CRC to be computed over the entire firmware image
+    tiltCrc = 0;
 
     // Now that the IM19 is in its bootloader and waiting, stream the already-open
     // response body straight to it.

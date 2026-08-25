@@ -307,10 +307,8 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
             break;
         }
 
-        // Stream the firmware in chunks so we can report progress via
-        // firmwareUpdateProgressCallback() along the way.
-        firmwareUpdateBytesProcessed = 0;
-        firmwareUpdateBytesToProcess = fileBytes;
+        // Initialize the progress bar
+        firmwareUpdateProgressReset(target->_fileBytes);
 
         // Perform the update for the current target
         systemPrintf("Updating %s\r\n", otaSubsystem[subsystemIndex]);
