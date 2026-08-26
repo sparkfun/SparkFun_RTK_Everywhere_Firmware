@@ -100,7 +100,13 @@ void checkGNSSArrayDefaults()
 
         if (settings.enableExtCorrRadio == 254)
         {
-            defaultsApplied = true;
+            // Careful! Torch does not support Ext Corr Radio
+            // settings.enableExtCorrRadio is not saved in the settings file
+            // After a restart, settings.enableExtCorrRadio == 254 will always be true
+            // So, set it to false, but do not set defaultsApplied = true
+            // Otherwise the settings.antennaPhaseCenter_mm will always be overwritten
+            // with the default!
+            // defaultsApplied = true; Nope!
             settings.enableExtCorrRadio = false;
         }
 
@@ -214,23 +220,45 @@ void checkGNSSArrayDefaults()
 #ifdef COMPILE_LG290P
     else if (present.gnss_lg290p)
     {
-        if (settings.enableExtCorrRadio == 254)
+        if (settings.dynamicModel == 254)
         {
             defaultsApplied = true;
+            settings.dynamicModel = LG290P_NAV_MODE_NORMAL; // Requires firmware >= 2.01
+        }
+
+        if (settings.enableExtCorrRadio == 254)
+        {
             if (productVariant == RTK_POSTCARD)
-                // User has to enable UART3 (JST) manually for the same reason as LG290P on FP
-                settings.enableExtCorrRadio = false;
+            {
+                defaultsApplied = true;
+                if(lg290pFirmwareVersionInt >= 201)
+                    // Firmware v2.01 supports PQTMRTCMIS. It is safe to enable Ext Radio by default
+                    settings.enableExtCorrRadio = true;
+                else
+                    // User has to enable UART3 (JST) manually for the same reason as LG290P on FP
+                    settings.enableExtCorrRadio = false;
+            }
             else if (productVariant == RTK_FACET_FP)
             {
-                // With LG290P on Facet FP:
-                // We do not know if ext radio / LoRa corrections are arriving
-                // because we don't have access to the UART2 byte counts. We have to assume
-                // that corrections are arriving. See GNSS_LG290P::isCorrRadioExtPortActive()
-                // We must set settings.enableExtCorrRadio to false to prevent this.
-                settings.enableExtCorrRadio = false;
+                defaultsApplied = true;
+                if(lg290pFirmwareVersionInt >= 201)
+                    // Firmware v2.01 supports PQTMRTCMIS. It is safe to enable Ext Radio by default
+                    settings.enableExtCorrRadio = true;
+                else
+                    // With LG290P firmware < v2.01 on Facet FP:
+                    // We do not know if ext radio / LoRa corrections are arriving
+                    // because we don't have access to the UART2 byte counts. We have to assume
+                    // that corrections are arriving. See GNSS_LG290P::isExternalCorrectionActive()
+                    // We must set settings.enableExtCorrRadio to false to prevent this.
+                    settings.enableExtCorrRadio = false;
             }
             else if (productVariant == RTK_TORCH_X2)
+            {
+                // Careful! TX2 does not support Ext Corr Radio
+                // See notes above in UM980 / Torch
+                // defaultsApplied = true; Nope!
                 settings.enableExtCorrRadio = false; // GNSS UART1 isn't really accessible
+            }
             else
             {
                 settings.enableExtCorrRadio = false;
@@ -372,6 +400,9 @@ void factoryReset(bool alreadyHasSemaphore)
     }
     else
         systemPrintln("GNSS not online: Unable to factory reset.");
+
+    if(webServerIsConnected())
+        webServerSendString("confirmFactoryReset,1,");
 
     systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
     delay(2000);
@@ -847,21 +878,9 @@ bool removeFile(const char *fileName)
     bool removed = true;
 
     removed &= removeFileSD(fileName);
-    removed &= removeFileLFS(fileName);
+    removed &= removeFileLfs(fileName);
 
     return (removed);
-}
-
-bool removeFileLFS(const char *fileName)
-{
-    if (LittleFS.exists(fileName))
-    {
-        LittleFS.remove(fileName);
-        log_d("Removing LittleFS: %s", fileName);
-        return (true);
-    }
-
-    return (false);
 }
 
 // Remove a given filename from SD

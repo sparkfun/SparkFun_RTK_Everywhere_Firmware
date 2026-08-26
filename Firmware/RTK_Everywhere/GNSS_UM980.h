@@ -180,6 +180,11 @@ class GNSS_UM980 : GNSS
     //   Returns true if successfully configured and false upon failure
     bool configureRover();
 
+    // Configure the RTCM 1033 Antenna Description
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configureRtcm1033();
+
     // Responds with the messages supported on this platform
     // Inputs:
     //   returnText: String to receive message names
@@ -311,6 +316,9 @@ class GNSS_UM980 : GNSS
     // Returns timing accuracy or zero if not online
     uint32_t getTimeAccuracy();
 
+    // Sets the pieces of the version number
+    bool getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, uint8_t &revision);
+
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
 
@@ -318,6 +326,9 @@ class GNSS_UM980 : GNSS
     bool gnssInBaseFixedMode();
     bool gnssInBaseSurveyInMode();
     bool gnssInRoverMode();
+
+    // Indicate if there are any additional settings specific to this GNSS
+    bool hasGnssSpecificConfiguration();
 
     bool isBlocking();
 
@@ -327,14 +338,14 @@ class GNSS_UM980 : GNSS
     // Date is confirmed once we have GNSS fix
     bool isConfirmedTime();
 
-    // Returns true if data is arriving on the Radio Ext port
-    bool isCorrRadioExtPortActive()
-    {
-        return false; // Torch has no Radio port...
-    }
-
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed();
+
+    // Returns 0 since corrections can not be arriving on the selected port
+    int isExternalCorrectionActive(uint8_t port)
+    {
+        return 0; // Torch has no Radio port...
+    }
 
     // Some functions merely need to know if we have an RTK Float.
     // This function checks to see if the given platform has reached sufficient
@@ -372,6 +383,8 @@ class GNSS_UM980 : GNSS
 
     // Controls the constellations that are used to generate a fix and logged
     void menuConstellations();
+
+    void menuGnssSpecificConfiguration();
 
     void menuMessageBaseRtcm();
 
@@ -421,8 +434,8 @@ class GNSS_UM980 : GNSS
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
 
-    // Enable / disable corrections protocol(s) on the Radio External port
-    bool setCorrRadioExtPort(bool enable, bool force)
+    // Enable / disable external corrections protocol(s) on the chosen port
+    bool setExternalCorrections(uint8_t port, bool enable, bool force, const char *debug = nullptr)
     {
         return true;
     }

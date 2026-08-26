@@ -181,6 +181,9 @@ extern const uint8_t logoSparkFun[];
 extern const uint8_t logoSparkPNT_Height;
 extern const uint8_t logoSparkPNT_Width;
 extern const uint8_t logoSparkPNT[];
+extern const uint8_t logoSparkPNT_128x64_Height;
+extern const uint8_t logoSparkPNT_128x64_Width;
+extern const uint8_t logoSparkPNT_128x64[];
 
 RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
     { BRAND_SPARKFUN, "SparkFun", logoSparkFun_Width, logoSparkFun_Height, logoSparkFun },
@@ -190,6 +193,7 @@ RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
 // Product Variant used as part of device ID and whitelists. Do not reorder.
 typedef enum
 {
+    RTK_ALL = -1,
     RTK_EVK = 0, // 0x00
     // RTK_FACET_V2 = 1, // 0x01 - No L-Band
     RTK_FACET_MOSAIC = 2, // 0x02
@@ -243,7 +247,8 @@ const int productHousingEntries = sizeof(productHousingPropertiesTable) / sizeof
 
 typedef enum
 {
-    TILT_DISABLED = 0,
+    TILT_NOT_PRESENT = 0,
+    TILT_DISABLED,
     TILT_OFFLINE,
     TILT_STARTED,
     TILT_INITIALIZED,
@@ -609,10 +614,14 @@ typedef enum
 
 // Print the base coordinates in different formats, depending on the type the user has entered
 // These are the different supported types
+// Note: COORDINATE_INPUT_TYPE_DDDMM is needed by coordinateConvertInput for longitude only.
+//       coordinateIdentifyInputType will return COORDINATE_INPUT_TYPE_DDMM for both
+//       5-digit longitude and 4-digit latitude.
 typedef enum
 {
     COORDINATE_INPUT_TYPE_DD = 0,                   // Default DD.ddddddddd
     COORDINATE_INPUT_TYPE_DDMM,                     // DDMM.mmmmm
+    COORDINATE_INPUT_TYPE_DDDMM,                    // DDDMM.mmmmm - coordinateConvertInput longitude only
     COORDINATE_INPUT_TYPE_DD_MM,                    // DD MM.mmmmm
     COORDINATE_INPUT_TYPE_DD_MM_DASH,               // DD-MM.mmmmm
     COORDINATE_INPUT_TYPE_DD_MM_SYMBOL,             // DD°MM.mmmmmmm'
@@ -721,6 +730,7 @@ enum
     NETCONSUMER_TCP_SERVER,
     NETCONSUMER_UDP_SERVER,
     NETCONSUMER_WEB_CONFIG,
+    NETCONSUMER_DEVICE_OTA,
     // Add new consumers just before this line
     // Also add them to the networkConsumerTable
     NETCONSUMER_MAX
@@ -728,6 +738,13 @@ enum
 
 typedef uint8_t NETCONSUMER_t;
 typedef uint16_t NETCONSUMER_MASK_t;
+
+enum Im19UpdateResult
+{
+    IM19_UPDATE_FAILED = 0,
+    IM19_UPDATE_SUCCESS,
+    IM19_UPDATE_RETRY, // lost frames (or no response) - caller should re-stream the source and call again
+};
 
 enum PP_NickName
 {
@@ -825,6 +842,7 @@ struct Settings
     uint32_t autoFirmwareCheckMinutes = 24 * 60;
     bool debugFirmwareUpdate = false;
     bool enableAutoFirmwareUpdate = false;
+    char csvUrl[OTA_FIRMWARE_CSV_URL_LENGTH] = OTA_FIRMWARE_CSV_URL;
 
     // GNSS
     muxConnectionType_e dataPortChannel = MUX_GNSS_UART; // Mux default to GNSS UART
@@ -1040,8 +1058,11 @@ struct Settings
     // RTC (Real Time Clock)
     bool enablePrintRtcSync = false;
 
-    // RTCM buffers
+    // RTCM
     bool debugRtcmBuffers = false;
+    char rtcm1033AntennaDescriptor[21] = "ADVNULLANTENNA"; // Supported on mosaic-X5 [20], LG290P [31], UM980 [31]
+    char rtcm1033AntennaSerialNr[21] = "Unknown"; // Supported on mosaic-X5 [20], LG290P [31], UM980 [31]
+    uint8_t rtcm1033AntennaSetupID = 0; // 0-255 Supported on mosaic-X5, LG290P, UM980
 
     // SD Card
     bool enablePrintBufferOverrun = false;
@@ -1112,6 +1133,7 @@ struct Settings
     float um980MessageRatesRTCMRover[MAX_UM980_RTCM_MSG] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Unicore recommended rates.
+    bool um980FixedBaseLLHSubtractSeparation = false; // Set true to subtract geoidal separation from fixed base LLH
 #endif // COMPILE_UM980
 
     // mosaic
@@ -1191,6 +1213,9 @@ struct Settings
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Quectel recommended rates.
     int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied.
+    uint16_t lg290pRtkDifferentialAge = 120; // LG290P only. Sets the max differential age of RTK fix. 1-600s. Default: 120s
+    uint16_t lg290pRtkDifferentialSourceType = 0; // LG290P only. 0 = Auto, 1 = Normal, 2 = Wide Lane. Default is Auto.
+    uint16_t lg290pRtkReliabilityLevel = 3; // LG290P only. 1 = Very relax, 2 = Relax, 3 = Medium, 4 = Strict, 5 = Very strict. Default is 3.
 #endif // COMPILE_LG290P
 
     bool debugSettings = false;
@@ -1223,16 +1248,17 @@ const char *localizedDistributionTileLevelNames[LOCALIZED_DISTRIBUTION_TILE_LEVE
 
 typedef enum
 {
-    NON = 0,            // NONE - must be first
-    L29 = (1 << 0),     // LG290P - No Tilt
-    MX5 = (1 << 1),     // mosaic-X5 - No Tilt
-    U98 = (1 << 2),     // UM980 - Tilt TBC
-    ZF9 = (1 << 3),     // ZED-F9P - Tilt TBC
-    ZX2 = (1 << 4),     // ZED-X20P - Tilt TBC
-    ALL = (1 << 5) - 1, // ALL - must be the highest single variant
-    ZED = ZF9 | ZX2,    // Hybrids are possible (enums don't have to be consecutive)
-    MSM = L29,          // Platforms which require parameter selection of MSM7 over MSM4
-    HAS = L29 | ZX2,    // Platforms which support Galileo HAS - includes ZED-X20P with HPG >= 2.10
+    NON = 0,               // NONE - must be first
+    L29 = (1 << 0),        // LG290P
+    MX5 = (1 << 1),        // mosaic-X5
+    U98 = (1 << 2),        // UM980 - Possible future product
+    ZF9 = (1 << 3),        // ZED-F9P - Possible future product
+    ZX2 = (1 << 4),        // ZED-X20P
+    ALL = (1 << 5) - 1,    // ALL - must be the highest single variant
+    ZED = ZF9 | ZX2,       // Hybrids are possible (enums don't have to be consecutive)
+    MSM = L29,             // Platforms which _require_ parameter selection of MSM7 over MSM4
+    HAS = L29 | ZX2,       // Platforms which support Galileo HAS - includes ZED-X20P with HPG >= 2.10
+    R33 = L29 | MX5 | U98, // Platforms which support configuration of the RTCM 1033 Antenna Descriptor
     // Note: when adding new variants or hybrids, update settingAvailableOnPlatform in menuComands.ino to match
 } Facet_FP_Variant;
 
@@ -1261,18 +1287,18 @@ typedef struct
 
 #define COMMAND_PROFILE_0_INDEX            -1
 #define COMMAND_PROFILE_NUMBER             (COMMAND_PROFILE_0_INDEX - MAX_PROFILE_COUNT) // -1 - 8 = -9
-#define COMMAND_FIRMWARE_VERSION           (COMMAND_PROFILE_NUMBER - 1) // -9 - 1 = -10
-#define COMMAND_REMOTE_FIRMWARE_VERSION    (COMMAND_FIRMWARE_VERSION - 1) // -10 - 1 = -11
-#define COMMAND_ENABLE_RC_FIRMWARE         (COMMAND_REMOTE_FIRMWARE_VERSION - 1) // -11 - 1 = -12
-#define COMMAND_GNSS_MODULE_INFO           (COMMAND_ENABLE_RC_FIRMWARE - 1) // -12 - 1 = -13
-#define COMMAND_BATTERY_LEVEL_PERCENT      (COMMAND_GNSS_MODULE_INFO - 1) // -13 - 1 = -14
-#define COMMAND_BATTERY_VOLTAGE            (COMMAND_BATTERY_LEVEL_PERCENT - 1) // -13 - 1 = -14
-#define COMMAND_BATTERY_CHARGING_PERCENT   (COMMAND_BATTERY_VOLTAGE - 1) // -13 - 1 = -14
-#define COMMAND_BLUETOOTH_ID               (COMMAND_BATTERY_CHARGING_PERCENT - 1) // -13 - 1 = -14
-#define COMMAND_DEVICE_NAME                (COMMAND_BLUETOOTH_ID - 1) // -14 - 1 = -15
-#define COMMAND_DEVICE_ID                  (COMMAND_DEVICE_NAME - 1) // -15 - 1 = -16
-#define COMMAND_UNKNOWN                    (COMMAND_DEVICE_ID - 1) // -16 - 1 = -17
-#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN)) // 17
+#define COMMAND_FIRMWARE_VERSION           (COMMAND_PROFILE_NUMBER - 1)         //  -9 - 1 = -10
+#define COMMAND_REMOTE_FIRMWARE_VERSION    (COMMAND_FIRMWARE_VERSION - 1)       // -10 - 1 = -11
+#define COMMAND_ENABLE_RC_FIRMWARE         (COMMAND_REMOTE_FIRMWARE_VERSION - 1)// -11 - 1 = -12
+#define COMMAND_GNSS_MODULE_INFO           (COMMAND_ENABLE_RC_FIRMWARE - 1)     // -12 - 1 = -13
+#define COMMAND_BATTERY_LEVEL_PERCENT      (COMMAND_GNSS_MODULE_INFO - 1)       // -13 - 1 = -14
+#define COMMAND_BATTERY_VOLTAGE            (COMMAND_BATTERY_LEVEL_PERCENT - 1)  // -14 - 1 = -15
+#define COMMAND_BATTERY_CHARGING_PERCENT   (COMMAND_BATTERY_VOLTAGE - 1)        // -15 - 1 = -16
+#define COMMAND_BLUETOOTH_ID               (COMMAND_BATTERY_CHARGING_PERCENT - 1)// -16 - 1 = -17
+#define COMMAND_DEVICE_NAME                (COMMAND_BLUETOOTH_ID - 1)           // -17 - 1 = -18
+#define COMMAND_DEVICE_ID                  (COMMAND_DEVICE_NAME - 1)            // -18 - 1 = -19
+#define COMMAND_UNKNOWN                    (COMMAND_DEVICE_ID - 1)              // -19 - 1 = -20
+#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN))                 // -20
 
 // Exit types for processCommand
 typedef enum
@@ -1458,6 +1484,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.autoFirmwareCheckMinutes, "autoFirmwareCheckMinutes", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugFirmwareUpdate, "debugFirmwareUpdate", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableAutoFirmwareUpdate, "enableAutoFirmwareUpdate", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.csvUrl), & settings.csvUrl, "csvUrl", nullptr, },
 
     // GNSS UART
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.serialGNSSRxFullThreshold, "serialGNSSRxFullThreshold", nullptr, },
@@ -1669,7 +1696,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.gnssHandlerBufferSize, "gnssHandlerBufferSize", nullptr, },
 
     // Rover operation
-    { 1, 1, 0, 1, 1, 1, 0, ALL, 0, _uint8_t,  0, & settings.dynamicModel, "dynamicModel", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.dynamicModel, "dynamicModel", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy", nullptr, },
     { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.minCN0, "minCN0", nullptr, }, // Not inWebConfig - createSettingsString gets from GNSS
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.minElev, "minElev", nullptr, },
@@ -1677,8 +1704,11 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // RTC (Real Time Clock)
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRtcSync, "enablePrintRtcSync", nullptr, },
 
-    // RTCM Buffers
+    // RTCM
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugRtcmBuffers, "debugRtcmBuffers", nullptr, },
+    { 1, 1, 0, 0, 1, 1, 1, R33, 1, tCharArry, sizeof(settings.rtcm1033AntennaDescriptor), & settings.rtcm1033AntennaDescriptor, "rtcm1033AntennaDescriptor", nullptr, },
+    { 1, 1, 0, 0, 1, 1, 1, R33, 1, tCharArry, sizeof(settings.rtcm1033AntennaSerialNr), & settings.rtcm1033AntennaSerialNr, "rtcm1033AntennaSerialNr", nullptr, },
+    { 1, 1, 0, 0, 1, 1, 1, R33, 1, _uint8_t,  0, & settings.rtcm1033AntennaSetupID, "rtcm1033AntennaSetupID", nullptr, },
 
 //                F
 //    i           a
@@ -1783,7 +1813,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
-    { 1, 1, 0, 0, 0, 1, 0, ALL, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
+    { 1, 1, 0, 0, 0, 1, 0, NON, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
     { 0, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug", nullptr, },
     { 0, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableImuDebug, "enableImuDebug", nullptr, },
     { 1, 1, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation", nullptr, },
@@ -1791,6 +1821,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // UM980 GNSS Receiver
 #ifdef  COMPILE_UM980
     { 1, 1, 1, 0, 0, 1, 0, U98, 0, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellation_", gnssCmdUpdateConstellations, },
+    { 1, 1, 0, 0, 0, 1, 0, U98, 0, _bool,     0, & settings.um980FixedBaseLLHSubtractSeparation, "um980FixedBaseLLHSubtractSeparation", nullptr },
     { 0, 1, 1, 0, 0, 1, 0, U98, 0, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 1, 0, U98, 0, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 1, 0, U98, 0, tUmMRRvRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
@@ -1843,6 +1874,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 0, 0, 1, L29, 1, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 0, 1, L29, 1, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 0, 1, L29, 1, tLgMRPqtm, MAX_LG290P_PQTM_MSG, & settings.lg290pMessageRatesPQTM, "messageRatePQTM_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 0, 0, 0, 0, 1, L29, 1, _uint16_t, 0, & settings.lg290pRtkDifferentialAge, "lg290pRtkDifferentialAge", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, L29, 1, _uint16_t, 0, & settings.lg290pRtkDifferentialSourceType, "lg290pRtkDifferentialSourceType", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, L29, 1, _uint16_t, 0, & settings.lg290pRtkReliabilityLevel, "lg290pRtkReliabilityLevel", nullptr, },
 #endif  // COMPILE_LG290P
 
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugSettings, "debugSettings", nullptr, },
@@ -1946,11 +1980,13 @@ struct struct_present
     bool multipathMitigation = false; // UM980 has MPM, other platforms do not
     bool minCN0 = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
     bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does on versions >= v5.
-    bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does not.
+    bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does with firmware v2.01.
     bool gpioExpanderSwitches = false; // Used on Facet FP
     bool loraDedicatedUart = false; // Platforms may have a dedicated or shared UART interface to the LoRa radio
 
     const char *gnssUpdatePort = ""; // "CH342 Channel A" etc.
+
+    bool rtcm1033AntennaDescription = false; // RTCM 1033 Antenna Descriptor - supported on X5, LG290P and UM980
 } present;
 
 // Monitor which devices on the device are on or offline.
@@ -1972,7 +2008,6 @@ struct struct_online
     bool lband_gnss = false;
     bool pointPerfectKeysApplied = false;
     bool logging = false;
-    bool loraRadio = false;
     bool microSD = false;
     bool mqttClient = false;
     bool ntripClient = false;
@@ -1980,6 +2015,7 @@ struct struct_online
     bool otaClient = false;
     bool ppl = false;
     bool psram = false;
+    bool radio_lora = false;
     bool rtc = false;
     bool serialOutput = false;
     bool tcpClient = false;
@@ -1987,6 +2023,7 @@ struct struct_online
     bool udpServer = false;
     bool webServer = false;
     bool authenticationCoPro = false; // MFi authentication
+    bool imu_im19 = false;
 } online;
 
 typedef uint8_t NetIndex_t;     // Index into the networkInterfaceTable
@@ -2141,6 +2178,42 @@ o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU
 rqXRfboQnoZsG4q5WTP468SQvvG5
 -----END CERTIFICATE-----
 )=====";
+
+// ISRG Root X1 (Let's Encrypt). Used to validate raw.githubusercontent.com's server cert chain.
+static const char GITHUB_RAW_PUBLIC_CERT[] PROGMEM = R"EOF(
+-----BEGIN CERTIFICATE-----
+MIIFazCCA1OgAwIBAgIRAIIQz7DSQONZRGPgu2OCiwAwDQYJKoZIhvcNAQELBQAw
+TzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh
+cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMTUwNjA0MTEwNDM4
+WhcNMzUwNjA0MTEwNDM4WjBPMQswCQYDVQQGEwJVUzEpMCcGA1UEChMgSW50ZXJu
+ZXQgU2VjdXJpdHkgUmVzZWFyY2ggR3JvdXAxFTATBgNVBAMTDElTUkcgUm9vdCBY
+MTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAK3oJHP0FDfzm54rVygc
+h77ct984kIxuPOZXoHj3dcKi/vVqbvYATyjb3miGbESTtrFj/RQSa78f0uoxmyF+
+0TM8ukj13Xnfs7j/EvEhmkvBioZxaUpmZmyPfjxwv60pIgbz5MDmgK7iS4+3mX6U
+A5/TR5d8mUgjU+g4rk8Kb4Mu0UlXjIB0ttov0DiNewNwIRt18jA8+o+u3dpjq+sW
+T8KOEUt+zwvo/7V3LvSye0rgTBIlDHCNAymg4VMk7BPZ7hm/ELNKjD+Jo2FR3qyH
+B5T0Y3HsLuJvW5iB4YlcNHlsdu87kGJ55tukmi8mxdAQ4Q7e2RCOFvu396j3x+UC
+B5iPNgiV5+I3lg02dZ77DnKxHZu8A/lJBdiB3QW0KtZB6awBdpUKD9jf1b0SHzUv
+KBds0pjBqAlkd25HN7rOrFleaJ1/ctaJxQZBKT5ZPt0m9STJEadao0xAH0ahmbWn
+OlFuhjuefXKnEgV4We0+UXgVCwOPjdAvBbI+e0ocS3MFEvzG6uBQE3xDk3SzynTn
+jh8BCNAw1FtxNrQHusEwMFxIt4I7mKZ9YIqioymCzLq9gwQbooMDQaHWBfEbwrbw
+qHyGO0aoSCqI3Haadr8faqU9GY/rOPNk3sgrDQoo//fb4hVC1CLQJ13hef4Y53CI
+rU7m2Ys6xt0nUW7/vGT1M0NPAgMBAAGjQjBAMA4GA1UdDwEB/wQEAwIBBjAPBgNV
+HRMBAf8EBTADAQH/MB0GA1UdDgQWBBR5tFnme7bl5AFzgAiIyBpY9umbbjANBgkq
+hkiG9w0BAQsFAAOCAgEAVR9YqbyyqFDQDLHYGmkgJykIrGF1XIpu+ILlaS/V9lZL
+ubhzEFnTIZd+50xx+7LSYK05qAvqFyFWhfFQDlnrzuBZ6brJFe+GnY+EgPbk6ZGQ
+3BebYhtF8GaV0nxvwuo77x/Py9auJ/GpsMiu/X1+mvoiBOv/2X/qkSsisRcOj/KK
+NFtY2PwByVS5uCbMiogziUwthDyC3+6WVwW6LLv3xLfHTjuCvjHIInNzktHCgKQ5
+ORAzI4JMPJ+GslWYHb4phowim57iaztXOoJwTdwJx4nLCgdNbOhdjsnvzqvHu7Ur
+TkXWStAmzOVyyghqpZXjFaH3pO3JLF+l+/+sKAIuvtd7u+Nxe5AW0wdeRlN8NwdC
+jNPElpzVmbUq4JUagEiuTDkHzsxHpFKVK7q4+63SM1N95R1NbdWhscdCb+ZAJzVc
+oyi3B43njTOQ5yOf+1CceWxG1bQVs5ZufpsMljq4Ui0/1lvh+wjChP4kqKOJ2qxq
+4RgqsahDYVvTH9w7jXbyLeiNdd8XM2w9U/t7y0Ff/9yi0GE44Za4rF2LN9d11TPA
+mRGunUHBcnWEvgJBQl9nJEiU0Zsnvgc/ubhPgXRR4Xq37Z0j4r7g1SgEEzwxA57d
+emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
+-----END CERTIFICATE-----
+)EOF";
+
 #endif  // COMPILE_NETWORK
 
 //****************************************

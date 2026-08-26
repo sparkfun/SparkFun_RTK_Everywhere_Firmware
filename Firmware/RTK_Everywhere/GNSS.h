@@ -52,8 +52,6 @@ class GNSS
     unsigned long _pvtArrivalMillis;
     bool _pvtUpdated;
 
-    bool _corrRadioExtPortEnabled = false;
-
     unsigned long _autoBaseStartTimer; // Tracks how long the base auto / averaging mode has been running
 
   public:
@@ -113,6 +111,11 @@ class GNSS
     // Outputs:
     //   Returns true if successfully configured and false upon failure
     virtual bool configureRover();
+
+    // Configure the RTCM 1033 Antenna Description
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    virtual bool configureRtcm1033();
 
     // Responds with the messages supported on this platform
     // Inputs:
@@ -244,6 +247,9 @@ class GNSS
     // Returns timing accuracy or zero if not online
     virtual uint32_t getTimeAccuracy();
 
+    // Sets the four version number parts
+    virtual bool getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, uint8_t &revision);
+
     // Returns full year, ie 2023, not 23.
     virtual uint16_t getYear();
 
@@ -252,6 +258,10 @@ class GNSS
     virtual bool gnssInBaseFixedMode();
     virtual bool gnssInBaseSurveyInMode();
     virtual bool gnssInRoverMode();
+
+    // Indicate if there are any additional settings specific to this GNSS
+    // This governs setGnssSpecificConfiguration() and menuGnssSpecificConfiguration()
+    virtual bool hasGnssSpecificConfiguration();
 
     // Antenna Short / Open detection
     virtual bool isAntennaShorted();
@@ -265,11 +275,13 @@ class GNSS
     // Date is confirmed once we have GNSS fix
     virtual bool isConfirmedTime();
 
-    // Returns true if data is arriving on the Radio Ext port
-    virtual bool isCorrRadioExtPortActive();
-
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     virtual bool isDgpsFixed();
+
+    // Returns 0 if corrections can not be arriving on the selected port
+    // Returns 1 if corrections are assumed to be arriving on the selected port
+    // Returns 2 if corrections truly are arriving on the selected port
+    virtual int isExternalCorrectionActive(uint8_t port);
 
     // Some functions merely need to know if we have an RTK Float.
     // This function checks to see if the given platform has reached sufficient
@@ -307,6 +319,9 @@ class GNSS
 
     // Controls the constellations that are used to generate a fix and logged
     virtual void menuConstellations();
+
+    // Configure any settings specific to this GNSS
+    virtual void menuGnssSpecificConfiguration();
 
     virtual void menuMessageBaseRtcm();
 
@@ -353,14 +368,17 @@ class GNSS
     // Enable all the valid constellations and bands for this platform
     virtual bool setConstellations();
 
-    // Enable / disable corrections protocol(s) on the Radio External port
+    // Enable / disable external corrections protocol(s) on the chosen port
     // Always update if force is true. Otherwise, only update if enable has changed state
-    virtual bool setCorrRadioExtPort(bool enable, bool force);
+    virtual bool setExternalCorrections(uint8_t port, bool enable, bool force, const char *debug = nullptr);
 
     // Set the elevation in degrees
     // Inputs:
     //   elevationDegrees: The elevation value in degrees
     virtual bool setElevation(uint8_t elevationDegrees);
+
+    // Configure any additional settings specific to this GNSS
+    virtual bool setGnssSpecificConfiguration();
 
     virtual bool setPppService();
 
@@ -430,6 +448,9 @@ bool gnssCmdUpdateConstellations(const char *settingName, void *settingData, int
 
 // Update the message rates following a set command
 bool gnssCmdUpdateMessageRates(const char *settingName, void *settingData, int settingType);
+
+// Restore the GNSS to the factory settings
+void gnssFactoryReset();
 
 // Determine if the GNSS receiver is present
 typedef bool (*GNSS_PRESENT)();

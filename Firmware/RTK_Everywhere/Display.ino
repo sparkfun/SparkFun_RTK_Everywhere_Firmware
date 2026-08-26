@@ -551,13 +551,32 @@ void beginDisplay(TwoWire *i2cBus)
                 theDisplay->flipHorizontal(true);
             }
 
-            // Display the brand LOGO
+            // Display the brand logo
             RTKBrandAttribute *brandAttribute = getBrandAttributeFromProductVariant(productVariant);
             theDisplay->erase();
             x = (theDisplay->getWidth() - brandAttribute->logoWidth) / 2;
             y = (theDisplay->getHeight() - brandAttribute->logoHeight) / 2;
             displayBitmap(x, y, brandAttribute->logoWidth, brandAttribute->logoHeight, brandAttribute->logoPointer);
             theDisplay->display();
+            oled->erase();
+
+            uint8_t logoWidth = brandAttribute->logoWidth;
+            uint8_t logoHeight = brandAttribute->logoHeight;
+            const uint8_t *logoPointer = brandAttribute->logoPointer;
+
+            // logoSparkPNT was drawn for the 64 pixel wide displays (Facet mosaic-X5). Use the wider
+            // logoSparkPNT_128x64 splash on the 128 pixel wide displays (Facet FP, Postcard) instead.
+            if (brandAttribute->brand == BRAND_SPARKPNT && present.display_type == DISPLAY_128x64)
+            {
+                logoWidth = logoSparkPNT_128x64_Width;
+                logoHeight = logoSparkPNT_128x64_Height;
+                logoPointer = logoSparkPNT_128x64;
+            }
+
+            x = (oled->getWidth() - logoWidth) / 2;
+            y = (oled->getHeight() - logoHeight) / 2;
+            displayBitmap(x, y, logoWidth, logoHeight, logoPointer);
+            oled->display();
             splashStart = millis();
             return;
         }
@@ -705,7 +724,7 @@ void displayUpdate()
                 else
                     displayRTKAccuracy(&iconPropertyList, &CrossHairDualProperties, false); // Dual crosshair, blink
 
-                    paintLogging(&iconPropertyList);
+                paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayTiltIcon(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
@@ -936,6 +955,8 @@ void displaySplashCommon(bool nameKnown)
         char unitFirmware[50];
         firmwareVersionGet(unitFirmware, sizeof(unitFirmware), false);
         printTextCenter(unitFirmware, yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
+        espFirmwareVersionGet(unitFirmware, sizeof(unitFirmware), false);
+        printTextCenter(unitFirmware, yPos, QW_FONT_5X7, 1, false);
 
         theDisplay->display();
 
@@ -1332,6 +1353,15 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 prop.duty = 0b11111111;
                 iconList->push_back(prop);
                 usbSerialIncomingRtcm = false;
+            }
+
+            if (gnssExternalIncomingRtcm)
+            {
+                // Download : Columns 74 - 81
+                prop.icon = DownloadArrow128x64;
+                prop.duty = 0b11111111;
+                iconList->push_back(prop);
+                gnssExternalIncomingRtcm = false;
             }
 
             bool networkHasInternet = false;
@@ -2246,8 +2276,10 @@ void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
                 break;
             case MOSAIC_DYN_MODEL_AUTOMOTIVE:
             case MOSAIC_DYN_MODEL_RACECAR:
-            case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
                 prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type]; // Automotive
+                break;
+            case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
+                prop.icon = DynamicModel_Tractor_Props.iconDisplay[present.display_type]; // Tractor
                 break;
             case MOSAIC_DYN_MODEL_UAV:
                 prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type]; // Airborne1g
@@ -2257,6 +2289,30 @@ void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
                 break;
             }
 #endif // COMPILE_MOSAICX5
+        }
+        else if (present.gnss_lg290p && present.dynamicModel)
+        {
+#ifdef COMPILE_LG290P
+            // Display icon associated with current navigation mode
+            switch (settings.dynamicModel)
+            {
+            default:
+                break;
+
+            case LG290P_NAV_MODE_NORMAL:
+                prop.icon = DynamicModel_1_Properties.iconDisplay[present.display_type]; // Portable - or Automotive?
+                break;
+            case LG290P_NAV_MODE_DYNAMIC:
+                prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type]; // Airborne1g
+                break;
+            case LG290P_NAV_MODE_MOWER:
+                prop.icon = DynamicModel_11_Properties.iconDisplay[present.display_type]; // Mower
+                break;
+            case LG290P_NAV_MODE_AGRICULTURE:
+                prop.icon = DynamicModel_Tractor_Props.iconDisplay[present.display_type]; // Tractor
+                break;
+            }
+#endif // COMPILE_LG290P
         }
 
         if (prop.icon.bitmap)
@@ -3925,6 +3981,10 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
 void paintGnssUpdate()
 {
     paintGenericUpdate("GNSS", "Update");
+}
+void paintImuUpdate()
+{
+    paintGenericUpdate("IMU", "Update");
 }
 void paintLoRaUpdate()
 {

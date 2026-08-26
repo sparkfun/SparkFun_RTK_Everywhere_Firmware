@@ -28,7 +28,7 @@ typedef struct
 const ubxConstellation ubxConstellations[] = { // Constellations monitored/used for fix
     {UBLOX_CFG_SIGNAL_BDS_ENA, SFE_UBLOX_GNSS_ID_BEIDOU, "BeiDou", 0, 0, {0,0,0},},
     {UBLOX_CFG_SIGNAL_GAL_ENA, SFE_UBLOX_GNSS_ID_GALILEO, "Galileo", 0, 0, {0,0,0},},
-    {UBLOX_CFG_SIGNAL_GLO_ENA, SFE_UBLOX_GNSS_ID_GLONASS, "GLONASS", 0, 9999, {0,0,0},}, //X20P does not support GLO
+    {UBLOX_CFG_SIGNAL_GLO_ENA, SFE_UBLOX_GNSS_ID_GLONASS, "GLONASS", 0, 210, {0,0,0},}, //X20P v2.10 supports GLO
     {UBLOX_CFG_SIGNAL_GPS_ENA, SFE_UBLOX_GNSS_ID_GPS, "GPS", 0, 0, {0,0,0},},
     //{UBLOX_CFG_SIGNAL_QZSS_ENA, SFE_UBLOX_GNSS_ID_IMES, false, "IMES", 9999, 9999, {0,0,0},}, //Not yet supported? Config key does not
     // exist?
@@ -181,7 +181,7 @@ const ubxMsg ubxMessages[] = {
     {UBLOX_CFG_MSGOUT_NMEA_ID_RMC_UART1, UBX_NMEA_RMC, UBX_CLASS_NMEA, 1, "NMEA_RMC", SFE_UBLOX_FILTER_NMEA_RMC, 112,
      200, 0},
     {UBLOX_CFG_MSGOUT_NMEA_ID_VLW_UART1, UBX_NMEA_VLW, UBX_CLASS_NMEA, 0, "NMEA_VLW", SFE_UBLOX_FILTER_NMEA_VLW, 112,
-     200, 0},
+     200, 210}, // VLW not supported on X20P v2.10
     {UBLOX_CFG_MSGOUT_NMEA_ID_VTG_UART1, UBX_NMEA_VTG, UBX_CLASS_NMEA, 0, "NMEA_VTG", SFE_UBLOX_FILTER_NMEA_VTG, 112,
      200, 0},
     {UBLOX_CFG_MSGOUT_NMEA_ID_ZDA_UART1, UBX_NMEA_ZDA, UBX_CLASS_NMEA, 0, "NMEA_ZDA", SFE_UBLOX_FILTER_NMEA_ZDA, 112,
@@ -279,6 +279,23 @@ const ubxCmd ubxCommands[] = {
 
 #define MAX_UBX_CMD (sizeof(ubxCommands) / sizeof(ubxCmd))
 
+// ==================================================================
+//  RECEIVE BUFFER
+//  ACK / response payloads are tiny (2–5 bytes).  Only the first
+//  X20P_RX_PAYLOAD_MAX bytes of any incoming payload are stored.
+// ==================================================================
+
+#define X20P_RX_PAYLOAD_MAX     40
+
+struct UbxMsg
+{
+    uint8_t cls;
+    uint8_t id;
+    uint16_t len;
+    uint8_t payload[X20P_RX_PAYLOAD_MAX];
+};
+
+
 class GNSS_ZED : GNSS
 {
   private:
@@ -297,13 +314,15 @@ class GNSS_ZED : GNSS
     // On the mosaic, we know that InputLink will arrive at 1Hz. But on the ZED, UBX-MON-COMMS
     // is tied to the navigation rate. To keep it simple, record the last time rxBytes
     // was seen to increase and use that for corrections timeout. This is updated by the
-    // UBX-MON-COMMS callback. isCorrRadioExtPortActive returns true if the bytes-received has
+    // UBX-MON-COMMS callback. isExternalCorrectionActive returns true if the bytes-received has
     // increased in the previous settings.correctionsSourcesLifetime_s
     uint32_t _radioExtBytesReceived_millis;
 
     // Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
     // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
     void menuMessagesSubtype(uint8_t *localMessageRate, const char *messageType);
+
+    int _externalCorrectionsEnabled = -1; // ZED has UARTs 1-2 but only UART2 is used for corrections
 
   public:
     // Constructor
@@ -357,6 +376,14 @@ class GNSS_ZED : GNSS
     // Outputs:
     //   Returns true if successfully configured and false upon failure
     bool configureRover();
+
+    // Configure the RTCM 1033 Antenna Description
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configureRtcm1033()
+    {
+        return true; // Not supported on ZED. Return true to clear configuration
+    }
 
     // Responds with the messages supported on this platform
     // Inputs:
@@ -501,6 +528,9 @@ class GNSS_ZED : GNSS
     // Returns timing accuracy or zero if not online
     uint32_t getTimeAccuracy();
 
+    // Sets the pieces of the version number
+    bool getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, uint8_t &revision);
+
     // Returns full year, ie 2023, not 23.
     uint16_t getYear();
 
@@ -521,11 +551,12 @@ class GNSS_ZED : GNSS
     // Date is confirmed once we have GNSS fix
     bool isConfirmedTime();
 
-    // Returns true if data is arriving on the Radio Ext port
-    bool isCorrRadioExtPortActive();
-
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed();
+
+    // Returns 0 if corrections can not be arriving on the selected port
+    // Returns 2 if corrections truly are arriving on the selected port
+    int isExternalCorrectionActive(uint8_t port);
 
     // Some functions merely need to know if we have an RTK Float.
     // This function checks to see if the given platform has reached sufficient
@@ -625,9 +656,9 @@ class GNSS_ZED : GNSS
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
 
-    // Enable / disable corrections protocol(s) on the Radio External port
+    // Enable / disable external corrections protocol(s) on the chosen port
     // Always update if force is true. Otherwise, only update if enable has changed state
-    bool setCorrRadioExtPort(bool enable, bool force);
+    bool setExternalCorrections(uint8_t port, bool enable, bool force, const char *debug = nullptr);
 
     // Set the elevation in degrees
     // Inputs:

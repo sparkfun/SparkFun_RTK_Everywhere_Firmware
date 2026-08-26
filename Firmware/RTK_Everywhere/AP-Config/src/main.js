@@ -95,9 +95,14 @@ var divTables = {
     constellationSbas: ["constellation_SBAS"],
     constellationNavic: ["constellation_NavIC"],
     constellationGlonass: ["constellation_GLONASS"],
-    tiltConfig: ["enableTiltCompensation"],
     loraConfig: ["enableLora"],
     loraSerialInteractionTimeoutConfig: ["loraSerialInteractionTimeout"],
+    lg290pRtkDifferentialAgeConfig: ["lg290pRtkDifferentialAge"],
+    lg290pRtkDifferentialSourceTypeConfig: ["lg290pRtkDifferentialSourceType"],
+    lg290pRtkReliabilityLevelConfig: ["lg290pRtkReliabilityLevel"],
+    dynamicModelSettings: ["dynamicModel"],
+    rtcm1033Settings: ["rtcm1033AntennaDescriptor"],
+    um980GnssSettings: ["enableMultipathMitigation", "um980FixedBaseLLHSubtractSeparation"],
 };
 
 function showHideDivs() {
@@ -142,6 +147,7 @@ function parseIncoming(msg) {
     //console.log("Incoming message: " + msg);
 
     var data = msg.split(',');
+    var select, newOption;
     for (let x = 0; x < data.length - 1; x += 2) {
         var id = data[x];
         var val = data[x + 1];
@@ -168,13 +174,11 @@ function parseIncoming(msg) {
             platformPrefix = val;
             document.title = platformPrefix + " Setup";
             ge(id).innerHTML = val;
-            fullPageUpdate = true;
             initializeArrays();
             correctionText = "";
 
             if (platformPrefix == "EVK") {
                 show("baseConfig");
-                show("ppConfig");
                 show("ethernetConfig");
                 show("ntpConfig");
                 show("portsConfig");
@@ -186,20 +190,11 @@ function parseIncoming(msg) {
 
                 show("useEnableExtCorrRadio");
                 hide("enableNmeaOnRadio");
-
-                select = ge("pointPerfectService");
-                let newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
             }
 
             else if (platformPrefix == "Facet X5") {
                 //console.log("runng mosaic");
                 show("baseConfig");
-                show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
@@ -211,9 +206,11 @@ function parseIncoming(msg) {
 
                 show("useEnableExtCorrRadio");
                 show("enableNmeaOnRadio");
+                show("dataPortChannelDropdown"); // Facet mosaic-X5 has a configurable DATA port
 
                 select = ge("dynamicModel");
-                let newOption = new Option('Static', '0');
+                select.options.length = 0; //Remove all from list
+                newOption = new Option('Static', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('Quasistatic', '1');
                 select.add(newOption, undefined);
@@ -233,18 +230,9 @@ function parseIncoming(msg) {
                 ge("messageRateInfoText").setAttribute('data-bs-original-title', 'The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages.');
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, MSM4, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0.1 to 600.');
                 ge("enableExtCorrRadioInfoText").setAttribute('data-bs-original-title', 'Enable external radio corrections: RTCMv3 on mosaic COM2. Default: False');
-
-                select = ge("pointPerfectService");
-                newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
-                show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
@@ -256,7 +244,8 @@ function parseIncoming(msg) {
                 show("measurementRateInput");
 
                 select = ge("dynamicModel");
-                let newOption = new Option('Survey', '0');
+                select.options.length = 0; // Clear previous options
+                newOption = new Option('Survey', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('UAV', '1');
                 select.add(newOption, undefined);
@@ -264,24 +253,16 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
 
                 select = ge("pppMode");
+                select.options.length = 0; // Clear previous options
                 newOption = new Option('Disabled', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('E6/HAS', '2');
                 select.add(newOption, undefined);
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
-
-                select = ge("pointPerfectService");
-                newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
             }
             else if (platformPrefix == "Postcard") {
                 show("baseConfig");
-                show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
@@ -295,19 +276,10 @@ function parseIncoming(msg) {
                 show("useEnableExtCorrRadio");
                 show("enableNmeaOnRadio");
 
-                hide("dynamicModelDropdown"); //Not supported on LG290P
-
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
-                select = ge("pointPerfectService");
-                let newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
-
                 select = ge("pppMode");
+                select.options.length = 0; //Remove all from list
                 newOption = new Option('Disabled', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('B2P PPP', '1');
@@ -317,8 +289,8 @@ function parseIncoming(msg) {
                 newOption = new Option('Auto', '255');
                 select.add(newOption, undefined);
 
-                ge("radioPortBaud").options.length = 0; //Remove all from list
                 select = ge("radioPortBaud");
+                select.options.length = 0; //Remove all from list
                 newOption = new Option('9600', '9600');
                 select.add(newOption, undefined);
                 newOption = new Option('115200', '115200');
@@ -330,8 +302,8 @@ function parseIncoming(msg) {
                 newOption = new Option('921600', '921600');
                 select.add(newOption, undefined);
 
-                ge("dataPortBaud").options.length = 0; //Remove all from list
                 select = ge("dataPortBaud");
+                select.options.length = 0; //Remove all from list
                 newOption = new Option('9600', '9600');
                 select.add(newOption, undefined);
                 newOption = new Option('115200', '115200');
@@ -342,10 +314,21 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('921600', '921600');
                 select.add(newOption, undefined);
+
+                // nav mode - added at firmware v2.01
+                select = ge("dynamicModel");
+                select.options.length = 0; //Remove all from list
+                newOption = new Option('Normal', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Dynamic', '5');
+                select.add(newOption, undefined);
+                newOption = new Option('Mower', '11');
+                select.add(newOption, undefined);
+                newOption = new Option('Agriculture', '14');
+                select.add(newOption, undefined);
             }
             else if (platformPrefix == "TX2") {
                 show("baseConfig");
-                show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
@@ -362,19 +345,10 @@ function parseIncoming(msg) {
                 hide("useEnableExtCorrRadio"); //No External Radio connector on Torch X2
                 hide("enableNmeaOnRadio");
 
-                hide("dynamicModelDropdown"); //Not supported on LG290P
-
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
-                select = ge("pointPerfectService");
-                let newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
-
                 select = ge("pppMode");
+                select.options.length = 0; //Remove all from list
                 newOption = new Option('Disabled', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('B2P PPP', '1');
@@ -383,6 +357,18 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Auto', '255');
                 select.add(newOption, undefined);
+
+                // nav mode - added at firmware v2.01
+                select = ge("dynamicModel");
+                select.options.length = 0; //Remove all from list
+                newOption = new Option('Normal', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Dynamic', '5');
+                select.add(newOption, undefined);
+                newOption = new Option('Mower', '11');
+                select.add(newOption, undefined);
+                newOption = new Option('Agriculture', '14');
+                select.add(newOption, undefined);
             }
         }
         else if (id == "facetFPGNSS") {
@@ -390,7 +376,6 @@ function parseIncoming(msg) {
 
             if (facetFPGNSS == "Mosaic-X5") {
                 show("baseConfig");
-                show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
@@ -404,7 +389,8 @@ function parseIncoming(msg) {
                 show("enableNmeaOnRadio");
 
                 select = ge("dynamicModel");
-                let newOption = new Option('Static', '0');
+                select.options.length = 0; //Remove all from list
+                newOption = new Option('Static', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('Quasistatic', '1');
                 select.add(newOption, undefined);
@@ -425,17 +411,9 @@ function parseIncoming(msg) {
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, MSM4, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0.1 to 600.');
                 ge("enableExtCorrRadioInfoText").setAttribute('data-bs-original-title', 'Enable external radio corrections: RTCMv3 on mosaic COM2. Default: False');
 
-                select = ge("pointPerfectService");
-                newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
             }
             else if (facetFPGNSS == "LG290P") {
                 show("baseConfig");
-                show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
@@ -449,19 +427,10 @@ function parseIncoming(msg) {
                 show("useEnableExtCorrRadio");
                 show("enableNmeaOnRadio");
 
-                hide("dynamicModelDropdown"); //Not supported on LG290P
-
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
 
-                select = ge("pointPerfectService");
-                let newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
-
                 select = ge("pppMode");
+                select.options.length = 0; //Remove all from list
                 newOption = new Option('Disabled', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('B2P PPP', '1');
@@ -471,8 +440,8 @@ function parseIncoming(msg) {
                 newOption = new Option('Auto', '255');
                 select.add(newOption, undefined);
 
-                ge("radioPortBaud").options.length = 0; //Remove all from list
                 select = ge("radioPortBaud");
+                select.options.length = 0; //Remove all from list
                 newOption = new Option('9600', '9600');
                 select.add(newOption, undefined);
                 newOption = new Option('115200', '115200');
@@ -484,8 +453,8 @@ function parseIncoming(msg) {
                 newOption = new Option('921600', '921600');
                 select.add(newOption, undefined);
 
-                ge("dataPortBaud").options.length = 0; //Remove all from list
                 select = ge("dataPortBaud");
+                select.options.length = 0; //Remove all from list
                 newOption = new Option('9600', '9600');
                 select.add(newOption, undefined);
                 newOption = new Option('115200', '115200');
@@ -496,10 +465,21 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('921600', '921600');
                 select.add(newOption, undefined);
+
+                // nav mode - added at firmware v2.01
+                select = ge("dynamicModel");
+                select.options.length = 0; //Remove all from list
+                newOption = new Option('Normal', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Dynamic', '5');
+                select.add(newOption, undefined);
+                newOption = new Option('Mower', '11');
+                select.add(newOption, undefined);
+                newOption = new Option('Agriculture', '14');
+                select.add(newOption, undefined);
             }
             else if (facetFPGNSS.substring(0, 3) == "ZED") {
                 show("baseConfig");
-                show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
@@ -512,21 +492,14 @@ function parseIncoming(msg) {
                 show("surveyInSettings");
                 show("useEnableExtCorrRadio");
                 hide("enableNmeaOnRadio"); // ZED UART2 is limited to RTCM
-
-                select = ge("pointPerfectService");
-                let newOption = new Option('Disabled', '0');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex NTRIP/RTCM', '1');
-                select.add(newOption, undefined);
-                newOption = new Option('Flex MQTT (Deprecated)', '5');
-                select.add(newOption, undefined);
             }
         }
         else if (id.includes("gnssFirmwareVersionInt")) {
             //Modify settings due to firmware limitations
             if ((platformPrefix == "EVK") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS.substring(0, 3) == "ZED"))) {
                 select = ge("dynamicModel");
-                let newOption = new Option('Portable', '0');
+                select.options.length = 0; //Remove all from list
+                newOption = new Option('Portable', '0');
                 select.add(newOption, undefined);
                 newOption = new Option('Stationary', '2');
                 select.add(newOption, undefined);
@@ -591,6 +564,7 @@ function parseIncoming(msg) {
                     hide("pppServiceSettings"); // No sub settings available on ZED-X20P
 
                     select = ge("pppMode");
+                    select.options.length = 0; //Remove all from list
                     newOption = new Option('Disabled', '0');
                     select.add(newOption, undefined);
                     newOption = new Option('E6/HAS', '2');
@@ -601,7 +575,7 @@ function parseIncoming(msg) {
         //Strings generated by RTK unit
         else if (id.includes("sdFreeSpace")
             || id.includes("sdSize")
-            || id.includes("hardwareID")
+            || id.includes("espFirmwareVersion")
             || id.includes("gnssFirmwareVersion")
             || id.includes("profile0Name")
             || id.includes("profile1Name")
@@ -618,12 +592,22 @@ function parseIncoming(msg) {
         ) {
             ge(id).innerHTML = val;
         }
-        else if (id.includes("rtkFirmwareVersion")) {
-            ge("rtkFirmwareVersion").innerHTML = val;
-            ge("rtkFirmwareVersionUpgrade").innerHTML = val;
+        else if (id == "profileName") {
+            // We don't do anything with the currently running profile name
+            // Watch out for id.includes("profileName") because it will also match profileNameSelected
         }
+
+        // Catch the last setting
+        else if (id.includes("lastSetting")) {
+            // This is the last thing received so now update the page
+            fullPageUpdate = true;
+        }
+
         else if (id.includes("confirmReset")) {
             resetComplete();
+        }
+        else if (id.includes("confirmFactoryReset")) {
+            factoryResetComplete();
         }
         else if (id.includes("confirmDataReceipt")) {
             confirmDataReceipt();
@@ -664,8 +648,10 @@ function parseIncoming(msg) {
             ge(id).innerHTML = val;
         }
         else if (id.includes("espnowPeerCount")) {
-            if (val > 0)
+            if (val > 0) {
                 ge("peerMACs").innerHTML = "";
+                show("forgetRadiosSection");
+            }
         }
         else if (id.includes("espnowPeer_")) {
             if (val[0] != "0" && val[1] != "0") {
@@ -735,10 +721,6 @@ function parseIncoming(msg) {
             messageText += " id='" + messageName + "' value='" + messageRate + "'>";
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
-
-            // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
-            savedCheckboxNames.push(messageName);
-            savedCheckboxValues.push(val);
 
             // Add to initialSettings - if it has not been added before. Val will be "true" / "false"
             addInitialSetting(id, val);
@@ -833,14 +815,23 @@ function parseIncoming(msg) {
         else if (id.includes("checkingNewFirmware")) {
             checkingNewFirmware();
         }
-        else if (id.includes("newFirmwareVersion")) {
-            newFirmwareVersion(val);
+        else if (id.includes("newSubsystemFirmware")) {
+            newSubsystemFirmware(val);
         }
         else if (id.includes("gettingNewFirmware")) {
-            gettingNewFirmware();
+            gettingNewFirmware(val);
         }
-        else if (id.includes("otaFirmwareStatus")) {
-            otaFirmwareStatus(val);
+        else if (id.includes("espOtaFirmwareStatus")) {
+            espOtaFirmwareStatus(val);
+        }
+        else if (id.includes("gnssOtaFirmwareStatus")) {
+            gnssOtaFirmwareStatus(val);
+        }
+        else if (id.includes("loraOtaFirmwareStatus")) {
+            loraOtaFirmwareStatus(val);
+        }
+        else if (id.includes("imuOtaFirmwareStatus")) {
+            imuOtaFirmwareStatus(val);
         }
         else if (id.includes("batteryIconFileName")) {
             ge("batteryIconFileName").src = val;
@@ -878,6 +869,14 @@ function parseIncoming(msg) {
                 hide("shutdownNoChargeTimeoutMinutesDetails");
             }
         }
+        else if (id.includes("imuFirmwareVersionStr")) {
+            ge("imuFirmwareVersionStr").innerHTML = val;
+            show("imuFirmwareVersionStrPresent");
+        }
+        else if (id.includes("loraFirmwareVersionStr")) {
+            ge("loraFirmwareVersionStr").innerHTML = val;
+            show("loraFirmwareVersionStrPresent");
+        }
 
         //Convert incoming mm to local meters
         else if (id.includes("antennaHeight")) {
@@ -892,6 +891,17 @@ function parseIncoming(msg) {
             else {
                 ge(id).checked = true;
             }
+        }
+
+        // enableTiltCompensation setting is sent across for all FP models, even on non-tilt enabled units. Show section if special setting is present.
+        else if (id.includes("hasTilt")) {
+            show("tiltConfig");
+        }
+
+        // PointPerfect configuration has been removed from the Web Config interface. It will be restored if u-blox offers
+        // the global corrections network.
+        else if (id.includes("pointPerfectService")) {
+            // Do nothing
         }
 
         //Check boxes / radio buttons
@@ -921,9 +931,6 @@ function parseIncoming(msg) {
     }
     //console.log("Settings loaded");
 
-    ge("profileChangeMessage").innerHTML = '';
-    ge("resetProfileMsg").innerHTML = '';
-
     //Don't update if all we received was coordinate info
     if (fullPageUpdate == true) {
         fullPageUpdate = false;
@@ -938,7 +945,6 @@ function parseIncoming(msg) {
         ge("enableNtripServer").dispatchEvent(new CustomEvent('change'));
         ge("enableNtripClient").dispatchEvent(new CustomEvent('change'));
         ge("dataPortChannel").dispatchEvent(new CustomEvent('change'));
-        ge("pointPerfectService").dispatchEvent(new CustomEvent('change'));
         ge("enableExternalPulse").dispatchEvent(new CustomEvent('change'));
         ge("enableExternalHardwareEventLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableEspNow").dispatchEvent(new CustomEvent('change'));
@@ -965,6 +971,13 @@ function parseIncoming(msg) {
 
         // Show / hide divs based on received settings
         showHideDivs();
+
+        // Because we are loading the full page (possibly due to a profile change), clear the "Save Configuration" success message
+        clearSuccess('saveBtn');
+
+        // Don't erase 'Loading. Please wait...' until we have received all settings and updated the page.
+        ge("profileChangeMessage").innerHTML = '';
+        ge("resetProfileMsg").innerHTML = '';
     }
 }
 
@@ -996,15 +1009,9 @@ function saveInitialSettings() {
 
 // Add this setting to initialSettings - if it has not been added before
 function addInitialSetting(id, val) {
-    var seen = false;
-    for (let x = 0; x < initialSettings.length; x++) {
-        if (initialSettings[x] === id) {
-            seen = true;
-        }
-    }
-    if (seen == false) {
-        //console.log("Adding " + id + ":" + val + " to initialSettings");
+    if ((id in initialSettings) == false) {
         initialSettings[id] = val;
+        //console.log("Adding " + id + ":" + val + " to initialSettings");
     }
 }
 
@@ -1147,7 +1154,7 @@ function showMsg(id, msg, error = false) {
 function showMsgError(id, msg) {
     showMsg(id, "Error: " + msg, true);
 }
-function clearMsg(id, msg) {
+function clearMsg(id) {
     ge(id).innerHTML = '';
 }
 
@@ -1194,12 +1201,12 @@ function validateFields() {
     collapseSection("collapseGNSSConfigMsg", "gnssMsgCaret");
     collapseSection("collapseBaseConfig", "baseCaret");
     collapseSection("collapseGNSSConfigMsgBase", "baseMsgCaret");
-    collapseSection("collapsePPConfig", "pointPerfectCaret");
     collapseSection("collapsePortsConfig", "portsCaret");
     collapseSection("collapseWiFiConfig", "wifiCaret");
     collapseSection("collapseTCPUDPConfig", "tcpUdpCaret");
     collapseSection("collapseRadioConfig", "radioCaret");
     collapseSection("collapseCorrectionsPriorityConfig", "correctionsCaret");
+    collapseSection("collapseInstrumentConfig", "instrumentCaret");
     collapseSection("collapseSystemConfig", "systemCaret");
     collapseSection("collapseEthernetConfig", "ethernetCaret");
     collapseSection("collapseNTPConfig", "ntpCaret");
@@ -1208,7 +1215,7 @@ function validateFields() {
     errorCount = 0;
 
     //Profile Config
-    checkElementString("profileName", 1, 49, "Must be 1 to 49 characters", "collapseProfileConfig");
+    checkElementString("profileNameSelected", 1, 49, "Must be 1 to 49 characters", "collapseProfileConfig");
 
     //GNSS Config
     checkElementValue("measurementRateHz", 0.00012, 10, "Must be between 0.00012 and 10Hz", "collapseGNSSConfig");
@@ -1218,6 +1225,9 @@ function validateFields() {
     checkElementValue("minCN0", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
     if (isElementShown("lg290pGnssSettings") == true) {
         checkElementValue("rtcmMinElev", -90, 90, "Must be between -90 and 90", "collapseGNSSConfig");
+    }
+    if (isElementShown("lg290pRtkDifferentialAgeConfig") == true) {
+        checkElementValue("lg290pRtkDifferentialAge", 1, 600, "Must be between 1 and 600", "collapseGNSSConfig");
     }
 
     if (isElementShown("pppSettings") == true) {
@@ -1239,78 +1249,83 @@ function validateFields() {
         checkElementCasterUser("ntripClientCasterHost", "ntripClientCasterUser", "rtk2go.com", "User must use their email address", "collapseGNSSConfig");
     }
 
+    if (isElementShown("rtcm1033Settings") == true) {
+        checkElementString("rtcm1033AntennaDescriptor", 0, 20, "Must be 0 to 20 characters", "collapseGNSSConfig");
+        checkElementString("rtcm1033AntennaSerialNr", 0, 20, "Must be 0 to 20 characters", "collapseGNSSConfig");
+        checkElementValue("rtcm1033AntennaSetupID", 0, 255, "Must be 0 to 255", "collapseGNSSConfig");
+    }
+
     //Check all UBX message boxes
     //match all ids starting with ubxMessageRate_
     if (platformPrefix == "EVK") {
-        var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
+        let ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
         for (let x = 0; x < ubxMessages.length; x++) {
-            var messageName = ubxMessages[x].id;
+            let messageName = ubxMessages[x].id;
             checkMessageValueUBX(messageName);
         }
-        //match all ids starting with ubxMessageRateBase_
-        var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRateBase_]');
+        ubxMessages = document.querySelectorAll('input[id^=ubxMessageRateBase_]');
         for (let x = 0; x < ubxMessages.length; x++) {
-            var messageName = ubxMessages[x].id;
+            let messageName = ubxMessages[x].id;
             checkMessageValueUBXBase(messageName);
         }
     }
 
     //Check all UM980 message boxes
     else if (platformPrefix == "Torch") {
-        var messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
+        let messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkMessageValueUM980(messageName);
         }
-        var messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
+        messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkMessageValueUM980(messageName);
         }
-        var messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
+        messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkMessageValueUM980Base(messageName);
         }
     }
 
     //Check Mosaic-X5 RTCM intervals
     else if ((platformPrefix == "Facet X5") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "Mosaic-X5"))) {
-        var messages = document.querySelectorAll('input[id^=messageIntervalRTCMRover]');
+        let messages = document.querySelectorAll('input[id^=messageIntervalRTCMRover]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkElementValue(messageName, 0.1, 600.0, "Must be between 0.1 and 600.0", "collapseGNSSConfigMsg");
         }
-        var messages = document.querySelectorAll('input[id^=messageIntervalRTCMBase]');
+        messages = document.querySelectorAll('input[id^=messageIntervalRTCMBase]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkElementValue(messageName, 0.1, 600.0, "Must be between 0.1 and 600.0", "collapseGNSSConfigMsgBase");
         }
     }
 
     //Check all LG290P message boxes
     else if ((platformPrefix == "Postcard") || (platformPrefix == "TX2") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "LG290P"))) {
-        var messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
+        let messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkMessageValueLG290P01(messageName);
         }
 
         // TODO - Some RTCM messages are 0 to 1, some are 0 to 1200.
-        var messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
+        messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkMessageValueLG290P01200(messageName);
         }
-        var messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
+        messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkMessageValueLG290P01200(messageName);
         }
 
-        var messages = document.querySelectorAll('input[id^=messageRatePQTM_]');
+        messages = document.querySelectorAll('input[id^=messageRatePQTM_]');
         for (let x = 0; x < messages.length; x++) {
-            var messageName = messages[x].id;
+            let messageName = messages[x].id;
             checkMessageValueLG290P0255(messageName);
         }
     }
@@ -1361,9 +1376,6 @@ function validateFields() {
         checkElementString("ntripServerMountPoint_3", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig3");
         checkElementString("ntripServerMountPointPW_3", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig3");
     }
-
-    //PointPerfect Config
-    checkPointPerfectService();
 
     //Port Config
     if (ge("enableExternalPulse").checked == true) {
@@ -1489,7 +1501,6 @@ function changeProfile() {
         collapseSection("collapseGNSSConfigMsg", "gnssMsgCaret");
         collapseSection("collapseBaseConfig", "baseCaret");
         collapseSection("collapseGNSSConfigMsgBase", "baseMsgCaret");
-        collapseSection("collapsePPConfig", "pointPerfectCaret");
         collapseSection("collapsePortsConfig", "portsCaret");
         collapseSection("collapseWiFiConfig", "wifiCaret");
         collapseSection("collapseTCPUDPConfig", "tcpUdpCaret");
@@ -1542,31 +1553,9 @@ function checkConstellations() {
         clearError("gnssConstellations");
 }
 
-function checkPointPerfectService() {
-    if (ge("pointPerfectService").value > 0) {
-        value = ge("pointPerfectDeviceProfileToken").value;
-        if (value.length > 0)
-            checkElementString("pointPerfectDeviceProfileToken", 36, 36, "Must be 36 characters", "collapsePPConfig");
-
-        if (networkCount() == 0) {
-            showError('pointPerfectService', "This PointPerfect service requires at least one WiFi network");
-            ge("collapsePPConfig").classList.add('show');
-            ge("collapseWiFiConfig").classList.add('show');
-            errorCount++;
-        }
-        else {
-            clearError("pointPerfectService");
-        }
-
-    }
-    else {
-        clearError("pointPerfectService");
-    }
-}
-
 function checkBitMapValue(id, min, max, bitMap, errorText, collapseID) {
-    value = ge(id).value;
-    mask = ge(bitMap).value;
+    var value = ge(id).value;
+    var mask = ge(bitMap).value;
     if ((value < min) || (value > max) || ((mask & (1 << value)) == 0)) {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
@@ -1635,7 +1624,7 @@ function updateLatLong() {
 }
 
 function checkElementValue(id, min, max, errorText, collapseID) {
-    value = ge(id).value;
+    var value = ge(id).value;
     if ((value < min) || (value > max) || (value == "")) {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
@@ -1652,7 +1641,7 @@ function checkElementValue(id, min, max, errorText, collapseID) {
 }
 
 function checkElementString(id, min, max, errorText, collapseID) {
-    value = ge(id).value;
+    var value = ge(id).value;
     if ((value.length < min) || (value.length > max)) {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         if (collapseID == "ntripServerConfig0") {
@@ -1684,7 +1673,7 @@ function checkElementString(id, min, max, errorText, collapseID) {
 }
 
 function checkElementStringSpacesNoCommas(id, min, max, errorText, collapseID) {
-    value = ge(id).value;
+    var value = ge(id).value;
     var commas = value.split(',');
     var spaces = value.split(' ');
     if ((value.length < min) || (value.length > max) || (commas.length > 1) || (spaces.length == 1)) {
@@ -1697,7 +1686,7 @@ function checkElementStringSpacesNoCommas(id, min, max, errorText, collapseID) {
 }
 
 function checkElementIPAddress(id, errorText, collapseID) {
-    value = ge(id).value;
+    var value = ge(id).value;
     var data = value.split('.');
     if ((data.length != 4)
         || ((data[0] == "") || (isNaN(Number(data[0]))) || (data[0] < 0) || (data[0] > 255))
@@ -1714,7 +1703,7 @@ function checkElementIPAddress(id, errorText, collapseID) {
 
 function checkElementCasterUser(host, user, url, errorText, collapseID) {
     if (ge(host).value.toLowerCase().includes(url)) {
-        value = ge(user).value;
+        var value = ge(user).value;
         if ((value.length < 1) || (value.length > 49)) {
             ge(user + 'Error').innerHTML = 'Error: ' + errorText;
             ge(collapseID).classList.add('show');
@@ -1746,8 +1735,10 @@ function clearElement(id, value) {
 }
 
 function resetToFactoryDefaults() {
-    ge("factoryDefaultsMsg").innerHTML = "Defaults Applied. Please wait for device reset...";
     websocket.send("factoryDefaultReset,1,");
+
+    hide("mainPage");
+    show("factoryResetInProcess");
 }
 
 function resetToCorrectionsPriorityDefaults() {
@@ -2059,6 +2050,12 @@ function resetComplete() {
     show("resetComplete");
 }
 
+function factoryResetComplete() {
+    hide("mainPage");
+    hide("factoryResetInProcess");
+    show("factoryResetComplete");
+}
+
 //Called when the ESP32 has confirmed receipt of data over websocket from AP config page
 function confirmDataReceipt() {
     //Determine which function sent the original data
@@ -2073,16 +2070,6 @@ function confirmDataReceipt() {
     updateInitialSettings();
 }
 
-function firmwareUploadWait() {
-    var file = ge("submitFirmwareFile").files[0];
-    var formdata = new FormData();
-    formdata.append("submitFirmwareFile", file);
-    var ajax = new XMLHttpRequest();
-    ajax.open("POST", "/uploadFirmware");
-    ajax.send(formdata);
-
-    ge("firmwareUploadMsg").innerHTML = "<br>Uploading, please wait...";
-}
 
 function firmwareUploadStatus(val) {
     ge("firmwareUploadMsg").innerHTML = val;
@@ -2324,8 +2311,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     // Only show/hide the PPP service settings on platforms that have PPP service settings
     // ie - Torch *has* PPP service, but no PPP service settings, so do not allow them to be displayed
-    if ((platformPrefix == "TX2") || (platformPrefix == "Postcard") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "LG290P"))) {
-        ge("pppMode").addEventListener("change", function () {
+    ge("pppMode").addEventListener("change", function () {
+        if ((platformPrefix == "TX2") || (platformPrefix == "Postcard") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS == "LG290P"))) {
             if ((isElementShown("pppSettings") == true)) {
                 if (ge("pppMode").value > 0) {
                     show("pppServiceSettings");
@@ -2334,8 +2321,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     hide("pppServiceSettings");
                 }
             }
-        });
-    }
+        }
+    });
 
     for (let y = 0; y < numCorrectionsSources; y++) {
         var buttonName = "corrPrioButton" + y;
@@ -2673,7 +2660,7 @@ function getFileList() {
         ge("fileManagerTable").innerHTML = "<table><tr align='left'><th>Name</th><th>Size</th><td><input type='checkbox' id='fileSelectAll' class='form-check-input fileManagerCheck' onClick='fileManagerToggle()'></td></tr></tr></table>";
         fileTableText = "";
 
-        xmlhttp = new XMLHttpRequest();
+        var xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", "/listfiles", false);
         xmlhttp.send();
 
@@ -2693,12 +2680,12 @@ function getMessageList() {
 
         ge("messageList").innerHTML = "";
         messageText = "";
-        savedMessageNames = [];
-        savedMessageValues = [];
-        savedCheckboxNames = [];
-        savedCheckboxValues = [];
+        savedMessageNames.length = 0;
+        savedMessageValues.length = 0;
+        savedCheckboxNames.length = 0;
+        savedCheckboxValues.length = 0;
 
-        xmlhttp = new XMLHttpRequest();
+        var xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", "/listMessages", false);
         xmlhttp.send();
 
@@ -2738,7 +2725,7 @@ function getMessageListBase() {
         savedCheckboxNames = [];
         savedCheckboxValues = [];
 
-        xmlhttp = new XMLHttpRequest();
+        var xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", "/listMessagesBase", false);
         xmlhttp.send();
 
@@ -2793,7 +2780,7 @@ function fileManagerDelete() {
 
     for (let x = 0; x < selectedFiles.length; x++) {
         var urltocall = "/file?name=" + selectedFiles[x].id + "&action=delete";
-        xmlhttp = new XMLHttpRequest();
+        var xmlhttp = new XMLHttpRequest();
 
         xmlhttp.open("GET", urltocall, false);
         xmlhttp.send();
@@ -2831,8 +2818,6 @@ function completeHandler(event) {
     //Refresh file list
     showingFileList = false;
     getFileList();
-
-    document.getElementById("uploadStatus").innerHTML = "Upload Complete";
 }
 function errorHandler(event) {
     ge("uploadStatus").innerHTML = "Upload Failed";
@@ -2883,7 +2868,7 @@ function dhcpEthernet() {
 function networkCount() {
     var count = 0;
 
-    var wifiNetworks = document.querySelectorAll('input[id^=wifiNetwork]' && 'input[id$=SSID]');
+    var wifiNetworks = document.querySelectorAll('input[id^=wifiNetwork][id$=SSID]');
     for (let x = 0; x < wifiNetworks.length; x++) {
         if (wifiNetworks[x].value.length > 0)
             count++;
@@ -2893,33 +2878,44 @@ function networkCount() {
 }
 
 function checkNewFirmware() {
-    if ((platformPrefix != "EVK") && (networkCount() == 0)) {
-        showMsgError('firmwareCheckNewMsg', "WiFi list is empty");
-        return;
+    if (ge("btnCheckNewFirmware").innerHTML == "Check for Updates") {
+        if ((platformPrefix != "EVK") && (networkCount() == 0)) {
+            showMsgError('firmwareCheckNewMsg', "WiFi list is empty");
+            return;
+        }
+
+        ge("btnCheckNewFirmware").disabled = true;
+        showMsg('firmwareCheckNewMsg', "Connecting to network", false);
+
+        var settingCSV = "";
+
+        //Send current WiFi SSID and PWs
+        var clsElements = document.querySelectorAll('input[id^=wifiNetwork]');
+        for (let x = 0; x < clsElements.length; x++) {
+            settingCSV += clsElements[x].id + "," + clsElements[x].value + ",";
+        }
+
+        if (ge("enableRCFirmware").checked == true)
+            settingCSV += "enableRCFirmware,true,";
+        else
+            settingCSV += "enableRCFirmware,false,";
+
+        settingCSV += "checkNewFirmware,1,";
+
+        //console.log("Firmware sending: " + settingCSV);
+        websocket.send(settingCSV);
+
+        checkNewFirmwareTimeout = setTimeout(checkNewFirmware, 2000);
     }
-
-    ge("btnCheckNewFirmware").disabled = true;
-    showMsg('firmwareCheckNewMsg', "Connecting to network", false);
-
-    var settingCSV = "";
-
-    //Send current WiFi SSID and PWs
-    var clsElements = document.querySelectorAll('input[id^=wifiNetwork]');
-    for (let x = 0; x < clsElements.length; x++) {
-        settingCSV += clsElements[x].id + "," + clsElements[x].value + ",";
+    else if (ge("btnCheckNewFirmware").innerHTML == "Update System") {
+        getNewFirmware();
     }
+}
 
-    if (ge("enableRCFirmware").checked == true)
-        settingCSV += "enableRCFirmware,true,";
-    else
-        settingCSV += "enableRCFirmware,false,";
-
-    settingCSV += "checkNewFirmware,1,";
-
-    console.log("Firmware sending: " + settingCSV);
-    websocket.send(settingCSV);
-
-    checkNewFirmwareTimeout = setTimeout(checkNewFirmware, 2000);
+function setTooltip(id, text) {
+    const el = ge(id);
+    el.setAttribute("title", text);
+    bootstrap.Tooltip.getInstance(el)?.setContent({ '.tooltip-inner': text });
 }
 
 function checkingNewFirmware() {
@@ -2929,40 +2925,48 @@ function checkingNewFirmware() {
     showMsg('firmwareCheckNewMsg', "Checking firmware version");
 }
 
-function newFirmwareVersion(firmwareVersion) {
+// Given a firmware version string such as "ELI", show the appropriate update messages and progress bars for each subsystem
+function newSubsystemFirmware(firmwareVersion) {
     clearMsg('firmwareCheckNewMsg');
     if (firmwareVersion == "NO_INTERNET") {
         showMsgError('firmwareCheckNewMsg', "No internet");
-        hide("divGetNewFirmware");
+        hide("espUpdateFirmwareDiv");
         ge("btnCheckNewFirmware").disabled = false;
         return;
     }
     else if (firmwareVersion == "NO_SERVER") {
         showMsgError('firmwareCheckNewMsg', "Network or Server not available");
-        hide("divGetNewFirmware");
+        hide("espUpdateFirmwareDiv");
         ge("btnCheckNewFirmware").disabled = false;
         return;
     }
     else if (firmwareVersion == "CURRENT") {
         showMsg('firmwareCheckNewMsg', "Firmware is up to date");
-        hide("divGetNewFirmware");
+        hide("espUpdateFirmwareDiv");
         ge("btnCheckNewFirmware").disabled = false;
         return;
     }
 
-    // User presses 'Check for new firmware' button. If available 'Update to vX.X.X' button appears.
-    // After pressing 'Update' button, the firmware version is re-checked which causes the get firmware button to briefly reenables, then disables again. 
-    // If the btnGetNewFirmware button is visible and disabled, don't enable it again.
-    if (ge("firmwareUpdateProgressMsg").textContent == "Getting new firmware") {
-        // Do nothing - we are already in the process of getting new firmware, so do not enable the button again
-    }
-    else {
-        showMsg('firmwareCheckNewMsg', "New firmware available!");
-        ge("btnGetNewFirmware").innerHTML = "Update to v" + firmwareVersion;
-        ge("btnGetNewFirmware").disabled = false; // Enable the button
-        ge("firmwareUpdateProgressBar").value = 0;
-        clearMsg('firmwareUpdateProgressMsg');
-        show("divGetNewFirmware");
+    showMsg('firmwareCheckNewMsg', "New update available!");
+    ge("btnCheckNewFirmware").innerHTML = "Update System";
+    ge("btnCheckNewFirmware").disabled = false;
+    setTooltip("firmwareUpdateBubble", "Start an update on all systems that have new firmware available. The system will reboot when complete.");
+
+    const subsystems = [
+        { letter: "E", div: "espUpdateFirmwareDiv", bar: "espUpdateFirmwareProgressBar", msg: "espUpdateFirmwareProgressMsg" },
+        { letter: "G", div: "gnssFirmwareUpdateDiv", bar: "gnssFirmwareUpdateProgressBar", msg: "gnssFirmwareUpdateProgressMsg" },
+        { letter: "L", div: "loraFirmwareUpdateDiv", bar: "loraFirmwareUpdateProgressBar", msg: "loraFirmwareUpdateProgressMsg" },
+        { letter: "I", div: "imuFirmwareUpdateDiv", bar: "imuFirmwareUpdateProgressBar", msg: "imuFirmwareUpdateProgressMsg" },
+    ];
+
+    for (const s of subsystems) {
+        if (firmwareVersion.includes(s.letter)) {
+            show(s.div);
+            ge(s.bar).value = 0;
+            clearMsg(s.msg);
+        } else {
+            hide(s.div);
+        }
     }
 }
 
@@ -2970,14 +2974,26 @@ function getNewFirmware() {
 
     if ((platformPrefix != "EVK") && (networkCount() == 0)) {
         showMsgError('firmwareCheckNewMsg', "WiFi list is empty");
-        hide("divGetNewFirmware");
-        ge("btnCheckNewFirmware").disabled = false;
+        hide("espUpdateFirmwareDiv");
+        hide("gnssFirmwareUpdateDiv");
+        hide("loraFirmwareUpdateDiv");
+        hide("imuFirmwareUpdateDiv");
+        ge("btnCheckNewFirmware").disabled = false; // Enable the button
         return;
     }
 
-    ge("btnGetNewFirmware").disabled = true; // Disable the button
+    ge("btnCheckNewFirmware").disabled = true; // Disable the button during firmware update
+
     clearMsg('firmwareCheckNewMsg');
-    showMsg('firmwareUpdateProgressMsg', "Getting new firmware");
+
+    if (ge("espUpdateFirmwareDiv").style.display === "block") // Visible
+        showMsg('espUpdateFirmwareProgressMsg', "Getting new firmware");
+    if (ge("gnssFirmwareUpdateDiv").style.display === "block") // Visible
+        showMsg('gnssFirmwareUpdateProgressMsg', "Getting new firmware");
+    if (ge("loraFirmwareUpdateDiv").style.display === "block") // Visible
+        showMsg('loraFirmwareUpdateProgressMsg', "Getting new firmware");
+    if (ge("imuFirmwareUpdateDiv").style.display === "block") // Visible
+        showMsg('imuFirmwareUpdateProgressMsg', "Getting new firmware");
 
     var settingCSV = "";
 
@@ -2988,7 +3004,7 @@ function getNewFirmware() {
     }
     settingCSV += "getNewFirmware,1,";
 
-    console.log("Firmware sending: " + settingCSV);
+    console.log("getNewFirmware sending: " + settingCSV);
     websocket.send(settingCSV);
 
     getNewFirmwareTimeout = setTimeout(getNewFirmware, 2000);
@@ -2999,21 +3015,46 @@ function gettingNewFirmware(val) {
         clearTimeout(getNewFirmwareTimeout);
     }
     else if (val == "ERROR") {
-        hide("divGetNewFirmware");
-        ge("btnCheckNewFirmware").disabled = false;
+        hide("espUpdateFirmwareDiv");
+        hide("gnssFirmwareUpdateDiv");
+        hide("loraFirmwareUpdateDiv");
+        hide("imuFirmwareUpdateDiv");
+        ge("btnCheckNewFirmware").innerHTML = "Update System";
+        ge("btnCheckNewFirmware").disabled = false; // Re-enable the button
         showMsg('firmwareCheckNewMsg', "Error getting new firmware", true);
     }
 }
 
-function otaFirmwareStatus(percentComplete) {
+function espOtaFirmwareStatus(percentComplete) {
     clearTimeout(getNewFirmwareTimeout);
 
-    showMsg('firmwareUpdateProgressMsg', percentComplete + "% Complete");
-    ge("firmwareUpdateProgressBar").value = percentComplete;
+    showMsg('espUpdateFirmwareProgressMsg', percentComplete + "% Complete");
+    ge("espUpdateFirmwareProgressBar").value = percentComplete;
 
     if (percentComplete == 100) {
         resetComplete();
     }
+}
+
+function gnssOtaFirmwareStatus(percentComplete) {
+    clearTimeout(getNewFirmwareTimeout);
+
+    showMsg('gnssFirmwareUpdateProgressMsg', percentComplete + "% Complete");
+    ge("gnssFirmwareUpdateProgressBar").value = percentComplete;
+}
+
+function loraOtaFirmwareStatus(percentComplete) {
+    clearTimeout(getNewFirmwareTimeout);
+
+    showMsg('loraFirmwareUpdateProgressMsg', percentComplete + "% Complete");
+    ge("loraFirmwareUpdateProgressBar").value = percentComplete;
+}
+
+function imuOtaFirmwareStatus(percentComplete) {
+    clearTimeout(getNewFirmwareTimeout);
+
+    showMsg('imuFirmwareUpdateProgressMsg', percentComplete + "% Complete");
+    ge("imuFirmwareUpdateProgressBar").value = percentComplete;
 }
 
 //Given a user's string, try to identify the type and return the coordinate in DD.ddddddddd format
@@ -3249,39 +3290,27 @@ function printableInputType(coordinateInputType) {
     switch (coordinateInputType) {
         default:
             return ("Unknown");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD):
             return ("DD.ddddddddd");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DDMM):
             return ("DDMM.mmmmmmm");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM):
             return ("DD MM.mmmmmmm");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_DASH):
             return ("DD-MM.mmmmmmm");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DDMMSS):
             return ("DDMMSS.ssssss");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS):
             return ("DD MM SS.ssssss");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS_DASH):
             return ("DD-MM-SS.ssssss");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DDMMSS_NO_DECIMAL):
             return ("DDMMSS");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS_NO_DECIMAL):
             return ("DD MM SS");
-            break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS_DASH_NO_DECIMAL):
             return ("DD-MM-SS");
-            break;
     }
-    return ("Unknown");
 }
 
 //Given a number as string, return the step based on the number of decimal places

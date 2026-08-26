@@ -1,5 +1,5 @@
 /*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-Support.ino
+support.ino
 
   Helper functions to support printing to either the serial port or bluetooth connection
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
@@ -770,6 +770,9 @@ void verifyTables()
     pointPerfectVerifyTables();
     wifiVerifyTables();
     gnssVerifyTables();
+    lg290pVerifyTables();
+    nvmVerifyTables();
+    zedVerifyTables();
 
     if (CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");
@@ -1235,7 +1238,7 @@ void assembleDeviceName()
     RTKBrandAttribute *brandAttributes = getBrandAttributeFromProductVariant(productVariant);
 
     char gnssModelIdentifier[2] = {0};
-    char tiltIdentifier[2] = {0};
+    char tiltIdentifier[3] = {0};
 
     if (productVariant == RTK_FACET_FP)
     {
@@ -1252,7 +1255,7 @@ void assembleDeviceName()
 
         // Form the Tilt identifier.
         if (settings.detectedTilt)
-            snprintf(tiltIdentifier, sizeof(tiltIdentifier), "T");
+            snprintf(tiltIdentifier, sizeof(tiltIdentifier), "-T");
     }
 
     // Set the display name for the OLED: "TX2", "FPLT", "Facet LB"
@@ -1329,3 +1332,461 @@ const char *printMinuteSecondFromMilliseconds(uint32_t msToConvert)
 
     return (const char *)theTime;
 }
+
+//----------------------------------------
+// Dynamically allocate a buffer
+//----------------------------------------
+bool bufferDynamicallyAllocate(DFU_BUFFER_DATA *bufferData)
+{
+    const char *description;
+    bool dynamicAllocation;
+    size_t length;
+
+    // Determine if the buffer needs to be dynamically allocated
+    dynamicAllocation = (bufferData->_address == nullptr);
+    if (dynamicAllocation)
+    {
+        // Attempt to allocate the buffer
+        description = bufferGetDescription(bufferData);
+        length = bufferGetLength(bufferData);
+        bufferData->_address = (uint8_t *)rtkMalloc(length, description);
+        if (bufferData->_address == nullptr)
+            systemPrintf("ERROR: Failed to allocate the '%s, %d bytes' buffer!\r\n",
+                         description, length);
+        else
+            bufferData->_length = length;
+    }
+    return dynamicAllocation;
+}
+
+//----------------------------------------
+// Expand an existing buffer
+//----------------------------------------
+bool bufferExpand(int bufferIndex)
+{
+    // Locate the buffer data
+    DFU_BUFFER_DATA *bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+    uint8_t *newBuffer;
+    size_t newLength;
+
+    // Determine the new buffer size
+    newLength = bufferData->_length + 2048;
+
+    // Allocate the new buffer
+    newBuffer = (uint8_t *)rtkMalloc(newLength, dfuBufferInfo[bufferIndex]._description);
+    if (newBuffer == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the new buffer of %d bytes!\r\n", newLength);
+        return false;
+    }
+
+    // Copy the existing file names into the new buffer
+    memcpy(newBuffer, bufferData->_address, bufferData->_offset);
+
+    // Free the old buffer
+    free((void *)bufferData->_address);
+
+    // Switch to using the new buffer
+    bufferData->_address = newBuffer;
+    bufferData->_length = newLength;
+
+    // Zero terminate any strings in the new buffer
+    memset(&newBuffer[bufferData->_offset], 0, bufferData->_length - bufferData->_offset);
+    return true;
+}
+
+//----------------------------------------
+// Free a dynamically allocated buffer
+//----------------------------------------
+void bufferFree(DFU_BUFFER_DATA *bufferData)
+{
+    const char *description;
+
+    // Free the buffer
+    if (bufferData->_address)
+    {
+        description = bufferGetDescription(bufferData);
+        rtkFree(bufferData->_address, description);
+        bufferData->_address = nullptr;
+    }
+}
+
+//----------------------------------------
+// Get the buffer description
+//----------------------------------------
+const char *bufferGetDescription(DFU_BUFFER_DATA *bufferData)
+{
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        if (bufferData == dfuBufferInfo[index]._bufferData)
+            return dfuBufferInfo[index]._description;
+    }
+
+    // Buffer not found
+    return nullptr;
+}
+
+//----------------------------------------
+// Get the buffer index
+//----------------------------------------
+int bufferGetIndex(DFU_BUFFER_DATA *bufferData)
+{
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        if (bufferData == dfuBufferInfo[index]._bufferData)
+            return index;
+    }
+
+    // Buffer not found
+    return -1;
+}
+
+//----------------------------------------
+// Get the buffer length
+//----------------------------------------
+size_t bufferGetLength(DFU_BUFFER_DATA *bufferData)
+{
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        if (bufferData == dfuBufferInfo[index]._bufferData)
+            return dfuBufferInfo[index]._sizeInBytes;
+    }
+
+    // Buffer not found
+    return 0;
+}
+
+//----------------------------------------
+// Allocate the name and sort arrays, return true if successful
+//----------------------------------------
+bool bufferNameSortAllocate(int bufferIndex, int fileCount)
+{
+    DFU_BUFFER_DATA *bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+    char *fileName;
+    size_t length;
+
+    // Allocate the sortArray
+    length = sizeof(*bufferData->_sortArray) * fileCount;
+    bufferData->_sortArray = (int *)rtkMalloc(length, "Sort Array");
+    if (bufferData->_sortArray == nullptr)
+        systemPrintf("ERROR: Failed to allocate sortArray, %d bytes!\r\n", length);
+    else
+    {
+        // Allocate the nameArray
+        length = sizeof(*bufferData->_nameArray) * fileCount;
+        bufferData->_nameArray = (char **)rtkMalloc(length, "Name Array");
+        if (bufferData->_nameArray == nullptr)
+        {
+            bufferNameSortFree(bufferIndex);
+            systemPrintf("ERROR: Failed to allocate nameArray, %d bytes!\r\n", length);
+        }
+        else
+        {
+            // Initialize the sortArray
+            for (int index = 0; index < fileCount; index++)
+                bufferData->_sortArray[index] = index;
+
+            // Initialize the nameArray
+            fileName = (char *)bufferData->_address;
+            for (int index = 0; index < fileCount; index++)
+            {
+                bufferData->_nameArray[index] = fileName;
+                fileName += strlen(fileName) + 1;
+            }
+        }
+    }
+    return (bufferData->_nameArray != nullptr);
+}
+
+//----------------------------------------
+// Free the arrays
+//----------------------------------------
+void bufferNameSortFree(int bufferIndex)
+{
+    DFU_BUFFER_DATA *bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+
+    // Free nameArray
+    if (bufferData->_nameArray != nullptr)
+    {
+        free(bufferData->_nameArray);
+        bufferData->_nameArray = nullptr;
+    }
+
+    // Free sortArray
+    if (bufferData->_sortArray != nullptr)
+    {
+        free(bufferData->_sortArray);
+        bufferData->_sortArray = nullptr;
+    }
+}
+
+//----------------------------------------
+// Configure UART2 serial port
+//----------------------------------------
+bool configureUart2(HardwareSerial **hwSerialPort)
+{
+    HardwareSerial *serialPort;
+
+    // Determine if serial port is already configured
+    serialPort = *hwSerialPort;
+    if (serialPort)
+        return true;
+
+    // Allocate the serial port object
+    serialPort = new HardwareSerial(2);
+
+    // Determine if the allocation failed
+    if (serialPort == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the serial port!\r\n");
+        return false;
+    }
+
+    // Configure the serial port
+    serialPort->setRxBufferSize(1024 * 1);
+    serialPort->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
+    *hwSerialPort = serialPort;
+    return true;
+}
+
+//----------------------------------------
+// Count the application partitions
+//----------------------------------------
+int countAppPartitions()
+{
+    // Count app partitions
+    int appPartitions = 0;
+    esp_partition_iterator_t it = esp_partition_find(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, nullptr);
+    while (it != nullptr)
+    {
+        appPartitions++;
+        it = esp_partition_next(it);
+    }
+    return appPartitions;
+}
+
+//----------------------------------------
+// Discard any input data
+//----------------------------------------
+void serialInputClear(Stream * stream)
+{
+    while (stream->available())
+        stream->read();
+}
+
+// Returns true if a file exists on LittleFS, false if not or if LittleFS is not mounted
+bool fileExistsLfs(const char *filename)
+{
+    if (online.fs == false)
+        return false;
+
+    if (LittleFS.exists(filename))
+    {
+        if (settings.debugSettings)
+            systemPrintf("LittleFS %s exists\r\n", filename);
+        return true;
+    }
+
+    return false;
+}
+
+// Returns true if file is successfully created
+// Used with passthrough files (LoRa, Tilt, GNSS, etc)
+bool createFileLfs(const char *filename)
+{
+    if (online.fs == false)
+        return false;
+
+    if (LittleFS.exists(filename))
+    {
+        if (settings.debugSettings)
+            systemPrintf("LittleFS %s already exists\r\n", filename);
+        return true;
+    }
+
+    File updateFile = LittleFS.open(filename, FILE_WRITE);
+    updateFile.close();
+
+    if (LittleFS.exists(filename))
+        return true;
+
+    if (settings.debugSettings)
+        systemPrintf("Unable to create %s on LittleFS\r\n", filename);
+    return false;
+}
+
+// Remove a given file from LFS
+bool removeFileLfs(const char *filename)
+{
+    if (online.fs == false)
+        return false;
+
+    if (LittleFS.exists(filename))
+    {
+        if (settings.debugSettings)
+            systemPrintf("Removing file: %s\r\n", filename);
+
+        LittleFS.remove(filename);
+        return true;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Translate the certificate into a certificate name
+//----------------------------------------
+const char * getCertName(const char * cert)
+{
+    if (cert == nullptr)
+        return "None";
+    if (cert == GITHUB_RAW_PUBLIC_CERT)
+        return "github";
+    if (cert == AWS_PUBLIC_CERT)
+        return "aws";
+    return "Unknown";
+}
+
+//----------------------------------------
+// Extract the web server from the URL
+//----------------------------------------
+String getServerFromUrl(const char * url)
+{
+    int index;
+    size_t length;
+    int slashCount;
+
+    // Locate the third slash
+    if (url == nullptr)
+        return String("");
+
+    length = strlen(url);
+    char server[length + 1];
+    strcpy(server, url);
+    slashCount = 0;
+    index = 0;
+    if ((strncmp(url, "https://", 8) == 0) || (strncmp(url, "http://", 7) == 0))
+    {
+        for (index = 0; index < length; index++)
+        {
+            if (server[index] == 0)
+                break;
+            if (server[index] == '/')
+            {
+                if (++slashCount == 3)
+                    break;
+            }
+        }
+    }
+    server[index] = 0;
+    return String(server);
+}
+
+//----------------------------------------
+// Open the URL
+//----------------------------------------
+#ifdef COMPILE_NETWORK
+bool openUrl(const char * url,
+             const char * cert,
+             String &server,
+             HTTPClient * &https,
+             size_t * fileBytes,
+             NetworkClient ** networkClient,
+             uint32_t * startMsec,
+             bool debug)
+{
+    NetworkClientSecure * client;
+    const char * crcString;
+    int httpResponseCode;
+    if (debug)
+        systemPrintf("URL: %s\r\n", url);
+
+    // Locate the server
+    server = getServerFromUrl(url);
+    client = nullptr;
+
+    // Allocate the HTTP client
+    https = new HTTPClient;
+    if (https == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the HTTP client\r\n");
+        return false;
+    }
+
+    // Use an encrypted connection when possible
+    if (cert == nullptr)
+        https->begin(url);
+    else
+    {
+        // Initialize the secure client
+        client = new NetworkClientSecure;
+        if (client == nullptr)
+        {
+            systemPrintf("ERROR: Failed to allocate network client!\r\n");
+            delete https;
+            https = nullptr;
+            return false;
+        }
+
+        // Set the certificate
+        client->setCACert(cert);
+
+        // Preflight TLS handshake using the expected host name.
+        // With CA configured, connect() fails if certificate validation fails.
+        if (!client->connect(server.c_str(), 443))
+        {
+            systemPrintf("ERROR: TLS socket connect to %s failed!\r\n", server.c_str());
+            delete https;
+            https = nullptr;
+            delete client;
+            return false;
+        }
+
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("TLS certificate verified for %s\r\n", server.c_str());
+        client->stop();
+
+        // Initialize the HTTP client
+        https->begin(*client, url);
+    }
+
+    // Open the connection to the web server
+    if (startMsec)
+        *startMsec = millis();
+    https->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    httpResponseCode = https->GET();
+
+    // Display the error
+    if ((httpResponseCode != 200) || debug)
+        systemPrintf("HTTP Response code: %d\r\n", httpResponseCode);
+
+    // Handle the responses
+    if (httpResponseCode != 200)
+    {
+        systemPrintf("ERROR: Failed to open url: %s, error: %d\r\n", url, httpResponseCode);
+        delete https;
+        https = nullptr;
+        if (client)
+        {
+            delete client;
+            client = nullptr;
+        }
+        return false;
+    }
+
+    // Save the file length
+    if (fileBytes)
+    {
+        *fileBytes = https->getSize();
+        if (debug)
+            systemPrintf("File size: %d (0x%08x) bytes\r\n", *fileBytes, *fileBytes);
+    }
+
+    // Get TCP stream
+    if (networkClient)
+        *networkClient = https->getStreamPtr();
+    return true;
+}
+#endif // COMPILE_NETWORK

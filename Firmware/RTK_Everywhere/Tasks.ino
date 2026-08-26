@@ -1092,10 +1092,17 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 
         if (type == RTK_NMEA_PARSER_INDEX)
         {
+            if (strstr(sempNmeaGetSentenceName(parse), "PQTMRTCMIS") != nullptr)
+            {
+                // Extract correction port RTCM count from PQTMRTCMIS
+                lg290pProcessRTCMIS(parse->buffer, parse->length);
+            }
+
             // Suppress PQTM/NMEA messages as needed
             if (lg290pMessageEnabled((char *)parse->buffer, parse->length) == false)
             {
-                if (settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true)
+                if ((strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
+                    && settings.enableNtripClient == true && settings.ntripClient_TransmitGGA == true)
                 {
                     // GGA is disabled, but the user has enabled the NTRIP Client.
                     // Allow GGA to get through, unmodified.
@@ -1103,6 +1110,8 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                 else
                 {
                     // Remove the contents of this message
+                    // Note: I know we're not using the PPL any more but this code will prevent
+                    // ZDA from reaching the PPL. Is that what we want?
                     parse->buffer[0] = 0;
                     parse->length = 0;
                 }
@@ -1215,13 +1224,13 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     }
 
     // Push GGA to Caster if enabled
-    if (type == RTK_NMEA_PARSER_INDEX && strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
+    if ((type == RTK_NMEA_PARSER_INDEX) && (strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr))
     {
         pushGPGGA((char *)parse->buffer);
     }
 
     // If the user has not specifically enabled RTCM used by the PPL, then suppress it
-    if (inRoverMode() && gnss->getActiveRtcmMessageCount() == 0 && type == RTK_RTCM_PARSER_INDEX)
+    if (inRoverMode() && (gnss->getActiveRtcmMessageCount() == 0) && (type == RTK_RTCM_PARSER_INDEX))
     {
         // Erase buffer
         parse->buffer[0] = 0;
@@ -1243,8 +1252,13 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         return;
 
     // Use a semaphore to prevent handleGnssDataTask from gatecrashing
-    if (ringBufferSemaphore == NULL)
-        ringBufferSemaphore = xSemaphoreCreateMutex(); // Create the mutex
+    if (ringBufferSemaphore == nullptr)
+        ringBufferSemaphore = xSemaphoreCreateMutex();
+    if (ringBufferSemaphore == nullptr)
+    {
+        systemPrintln("ERROR: Failed to create ringBufferSemaphore");
+        return;
+    }
 
     // Take the semaphore. Long wait. handleGnssDataTask could block
     // Enable printing of the ring buffer offsets (s d 10) and the SD buffer sizes (s h 7)
@@ -1615,8 +1629,13 @@ void handleGnssDataTask(void *e)
         usedSpace = 0;
 
         // Use a semaphore to prevent handleGnssDataTask from gatecrashing
-        if (ringBufferSemaphore == NULL)
-            ringBufferSemaphore = xSemaphoreCreateMutex(); // Create the mutex
+        if (ringBufferSemaphore == nullptr)
+            ringBufferSemaphore = xSemaphoreCreateMutex();
+        if (ringBufferSemaphore == nullptr)
+        {
+            systemPrintln("ERROR: Failed to create ringBufferSemaphore");
+            continue;
+        }
 
         // Take the semaphore. Short wait. processUart1Message shouldn't block for long
         if (xSemaphoreTake(ringBufferSemaphore, ringBuffer_shortWait_ms) == pdPASS)
@@ -2790,33 +2809,42 @@ bool tasksStartGnssUart()
 
     // Reads data from GNSS and stores data into circular buffer
     if (!task.gnssReadTaskRunning)
-        xTaskCreatePinnedToCore(gnssReadTask,                  // Function to call
-                                "gnssRead",                    // Just for humans
-                                gnssReadTaskStackSize,         // Stack Size
-                                nullptr,                       // Task input parameter
-                                settings.gnssReadTaskPriority, // Priority
-                                &taskHandle,                   // Task handle
-                                settings.gnssReadTaskCore);    // Core where task should run, 0=core, 1=Arduino
+    {
+        if (xTaskCreatePinnedToCore(gnssReadTask,                  // Function to call
+                                    "gnssRead",                    // Just for humans
+                                    gnssReadTaskStackSize,         // Stack Size
+                                    nullptr,                       // Task input parameter
+                                    settings.gnssReadTaskPriority, // Priority
+                                    &taskHandle,                   // Task handle
+                                    settings.gnssReadTaskCore) != pdPASS) // Core where task should run
+            systemPrintln("ERROR: Failed to create gnssRead task");
+    }
 
     // Reads data from circular buffer and sends data to SD, SPP, or network clients
     if (!task.handleGnssDataTaskRunning)
-        xTaskCreatePinnedToCore(handleGnssDataTask,                  // Function to call
-                                "handleGNSSData",                    // Just for humans
-                                handleGnssDataTaskStackSize,         // Stack Size
-                                nullptr,                             // Task input parameter
-                                settings.handleGnssDataTaskPriority, // Priority
-                                &taskHandle,                         // Task handle
-                                settings.handleGnssDataTaskCore);    // Core where task should run, 0=core, 1=Arduino
+    {
+        if (xTaskCreatePinnedToCore(handleGnssDataTask,                  // Function to call
+                                    "handleGNSSData",                    // Just for humans
+                                    handleGnssDataTaskStackSize,         // Stack Size
+                                    nullptr,                             // Task input parameter
+                                    settings.handleGnssDataTaskPriority, // Priority
+                                    &taskHandle,                         // Task handle
+                                    settings.handleGnssDataTaskCore) != pdPASS) // Core where task should run
+            systemPrintln("ERROR: Failed to create handleGNSSData task");
+    }
 
     // Reads data from BT and sends to GNSS
     if (!task.btReadTaskRunning)
-        xTaskCreatePinnedToCore(btReadTask,                  // Function to call
-                                "btRead",                    // Just for humans
-                                btReadTaskStackSize,         // Stack Size
-                                nullptr,                     // Task input parameter
-                                settings.btReadTaskPriority, // Priority
-                                &taskHandle,                 // Task handle
-                                settings.btReadTaskCore);    // Core where task should run, 0=core, 1=Arduino
+    {
+        if (xTaskCreatePinnedToCore(btReadTask,                  // Function to call
+                                    "btRead",                    // Just for humans
+                                    btReadTaskStackSize,         // Stack Size
+                                    nullptr,                     // Task input parameter
+                                    settings.btReadTaskPriority, // Priority
+                                    &taskHandle,                 // Task handle
+                                    settings.btReadTaskCore) != pdPASS) // Core where task should run
+            systemPrintln("ERROR: Failed to create btRead task");
+    }
     return true;
 }
 

@@ -118,6 +118,7 @@ static const char *networkConsumerTable[] = {
     "TCP_SERVER",
     "UDP_SERVER",
     "WEB_CONFIG",
+    "DEVICE_OTA",
 };
 
 static const int networkConsumerTableEntries = sizeof(networkConsumerTable) / sizeof(networkConsumerTable[0]);
@@ -727,6 +728,7 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const cha
 
     // Done with the network
     networkUserRemove(consumer, __FILE__, __LINE__);
+    networkConsumerOffline(consumer);
 
     // Remove the consumer only once
     previousBits = *bits;
@@ -1285,6 +1287,11 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
     {
         if (settings.debugNetworkLayer)
             systemPrintf("%s stop sequencer running, not marking interface online\r\n", networkGetNameByIndex(index));
+
+        // The stop sequence may finish shortly after this check. Re-arm the event so
+        // networkUpdate() retries on a later pass instead of losing it permanently,
+        // which otherwise leaves the interface with a valid IP but never marked online.
+        networkEventInternetAvailable[index] = true;
         return;
     }
 

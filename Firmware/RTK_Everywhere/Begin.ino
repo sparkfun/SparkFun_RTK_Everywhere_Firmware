@@ -187,6 +187,7 @@ void beginBoard()
         present.minElevation = true;
         present.dynamicModel = true;
         present.display_type = DISPLAY_MAX_NONE;
+        present.rtcm1033AntennaDescription = true;
 
 #ifdef COMPILE_IM19_IMU
         present.imu_im19 = true; // Allow tiltUpdate() to run
@@ -202,6 +203,7 @@ void beginBoard()
 
         pin_IMU_RX = 14; // Pin 16 is not available on Torch due to PSRAM
         pin_IMU_TX = 17;
+        pin_IMU_Boot = 2; // On Torch ESP GPIO2 is connected to DR_BOOT of the IM19.
 
         pin_GNSS_TimePulse = 39; // PPS on UM980
 
@@ -242,7 +244,7 @@ void beginBoard()
         pinMode(pin_GNSS_TimePulse, INPUT);
 
         pinMode(pin_GNSS_DR_Reset, OUTPUT);
-        gnssBoot(); // Tell UM980 and DR to boot
+        gnssBoot(); // Tell UM980 and IMU to boot
 
         pinMode(pin_powerAdapterDetect, INPUT); // Has 10k pullup
 
@@ -444,6 +446,7 @@ void beginBoard()
         present.minElevation = true;
         present.needsExternalPpl = true; // Uses the PointPerfect Library for L-Band
         present.dynamicModel = true;
+        present.rtcm1033AntennaDescription = true;
 
         pin_muxA = 2;
         pin_muxB = 12;
@@ -514,6 +517,7 @@ void beginBoard()
         // We can't enable here because we don't know if lg290pFirmwareVersion is >= v1.5
         // present.minElevation = true;
         // present.minCN0 = true;
+        // present.rtcm1033AntennaDescription = true; // Added at protocol 1.1
 
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
@@ -663,6 +667,7 @@ void beginBoard()
         // We can't enable GNSS features here because we don't know if lg290pFirmwareVersion is >= v1.5
         // present.minElevation = true;
         // present.minCN0 = true;
+        // present.rtcm1033AntennaDescription = true; // Added at protocol 1.1
 
         pin_I2C0_SDA = 15;
         pin_I2C0_SCL = 4;
@@ -726,12 +731,70 @@ void beginBoard()
     }
 }
 
+// Initialize the allocate and forget PSRAM buffers
+void beginBuffers()
+{
+    // Display the memory use before buffer allocation
+    if (settings.debugMalloc)
+        reportHeapNow(true);
+
+    // Only allocate these buffers from PSRAM
+    if ((settings.enablePsram == false) || (ESP.getPsramSize() == 0))
+    {
+        systemPrintf("WARNING: PSRAM not available, delaying buffer allocation!\r\n");
+        systemPrintf("settings.enablePsram: %s\r\n", settings.enablePsram ? "true" : "false");
+        if (settings.debugMalloc == false)
+            reportHeapNow(true);
+        return;
+    }
+
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        uint8_t * address;
+        size_t length;
+
+        // Determine if this buffer will get used
+        if (dfuBufferInfo[index]._present && (*dfuBufferInfo[index]._present == false))
+            // Never used
+            continue;
+
+        // Determine if this buffer will be in PSRAM
+        length = dfuBufferInfo[index]._sizeInBytes;
+        dfuBufferInfo[index]._bufferData->_length = length;
+        if (length < settings.psramMallocLevel)
+        {
+            // No, allocation comes from RAM
+            systemPrintf("WARNING: Delaying allocation of %s from RAM\r\n",
+                         dfuBufferInfo[index]._description);
+            systemPrintf("%s: %d bytes < %d bytes for PSRAM allocation\r\n",
+                         dfuBufferInfo[index]._description, length, settings.psramMallocLevel);
+            continue;
+        }
+
+        // Allocate the buffer
+        address = (uint8_t *)rtkMalloc(length, dfuBufferInfo[index]._description);
+        dfuBufferInfo[index]._bufferData->_address = address;
+        if (address == nullptr)
+        {
+            systemPrintf("WARNING: PSRAM low, delay allocation for %s, %d bytes\r\n",
+                         dfuBufferInfo[index]._description, length);
+            if (settings.debugMalloc == false)
+                reportHeapNow(true);
+        }
+    }
+
+    // Display the memory use after buffer allocation
+    if (settings.debugMalloc)
+        reportHeapNow(true);
+}
+
 void beginVersion()
 {
-    firmwareVersionGet(deviceFirmware, sizeof(deviceFirmware), false);
+    espFirmwareVersionGet(deviceFirmware, sizeof(deviceFirmware), false);
 
     char versionString[21];
-    firmwareVersionGet(versionString, sizeof(versionString), true);
+    espFirmwareVersionGet(versionString, sizeof(versionString), true);
 
     // The GNSS and Tilt could be unknown. Show the generic name only
     char title[50];
@@ -835,8 +898,15 @@ void beginSD()
     while (settings.enableSD == true) // Note: settings.enableSD is never set to false
     {
         // Setup SD card access semaphore
-        if (sdCardSemaphore == NULL)
+        if (sdCardSemaphore == nullptr)
+        {
             sdCardSemaphore = xSemaphoreCreateMutex();
+            if (sdCardSemaphore == nullptr)
+            {
+                systemPrintln("ERROR: Failed to create sdCardSemaphore");
+                break;
+            }
+        }
         else if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_shortWait_ms) != pdPASS)
         {
             // This is OK since a retry will occur next loop
@@ -1003,14 +1073,18 @@ void beginGnssUart()
             task.gnssUartPinnedTaskRunning = true; // The xTaskCreate runs and completes nearly immediately. Mark start
                                                    // here and check for completion.
 
-            xTaskCreatePinnedToCore(
-                pinGnssUartTask,
-                "GnssUartStart", // Just for humans
-                2000,            // Stack Size
-                nullptr,         // Task input parameter
-                0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                &taskHandle, // Task handle
-                settings.gnssUartInterruptsCore); // Core where task should run, 0=core, 1=Arduino
+            if (xTaskCreatePinnedToCore(
+                    pinGnssUartTask,
+                    "GnssUartStart", // Just for humans
+                    2000,            // Stack Size
+                    nullptr,         // Task input parameter
+                    0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                    &taskHandle, // Task handle
+                    settings.gnssUartInterruptsCore) != pdPASS) // Core where task should run, 0=core, 1=Arduino
+            {
+                systemPrintln("ERROR: Failed to create GnssUartStart task");
+                task.gnssUartPinnedTaskRunning = false;
+            }
         }
 
         while (task.gnssUartPinnedTaskRunning == true) // Wait for task to complete run
@@ -1085,6 +1159,13 @@ void pinGnssUartTask(void *pvParameters)
     // Not specified on EVK, Postcard and Facet mosaic-X5
     if (serialGNSS == nullptr)
         serialGNSS = new HardwareSerial(1);
+    if (serialGNSS == nullptr)
+    {
+        systemPrintln("ERROR: Failed to allocate serialGNSS");
+        task.gnssUartPinnedTaskRunning = false;
+        vTaskDelete(nullptr);
+        return;
+    }
 
     serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
@@ -1121,10 +1202,42 @@ void beginGnssUart2()
     // Use UART2 on the ESP32 to communicate with the mosaic
     // (UART1 is already allocated to serialGNSS)
     serial2GNSS = new HardwareSerial(2);
+    if (serial2GNSS == nullptr)
+    {
+        systemPrintln("ERROR: Failed to allocate serial2GNSS");
+        return;
+    }
 
     serial2GNSS->setRxBufferSize(1024 * 1);
 
     serial2GNSS->begin(115200, SERIAL_8N1, pin_GnssUart2_RX, pin_GnssUart2_TX);
+}
+
+//----------------------------------------
+// Configure UART2 serial port shared between LoRa and Tilt
+// This only applies to the FP. The Torch has tilt connected direct to ESP UART0 (shared with USB)
+//----------------------------------------
+bool beginUart2Serial()
+{
+    // Determine if serial port is already configured
+    if (uart2Serial)
+        return true;
+
+    // Allocate the serial port object
+    uart2Serial = new HardwareSerial(2);
+
+    // Determine if the allocation failed
+    if (uart2Serial == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the uart2Serial port!\r\n");
+        return false;
+    }
+
+    // Configure the serial port
+    uart2Serial->setRxBufferSize(settings.uartReceiveBufferSize);
+    uart2Serial->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
+    uart2Serial->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
+    return true;
 }
 
 void beginFS()
@@ -1419,12 +1532,15 @@ void beginButtons()
     {
         // Starts task for monitoring button presses
         if (!task.buttonCheckTaskRunning)
-            xTaskCreate(buttonCheckTask,
-                        "BtnCheck",          // Just for humans
-                        buttonTaskStackSize, // Stack Size
-                        nullptr,             // Task input parameter
-                        buttonCheckTaskPriority,
-                        &taskHandle); // Task handle
+        {
+            if (xTaskCreate(buttonCheckTask,
+                            "BtnCheck",          // Just for humans
+                            buttonTaskStackSize, // Stack Size
+                            nullptr,             // Task input parameter
+                            buttonCheckTaskPriority,
+                            &taskHandle) != pdPASS) // Task handle
+                systemPrintln("ERROR: Failed to create BtnCheck task");
+        }
     }
 }
 
@@ -1490,14 +1606,17 @@ void beginIdleTasks()
         {
             snprintf(taskName, sizeof(taskName), "IdleTask%d", index);
             if (idleTaskHandle[index] == nullptr)
-                xTaskCreatePinnedToCore(
-                    idleTask,
-                    taskName, // Just for humans
-                    2000,     // Stack Size
-                    nullptr,  // Task input parameter
-                    0,        // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                    &idleTaskHandle[index], // Task handle
-                    index);                 // Core where task should run, 0=core, 1=Arduino
+            {
+                if (xTaskCreatePinnedToCore(
+                        idleTask,
+                        taskName, // Just for humans
+                        2000,     // Stack Size
+                        nullptr,  // Task input parameter
+                        0,        // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                        &idleTaskHandle[index], // Task handle
+                        index) != pdPASS)       // Core where task should run, 0=core, 1=Arduino
+                    systemPrintf("ERROR: Failed to create %s task\r\n", taskName);
+            }
         }
     }
 }
@@ -1521,18 +1640,23 @@ void testI2cDevices()
 
     if (task.i2cDetectTaskRunning == false)
     {
-        xTaskCreatePinnedToCore(
-            pinI2CDetectTask,
-            "I2CDetect",  // Just for humans
-            2000,        // Stack Size
-            nullptr,     // Task input parameter
-            0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-            &taskHandle, // Task handle
-            settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
-
-        // Wait for task to start running
-        while (task.i2cDetectTaskRunning == false)
-            delay(1);
+        if (xTaskCreatePinnedToCore(
+                pinI2CDetectTask,
+                "I2CDetect",  // Just for humans
+                2000,        // Stack Size
+                nullptr,     // Task input parameter
+                0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                &taskHandle, // Task handle
+                settings.i2cInterruptsCore) != pdPASS) // Core where task should run, 0=core, 1=Arduino
+        {
+            systemPrintln("ERROR: Failed to create I2CDetect task");
+        }
+        else
+        {
+            // Wait for task to start running
+            while (task.i2cDetectTaskRunning == false)
+                delay(1);
+        }
     }
 
     // Wait for task to complete
@@ -1642,18 +1766,23 @@ void beginI2C()
 
     if (task.i2cPinnedTaskRunning == false)
     {
-        xTaskCreatePinnedToCore(
-            pinI2CTask,
-            "I2CStart",  // Just for humans
-            2000,        // Stack Size
-            nullptr,     // Task input parameter
-            0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-            &taskHandle, // Task handle
-            settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
-
-        // Wait for task to start running
-        while (task.i2cPinnedTaskRunning == false)
-            delay(1);
+        if (xTaskCreatePinnedToCore(
+                pinI2CTask,
+                "I2CStart",  // Just for humans
+                2000,        // Stack Size
+                nullptr,     // Task input parameter
+                0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                &taskHandle, // Task handle
+                settings.i2cInterruptsCore) != pdPASS) // Core where task should run, 0=core, 1=Arduino
+        {
+            systemPrintln("ERROR: Failed to create I2CStart task");
+        }
+        else
+        {
+            // Wait for task to start running
+            while (task.i2cPinnedTaskRunning == false)
+                delay(1);
+        }
     }
 
     // Wait for task to complete run
@@ -1678,7 +1807,7 @@ void pinI2CTask(void *pvParameters)
         bus0speed = 400;
 
     // Initialize I2C bus 0
-    if (i2cBusInitialization(i2c_0, pin_I2C0_SDA, pin_I2C0_SCL, bus0speed))
+    if (i2cBusInitialization(i2c_0, 0, pin_I2C0_SDA, pin_I2C0_SCL, bus0speed))
         // Update the I2C status
         online.i2c = true;
 
@@ -1691,7 +1820,7 @@ void pinI2CTask(void *pvParameters)
 
         if (pin_I2C1_SDA == PIN_UNDEFINED || pin_I2C1_SCL == PIN_UNDEFINED)
             reportFatalError("Illegal I2C1 pin assignment.");
-        i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, bus1speed);
+        i2cBusInitialization(i2c_1, 1, pin_I2C1_SDA, pin_I2C1_SCL, bus1speed);
     }
 
     // Stop notification
@@ -1702,13 +1831,10 @@ void pinI2CTask(void *pvParameters)
 }
 
 // Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
-bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
+bool i2cBusEnumerate(TwoWire *i2cBus, int i2cBusNumber)
 {
     bool deviceFound;
     uint32_t timer;
-
-    i2cBus->begin(sda, scl); // SDA, SCL - Start I2C on the core that was chosen when the task was started
-    i2cBus->setClock(clockKHz * 1000);
 
     // Display the device addresses
     deviceFound = false;
@@ -1732,7 +1858,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
             {
                 if (deviceFound == false)
                 {
-                    systemPrintln("I2C Devices:");
+                    systemPrintf("I2C-%d Devices:\r\n", i2cBusNumber);
                     deviceFound = true;
                 }
 
@@ -1744,7 +1870,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
         {
             if (deviceFound == false)
             {
-                systemPrintln("I2C Devices:");
+                systemPrintf("I2C-%d Devices:\r\n", i2cBusNumber);
                 deviceFound = true;
             }
 
@@ -1844,15 +1970,26 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
     return true;
 }
 
+// Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
+bool i2cBusInitialization(TwoWire *i2cBus, int i2cBusNumber, int sda, int scl, int clockKHz)
+{
+    i2cBus->begin(sda, scl); // SDA, SCL - Start I2C on the core that was chosen when the task was started
+    i2cBus->setClock(clockKHz * 1000);
+
+    // Display the device addresses
+    return i2cBusEnumerate(i2cBus, i2cBusNumber);
+}
+
 // Start task to determine SD card size
 void beginSDSizeCheckTask()
 {
-    xTaskCreate(sdSizeCheckTask,         // Function to call
-                "SDSizeCheck",           // Just for humans
-                sdSizeCheckStackSize,    // Stack Size
-                nullptr,                 // Task input parameter
-                sdSizeCheckTaskPriority, // Priority
-                nullptr); // Task handle
+    if (xTaskCreate(sdSizeCheckTask,         // Function to call
+                    "SDSizeCheck",           // Just for humans
+                    sdSizeCheckStackSize,    // Stack Size
+                    nullptr,                 // Task input parameter
+                    sdSizeCheckTaskPriority, // Priority
+                    nullptr) != pdPASS)      // Task handle
+        systemPrintln("ERROR: Failed to create SDSizeCheck task");
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

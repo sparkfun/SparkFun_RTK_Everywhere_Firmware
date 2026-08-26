@@ -17,8 +17,15 @@ Developer.ino
 
 void lg290pHandler(uint8_t * buffer, int length) {}
 bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)   {return false;}
+void lg290pProcessRTCMIS(uint8_t * buffer, int length) {}
+void lg290pVerifyTables() {}
+void lg290pPrintNavModes() {}
 
 #endif // COMPILE_LG290P
+
+#if !defined(COMPILE_LG290P) || !defined(COMPILE_WIFI)
+bool lg290pStreamFirmware() {return false;}
+#endif // COMPILE_LG290P / COMPILE_WIFI
 
 //----------------------------------------
 // mosaic-X5
@@ -73,6 +80,10 @@ void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros) {
 
 #endif // COMPILE_ZED
 
+#if !defined(COMPILE_ZED) || !defined(COMPILE_WIFI)
+bool x20pStreamFirmware() {return false;}
+#endif // COMPILE_ZED / COMPILE_WIFI
+
 //======================================================================
 // Network Hardware
 //======================================================================
@@ -112,6 +123,7 @@ const char * wifiSoftApGetSsid()                {return "";}
 bool wifiSoftApOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiSoftApOn(const char * fileName, uint32_t lineNumber) {return false;}
 void wifiStationDisplayData()                   {}
+bool wifiStationIsSsidSet()                     {return false;};
 bool wifiStationOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiStationOn(const char * fileName, uint32_t lineNumber) {return false;}
 void wifiStationUpdate()                        {}
@@ -130,6 +142,9 @@ void wifiVerifyTables()                         {}
 //----------------------------------------
 
 #ifndef COMPILE_NETWORK
+
+static const char *AWS_PUBLIC_CERT = "";
+static const char *GITHUB_RAW_PUBLIC_CERT = "";
 
 void menuTcpUdp() {systemPrint("**Network not compiled**");}
 void networkBegin() {}
@@ -160,6 +175,33 @@ void networkUserRemove(NETCONSUMER_t consumer, const char * fileName, uint32_t l
 void networkValidateIndex(NetIndex_t index) {}
 void networkVerifyTables() {}
 
+//----------------------------------------
+// Device firmware update
+//----------------------------------------
+bool deviceFirmwareUpdate(uint32_t currentMsec) {return false;}
+bool deviceFirmwareUpdateBegin(bool doAll, bool debugVerbose, size_t saveDataLength) {return false;}
+void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx) {}
+void deviceFirmwareFileSort(int bufferIndex, int fileCount) {}
+void deviceFirmwareStateSet(DEVICE_FIRMWARE_CTX * ctx, int newState) {}
+
+//----------------------------------------
+// Device firmware update - network
+//----------------------------------------
+void dfuNetworkCleanup(DEVICE_FIRMWARE_CTX * ctx, DFU_BUFFER_DATA * bufferData) {}
+ssize_t dfuNetworkRead(DEVICE_FIRMWARE_CTX * ctx, uint8_t * buffer, size_t bytesToRead) {return 0;}
+
+//----------------------------------------
+// CSV file for OTA updates
+//----------------------------------------
+bool csvOpenCsvFile(const char * url,
+                    const char * cert,
+                    uint8_t ** fileData,
+                    size_t * fileBytes,
+                    int * fieldCount,
+                    int * lineCount,
+                    bool debug,
+                    bool verbose) {return false;}
+
 #endif // COMPILE_NETWORK
 
 //----------------------------------------
@@ -168,8 +210,9 @@ void networkVerifyTables() {}
 
 #ifndef COMPILE_OTA_AUTO
 
+void firmwareMenu() {systemPrintln("**OTA Auto not compiled**");}
 void otaAutoUpdate() {}
-bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)    {return false;}
+bool otaIsChipSupported(const char * subsystem, const char * chip) {return false;}
 void otaMenuDisplay(char * currentVersion) {}
 bool otaMenuProcessInput(byte incoming) {return false;}
 void otaUpdate() {}
@@ -332,6 +375,17 @@ void tiltStop() {}
 void tiltUpdate() {}
 
 #endif  // COMPILE_IM19_IMU
+
+#if !defined(COMPILE_TILT) || !defined(COMPILE_WIFI)
+
+bool im19FirmwareUpdate(const OTA_TARGET * target,
+                        const OTA_SUBSYSTEM_INFO * subsystemInfo,
+                        uint8_t * buffer,
+                        size_t packetBytes) {return false;}
+bool im19PumpStreamToDevice() {return false;}
+bool im19StreamRange(const char *url, uint32_t startByte, uint32_t endByte) {return false;}
+
+#endif // COMPILE_TILT / COMPILE_WIFI
 
 //----------------------------------------
 // MFi authentication coprocessor
@@ -547,19 +601,20 @@ void espNowUpdate()                     {}
 //----------------------------------------
 
 #ifndef COMPILE_LORA
-void beginLoraFirmwareUpdate() {}
-bool checkUpdateLoraFirmware() {return false;}
-bool createLoRaPassthrough() {return false;}
-bool createLoraRxDirectFile() {return false;}
-bool createLoraTxDirectFile() {return false;}
+void loraBeginFirmwareUpdate() {}
+bool loraCheckPassthroughFile() {return false;}
+bool loraCreatePassthroughFile() {return false;}
+bool loraCreateRxDirectFile() {return false;}
+bool loraCreateTxDirectFile() {return false;}
 void loraGetVersion() {}
 void loraPowerOff() {}
 void loraProcessRTCM(uint8_t *rtcmData, uint16_t dataLength) {}
-bool loraRxDirectCheckFile() {return false;}
+bool loraCheckRxDirectFile() {return false;}
 void loraRxDirectConnect() {}
-bool loraTxDirectCheckFile() {return false;}
+bool loraCheckTxDirectFile() {return false;}
 void loraTxDirectConnect() {}
 void muxSelectUm980() {}
 void muxSelectUsb() {}
 void updateLora() {}
+bool stm32StreamFirmware(char *relativeFirmwareFileLocation) {return false;}
 #endif  // COMPILE_LORA

@@ -27,7 +27,7 @@ calculation
   * setPppService() - Set the PPP/HAS E6 capabilities of the receiver
   * setMultipathMitigation() - Set the multipath capabilities of the receiver
   * setTilt() - Set the GNSS receiver's output to be compatible with a tilt sensor
-  * setCorrRadioExtPort() - Set corrections protocol(s) on the UART connected to the RADIO port
+  * setExternalCorrections() - Set corrections protocol(s) on the UART connected to the RADIO port
   * saveConfiguration() - Save the current receiver's settings to the receiver's NVM
   * reset() - Reset the receiver (through software or hardware)
   * factoryReset() - Reset the receiver to factory settings
@@ -154,6 +154,8 @@ enum
     GNSS_CONFIG_LOGGING,         // Enable / disable logging
     GNSS_CONFIG_SAVE,            // Indicates current settings be saved to GNSS receiver NVM
     GNSS_CONFIG_RESET,           // Indicates receiver needs resetting
+    GNSS_CONFIG_GNSS_SPECIFIC,   // Settings specific to this GNSS
+    GNSS_CONFIG_RTCM_1033,       // Configure the RTCM 1033 Antenna Description on X5 / LG290P / UM980
 
     // Add new entries above here
     GNSS_CONFIG_MAX,
@@ -184,6 +186,8 @@ static const char *gnssConfigDisplayNames[] = {
     "LOGGING",
     "SAVE",
     "RESET",
+    "GNSS_SPECIFIC",
+    "RTCM_1033",
 };
 
 static const int gnssConfigStateEntries = sizeof(gnssConfigDisplayNames) / sizeof(gnssConfigDisplayNames[0]);
@@ -198,6 +202,15 @@ volatile bool gnssConfigureInProgress = false;
 bool GNSS::comPortRefresh()
 {
     return true;
+}
+
+//----------------------------------------
+// Indicate if there are any additional settings specific to this GNSS
+// This governs setGnssSpecificConfiguration() and menuGnssSpecificConfiguration()
+//----------------------------------------
+bool GNSS::hasGnssSpecificConfiguration()
+{
+    return false; // Default to false ("no"). GNSS class implementation - if present - return true.
 }
 
 //----------------------------------------
@@ -216,7 +229,25 @@ bool GNSS::isAntennaOpen()
     return false;
 }
 
+//----------------------------------------
+// Configure any settings specific to this GNSS
+//----------------------------------------
+void GNSS::menuGnssSpecificConfiguration()
+{
+    ; // Nothing to do here....
+}
+
+//----------------------------------------
+// Configure any additional settings specific to this GNSS
+//----------------------------------------
+bool GNSS::setGnssSpecificConfiguration()
+{
+    return true; // Return true to clear GNSS_CONFIG_GNSS_SPECIFIC
+}
+
+//----------------------------------------
 // Antenna Short / Open detection
+//----------------------------------------
 bool GNSS::supportsAntennaShortOpen()
 {
     return false;
@@ -316,9 +347,21 @@ void gnssUpdate()
             }
         }
 
+        if (gnssConfigureRequested(GNSS_CONFIG_RTCM_1033))
+        {
+            if (gnss->configureRtcm1033() == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_RTCM_1033);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
         if (gnssConfigureRequested(GNSS_CONFIG_BAUD_RATE_RADIO))
         {
-            if (gnss->setBaudRateRadio(settings.radioPortBaud) == true)
+            uint32_t baud = getBaudRateForGnssRadio(); // Override with LoRa baud if needed
+            if (settings.debugGnssConfig == true)
+                systemPrintf("Setting GNSS radio port baud to %ld\r\n", baud);
+            if (gnss->setBaudRateRadio(baud) == true)
             {
                 gnssConfigureClear(GNSS_CONFIG_BAUD_RATE_RADIO);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
@@ -457,9 +500,14 @@ void gnssUpdate()
         {
             // If settings.enableExtCorrRadio is true, we need RTCM input
             // On Facet FP, we also need RTCM if LoRa is enabled
-            bool enableExtCorrRadio = settings.enableExtCorrRadio
-                 || ((productVariant == RTK_FACET_FP) && settings.enableLora);
-            if (gnss->setCorrRadioExtPort(enableExtCorrRadio, true) == true) // Force the setting
+            bool lora;
+            bool enableExtCorrRadio = gnssExternalCorrectionsSelected(lora);
+            // Set the protocols if either LoRa or External Radio _may_ need the port
+            // Note: this is probably redundant. correctionUpdateSource() will enable / disable
+            // the port protocols as needed, based on the priority of external radio (and LoRa)
+            // corrections
+            if (gnss->setExternalCorrections(getGnssExternalCorrectionsPort(), enableExtCorrRadio,
+                true, "gnssUpdate GNSS_CONFIG_EXT_CORRECTIONS") == true) // Force the setting
             {
                 gnssConfigureClear(GNSS_CONFIG_EXT_CORRECTIONS);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
@@ -471,6 +519,15 @@ void gnssUpdate()
             if (gnss->setLogging() == true)
             {
                 gnssConfigureClear(GNSS_CONFIG_LOGGING);
+                gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
+            }
+        }
+
+        if (gnssConfigureRequested(GNSS_CONFIG_GNSS_SPECIFIC))
+        {
+            if (gnss->setGnssSpecificConfiguration() == true)
+            {
+                gnssConfigureClear(GNSS_CONFIG_GNSS_SPECIFIC);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
         }
@@ -661,21 +718,24 @@ static void pushGPGGA(char *ggaData)
 // using serial or other begin() methods
 // To reduce potential false ID's, record the ID to NVM
 // If we have a previous ID, use it
-void gnssDetectReceiverType()
+bool gnssDetectReceiverType()
 {
     int index;
+    bool ranDetection;
 
     // Currently only the Facet FP requires GNSS receiver detection
     if (productVariant != RTK_FACET_FP)
-        return;
+        return true;
 
     if (gpioExpanderDetectGnss() == true)
     {
         gnssBoot(); // Tell GNSS to run
 
         // Start auto-detect if NVM is not yet set
+        ranDetection = false;
         if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
         {
+            ranDetection = true;
             systemPrintln("Beginning GNSS autodetection");
             displayGNSSAutodetect(0);
 
@@ -687,7 +747,16 @@ void gnssDetectReceiverType()
             std::vector<int> gnssPresentByPriority;
             gnssPresentByPriority.clear(); // Redundant?
 
-            for (int8_t priority = 0; priority < GNSS_SUPPORT_ROUTINES_ENTRIES; priority++)
+            // Determine the highest priority value actually present, since it can exceed
+            // GNSS_SUPPORT_ROUTINES_ENTRIES if receivers are compile guarded out
+            int8_t maxPriority = -1;
+            for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
+            {
+                if (gnssSupportRoutines[index]._present && gnssSupportRoutines[index]._presentPriority > maxPriority)
+                    maxPriority = gnssSupportRoutines[index]._presentPriority;
+            }
+
+            for (int8_t priority = 0; priority <= maxPriority; priority++)
             {
                 for (index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
                 {
@@ -727,7 +796,7 @@ void gnssDetectReceiverType()
                 {
                     if (gnssSupportRoutines[index]._newClass)
                         gnssSupportRoutines[index]._newClass();
-                    return;
+                    return ranDetection;
                 }
             }
         }
@@ -741,6 +810,7 @@ void gnssDetectReceiverType()
     systemPrintln("Failed to detect or identify a Flex module.");
     settings.enablePrintBatteryMessages = true; // Print _something_ to the console
     displayGNSSAutodetectFailed(2000);
+    return true;
 }
 
 // Based on the platform, put the GNSS receiver into run mode
@@ -790,49 +860,22 @@ void gnssReset()
 }
 
 //----------------------------------------
-// Force UART connection to GNSS for firmware update on the next boot by special file in
-// LittleFS
+// Restore the GNSS to the factory settings
 //----------------------------------------
-bool createGNSSPassthrough()
+void gnssFactoryReset()
 {
-    return createPassthrough("/updateGnssFirmware.txt");
-}
-
-bool createPassthrough(const char *filename)
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugGnssConfig)
-            systemPrintf("LittleFS %s already exists\r\n", filename);
-        return true;
-    }
-
-    if (settings.debugGnssConfig)
-        systemPrintf("Creating passthrough file: %s \r\n", filename);
-
-    File simpleFile = LittleFS.open(filename, FILE_WRITE);
-    simpleFile.close();
-
-    if (LittleFS.exists(filename))
-        return true;
-
-    if (settings.debugGnssConfig)
-        systemPrintf("Unable to create %s on LittleFS\r\n", filename);
-    return false;
+    gnss->factoryReset();
 }
 
 //----------------------------------------
-void gnssFirmwareBeginUpdate()
+void gnssBeginFirmwareUpdate()
 {
     // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
 
     // Flag that we are in direct connect mode
     inDirectConnectMode = true;
 
-    // Note: we can't call gnssFirmwareRemoveUpdate() here as closing Tera Term will reset the ESP32,
+    // Note: we can't call gnssRemovePassthroughFile() here as closing Tera Term will reset the ESP32,
     //       returning the firmware to normal operation...
 
     // Paint GNSS Update
@@ -845,7 +888,7 @@ void gnssFirmwareBeginUpdate()
         gnssFirmwareDirectConnectSoftware();
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    gnssFirmwareRemoveUpdate();
+    gnssRemovePassthroughFile();
 
     systemFlush(); // Complete prints
 
@@ -857,7 +900,7 @@ void gnssFirmwareDirectConnectSoftware()
 {
     // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
 
-    // Note: gnssFirmwareBeginUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
+    // Note: gnssBeginFirmwareUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
     //  and display have all been initialized. But, importantly, the UARTs have not yet been started.
     //  This makes our job much easier...
 
@@ -949,8 +992,8 @@ void gnssFirmwareDirectConnectHardware() // Facet FP only
             char c = Serial.read();
             if ((c == 'r') || (c == 'R'))
                 // If the GNSS is a LG290P, putting it into reset will bring down I2C
-                // So use the fast GNSS-detect routine to do the reset
-                gpioExpanderDetectGnssForced();
+                // So use the fast GNSS reset
+                gpioExpanderGnssResetFast();
             else
                 break; // Break on any other character
         }
@@ -965,53 +1008,19 @@ void gnssFirmwareDirectConnectHardware() // Facet FP only
     }
 }
 
-//----------------------------------------
-// Check if direct connection file exists
-//----------------------------------------
-bool gnssFirmwareCheckUpdate()
+// Handle the file creation and tear down the for the firmware update process.
+bool gnssCreatePassthroughFile()
 {
-    return gnssFirmwareCheckUpdateFile("/updateGnssFirmware.txt");
-}
-bool gnssFirmwareCheckUpdateFile(const char *filename)
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugGnss)
-            systemPrintf("LittleFS %s exists\r\n", filename);
-
-        // We do not remove the file here. See removeupdateUm980Firmware().
-
-        return true;
-    }
-
-    return false;
+    return createFileLfs("/updateGnssFirmware.txt");
 }
 
-//----------------------------------------
-// Remove direct connection file
-//----------------------------------------
-void gnssFirmwareRemoveUpdate()
+bool gnssCheckPassthroughFile()
 {
-    gnssFirmwareRemoveUpdateFile("/updateGnssFirmware.txt");
+    return fileExistsLfs("/updateGnssFirmware.txt");
 }
-
-void gnssFirmwareRemoveUpdateFile(const char *filename)
+void gnssRemovePassthroughFile()
 {
-    if (online.fs == false)
-        return;
-
-    if (settings.debugGnssConfig)
-        systemPrintf("Removing passthrough file: %s \r\n", filename);
-
-    if (LittleFS.exists(filename))
-    {
-        delay(50);
-
-        LittleFS.remove(filename);
-    }
+    removeFile("/updateGnssFirmware.txt");
 }
 
 //----------------------------------------
@@ -1098,6 +1107,32 @@ bool gnssSettingsToFile(char * line, size_t lineSize, RTK_Settings_Types type, i
         if (gnssSupportRoutines[index]._settingToFile &&
             gnssSupportRoutines[index]._settingToFile(line, lineSize, type, settingsIndex))
             return true;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Gets the five version number parts
+//----------------------------------------
+bool gnssGetVersion(int &major, int &minor, int &patch, int &revision, int &releaseCandidate)
+{
+    uint16_t m1;
+    uint8_t m2;
+    uint8_t p;
+    uint8_t r;
+
+    major = 0;
+    minor = 0;
+    patch = 0;
+    revision = 0;
+    releaseCandidate = 0;
+    if (online.gnss && gnss->getVersion(m1, m2, p, r))
+    {
+        major = m1;
+        minor = m2;
+        patch = p;
+        revision = r;
+        return true;
     }
     return false;
 }

@@ -2,6 +2,8 @@
 System.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+static uint8_t firmwareUpdateLastPercent;
+
 // Initialize PSRAM if available
 void beginPsram()
 {
@@ -50,7 +52,10 @@ void rtkValidateHeap(const char *string)
 void rtkFree(void *data, const char *text)
 {
     if (settings.debugMalloc && !inMainMenu)
+    {
         systemPrintf("%p: Freeing %s\r\n", data, text);
+        Serial.flush();
+    }
     free(data);
 }
 
@@ -75,16 +80,23 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
     if (data)
     {
         if (settings.debugMalloc && !inMainMenu)
+        {
             systemPrintf("%p, %s %d bytes allocated: %s\r\n", data, area, sizeInBytes, text);
+            Serial.flush();
+        }
     }
     else
+    {
         systemPrintf("Error: Failed to allocate %d bytes from %s: %s\r\n", sizeInBytes, area, text);
+        Serial.flush();
+    }
 
     // If you are trying to trace "CORRUPT HEAP Bad tail" issues, add the tail address here:
     const uint32_t badTail = 0; // E.g. 0x3f80135c which was being allocated to the oled
     if (badTail)
     {
-        union {
+        union
+        {
             void *ptr;
             uint32_t address;
         } ptr2address;
@@ -93,15 +105,19 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
         uint32_t alignedSize = (sizeInBytes + 3) & (~3);
         // Look for address == badTail - alignedSize (ignore the canary)
         if (ptr2address.address == badTail - alignedSize)
+        {
             systemPrintf("rtkMalloc: tail 0x%08x length 0x%04X (%ld) allocated to %s\r\n",
                          badTail, sizeInBytes, sizeInBytes, text);
+            Serial.flush();
+        }
     }
 
     // If you are trying to trace "CORRUPT HEAP Bad head" issues, add the head address here:
     const uint32_t badHead = 0; // E.g. 0x3f808ff4 (identifed that 0x3f808048 was allocated to AuthCoPro)
     if (badHead)
     {
-        union {
+        union
+        {
             void *ptr;
             uint32_t address;
         } ptr2address;
@@ -110,8 +126,11 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
         uint32_t alignedSize = (sizeInBytes + 3) & (~3);
         // Look for badHead == address + alignedSize + two 4-byte canaries:
         if (badHead == ptr2address.address + alignedSize + 8)
+        {
             systemPrintf("rtkMalloc: head 0x%08x length 0x%04X (%ld) allocated to %s\r\n",
                          ptr2address.address, sizeInBytes, sizeInBytes, text);
+            Serial.flush();
+        }
     }
 
     return data;
@@ -523,7 +542,7 @@ void createNMEASentence(customNmeaType_e textID, char *nmeaMessage, size_t sizeO
 }
 
 // Get the default settings
-void getDefaultSettings(struct Settings * tempSettings)
+void getDefaultSettings(struct Settings *tempSettings)
 {
     static const Settings defaultSettings;
     memcpy(tempSettings, &defaultSettings, sizeof(defaultSettings));
@@ -608,6 +627,10 @@ void printReports()
 }
 
 // Given a user's string, try to identify the type and return the coordinate in DD.ddddddddd format
+// Note: CoordinateInputType will be COORDINATE_INPUT_TYPE_DDMM for both 5-digit (DDDMM) longitude
+//       and 4-digit (DDMM) latitude
+//       CoordinateInputType will be COORDINATE_INPUT_TYPE_DDMMSS for both 7-digit (DDDMMSS) longitude
+//       and 6-digit (DDMMSS) latitude
 CoordinateInputType coordinateIdentifyInputType(const char *userEntryOriginal, double *coordinate)
 {
     char userEntry[50];
@@ -646,7 +669,7 @@ CoordinateInputType coordinateIdentifyInputType(const char *userEntryOriginal, d
 
     // Seven possible entry types
     // DD.ddddddddd
-    // DDMM.mmmmmmm
+    // DDMM.mmmmmmm (or DDDMM.mmmmmmmm)
     // DD MM.mmmmmmm
     // DD-MM.mmmmmmm
     // DDMMSS.ssssss
@@ -803,7 +826,9 @@ void coordinateConvertInput(double coordinate, CoordinateInputType coordinateInp
     {
         snprintf(coordinateString, sizeOfCoordinateString, "%0.9f", coordinate);
     }
-    else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM || coordinateInputType == COORDINATE_INPUT_TYPE_DDMM ||
+    else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM ||
+             coordinateInputType == COORDINATE_INPUT_TYPE_DDMM ||
+             coordinateInputType == COORDINATE_INPUT_TYPE_DDDMM ||
              coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM_DASH ||
              coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM_SYMBOL)
     {
@@ -815,6 +840,8 @@ void coordinateConvertInput(double coordinate, CoordinateInputType coordinateInp
 
         if (coordinateInputType == COORDINATE_INPUT_TYPE_DDMM)
             snprintf(coordinateString, sizeOfCoordinateString, "%02d%011.8f", longitudeDegrees, coordinate);
+        else if (coordinateInputType == COORDINATE_INPUT_TYPE_DDDMM)
+            snprintf(coordinateString, sizeOfCoordinateString, "%03d%011.8f", longitudeDegrees, coordinate);
         else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM_DASH)
             snprintf(coordinateString, sizeOfCoordinateString, "%02d-%011.8f", longitudeDegrees, coordinate);
         else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM_SYMBOL)
@@ -914,29 +941,42 @@ const char *coordinatePrintableInputType(CoordinateInputType coordinateInputType
     return ("Unknown");
 }
 
+// Resest the system
+void systemReset()
+{
+    Serial.println("System reset");
+    Serial.flush();
+    ESP.restart();
+}
+
 // Print the error message every 15 seconds
 void reportFatalError(const char *errorMsg)
 {
+    uint32_t currentMsec;
+    static uint32_t lastDisplayMsec;
+
     displayHalt();
 
     // Empty the FIFO of any incoming data
-    while (Serial.available())
-        Serial.read();
+    serialInputClear(&Serial);
+
+    lastDisplayMsec = millis() - MILLISECONDS_IN_A_DAY;
     while (1)
     {
-        // Allow carriage return to reset the system
-        if (Serial.available() && (Serial.read() == '\r'))
+        currentMsec = millis();
+        if ((currentMsec - lastDisplayMsec) >= (15 * MILLISECONDS_IN_A_SECOND))
         {
-            Serial.println("System reset");
-            Serial.flush();
-            ESP.restart();
+            lastDisplayMsec = currentMsec;
+
+            // Periodically display the halted message
+            systemPrintf("HALTED: ");
+            systemPrint(errorMsg);
+            systemPrintln();
         }
 
-        // Periodically display the halted message
-        systemPrint("HALTED: ");
-        systemPrint(errorMsg);
-        systemPrintln();
-        sleep(15);
+        // Allow carriage return to reset the system
+        if (Serial.available() && (Serial.read() == '\r'))
+            systemReset();
     }
 }
 
@@ -1089,18 +1129,32 @@ void gpioExpanderGnssBoot()
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, HIGH);
 }
 
+// This drives the GNSS_Reset low, which causes the GNSS and IMU to reset on the FP
+// Use a fast reset if the GNSS is LG290P or unknown
 void gpioExpanderGnssReset()
 {
     if (online.gpioExpanderSwitches == true)
     {
-        if (settings.detectedGnssReceiver != GNSS_RECEIVER_LG290P)
-        {
-            gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, LOW);
-        }
+        // Disabling an LG290P when it's connected to an I2C bus will bring down the I2C bus
+        // Perform a fast reset and return to boot
+        // For safety, also do this if the GNSS is unknown
+        if ((settings.detectedGnssReceiver == GNSS_RECEIVER_LG290P)
+            || (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN))
+            gpioExpanderGnssResetFast();
         else
-            systemPrintln("Skipped disable of LG290P"); // Disabling an LG290P when it's connected to an I2C bus will
-                                                        // bring down the I2C bus
+            gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, LOW);
     }
+}
+
+// On Flex modules, the IMU reset is tied to the GNSS reset
+void gpioExpanderImuReset()
+{
+    gpioExpanderGnssReset();
+}
+
+void gpioExpanderImuBoot()
+{
+    gpioExpanderGnssBoot();
 }
 
 // Detect if a GNSS is present by:
@@ -1139,8 +1193,8 @@ bool gpioExpanderDetectGnssCommon(bool forceDetection)
 
             // Clock is ticking! Be quick!
             // Set GNSS Reset to INPUT as fast as possible
-            i2c_0->beginTransmission(0x21); // FacetFP TCA9534 is on address 0x21
-            i2c_0->write(0x03); // TCA9534 CONFIGURATION register
+            i2c_0->beginTransmission(0x21);                              // FacetFP TCA9534 is on address 0x21
+            i2c_0->write(0x03);                                          // TCA9534 CONFIGURATION register
             i2c_0->write((uint8_t)(1 << gpioExpanderSwitch_GNSS_Reset)); // Reset INPUT, all others OUTPUT
             i2c_0->endTransmission(true);
 
@@ -1158,7 +1212,7 @@ bool gpioExpanderDetectGnssCommon(bool forceDetection)
                 flexModuleDetected |= (gpioExpanderSwitches->digitalRead(gpioExpanderSwitch_GNSS_Reset) == 1);
                 if (settings.debugGnss)
                     systemPrintf("GNSS detection: GNSS %sdetected after %ldms\r\n",
-                        flexModuleDetected ? "" : "not ", timeStep );
+                                 flexModuleDetected ? "" : "not ", timeStep);
                 if (flexModuleDetected)
                     break;
             }
@@ -1171,6 +1225,43 @@ bool gpioExpanderDetectGnssCommon(bool forceDetection)
         }
     }
     return (true); // Default to true so gnssDetectReceiverType() will continue with detection
+}
+
+// Use the same technique as gpioExpanderDetectGnssForced() to perform a fast GNSS reset:
+// avoiding the slow read-modify-write in the TCA9534 library;
+// without the slow flexModuleDetected for loop.
+void gpioExpanderGnssResetFast()
+{
+    if (online.gpioExpanderSwitches == true)
+    {
+        // Use 400kHz for speed
+        if (present.i2c0BusSpeed_400 == false)
+            i2c_0->setClock(400000);
+
+        // Set GNSS Reset LOW
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, LOW);
+
+        // Flex LG290P with Tilt does not reset unless we delay just a little...
+        delayMicroseconds(50); // 250 OK. 100 OK. 50 OK. 25 OK. 10 not OK.
+
+        // Clock is ticking! Be quick!
+        // Set GNSS Reset to INPUT as fast as possible - without read-modify-write
+        // The pull-up will bring the GNSS out of reset
+        i2c_0->beginTransmission(0x21);                              // FacetFP TCA9534 is on address 0x21
+        i2c_0->write(0x03);                                          // TCA9534 CONFIGURATION register
+        i2c_0->write((uint8_t)(1 << gpioExpanderSwitch_GNSS_Reset)); // Reset INPUT, all others OUTPUT
+        i2c_0->endTransmission(true);
+
+        // Now we can take our time to
+
+        // Restore 100kHz
+        if (present.i2c0BusSpeed_400 == false)
+            i2c_0->setClock(100000);
+
+        // Make GNSS Reset OUTPUT HIGH again
+        gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, HIGH);
+        gpioExpanderSwitches->pinMode(gpioExpanderSwitch_GNSS_Reset, OUTPUT);
+    }
 }
 
 // The IMU is on UART3 of the Facet FP module connected to switch 3
@@ -1195,10 +1286,6 @@ void gpioExpanderSelectLoraCommunication()
 }
 
 // Connect Facet FP GNSS UART2 to 4-pin JST RADIO port via SW4 (Default)
-// Currently never called... But that is probably OK. SW4 defaults to JST RADIO.
-// Selecting LoRa TX or RX will switch SW4 to LoRa, and leave it there.
-// If LoRa is enabled and then disabled, we should then gpioExpanderSelectRadioPort
-// to select JST RADIO again. And reset the baud rate to settings.radioPortBaud
 void gpioExpanderSelectRadioPort()
 {
     if (online.gpioExpanderSwitches == true)
@@ -1248,4 +1335,272 @@ void gpioExpanderConnectGNSSToESP32()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S5, LOW);
+}
+
+// Resets the progress-bar state. Must be called once at the start of each
+// firmware update - these otherwise carry over from the previous update
+// (bytesProcessed and lastPercent both already at their prior-run end
+// values), which suppresses every progress print on a second run since
+// percent is already 100 and "unchanged".
+void firmwareUpdateProgressReset(size_t fileBytes)
+{
+    firmwareUpdateBytesToProcess = fileBytes;
+    firmwareUpdateBytesProcessed = 0;
+    firmwareUpdateLastPercent = 0;
+}
+
+// Callback for all firmware update targets. Called with the number of bytes written to flash so far. Used to track and print progress.
+void firmwareUpdateProgressCallback(const char * subsystemName, uint16_t bytesProcessed)
+{
+    const uint8_t progressBarWidth = 20;
+
+    firmwareUpdateBytesProcessed += bytesProcessed;
+
+    uint32_t progressPercent = 0;
+    if (firmwareUpdateBytesToProcess > 0)
+        progressPercent = (firmwareUpdateBytesProcessed * 100UL) / firmwareUpdateBytesToProcess;
+
+    if (progressPercent > 100)
+        progressPercent = 100;
+
+    uint8_t filled = (progressPercent * progressBarWidth) / 100;
+
+    // Don't update unless there is a change
+    if (progressPercent == firmwareUpdateLastPercent)
+        return;
+
+    firmwareUpdateLastPercent = progressPercent;
+
+    systemPrintf("%s Update Progress: [", subsystemName);
+    for (uint8_t i = 0; i < progressBarWidth; i++)
+        systemWrite(i < filled ? '#' : '-');
+
+    systemPrint("] ");
+    systemPrint(progressPercent);
+    systemPrintln("%");
+
+    // Update the display
+    displayFirmwareUpdateProgress(progressPercent);
+}
+
+// Read the switches value from the GPIO expander
+int gpioExpanderSwitchesRead()
+{
+    uint8_t data;
+
+    if (gpioExpanderSwitches->getInputRegister(&data) == PCA95XX_ERROR_SUCCESS)
+        return data;
+    systemPrintf("GPIO expander read failure!\r\n");
+    return -1;
+}
+
+void gpioExpanderDisplay()
+{
+    int data;
+
+    data = gpioExpanderSwitchesRead();
+    if (data < 0)
+        return;
+    if (productVariant == RTK_POSTCARD)
+    {
+        systemPrintf("GPIO Expander: 0x%02x", data);
+        if (data & 0x80) systemPrintf(", IO7");
+        if (data & 0x40) systemPrintf(", IO6");
+        if (data & 0x20) systemPrintf(", Card Detect");
+        if (data & 0x10) systemPrintf(", Center");
+        if (data & 0x08) systemPrintf(", Left");
+        if (data & 0x04) systemPrintf(", Right");
+        if (data & 0x02) systemPrintf(", Down");
+        if (data & 0x01) systemPrintf(", Up");
+        systemPrintln();
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        // ttyACM0 -> GNSS USB UART
+        //
+        // GNSS UART 1 -> SW5 (1) -> ttyACM1
+        //                 '->(0) -> ESP32 UART 1
+        //
+        //                             .->(1) -> GNSS UART 4
+        // ESP32 UART 0 -> SW1 (1) -> SW2 (0) -> RS232
+        //                  '->(0) ------------> ttyACM2
+        //
+
+        systemPrintf("GPIO Expander: 0x%02x\r\n", data);
+        systemPrintf("    GNSS UART 1 -> %s\r\n", (data & 0x80) ? "ttyASM1" :"ESP32 UART 1");
+        if (data & 0x40) systemPrintf("    LoRa BOOT\r\n");
+        systemPrintf("    GNSS: %s\r\n", (data & 0x20) ? "Run" : "Reset");
+        systemPrintf("    LoRa: %s\r\n", (data & 0x10) ? "Enable" : "Disable");
+        systemPrintf("    GNSS UART 2 -> %s\r\n", (data & 0x08) ? "LoRa UART 0" : "JST TTL Serial");
+        systemPrintf("    ESP32 UART 2 -> %s\r\n", (data & 0x04) ? "LoRa UART 2" : "GNSS UART 3");
+        switch (data & 3)
+        {
+        case 2:
+        case 0: systemPrintf("    ESP32 UART 0 -> ttyASM2\r\n"); break;
+        case 1: systemPrintf("    ESP32 UART 0 -> Serial Connector\r\n"); break;
+        case 3: systemPrintf("    ESP32 UART 0 -> GNSS UART 4\r\n"); break;
+        }
+    }
+}
+
+void systemDisplayConfiguration()
+{
+    const char * brand;
+    const char * gnss;
+    int index;
+    const char * prefix;
+    const char * product;
+    const productProperties * properties;
+    const char * suffixGnss;
+    const char * suffixImu;
+
+    // Start with the product variant
+    // Look up the product properties
+    properties = nullptr;
+    for (index = 0; index < productPropertiesEntries; index++)
+    {
+        if (productPropertiesTable[index].productVariant == productVariant)
+        {
+            properties = &productPropertiesTable[index];
+            break;
+        }
+    }
+
+    // Verify that the product was found
+    if (properties == nullptr)
+    {
+        systemPrintf("Product not found, productVariant: %d\r\n", productVariant);
+        return;
+    }
+
+    // Get the GNSS
+    suffixGnss = "";
+    suffixImu = "";
+    gnss = "None";
+    if (present.gnss_zedx20p)       { gnss = "ZED-X20P"; suffixGnss = "X"; }
+    else if (present.gnss_lg290p)   { gnss = "LG290P"; suffixGnss = "L"; }
+    else if (present.gnss_mosaicX5) { gnss = "Mosaic X5"; suffixGnss = "M"; }
+    else if (present.gnss_um980)    { gnss = "UM980"; }
+    else if (present.gnss_zedf9p)   { gnss = "ZED-F9P"; }
+
+    // Display the registration page
+    systemPrintf("Registration: %s\r\n", properties->platformRegistration);
+
+
+    int pin_deviceID = 35;
+    uint16_t idValue = analogReadMilliVolts(pin_deviceID);
+    idValue = analogReadMilliVolts(pin_deviceID); // Read twice - just in case
+    uint16_t Volts = idValue / 1000;
+    idValue -= Volts * 1000;
+    systemPrintf("Board ADC ID, pin: %d: %d.%03d Volts\r\n", pin_deviceID, Volts, idValue);
+
+    // Get the product details
+    brand = RTKBrandAttributes[properties->brand].name;
+    prefix = properties->rtkPrefix ? "RTK " : "";
+    product = properties->name;
+    if (productVariant != RTK_FACET_FP)
+        systemPrintf("%s %s%s\r\n",
+                     brand, prefix, product);
+    else
+    {
+        if (present.imu_im19)           suffixImu = "-T";
+        systemPrintf("%s %s%s%s%s\r\n",
+                     brand, prefix, product, suffixGnss, suffixImu);
+    }
+
+    // Display the antenna phase center
+    for (index = 0; index < productHousingEntries; index++)
+    {
+        if (productHousingPropertiesTable[index].housing == properties->housing)
+        {
+            systemPrintf("Antenna Phase Center: %.1f mm\r\n",
+                         productHousingPropertiesTable[index].antennaPhaseCenter_mm);
+            break;
+        }
+    }
+
+    // Display the GNSS
+    systemPrintf("GNSS: %s\r\n", gnss);
+    systemPrintf("ESP32 UART%d --> GNSS, RX pin; %d, TX pin: %d\r\n",
+                 1, pin_GnssUart_RX, pin_GnssUart_TX);
+
+    // Display the tilt support
+    if (present.imu_im19 && productHousingPropertiesTable[index].tiltPossible)
+    {
+        systemPrintf("Tilt: %s%s%s\r\n",
+                     productHousingPropertiesTable[index].leverArm,
+                     strlen(productHousingPropertiesTable[index].installAngle) ? ", " : "",
+                     productHousingPropertiesTable[index].installAngle);
+        systemPrintf("Tilt: ESP32 UART%d --> GNSS, RX pin; %d, TX pin: %d\r\n",
+                     2, pin_IMU_RX, pin_IMU_TX);
+    }
+
+    // Display LoRa support
+    if (present.radio_lora)
+    {
+        systemPrintf("LoRa: ESP32 UART%d --> GNSS, RX pin; %d, TX pin: %d\r\n",
+                     2, pin_IMU_RX, pin_IMU_TX);
+    }
+
+    // Display the GPIO expander configuration
+    if (present.gpioExpanderSwitches)
+        gpioExpanderDisplay();
+
+    // Display the microSD support
+    if (present.microSd)
+    {
+        int cd = digitalRead(pin_microSD_CardDetect);
+        bool cardPresent = ((cd == false) && (present.microSdCardDetectLow == true)
+                         || (cd == true) && (present.microSdCardDetectLow == false));
+        systemPrintf("microSD Card: SCK: %d, PICO: %d, POCI: %d, CS: %d, CD: %d, %s, %s\r\n",
+                     pin_SCK, pin_PICO, pin_POCI, pin_microSD_CS,
+                     pin_microSD_CardDetect,
+                     cd ? "High" : "Low", cardPresent ? "Empty" : "Inserted");
+    }
+
+    // Display support
+    if (present.display_type == DISPLAY_128x64)
+        systemPrintf("Display: 128 x 64\r\n");
+    else if (present.display_type == DISPLAY_64x48)
+        systemPrintf("Display: 64 x 48\r\n");
+    else
+        systemPrintf("Display: None\r\n");
+
+    // Display the button support
+    if (pin_modeButton >= 0)
+        systemPrintf("Mode button: %d, %s\r\n", pin_modeButton,
+                     digitalRead(pin_modeButton) ? "High" : "Low");
+    if (pin_powerButton >= 0)
+        systemPrintf("Power button: %d, %s\r\n", pin_powerButton,
+                     digitalRead(pin_powerButton) ? "High" : "Low");
+    if (pin_powerFastOff >= 0)
+        systemPrintf("Fast Off: %d, %s\r\n", pin_powerFastOff,
+                     digitalRead(pin_powerFastOff) ? "High" : "Low");
+
+    // Display the Bluetooth status LED connection
+    if (pin_bluetoothStatusLED >= 0)
+        systemPrintf("Bluetooth Status LED: %d, %s\r\n",
+                     pin_bluetoothStatusLED, digitalRead(pin_bluetoothStatusLED) ? "On" : "Off");
+
+    // Display USB power detect
+    if (pin_powerAdapterDetect >= 0)
+        systemPrintf("USB power detect: %d, %s\r\n",
+                     pin_powerAdapterDetect, digitalRead(pin_powerAdapterDetect) ? "USB Power" : "Disconnected");
+
+    // Display USB power detect
+    if (pin_beeper >= 0)
+        systemPrintf("Beeper: %d\r\n", pin_beeper);
+
+    // Display the heap
+    reportHeapNow(true);
+
+    // Display the I2C bus configurations
+    if (pin_I2C0_SCL >= 0)
+    {
+        systemPrintf("I2C-0: SCL: %d, SDA: %d\r\n", pin_I2C0_SCL, pin_I2C0_SDA);
+        i2cBusEnumerate(i2c_0, 0);
+    }
+    if (present.i2c1 && (pin_I2C1_SCL >= 0))
+        systemPrintf("I2C-1: SCL: %d, SDA: %d\r\n", pin_I2C1_SCL, pin_I2C1_SDA);
+        i2cBusEnumerate(i2c_1, 1);
 }

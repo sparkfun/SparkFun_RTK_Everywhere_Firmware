@@ -76,8 +76,9 @@ const unsigned long LORA_CMD_SAVE_TIMEOUT_MS = 200;
 // Define the NTRIP client states
 enum LoraState
 {
-    LORA_OFF = 0,
-    LORA_NOT_STARTED,
+    LORA_NOT_PRESENT = 0,      // Start. If present, power on, start serial interface, and check version.
+    LORA_DISABLED,             // Radio is powered off, but serial interface remains.
+    LORA_IDLE,                 // Radio is ready, now determine if we are TXing or RXing
     LORA_TX_SETTLING,          // Do not transmit while surveying in to avoid RF cross-talk
     LORA_TX,                   // Send RTCM over LoRa when it's received from the GNSS (share UART0 with prints)
     LORA_RX_DEDICATED,         // For platforms with separate/dedicated connections to the the LoRa radio.
@@ -89,35 +90,56 @@ enum LoraState
     LORA_STATE_MAX              // Last entry in the state list
 };
 
-static volatile uint8_t loraState = LORA_OFF;
+static volatile uint8_t loraState = LORA_NOT_PRESENT;
 
 int loraBytesSent = 0;
-
-HardwareSerial *SerialForLoRa; // Don't instantiate until we know the platform. May compete with SerialForTilt.
 
 // Called from main loop
 // Control incoming/outgoing RTCM data from STM32 based LoRa radio (if supported by platform)
 void updateLora()
 {
-    if (settings.enableLora == false && loraState != LORA_OFF)
+    const size_t loraRtcmBufferSize = 512;
+
+    if (settings.enableLora == false && (loraState >= LORA_IDLE && loraState < LORA_STATE_MAX))
     {
-        loraStop();
-        loraState = LORA_OFF;
+        loraHangup();   // On Facet FP, select external radio and restore baud rate
+        loraPowerOff(); // Leave serial inteface in place
+        loraState = LORA_DISABLED;
     }
 
     switch (loraState)
     {
     default:
         systemPrintln("Unknown LoRa State");
-
-    case (LORA_OFF):
-        if (settings.enableLora == true)
-            loraState = LORA_NOT_STARTED;
+        delay(1000);
         break;
 
-    case (LORA_NOT_STARTED):
-        beginLora();
+    case (LORA_NOT_PRESENT):
+        if (present.radio_lora == true)
+        {
+            // Regardless of whether LoRa is enabled or not, we need to power on the radio and get the version
+            beginLora(); // Power on the radio, start the serial interface, get the version. Leaves radio in command
+                         // mode.
+            if (settings.enableLora == false)
+            {
+                loraHangup();   // On Facet FP, select external radio and restore baud rate
+                loraPowerOff(); // Power off system. Leave serial inteface in place
+                loraState = LORA_DISABLED;
+            }
+            else
+                loraState = LORA_IDLE;
+        }
+        break;
 
+    case (LORA_DISABLED):
+        if (settings.enableLora == true)
+        {
+            loraPowerOn();
+            loraState = LORA_IDLE;
+        }
+        break;
+
+    case (LORA_IDLE):
         if (inBaseMode() && settings.fixedBase == true)
         {
             if (settings.debugLora == true)
@@ -196,7 +218,7 @@ void updateLora()
         }
 
         if (inBaseMode() == false)
-            loraState = LORA_NOT_STARTED; // Force restart to move to other modes
+            loraState = LORA_IDLE; // Force restart to move to other modes
 
         break;
 
@@ -218,10 +240,10 @@ void updateLora()
                     loraBytesSent = 0;
                 }
             }
-
-            if (inBaseMode() == false)
-                loraState = LORA_NOT_STARTED; // Force restart to move to other modes
         }
+
+        if (inBaseMode() == false)
+            loraState = LORA_IDLE; // Force restart to move to other modes
 
         break;
 
@@ -229,7 +251,7 @@ void updateLora()
         // Nothing to do. LoRa will pass any data to the GNSS receiver directly.
         // *** THIS IS SPECIFIC TO FACET FP ***
         if (inBaseMode() == true)
-            loraState = LORA_NOT_STARTED; // Force restart to move to TX mode
+            loraState = LORA_IDLE; // Force restart to move to TX mode
 
         break;
 
@@ -249,7 +271,7 @@ void updateLora()
         // for a second or two. For now, keeping it simple stupid.
 
         if (inBaseMode() == true)
-            loraState = LORA_NOT_STARTED; // Force restart to move to TX mode
+            loraState = LORA_IDLE; // Force restart to move to TX mode
 
         break;
 
@@ -259,40 +281,42 @@ void updateLora()
         // *** THIS IS SPECIFIC TO TORCH ***
         if (loraAvailable())
         {
-            uint8_t rtcmData[512];
-            int rtcmCount = 0;
-
-            rtcmCount = Serial.readBytes(rtcmData, sizeof(rtcmData));
-
-            // We've just received data. We assume this is RTCM and push it directly to the GNSS.
-            if (correctionLastSeen(CORR_RADIO_LORA))
+            uint8_t *rtcmData = (uint8_t *)rtkMalloc(loraRtcmBufferSize, "loraRtcmData");
+            if (rtcmData)
             {
-                // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
-                gnss->pushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
+                int rtcmCount = Serial.readBytes(rtcmData, loraRtcmBufferSize);
 
-                if (((settings.debugCorrections == true) || (settings.debugLora == true)) && !inMainMenu)
+                // We've just received data. We assume this is RTCM and push it directly to the GNSS.
+                if (correctionLastSeen(CORR_RADIO_LORA))
                 {
-                    systemFlush();  // Complete prints
-                    muxSelectUsb(); // Connect USB
+                    // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
+                    gnss->pushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
 
-                    systemPrintf("LoRa received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
-                    systemFlush(); // Allow print to complete
+                    if (((settings.debugCorrections == true) || (settings.debugLora == true)) && !inMainMenu)
+                    {
+                        systemFlush();  // Complete prints
+                        muxSelectUsb(); // Connect USB
 
-                    muxSelectLoRaCommunication(); // Disconnect from USB
+                        systemPrintf("LoRa received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
+                        systemFlush(); // Allow print to complete
+
+                        muxSelectLoRaCommunication(); // Disconnect from USB
+                    }
                 }
-            }
-            else
-            {
-                if ((settings.debugCorrections == true) && !inMainMenu)
+                else
                 {
-                    systemFlush();  // Complete prints
-                    muxSelectUsb(); // Connect USB
+                    if ((settings.debugCorrections == true) && !inMainMenu)
+                    {
+                        systemFlush();  // Complete prints
+                        muxSelectUsb(); // Connect USB
 
-                    systemPrintf("LoRa received %d RTCM bytes, NOT pushed due to priority\r\n", rtcmCount);
-                    systemFlush(); // Allow print to complete
+                        systemPrintf("LoRa received %d RTCM bytes, NOT pushed due to priority\r\n", rtcmCount);
+                        systemFlush(); // Allow print to complete
 
-                    muxSelectLoRaCommunication(); // Disconnect from USB
+                        muxSelectLoRaCommunication(); // Disconnect from USB
+                    }
                 }
+                rtkFree(rtcmData, "loraRtcmData");
             }
         }
 
@@ -300,7 +324,7 @@ void updateLora()
             loraState = LORA_RX_SHARED_USB_IGNORE;
 
         if (inBaseMode() == true)
-            loraState = LORA_NOT_STARTED; // Force restart to move to TX mode
+            loraState = LORA_IDLE; // Force restart to move to TX mode
 
         break;
 
@@ -309,40 +333,42 @@ void updateLora()
         // *** THIS IS SPECIFIC TO TORCH ***
         if (loraAvailable())
         {
-            uint8_t rtcmData[512];
-            int rtcmCount = 0;
-
-            rtcmCount = Serial.readBytes(rtcmData, sizeof(rtcmData));
-
-            // We've just received data. We assume this is RTCM and push it directly to the GNSS.
-            if (correctionLastSeen(CORR_RADIO_LORA))
+            uint8_t *rtcmData = (uint8_t *)rtkMalloc(loraRtcmBufferSize, "loraRtcmData");
+            if (rtcmData)
             {
-                // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
-                gnss->pushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
+                int rtcmCount = Serial.readBytes(rtcmData, loraRtcmBufferSize);
 
-                if (((settings.debugCorrections == true) || (settings.debugLora == true)) && !inMainMenu)
+                // We've just received data. We assume this is RTCM and push it directly to the GNSS.
+                if (correctionLastSeen(CORR_RADIO_LORA))
                 {
-                    systemFlush();  // Complete prints
-                    muxSelectUsb(); // Connect USB
+                    // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
+                    gnss->pushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
 
-                    systemPrintf("LoRa received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
-                    systemFlush(); // Allow print to complete
+                    if (((settings.debugCorrections == true) || (settings.debugLora == true)) && !inMainMenu)
+                    {
+                        systemFlush();  // Complete prints
+                        muxSelectUsb(); // Connect USB
 
-                    muxSelectLoRaCommunication(); // Disconnect from USB
+                        systemPrintf("LoRa received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
+                        systemFlush(); // Allow print to complete
+
+                        muxSelectLoRaCommunication(); // Disconnect from USB
+                    }
                 }
-            }
-            else
-            {
-                if ((settings.debugCorrections == true) && !inMainMenu)
+                else
                 {
-                    systemFlush();  // Complete prints
-                    muxSelectUsb(); // Connect USB
+                    if ((settings.debugCorrections == true) && !inMainMenu)
+                    {
+                        systemFlush();  // Complete prints
+                        muxSelectUsb(); // Connect USB
 
-                    systemPrintf("LoRa received %d RTCM bytes, NOT pushed due to priority\r\n", rtcmCount);
-                    systemFlush(); // Allow print to complete
+                        systemPrintf("LoRa received %d RTCM bytes, NOT pushed due to priority\r\n", rtcmCount);
+                        systemFlush(); // Allow print to complete
 
-                    muxSelectLoRaCommunication(); // Disconnect from USB
+                        muxSelectLoRaCommunication(); // Disconnect from USB
+                    }
                 }
+                rtkFree(rtcmData, "loraRtcmData");
             }
         }
 
@@ -360,48 +386,35 @@ void updateLora()
         }
 
         if (inBaseMode() == true)
-            loraState = LORA_NOT_STARTED; // Force restart to move to TX mode
+            loraState = LORA_IDLE; // Force restart to move to TX mode
 
         break;
     }
 }
 
-void beginLora() // Called by updateLora LORA_NOT_STARTED
+// Power on the radio, start the serial interface, get the version
+// Called by updateLora
+void beginLora()
 {
-    if (present.radio_lora == true && settings.enableLora == true)
+    if (present.radio_lora == true)
     {
         if (settings.debugLora == true)
             systemPrintln("Begin LoRa");
 
-        loraPowerOn(); // Power STM32/radio
+        loraDisableBootloader(); // Disables BOOT pin
+        loraPowerOn();           // Power STM32/radio
 
-        delay(500); // Give LoRa radio time to power stabilize
-
-        loraExitBootloader(); // Disables BOOT pin, then resets the STM32
+        delay(50); // Give LoRa radio time to power stabilize
 
         // Torch must share ESP UART0, other platforms have a dedicated UART
         if (present.loraDedicatedUart == true)
         {
             // UART2 of the ESP32 is also used for Tilt module communication on the GNSS
-            // If Tilt is active we will use its serial port
-            if (SerialForTilt != nullptr)
-            {
-                SerialForLoRa = SerialForTilt; // SerialForTilt will be using UART2 (HardwareSerial(2))
-            }
-            else
-            {
-                if (SerialForLoRa == nullptr)
-                {
-                    SerialForLoRa = new HardwareSerial(2); // Use UART2 on the ESP32 to communicate with LoRa radio
-
-                    SerialForLoRa->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
-                }
-            }
+            beginUart2Serial();
         }
 
         // Store firmware version in char array
-        // loraGetVersion() calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
-        loraGetVersion();
+        online.radio_lora = loraGetVersion(); // Calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     }
 }
 
@@ -413,18 +426,6 @@ void loraStop()
             systemPrintln("Stopping LoRa");
 
         loraPowerOff(); // Power down STM32/radio
-
-        if (SerialForLoRa != nullptr)
-        {
-            // UART2 of the ESP32 is also used for Tilt module communication on the GNSS
-            // If Tilt is not active, then release the resources
-            if (SerialForTilt == nullptr)
-            {
-                delete SerialForLoRa;
-
-                SerialForLoRa = nullptr;
-            }
-        }
     }
 }
 
@@ -465,7 +466,7 @@ void muxSelectLoRaCommunication()
 }
 
 // Connect ESP32 to LoRa for configuration and bootloading
-// This is only called by beginLoraFirmwareUpdate()
+// This is only called by loraBeginFirmwareUpdate()
 void muxSelectLoRaConfigure()
 {
     if (productVariant == RTK_TORCH)
@@ -499,43 +500,56 @@ void startLoRaConfigureCommunicationOnFacet()
     }
 }
 
-void loraEnterBootloader()
+// Enables BOOT pin
+void loraEnableBootloader()
 {
     if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
         digitalWrite(pin_loraRadio_boot, HIGH); // Enter bootload mode
     else if (productVariant == RTK_FACET_FP)
         gpioExpanderLoraBootEnable();
+}
 
+// Enables BOOT pin, then resets the STM32
+void loraEnterBootloader()
+{
+    loraEnableBootloader();
     loraReset();
 }
 
-// Disables BOOT pin, then resets the STM32
-void loraExitBootloader()
+// Disables BOOT pin
+void loraDisableBootloader()
 {
     if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
         digitalWrite(pin_loraRadio_boot, LOW); // Exit bootload mode
     else if (productVariant == RTK_FACET_FP)
         gpioExpanderLoraBootDisable();
+}
 
+// Disables BOOT pin, then resets the STM32
+void loraExitBootloader()
+{
+    loraDisableBootloader();
     loraReset();
 }
 
 void loraReset()
 {
+    // This timing is sensitive. Delay too long after the enable and the bootloader
+    // will exit due to timeout.
     if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
     {
-        digitalWrite(pin_loraRadio_reset, LOW); // Reset STM32/radio
-        delay(15);
+        digitalWrite(pin_loraRadio_reset, LOW);  // Reset STM32/radio
+        delay(50);                               // 50 ok, 100 ok
         digitalWrite(pin_loraRadio_reset, HIGH); // Run STM32/radio
-        delay(15);
+        delay(50);                               // 50 ok, 100 ok, 250 too long
     }
     else if (productVariant == RTK_FACET_FP)
     {
         // There is no reset, only a power cycle
         gpioExpanderLoraDisable();
-        delay(500);
+        delay(50); // 50 ok, 100 ok,
         gpioExpanderLoraEnable();
-        delay(500);
+        delay(50); // 50 ok, 100 ok, 250 too long
     }
 }
 
@@ -568,113 +582,54 @@ bool loraIsOn()
     return (false);
 }
 
-// Check if updateLoraFirmware.txt exists
-bool checkUpdateLoraFirmware()
-{
-    return checkUpdateLoraFirmwareFile("/updateLoraFirmware.txt");
-}
-bool loraRxDirectCheckFile()
-{
-    return checkUpdateLoraFirmwareFile("/loraRxDirect.txt");
-}
-bool loraTxDirectCheckFile()
-{
-    return checkUpdateLoraFirmwareFile("/loraTxDirect.txt");
-}
-bool checkUpdateLoraFirmwareFile(const char *filename)
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugLora)
-            systemPrintf("LittleFS %s exists\r\n", filename);
-
-        // We do not remove the file here. See removeupdateLoraFirmware().
-
-        return true;
-    }
-
-    return false;
-}
-
-void removeUpdateLoraFirmware()
-{
-    removeUpdateLoraFirmwareFile("/updateLoraFirmware.txt");
-}
-void loraRxDirectRemoveFile()
-{
-    removeUpdateLoraFirmwareFile("/loraRxDirect.txt");
-}
-void loraTxDirectRemoveFile()
-{
-    removeUpdateLoraFirmwareFile("/loraTxDirect.txt");
-}
-void removeUpdateLoraFirmwareFile(const char *filename)
-{
-    if (online.fs == false)
-        return;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugLora)
-            systemPrintf("Removing direct connect file: %s\r\n", filename);
-
-        delay(50);
-
-        LittleFS.remove(filename);
-    }
-}
-
 // Force UART connection to LoRa radio for firmware update on the next boot by creating updateLoraFirmware.txt in
 // LittleFS
-bool createLoRaPassthrough()
+bool loraCreatePassthroughFile()
 {
-    return createLoRaPassthroughFile("/updateLoraFirmware.txt");
+    return createFileLfs("/updateLoraFirmware.txt");
 }
-bool createLoraRxDirectFile()
+bool loraCreateRxDirectFile()
 {
-    return createLoRaPassthroughFile("/loraRxDirect.txt");
+    return createFileLfs("/loraRxDirect.txt");
 }
-bool createLoraTxDirectFile()
+bool loraCreateTxDirectFile()
 {
-    return createLoRaPassthroughFile("/loraTxDirect.txt");
-}
-// Force UART connection to LoRa radio on the next boot by creating file in LittleFS
-bool createLoRaPassthroughFile(const char *filename)
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists(filename))
-    {
-        if (settings.debugLora)
-            systemPrintf("LittleFS %s already exists\r\n", filename);
-        return true;
-    }
-
-    File updateLoraFirmware = LittleFS.open(filename, FILE_WRITE);
-    updateLoraFirmware.close();
-
-    if (LittleFS.exists(filename))
-        return true;
-
-    if (settings.debugLora)
-        systemPrintf("Unable to create %s on LittleFS\r\n", filename);
-    return false;
+    return createFileLfs("/loraTxDirect.txt");
 }
 
-void beginLoraFirmwareUpdate()
+// Check if updateLoraFirmware.txt exists
+bool loraCheckPassthroughFile()
 {
-    // NOTE: this currently fails on Facet FP due to the way LoRa_EN and LoRa_NRST are interconnected.
-    //  This will be resolved with the next Facet FP motherboard rev.
-    //  TODO: delete this comment once new hardware is available.
+    return fileExistsLfs("/updateLoraFirmware.txt");
+}
+bool loraCheckRxDirectFile()
+{
+    return fileExistsLfs("/loraRxDirect.txt");
+}
+bool loraCheckTxDirectFile()
+{
+    return fileExistsLfs("/loraTxDirect.txt");
+}
 
+void loraRemovePassthroughFile()
+{
+    removeFileLfs("/updateLoraFirmware.txt");
+}
+void loraRemoveRxDirectFile()
+{
+    removeFileLfs("/loraRxDirect.txt");
+}
+void loraRemoveTxDirectFile()
+{
+    removeFileLfs("/loraTxDirect.txt");
+}
+
+void loraBeginFirmwareUpdate()
+{
     // Flag that we are in direct connect mode
     inDirectConnectMode = true;
 
-    // Paint GNSS Update
+    // Paint LoRa Update
     paintLoRaUpdate();
 
     systemPrintln();
@@ -733,7 +688,7 @@ void beginLoraFirmwareUpdate()
     }
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    removeUpdateLoraFirmware();
+    loraRemovePassthroughFile();
 
     systemFlush(); // Complete prints
 
@@ -745,11 +700,10 @@ void loraSetupTransmit()
     // If platform has a dedicated LoRa UART - i.e. Facet FP
     // Set the switch(es) to connect the GNSS to LoRa
     // And override the baud rate
-    // TODO: improve this so it works better with settings.radioPortBaud and GNSS_CONFIG_BAUD_RATE_RADIO
     if (present.loraDedicatedUart == true)
     {
-        gnss->setBaudRateRadio(115200);
         gpioExpanderSelectLoraCommunication();
+        gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO);
     }
 
     loraSetup(true);
@@ -760,14 +714,26 @@ void loraSetupReceive()
     // If platform has a dedicated LoRa UART - i.e. Facet FP
     // Set the switch(es) to connect the GNSS to LoRa
     // And override the baud rate
-    // TODO: improve this so it works better with settings.radioPortBaud and GNSS_CONFIG_BAUD_RATE_RADIO
     if (present.loraDedicatedUart == true)
     {
-        gnss->setBaudRateRadio(115200);
         gpioExpanderSelectLoraCommunication();
+        gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO);
     }
 
     loraSetup(false);
+}
+
+void loraHangup()
+{
+    // LoRa is no longer needed
+    // If platform has a dedicated LoRa UART - i.e. Facet FP
+    // Set the switch(es) to connect the GNSS to External radio
+    // And restore the baud rate
+    if (present.loraDedicatedUart == true)
+    {
+        gpioExpanderSelectRadioPort();
+        gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO);
+    }
 }
 
 // Setup LoRa radio for receiving or transmitting
@@ -783,8 +749,14 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
 {
     if (loraEnterCommandMode() == true)
     {
-        char response[512];
-        int responseLength = sizeof(response);
+        const size_t responseSize = 512;
+        char *response = (char *)rtkMalloc(responseSize, "loraSetupResponse");
+        if (!response)
+        {
+            systemPrintln("ERROR: Failed to allocate loraSetupResponse");
+            return;
+        }
+        int responseLength = responseSize;
 
         char command[100];
 
@@ -798,11 +770,11 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
             // Enable transmit mode
             // response and responseLength are modified
             // Response typically takes ~5ms
-            responseLength = sizeof(response);
+            responseLength = responseSize;
             configureSuccess &= loraSendCommand("AT+MODE=0", response, &responseLength, LORA_CMD_DEFAULT_TIMEOUT_MS,
                                                 false); // 0 - Transmit, 1 - Receive
 
-            responseLength = sizeof(response);
+            responseLength = responseSize;
             snprintf(command, sizeof(command), "AT+PWR=%d", settings.loraTransmitGain_dB);
             configureSuccess &= loraSendCommand(command, response, &responseLength, LORA_CMD_DEFAULT_TIMEOUT_MS, false);
         }
@@ -810,7 +782,7 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
         {
             // Enable receive mode
             // response and responseLength are modified
-            responseLength = sizeof(response);
+            responseLength = responseSize;
             configureSuccess &= loraSendCommand("AT+MODE=1", response, &responseLength, LORA_CMD_DEFAULT_TIMEOUT_MS,
                                                 false); // 0 - Transmit, 1 - Receive
         }
@@ -819,7 +791,7 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
         {
             if (productVariant == RTK_FACET_FP)
             {
-                responseLength = sizeof(response);
+                responseLength = responseSize;
                 if (regularDataPort)
                     // On Facet FP, we need to send AT+DPRT=0 to set the data port to UART1
                     configureSuccess &=
@@ -831,7 +803,7 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
             }
             else
             {
-                responseLength = sizeof(response);
+                responseLength = responseSize;
                 if (regularDataPort)
                     // On Torch, let's make sure DPRT is set to 1. This should be the default
                     configureSuccess &=
@@ -845,7 +817,7 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
 
         if (loraFirmwareVersionInt >= 301) // AT+SAVE was added at v3.0.1
         {
-            responseLength = sizeof(response);
+            responseLength = responseSize;
             if (settings.loraSaveSettingsToFlash)
             {
                 configureSuccess &=
@@ -859,13 +831,13 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
         }
 
         // Set frequency
-        responseLength = sizeof(response);
+        responseLength = responseSize;
         snprintf(command, sizeof(command), "AT+FRQ=%0.3f %0.3f", settings.loraCoordinationFrequency,
                  settings.loraCoordinationFrequency);
         configureSuccess &= loraSendCommand(command, response, &responseLength, LORA_CMD_DEFAULT_TIMEOUT_MS, false);
 
         // Enter TRANSfer
-        responseLength = sizeof(response);
+        responseLength = responseSize;
         unsigned long timeout = LORA_CMD_TRANS_TIMEOUT_MS;
         if (settings.loraSaveSettingsToFlash)
             timeout += LORA_CMD_SAVE_TIMEOUT_MS;
@@ -880,15 +852,16 @@ void loraSetupCommon(bool transmit, bool regularDataPort)
             else
                 systemPrintln("LoRa radio configured for receiving");
         }
+        rtkFree(response, "loraSetupResponse");
     }
     else
         systemPrintln("LoRa radio failed to enter command mode");
 }
 
 // Assumes STM32 is in command mode
-// Disconnects from USB
+// On the Torch, disconnects from Serial USB
 // Sends a given command plus \r\n
-// Reconnects to USB
+// On the Torch, reconnects to USB
 // Caller's response array is filled
 // Returns true if OK is seen in response
 bool loraSendCommand(const char *command, char *response, int *responseSize, const unsigned long timeout,
@@ -962,24 +935,95 @@ bool loraSendCommand(const char *command, char *response, int *responseSize, con
     return (false);
 }
 
+// Reads incoming bytes looking for "version:x.y.z" in the response to AT+V?.
+// Parses and stores the version into loraFirmwareVersionStr/loraFirmwareVersionInt if found.
+bool loraWaitForVersionResponse(unsigned long timeoutMs)
+{
+    const int responseLen = 48; // Enough to capture "version:x.y.z" and nearby response text
+    char response[responseLen];
+    int responseSpot = 0;
+
+    unsigned long startTime = millis();
+    while ((millis() - startTime) < timeoutMs)
+    {
+        if (loraAvailable())
+        {
+            if (responseLen - 1 == responseSpot)
+            {
+                for (int i = 1; i < responseLen; i++)
+                    response[i - 1] = response[i]; // Shift the FIFO along by 1
+                responseSpot--;
+            }
+            response[responseSpot++] = loraRead();
+            response[responseSpot] = 0;
+
+            if (strstr(response, "version:"))
+            {
+                // Read in the entire response
+                delay(10);
+                while (loraAvailable())
+                {
+                    if (responseLen - 1 == responseSpot)
+                    {
+                        for (int i = 1; i < responseLen; i++)
+                            response[i - 1] = response[i]; // Shift the FIFO along by 1
+                        responseSpot--;
+                    }
+                    response[responseSpot++] = loraRead();
+                    response[responseSpot] = 0;
+                }
+
+                // Capture the version so loraGetVersion does not need a second AT+V? query
+                char *versionPtr = strstr(response, "version:");
+                if (versionPtr != nullptr)
+                {
+                    versionPtr += strlen("version:");
+                    while ((*versionPtr == ' ') || (*versionPtr == '\t'))
+                        versionPtr++;
+
+                    int versionSpot = 0;
+                    while ((versionPtr[versionSpot] >= '0' && versionPtr[versionSpot] <= '9') ||
+                           (versionPtr[versionSpot] == '.'))
+                    {
+                        if (versionSpot >= (int)(sizeof(loraFirmwareVersionStr) - 1))
+                            break;
+                        loraFirmwareVersionStr[versionSpot] = versionPtr[versionSpot];
+                        versionSpot++;
+                    }
+                    loraFirmwareVersionStr[versionSpot] = 0;
+
+                    int verMajor = 0;
+                    int verMinor = 0;
+                    int verPatch = 0;
+                    if (sscanf(loraFirmwareVersionStr, "%d.%d.%d", &verMajor, &verMinor, &verPatch) == 3)
+                    {
+                        loraFirmwareVersionInt = (verMajor * 100) + (verMinor * 10) + (verPatch);
+                        return (true);
+                    }
+                }
+            }
+        }
+        delay(1);
+    }
+
+    return false;
+}
+
 // On the Torch, USB and LoRa radio are shared, so disconnects from USB are required
 // On the Facet FP, LoRa UART2 is on ESP32 UART2
 // Sends AT+V?, if response, we are already in command mode -> Reconnects to USB, Return
 // Sends +++ (but there is no response)
-// Sends AT+V?, if response, we are in command mode -> Reconnects to USB, Return
+// Sends AT+V?, if response, record the version number, we are in command mode -> Reconnects to USB, Return
 bool loraEnterCommandMode()
 {
-    const int responseLen = strlen("version:") + 1; // Response FIFO. Add 1 for NULL
-    char response[responseLen];
-    int responseSpot = 0;
+    loraFirmwareVersionStr[0] = 0; // Clear any previously cached version before re-querying
+    loraFirmwareVersionInt = 0;
 
-    loraExitBootloader(); // Disables BOOT pin, then resets the STM32
+    loraReset(); // Needed for Torch
 
-    delay(250);
+    systemFlush(); // Torch: Complete any local prints before switching the UART to LoRa
 
-    systemFlush(); // Complete prints
-
-    muxSelectLoRaCommunication(); // Connect the LoRa radio to ESP32 UART0 (shared with USB)
+    muxSelectLoRaCommunication(); // Torch: Disconnect USB, connect the LoRa radio to ESP32 UART0.
     startLoRaConfigureCommunicationOnFacet();
 
     delay(100); // Wait for incoming serial to complete
@@ -989,118 +1033,46 @@ bool loraEnterCommandMode()
     // Send version query. Wait up to 2000ms for a response
     // From the logic analyzer, "version:3.0.1\r\n\r\nOK\r\n" is typically sent after ~5ms
     loraPrint("AT+V?\r\n");
-    unsigned long startTime = millis();
-    while ((millis() - startTime) < 2000)
+    bool gotResponse = loraWaitForVersionResponse(2000);
+
+    if (gotResponse == false)
     {
-        if (loraAvailable())
-        {
-            if (responseLen - 1 == responseSpot)
-            {
-                for (int i = 1; i < responseLen; i++)
-                    response[i - 1] = response[i]; // Shift the FIFO along by 1
-            }
-            response[responseSpot++] = loraRead();
-            response[responseSpot] = 0;
+        // No response so send +++
+        loraPrint("+++\r\n");
+        delay(100); // Allow STM32 time to enter command mode
 
-            if (strstr(response, "version:"))
-            {
-                // Read in the entire response
-                delay(10);
-                while (loraAvailable())
-                    loraRead();
-
-                muxSelectUsb(); // Connect USB
-                endLoRaConfigureCommunicationOnFacet();
-                return (true);
-            }
-        }
-        delay(1);
-    }
-
-    // No response so send +++
-    loraPrint("+++\r\n");
-    delay(100); // Allow STM32 time to enter command mode
-
-    // Send version query. Wait up to 2000ms for a response
-    loraPrint("AT+V?\r\n");
-    startTime = millis();
-    while ((millis() - startTime) < 2000)
-    {
-        if (loraAvailable())
-        {
-            if (responseLen - 1 == responseSpot)
-            {
-                for (int i = 1; i < responseLen; i++)
-                    response[i - 1] = response[i]; // Shift the FIFO along by 1
-            }
-            response[responseSpot++] = loraRead();
-            response[responseSpot] = 0;
-
-            if (strstr(response, "version:"))
-            {
-                // Read in the entire response
-                delay(10);
-                while (loraAvailable())
-                    loraRead();
-
-                muxSelectUsb(); // Connect USB
-                endLoRaConfigureCommunicationOnFacet();
-                return (true);
-            }
-        }
-        delay(1);
+        // Send version query. Wait up to 2000ms for a response
+        loraPrint("AT+V?\r\n");
+        gotResponse = loraWaitForVersionResponse(2000);
     }
 
     muxSelectUsb(); // Connect USB
     endLoRaConfigureCommunicationOnFacet();
-    systemPrintln("LoRa Error: Unable to enter command mode");
-    return (false);
+    if (!gotResponse)
+        systemPrintln("LoRa Error: Unable to enter command mode");
+    return (gotResponse);
 }
 
 // Stores the current LoRa radio firmware version
 // Note: This enters command mode and does not exit.
-void loraGetVersion()
+bool loraGetVersion()
 {
     // Get the firmware version only once
-    if (strlen(loraFirmwareVersion) > 3)
-        return;
+    if (strlen(loraFirmwareVersionStr) > 3)
+        return (true);
 
     if (loraIsOn() == false)
     {
-        systemPrintln("loraGetVersion: LoRa not powered on.");
-        return;
+        systemPrintln("loraGetVersion: LoRa radio is off");
+        return (false);
     }
 
     if (loraEnterCommandMode() == true)
     {
-        if (settings.debugLora == true)
-        {
-            systemPrintln("Getting LoRa Version");
-            systemFlush(); // Complete prints
-        }
-
-        char response[512];
-        int responseLength = sizeof(response);
-
-        // Request LoRa firmware version with AT+V?
-        // Response contains "version:3.0.1\r\n\r\nOK\r\n"
-        loraSendCommand("AT+V?", response, &responseLength, LORA_CMD_DEFAULT_TIMEOUT_MS, true);
-
-        if (strlen(response) > strlen("version:"))
-        {
-            // Copy only the version substring
-            strncpy(loraFirmwareVersion, &response[strlen("version:")], 5);
-            int verMajor = 0;
-            int verMinor = 0;
-            int verPatch = 0;
-            sscanf(loraFirmwareVersion, "%d.%d.%d", &verMajor, &verMinor, &verPatch); // Do we care if this fails?
-            loraFirmwareVersionInt = (verMajor * 100) + (verMinor * 10) + (verPatch);
-        }
+        systemPrintf("LoRa firmware: %s\r\n", loraFirmwareVersionStr);
 
         if (settings.debugLora == true)
         {
-            systemPrintf("LoRa firmware version: %s\r\n", loraFirmwareVersion);
-
             // "AT+ATTR?" was added with LoRa firmware 3.0.1
             if (loraFirmwareVersionInt >= 301)
             {
@@ -1109,18 +1081,26 @@ void loraGetVersion()
                 systemPrintln("Getting LoRa radio attributes");
                 systemFlush(); // Complete prints
 
-                responseLength = sizeof(response);
-
-                loraSendCommand("AT+ATTR?", response, &responseLength, LORA_CMD_ATTR_TIMEOUT_MS, true);
-
-                if ((responseLength > 0) && (strlen(response) > 0))
-                    systemPrint(response);
+                const size_t responseSize = 512;
+                char *response = (char *)rtkMalloc(responseSize, "loraGetVersionResponse");
+                if (!response)
+                {
+                    systemPrintln("ERROR: Failed to allocate loraGetVersionResponse");
+                }
                 else
-                    systemPrintln("loraGetVersion : could not get radio attributes");
-
-                systemFlush(); // Complete prints
+                {
+                    int responseLength = responseSize;
+                    loraSendCommand("AT+ATTR?", response, &responseLength, LORA_CMD_ATTR_TIMEOUT_MS, true);
+                    if ((responseLength > 0) && (strlen(response) > 0))
+                        systemPrint(response);
+                    else
+                        systemPrintln("loraGetVersion : could not get radio attributes");
+                    systemFlush(); // Complete prints
+                    rtkFree(response, "loraGetVersionResponse");
+                }
             }
         }
+        return (true);
     }
     else
     {
@@ -1130,6 +1110,7 @@ void loraGetVersion()
             systemFlush(); // Complete prints
         }
     }
+    return (false);
 }
 
 //----------------------------------------
@@ -1138,10 +1119,10 @@ void loraRxDirectConnect()
     // Flag that we are in direct connect mode
     inDirectConnectMode = true;
 
-    // Note: we can't call loraRxDirectRemoveFile() here as closing Tera Term will reset the ESP32,
+    // Note: we can't call loraRemoveRxDirectFile() here as closing Tera Term will reset the ESP32,
     //       returning the firmware to normal operation...
 
-    // Paint GNSS Update
+    // Paint LoRa Direct RX
     paintLoRaDirectRx();
 
     systemPrintln();
@@ -1167,13 +1148,14 @@ void loraRxDirectConnect()
     }
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    loraRxDirectRemoveFile();
+    loraRemoveRxDirectFile();
 
     systemFlush(); // Complete prints
 
     ESP.restart();
 }
 
+// Used for RX link testing.
 void loraRxDirectConnectTorch()
 {
     // Torch:
@@ -1197,9 +1179,8 @@ void loraRxDirectConnectTorch()
     loraExitBootloader(); // Disables BOOT pin, then resets the STM32
 
     // Store firmware version in char array
-    // loraGetVersion() calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = true;
-    loraGetVersion();
+    loraGetVersion(); // Calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = false;
 
     loraSetupAlternateDataPort(false); // RX Mode using alternate data port (UART1)
@@ -1227,6 +1208,7 @@ void loraRxDirectConnectTorch()
     }
 }
 
+// Used for RX link testing.
 void loraRxDirectConnectFacetFP()
 {
     // Facet FP:
@@ -1236,13 +1218,9 @@ void loraRxDirectConnectFacetFP()
     // Push all data received on ESP32 UART2 out ESP32 UART0
 
     // We must use SerialForLoRa because loraAvailable checks SerialForLoRa->available
+    beginUart2Serial();
     if (SerialForLoRa == nullptr)
-        SerialForLoRa = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the LoRa radio
-
-    SerialForLoRa->setRxBufferSize(settings.uartReceiveBufferSize);
-    SerialForLoRa->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
-
-    SerialForLoRa->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX); // Keep this at 115200
+        return;
 
     loraPowerOn(); // Power STM32/radio
 
@@ -1251,9 +1229,8 @@ void loraRxDirectConnectFacetFP()
     loraExitBootloader(); // Disables BOOT pin, then resets the STM32
 
     // Store firmware version in char array
-    // loraGetVersion() calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = true;
-    loraGetVersion();
+    loraGetVersion(); // Calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = false;
 
     loraSetupAlternateDataPort(false); // RX Mode using alternate data port (UART2)
@@ -1273,7 +1250,7 @@ void loraRxDirectConnectFacetFP()
     {
         if (SerialForLoRa->available()) // Note: use if, not while
         {
-            if(settings.enableBeeper)
+            if (settings.enableBeeper)
                 beepDurationMs(300); // Beep for this number of ms using the tickerBeepUpdate() task.
             while (SerialForLoRa->available())
                 Serial.write(SerialForLoRa->read());
@@ -1296,10 +1273,10 @@ void loraTxDirectConnect()
     // Flag that we are in direct connect mode
     inDirectConnectMode = true;
 
-    // Note: we can't call loraTxDirectRemoveFile() here as closing Tera Term will reset the ESP32,
+    // Note: we can't call loraRemoveTxDirectFile() here as closing Tera Term will reset the ESP32,
     //       returning the firmware to normal operation...
 
-    // Paint GNSS Update
+    // Paint LoRa Direct TX
     paintLoRaDirectTx();
 
     systemPrintln();
@@ -1325,13 +1302,14 @@ void loraTxDirectConnect()
     }
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    loraTxDirectRemoveFile();
+    loraRemoveTxDirectFile();
 
     systemFlush(); // Complete prints
 
     ESP.restart();
 }
 
+// Used for link testing.
 void loraTxDirectConnectTorch()
 {
     // Torch:
@@ -1355,9 +1333,8 @@ void loraTxDirectConnectTorch()
     loraExitBootloader(); // Disables BOOT pin, then resets the STM32
 
     // Store firmware version in char array
-    // loraGetVersion() calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = true;
-    loraGetVersion();
+    loraGetVersion(); // Calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = false;
 
     loraSetupAlternateDataPort(true); // TX Mode using alternate data port (UART1)
@@ -1375,10 +1352,10 @@ void loraTxDirectConnectTorch()
             static char nmeaTxt[200]; // Max NMEA sentence length is 82
             static char versionString[21] = {0};
             if (strlen(versionString) == 0)
-                firmwareVersionGet(versionString, sizeof(versionString), true);
+                espFirmwareVersionGet(versionString, sizeof(versionString), true);
             snprintf(nmeaTxt, sizeof(nmeaTxt), "$GNTXT,%s,%s,%s,%s,%s,%09ld*",
                      getBrandAttributeFromProductVariant(productVariant)->name, platformPrefix, serialNumber,
-                     versionString, loraFirmwareVersion, lastTx);
+                     versionString, loraFirmwareVersionStr, lastTx);
 
             // From: http://engineeringnotes.blogspot.com/2015/02/generate-crc-for-nmea-strings-arduino.html
             byte CRC = 0; // XOR chars between '$' and '*'
@@ -1412,14 +1389,10 @@ void loraTxDirectConnectFacetFP()
     // Push all data received on ESP32 UART2 out ESP32 UART0
     // Push test data out on ESP32 UART1
 
-    // We must use SerialForLoRa because loraAvailable  checks SerialForLoRa->available
+    // We must use SerialForLoRa because loraAvailable checks SerialForLoRa->available
+    beginUart2Serial();
     if (SerialForLoRa == nullptr)
-        SerialForLoRa = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the LoRa radio
-
-    SerialForLoRa->setRxBufferSize(settings.uartReceiveBufferSize);
-    SerialForLoRa->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
-
-    SerialForLoRa->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX); // Keep this at 115200
+        return;
 
     loraPowerOn(); // Power STM32/radio
 
@@ -1428,9 +1401,8 @@ void loraTxDirectConnectFacetFP()
     loraExitBootloader(); // Disables BOOT pin, then resets the STM32
 
     // Store firmware version in char array
-    // loraGetVersion() calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = true;
-    loraGetVersion();
+    loraGetVersion(); // Calls loraEnterCommandMode() which calls muxSelectLoRaCommunication()
     settings.debugLora = false;
 
     loraSetupAlternateDataPort(true); // TX Mode using alternate data port (UART1)
@@ -1452,10 +1424,10 @@ void loraTxDirectConnectFacetFP()
             static char nmeaTxt[200]; // Max NMEA sentence length is 82
             static char versionString[21] = {0};
             if (strlen(versionString) == 0)
-                firmwareVersionGet(versionString, sizeof(versionString), true);
+                espFirmwareVersionGet(versionString, sizeof(versionString), true);
             snprintf(nmeaTxt, sizeof(nmeaTxt), "$GNTXT,%s,%s,%s,%s,%s,%09ld*",
                      getBrandAttributeFromProductVariant(productVariant)->name, platformPrefix, serialNumber,
-                     versionString, loraFirmwareVersion, lastTx);
+                     versionString, loraFirmwareVersionStr, lastTx);
 
             // From: http://engineeringnotes.blogspot.com/2015/02/generate-crc-for-nmea-strings-arduino.html
             byte CRC = 0; // XOR chars between '$' and '*'
@@ -1490,14 +1462,61 @@ void loraProcessRTCM(uint8_t *rtcmData, uint16_t dataLength)
         // Only needed for Torch. Facet FP has GNSS tied directly to LoRa.
         if (productVariant == RTK_TORCH)
         {
+            // Check to see if the RTCM data conatins the "+++" escape sequence
+            // Will strnstr work on binary data? Probably not?
+            //if (strnstr(rtcmData, "+++", dataLength))
+            uint16_t ptr = 0;
+            uint8_t consecutivePlus = 0;
+            while ((ptr < dataLength) && (consecutivePlus < 3))
+            {
+                if (rtcmData[ptr++] == '+')
+                    consecutivePlus++;
+                else
+                    consecutivePlus = 0;
+            }
+            if (consecutivePlus == 3)
+            {
+                if (settings.debugLora == true)
+                    systemPrintln("loraProcessRTCM: RTCM for LoRa contains +++. Skipping...");
+                return;
+            }
+
             // Send this data to the LoRa radio
             systemFlush();                // Complete prints
+
+// Test for LoRa Framing Error - which will stall Torch LoRa Base TX
+// Generate a framing error by dropping the baud rate to 4800 so that a single 0 is longer
+// than a full byte at 115200
+// #define TORCH_LORA_FE_TEST
+// #if defined(TORCH_LORA_FE_TEST)
+//             static int rtcmCount = 0;
+//             const int feEvery = 100;
+//             rtcmCount++;
+//             if ((productVariant == RTK_TORCH) && (rtcmCount % feEvery == 0))
+//             {
+//                 systemPrintln("<<<<< TORCH LORA FE TEST >>>>>");
+//                 systemFlush();  // Complete prints
+//                 Serial.end();
+//                 Serial.begin(4800); // Drop the baud rate to generate framing errors
+//             }
+// #endif
+
             muxSelectLoRaCommunication(); // Connect the LoRa radio to ESP32 UART0 (shared with USB)
 
             loraWrite(rtcmData, dataLength);
 
             systemFlush();  // Complete prints
             muxSelectUsb(); // Connect USB
+
+// #if defined(TORCH_LORA_FE_TEST)
+//             if ((productVariant == RTK_TORCH) && (rtcmCount % feEvery == 0))
+//             {
+//                 Serial.end();
+//                 Serial.begin(115200);
+//                 systemPrintln(">>>>> TORCH LORA FE TEST <<<<<");
+//                 systemFlush();  // Complete prints
+//             }
+// #endif
         }
 
         // Keep a record of how many LoRa bytes _should_ be being sent
@@ -1519,12 +1538,69 @@ void loraWrite(uint8_t *data, uint16_t dataLength)
         SerialForLoRa->write(data, dataLength);
 }
 
+void loraWrite(uint8_t data)
+{
+    loraWrite(&data, 1);
+}
+
 void loraPrint(const char *data)
 {
     if (productVariant == RTK_TORCH)
         Serial.print(data);
     else if (productVariant == RTK_FACET_FP)
         SerialForLoRa->print(data);
+}
+
+// Print a message to the primary serial port
+// If the port is also being used for bootloader communication (ie on Torch)
+// then switch to USB, print a status update, then return to talking to the STM32.
+void loraSharedPrintln(const char *toPrint)
+{
+    if (productVariant == RTK_TORCH)
+    {
+        Serial.flush(); // Finishing any pending prints to before switching
+
+        muxSelectUsb(); // Reconnect USB to print to terminal
+        Serial.println(toPrint);
+        Serial.flush();
+        muxSelectLoRaCommunication(); // Torch: Disconnect USB, connect to LoRa
+    }
+    else
+    {
+        Serial.println(toPrint);
+    }
+}
+
+// Enable printfs to various endpoints
+// https://stackoverflow.com/questions/42131753/wrapper-for-printf
+void usbPrintf(const char *format, ...)
+{
+    va_list args;
+    va_list args2;
+
+    va_start(args, format);
+    va_copy(args2, args);
+    char buf[vsnprintf(nullptr, 0, format, args) + 1];
+    vsnprintf(buf, sizeof buf, format, args2);
+
+    // Connect UART 0 to the USB UART
+    if (productVariant == RTK_TORCH)
+    {
+        Serial.flush(); // Finishing any pending prints to before switching
+        muxSelectUsb(); // Reconnect USB to print to terminal
+    }
+
+    // Send the output to the USB UART
+    systemPrint(buf);
+    va_end(args);
+    va_end(args2);
+
+    // Connect UART 0 back to the LoRa
+    if (productVariant == RTK_TORCH)
+    {
+        Serial.flush();
+        muxSelectLoRaCommunication(); // Torch: Disconnect USB, connect to LoRa
+    }
 }
 
 void loraPrintf(const char *format, ...)
@@ -1568,5 +1644,347 @@ uint16_t loraRead()
     systemPrintln("loraRead - invalid ProductVariant");
     return 0;
 }
+
+// The following functions are for the STM32 firmware update process.
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+#define STM32_WRITE_BLOCK_MAX 256
+
+uint8_t *stm32PageBuffer = nullptr; // Buffer written to the STM32 flash in 256 byte chunks
+uint16_t stm32BufferIndex = 0;
+
+uint32_t stm32CurrentAddress = 0x08000000; // Next flash address to write; advances as pages are flashed
+
+// Given a chunk of raw binary firmware bytes, feed the STM32 firmware update machine.
+// The binary blob is contiguous, so bytes are simply appended to the page buffer and
+// flashed every time a full 256 byte page accumulates.
+bool stm32UpdateFirmware(uint8_t *dataArray, uint16_t bytesToWrite)
+{
+    bool success = stm32UpdatePageBuffer(dataArray, bytesToWrite);
+
+    if (productVariant == RTK_TORCH)
+    {
+        muxSelectUsb();                               // Reconnect USB to print to terminal
+        firmwareUpdateProgressCallback("LoRa", bytesToWrite); // Notify callback
+        Serial.flush();
+        muxSelectLoRaCommunication(); // Disconnect USB, connect to LoRa
+    }
+    else
+    {
+        firmwareUpdateProgressCallback("LoRa", bytesToWrite); // Notify callback
+    }
+    return success;
+}
+
+// Helper to send STM32 commands and wait for ACK (0x79)
+bool stm32UpdateFirmwareWaitForAck()
+{
+    uint32_t startTime = millis();
+    while (millis() - startTime < 1000)
+    {
+        if (loraAvailable())
+        {
+            if (loraRead() == 0x79)
+                return true;
+        }
+        else
+            yield(); // Feed the idle/watchdog task while waiting on the UART
+    }
+    return false;
+}
+
+// Function to put STM32 into bootload mode and initialize UART sync
+bool stm32UpdateFirmwareBegin()
+{
+    // UART baud rate is started at 115200bps.
+    // Increasing the baud rate does not decrease the programming time. Programming time is
+    // likely limited by STM32's internal flash write time.
+
+    // The STM32 bootloader requires even parity
+    if (productVariant == RTK_TORCH)
+    {
+        // The Torch is connected to the STM32 over ESP UART0 (Serial). There is not a separate UART connection.
+        Serial.begin(115200, SERIAL_8E1);
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        beginUart2Serial(); // Init the UART if not already initialized.
+
+        // Use UART2 to communicate with the LoRa radio
+        SerialForLoRa->begin(115200, SERIAL_8E1, pin_IMU_RX, pin_IMU_TX);
+
+        // (On FP) Connect ESP32 UART2 to LoRa UART2 via SW3 for configuration and bootloading/firmware updates
+        gpioExpanderSelectLoraConfigure();
+    }
+
+    loraPowerOn(); // Regardless of previous state, turn on the STM32
+
+    loraEnterBootloader(); // Push boot pin high and reset STM32
+
+    // Send 0x7F for auto-baud detection
+    loraWrite(0x7F);
+    if (stm32UpdateFirmwareWaitForAck())
+    {
+        loraSharedPrintln("STM32 Bootloader Synced.");
+    }
+    else
+    {
+        loraSharedPrintln("STM32 Bootloader failed to sync - aborting update.");
+        return false;
+    }
+
+    loraSharedPrintln("Erasing flash...");
+
+    // Global Mass Erase Command (0x44 for extended erase)
+    loraWrite(0x44);
+    loraWrite(0xBB); // Checksum for 0x44
+    if (stm32UpdateFirmwareWaitForAck())
+    {
+        loraWrite(0xFF); // Special Mass Erase
+        loraWrite(0xFF);
+        loraWrite(0x00); // Checksum
+        // Mass erase of the whole chip can take much longer than a normal command ACK,
+        // so poll well past the usual 1 second window before giving up.
+        bool erased = false;
+        uint32_t eraseStartTime = millis();
+        while (millis() - eraseStartTime < 20000)
+        {
+            if (stm32UpdateFirmwareWaitForAck())
+            {
+                erased = true;
+                break;
+            }
+            yield(); // Each failed attempt above already yields internally, but be explicit here too
+        }
+
+        if (erased)
+            loraSharedPrintln("STM32 Erased.");
+        else
+        {
+            loraSharedPrintln("STM32 mass erase failed to ACK - aborting update.");
+            return false;
+        }
+    }
+    else
+    {
+        loraSharedPrintln("STM32 did not ACK erase command - aborting update.");
+        return false;
+    }
+
+    // Allocate page buffer if not already allocated
+    if (stm32PageBuffer == nullptr)
+        stm32PageBuffer = (uint8_t *)malloc(STM32_WRITE_BLOCK_MAX);
+
+    stm32BufferIndex = 0;
+    stm32CurrentAddress = 0x08000000; // Reset to Flash start for this update
+
+    return true;
+}
+
+// Write a 256-byte chunk to the STM32 Flash
+bool stm32UpdateFirmwareFlashBlock(uint32_t addr, uint8_t *data, uint16_t len)
+{
+    if (len == 0)
+        return true;
+
+    // systemPrintf("Flashing block: Addr=0x%08X, Len=%d\n\r", addr, len);
+
+    // Write Memory Command
+    loraWrite(0x31);
+    loraWrite(0xCE);
+    if (stm32UpdateFirmwareWaitForAck() == false)
+    {
+        usbPrintf("Write memory command failed, addr: 0x%08x, len: 0x%04x\r\n", addr, len);
+        return false;
+    }
+
+    // Send Address + Checksum
+    uint8_t addrBytes[4] = {(uint8_t)(addr >> 24), (uint8_t)(addr >> 16), (uint8_t)(addr >> 8), (uint8_t)addr};
+    uint8_t checksum = addrBytes[0] ^ addrBytes[1] ^ addrBytes[2] ^ addrBytes[3];
+    loraWrite(addrBytes, 4);
+    loraWrite(checksum);
+
+    if (stm32UpdateFirmwareWaitForAck() == false)
+    {
+        usbPrintf("Send address failed, addr: 0x%08x, len: 0x%04x\r\n", addr, len);
+        return false;
+    }
+
+    // Send Number of bytes - 1 (STM32 protocol requirement)
+    uint8_t n = len - 1;
+    loraWrite(n);
+    checksum = n;
+    for (uint16_t i = 0; i < len; i++)
+    {
+        loraWrite(data[i]);
+        checksum ^= data[i];
+    }
+    loraWrite(checksum);
+
+    if (stm32UpdateFirmwareWaitForAck() == false)
+    {
+        usbPrintf("Send bytes failed, addr: 0x%08x, len: 0x%04x\r\n", addr, len);
+        return false;
+    }
+    return true;
+}
+
+// Add data to the stm32PageBuffer. Write to STM32 when we hit 256 bytes.
+// The binary blob is contiguous, so bytes are always appended at stm32CurrentAddress,
+// which advances by one page every time a full 256 byte block is flashed.
+bool stm32UpdatePageBuffer(uint8_t *dataArray, uint16_t bytesToWrite)
+{
+    for (uint16_t i = 0; i < bytesToWrite; i++)
+    {
+        stm32PageBuffer[stm32BufferIndex++] = dataArray[i];
+
+        // Once we hit 256 bytes, write to STM32
+        if (stm32BufferIndex == STM32_WRITE_BLOCK_MAX)
+        {
+            // A single dropped ACK/NACK is common on real hardware - retry a few times
+            // before treating it as fatal so the buffer index is always resolved one way
+            // or another (never left sitting at 256, which would overflow stm32PageBuffer).
+            bool wrote = false;
+            for (uint8_t attempt = 0; attempt < 3 && !wrote; attempt++)
+                wrote = stm32UpdateFirmwareFlashBlock(stm32CurrentAddress, stm32PageBuffer, STM32_WRITE_BLOCK_MAX);
+
+            stm32BufferIndex = 0; // Buffer is consumed either way - never let it stay at 256
+
+            if (wrote)
+                stm32CurrentAddress += STM32_WRITE_BLOCK_MAX;
+            else
+            {
+                systemPrintf("Flash write failed at address 0x%08X - aborting update.\n\r", stm32CurrentAddress);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// Flushes remaining bytes, cleans up memory, and resets the STM32
+bool stm32UpdateFirmwareEnd()
+{
+    bool success = true;
+    if (success && stm32BufferIndex > 0)
+    {
+        // systemPrintf("Flushing final block: Addr=0x%08X, BufferIndex=%d\n\r", stm32CurrentAddress, stm32BufferIndex);
+        success = stm32UpdateFirmwareFlashBlock(stm32CurrentAddress, stm32PageBuffer, stm32BufferIndex);
+    }
+
+    free(stm32PageBuffer);
+    stm32PageBuffer = nullptr;
+
+    // loraSharedPrintln("Update Complete. Resetting IC...");
+
+    loraExitBootloader(); // Disables BOOT pin, then resets the STM32
+
+    return success;
+}
+
+//----------------------------------------
+// Update the STM32 firmware
+//----------------------------------------
+bool stm32StreamFirmware(NetworkClient * stream,
+                         size_t fileBytes,
+                         uint32_t expectedCrc,
+                         uint8_t * buffer,
+                         size_t packetBytes)
+{
+    muxSelectLoRaCommunication(); // Mandatory for Torch: Connect ESP32 to LoRa for communication
+
+    loraSharedPrintln("Starting LoRa/STM32 firmware update...");
+
+    if (stm32UpdateFirmwareBegin() == false)
+    {
+        loraSharedPrintln(otaEqualSigns);
+        loraSharedPrintln("LoRa/STM32 update failed.");
+        loraSharedPrintln(otaEqualSigns);
+        return false;
+    }
+
+    // Initialize the progress bar
+    firmwareUpdateProgressReset(fileBytes);
+
+    // Compute the CRC across the entire file
+    uint32_t crc = 0;
+
+    unsigned long lastDataTime = millis();
+    size_t validData = 0;
+    while (stream->connected() && (fileBytes > 0))
+    {
+        // Wait until some data is available
+        size_t available = stream->available();
+        if (available == 0)
+        {
+            if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+            {
+                systemPrintln("LoRa OTA update timed out waiting for data");
+                return false;
+            }
+            delay(1);
+            continue;
+        }
+
+        // Read the received data
+        size_t toRead = min(available, packetBytes - validData);
+        int bytesRead = stream->readBytes(&buffer[validData], toRead);
+        if (bytesRead <= 0)
+            break;
+        validData += bytesRead;
+
+        // Fill the packet
+        if ((validData < packetBytes) && (validData != fileBytes))
+            continue;
+
+        // Compute the CRC
+        crc = crc32Compute(crc, buffer, validData);
+
+        // Validate the computed CRC matches the expected CRC
+        if ((validData >= fileBytes) && (crc != expectedCrc))
+        {
+            systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
+            break;
+        }
+
+        // Update this portion of the firmware
+        if (stm32UpdateFirmware(buffer, (uint16_t)validData) == false)
+        {
+            loraSharedPrintln("LoRa/STM32 update failed during WiFi data upload.");
+            break;
+        }
+
+        // Account for this data
+        fileBytes -= validData;
+        firmwareUpdateProgressCallback("LoRa/STM32", validData);
+        lastDataTime = millis();
+        validData = 0;
+    }
+
+    loraSharedPrintln(otaEqualSigns);
+    bool success = (fileBytes == 0) && stm32UpdateFirmwareEnd();
+    if (success)
+        loraSharedPrintln("LoRa/STM32 updated successfully.");
+    else
+        loraSharedPrintln("LoRa/STM32 update failed.");
+    loraSharedPrintln(otaEqualSigns);
+    return success;
+}
+
+//----------------------------------------
+// Gets the five version number parts
+//----------------------------------------
+bool loraGetVersion(int &major, int &minor, int &patch, int &revision, int &releaseCandidate)
+{
+    major = loraFirmwareVersionInt / 100;
+    minor = (loraFirmwareVersionInt % 100) / 10;
+    patch = loraFirmwareVersionInt % 10;
+    revision = 0;
+    releaseCandidate = 0;
+    return true;
+}
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// End of LoRa/STM32 firmware update functions.
 
 #endif // COMPILE_LORA

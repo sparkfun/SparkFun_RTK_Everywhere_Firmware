@@ -97,6 +97,14 @@
         <b>Reset Done</b><br><br>RTK device has now reset.
     </div>
 
+    <div class="container" style="display:none; margin-top:20px;max-width:600px;" id="factoryResetInProcess">
+        <b>Factory Resetting</b><br><br>RTK device is doing a factory reset. Please wait...
+    </div>
+
+    <div class="container" style="display:none; margin-top:20px;max-width:600px;" id="factoryResetComplete">
+        <b>Factory Reset Complete</b><br><br>RTK device has completed a factory reset.
+    </div>
+
     <div class="container" style="display:none; margin-top:20px;max-width:600px;" id="firmwareUploadComplete">
         <b>Done</b><br><br>Firmware update complete. RTK device is now rebooting.
     </div>
@@ -114,8 +122,6 @@
 
             <div align="center" class="small left">
                 Model: <span id="platformPrefix" style="display:inline;">Loading</span><br>
-                RTK Everywhere Firmware: <span id="rtkFirmwareVersion" style="display:inline;">v0.0</span><br>
-                <span id="gnssFirmwareVersion" style="display:inline;">GNSS Firmware: v0.0</span><br>
                 <span id="deviceBTID" style="display:inline;">Bluetooth ID: 0000</span><br>
                 <span id="coordinatesLLH" style="display:inline;">LLh:
                     <span id="geodeticLat" style="display:inline;">40.09029479</span>,
@@ -203,11 +209,11 @@
                     </div>
 
                     <div class="form-group row">
-                        <label for="profileName" class="box-margin20 col-sm-3 col-4 col-form-label">Profile
+                        <label class="box-margin20 col-sm-3 col-4 col-form-label">Profile
                             Name:</label>
                         <div class="col-sm-8 col-7">
-                            <input type="text" class="form-control" id="profileName">
-                            <p id="profileNameError" class="inlineError"></p>
+                            <input type="text" class="form-control" id="profileNameSelected">
+                            <p id="profileNameSelectedError" class="inlineError"></p>
                         </div>
                         <p id="profileChangeMessage" class="inlineSuccess"></p>
                     </div>
@@ -271,16 +277,18 @@
                         </div>
                     </div>
 
-                    <div class="form-group row" id="dynamicModelDropdown">
-                        <label for="dynamicModel" class="col-sm-4 col-6 col-form-label">Dynamic Model:
-                            <span class="tt" data-bs-placement="right"
-                                title="Adjusts the internal algorithm to match the expected application environment. This setting improves the receiver's interpretation of measurements and thus provides a more accurate position output. Setting the receiver to an unsuitable platform model for the given application environment is likely to result in a loss of receiver performance and position accuracy">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
-                        </label>
-                        <div class="col-sm-4 col-6">
-                            <select name="dynamicModel" id="dynamicModel" class="form-dropdown mb-2">
-                            </select>
+                    <div id="dynamicModelSettings" style="display:none">
+                        <div class="form-group row" id="dynamicModelDropdown">
+                            <label for="dynamicModel" class="col-sm-4 col-6 col-form-label">Dynamic Model:
+                                <span class="tt" data-bs-placement="right"
+                                    title="Adjusts the internal algorithm to match the expected application environment. This setting improves the receiver's interpretation of measurements and thus provides a more accurate position output. Setting the receiver to an unsuitable platform model for the given application environment is likely to result in a loss of receiver performance and position accuracy">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-4 col-6">
+                                <select name="dynamicModel" id="dynamicModel" class="form-dropdown mb-2">
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -355,17 +363,16 @@
                     </div>
 
                     <div id="pppSettings" style="display:none">
-                        <div id="pppServiceDropdown">
-                            <label for="pppMode">PPP Service:
-                                <span class="tt" data-bs-placement="right"
-                                    title="Use PPP corrections provided over the Galileo or BeiDou constellations. Default: E6 HAS.">
-                                    <span class="icon-info-circle text-primary ms-2"></span>
-                                </span>
-                            </label>
-                            <div class="col-sm-4 col-6">
-                                <select name="pppMode" id="pppMode" class="form-dropdown mb-2">
-                                </select>
-                            </div>
+
+                        <div id="pppServiceDropdown" class="mb-2">
+                            <label for="pppMode">PPP Service: </label>
+                            <select name="pppMode" id="pppMode" class="form-dropdown">
+                            </select>
+                            <span class="tt" data-bs-placement="right"
+                                title="Use PPP corrections provided over the Galileo or BeiDou constellations. Default: E6 HAS.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                            <br>
                         </div>
 
                         <div id="pppServiceSettings" style="display:none">
@@ -426,6 +433,30 @@
                         </div>
                     </div>
 
+                    <div id="um980GnssSettings" style="display:none">
+                        <div class="form-check mt-3">
+                            <label class="form-check-label" for="enableMultipathMitigation">Enable Multipath
+                                Mitigation</label>
+                            <input class="form-check-input" type="checkbox" value="" id="enableMultipathMitigation">
+                            <span class="tt" data-bs-placement="right"
+                                title="Mitigation can help in urban environments by reducing multipath errors. Default: Enabled.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+                        <div class="form-check mt-3">
+                            <label class="form-check-label" for="um980FixedBaseLLHSubtractSeparation">Subtract
+                                Separation</label>
+                            <input class="form-check-input" type="checkbox" value="" id="um980FixedBaseLLHSubtractSeparation">
+                            <span class="tt" data-bs-placement="right"
+                                title="When Fixed Base coordinates are entered as LLH, the UM980 adds the geoidal separation to the height. Select this to subtract the separation. Default: Disabled.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+
+                    
+
+                    </div>
+
                     <div id="lg290pGnssSettings">
                         <div class="form-check mt-3">
                             <label class="form-check-label" for="useMSM7">MSM7 RTCM Selection</label>
@@ -449,6 +480,97 @@
                                     <input type="number" class="form-control" id="rtcmMinElev">
                                     <p id="rtcmMinElevError" class="inlineError"></p>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group row" id="lg290pRtkDifferentialAgeConfig">
+                            <div class="form-group row">
+                                <label for="lg290pRtkDifferentialAge" class="col-sm-4 col-6 col-form-label">RTK
+                                    Differential Age:
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Max differential age of RTK fix. Default: 120">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                                <div class="col-sm-4 col-6">
+                                    <input type="number" class="form-control" id="lg290pRtkDifferentialAge">
+                                    <p id="lg290pRtkDifferentialAgeError" class="inlineError"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group row" id="lg290pRtkDifferentialSourceTypeConfig">
+                            <div id="lg290pRtkDifferentialSourceTypeDropdown" class="mb-2">
+                                <label for="lg290pRtkDifferentialSourceType">RTK Differential Source Type: </label>
+                                <select name="lg290pRtkDifferentialSourceType" id="lg290pRtkDifferentialSourceType"
+                                    class="form-dropdown">
+                                    <option value="0">Auto</option>
+                                    <option value="1">Normal</option>
+                                    <option value="2">Wide Lane</option>
+                                </select>
+                                <span class="tt" data-bs-placement="right"
+                                    title="The RTK differential source type. Default: Auto">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                                <br>
+                            </div>
+                        </div>
+
+                        <div class="form-group row" id="lg290pRtkReliabilityLevelConfig">
+                            <div id="lg290pRtkReliabilityLevelDropdown" class="mb-2">
+                                <label for="lg290pRtkReliabilityLevel">RTK Reliability Level: </label>
+                                <select name="lg290pRtkReliabilityLevel" id="lg290pRtkReliabilityLevel"
+                                    class="form-dropdown">
+                                    <option value="1">Very relax</option>
+                                    <option value="2">Relax</option>
+                                    <option value="3">Medium</option>
+                                    <option value="4">Strict</option>
+                                    <option value="5">Very strict</option>
+                                </select>
+                                <span class="tt" data-bs-placement="right"
+                                    title="The RTK reliability level. Default: Medium">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                                <br>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="rtcm1033Settings" style="display:none">
+                        <div class="form-group row">
+                            <label for="rtcm1033AntennaDescriptor" class="box-margin20 col-sm-3 col-5 col-form-label">Antenna Descriptor:
+                                    <span class="tt" data-bs-placement="right"
+                                        title="The RTCM 1033 Antenna Descriptor. Max 20 characters. Default: ADVNULLANTENNA">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                            </label>
+                            <div class="col-sm-8 col-6">
+                                <input type="text" class="form-control" id="rtcm1033AntennaDescriptor">
+                                <p id="rtcm1033AntennaDescriptorError" class="inlineError"></p>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="ntriprtcm1033AntennaSerialNr" class="box-margin20 col-sm-3 col-5 col-form-label">Antenna Serial Number:
+                                    <span class="tt" data-bs-placement="right"
+                                        title="The RTCM 1033 Antenna Serial Number. Max 20 characters. Default: Unknown">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                            </label>
+                            <div class="col-sm-8 col-6">
+                                <input type="text" class="form-control" id="rtcm1033AntennaSerialNr">
+                                <p id="rtcm1033AntennaSerialNrError" class="inlineError"></p>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="rtcm1033AntennaSetupID" class="col-sm-4 col-6 col-form-label">Antenna Setup ID:
+                                <span class="tt" data-bs-placement="right"
+                                    title="The RTCM 1033 Antenna Setup ID. 0-255. Default: 0">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-4 col-6">
+                                <input type="number" class="form-control" id="rtcm1033AntennaSetupID">
+                                <p id="rtcm1033AntennaSetupIDError" class="inlineError"></p>
                             </div>
                         </div>
                     </div>
@@ -1291,35 +1413,6 @@
                 </div>
             </div>
 
-            <!-- --------- Point Perfect Config --------- -->
-            <div class="d-grid gap-2">
-                <button class="btn btn-primary mt-3 toggle-btn" id="ppConfig" type="button" data-toggle="collapse"
-                    data-target="#collapsePPConfig" aria-expanded="false" aria-controls="collapsePPConfig"
-                    style="display">
-                    PointPerfect Configuration <i id="pointPerfectCaret" class="caret-icon bi icon-caret-down"></i>
-                </button>
-            </div>
-            <div class="collapse" id="collapsePPConfig">
-                <div class="card card-body">
-
-                    <div>
-                        Device ID: <p id="hardwareID" style="display:inline;">N/A</p><br>
-                    </div>
-
-                    <div id="pointPerfectServiceDropdown">
-                        <label for="pointPerfectService">PointPerfect Service:</label>
-                        <select name="pointPerfectService" id="pointPerfectService" class="form-dropdown mb-2">
-                        </select>
-                        <span class="tt" data-bs-placement="right"
-                            title="The device will attempt to use PointPerfect for corrections. The device must be registered through SparkFun. NTRIP/RTCM service requires WiFi. Default: Disabled">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                        <p id="pointPerfectServiceError" class="inlineError"></p>
-                    </div>
-
-                </div>
-            </div>
-
             <!-- --------- Ports Config --------- -->
             <div class="d-grid gap-2">
                 <button class="btn btn-primary mt-3 toggle-btn" id="portsConfig" type="button" data-toggle="collapse"
@@ -1355,7 +1448,7 @@
                                 <br>
                             </div>
 
-                            <div id="dataPortChannelDropdown" class="mb-2">
+                            <div id="dataPortChannelDropdown" class="mb-2" style="display:none">
                                 <label for="dataPortChannel">Mux Channel: </label>
                                 <select name="dataPortChannel" id="dataPortChannel" class="form-dropdown">
                                     <option value="0">NMEA</option>
@@ -1781,7 +1874,7 @@
                         </div>
                     </div>
 
-                    <div class="form-check">
+                    <div class="form-check" id="forgetRadiosSection" style="display:none">
                         <div class="form-check mt-3">
                             <label class="form-check-label" for="enableForgetRadios">Enable Forget All
                                 Radios</label>
@@ -1804,7 +1897,7 @@
                         <label class="form-check-label" for="enableLora">LoRa</label>
                         <input class="form-check-input" type="checkbox" value="" id="enableLora">
                         <span class="tt" data-bs-placement="right"
-                            title="The internal LoRa Radio can be used as a point-to-point, or point-to-multipoint radio for RTCM transmission. Default: Off">
+                            title="The internal long range (LoRa) radio can be used as a point-to-point, or point-to-multipoint radio for RTCM transmission. Default: Off">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </div>
@@ -1902,7 +1995,7 @@
         <div class="collapse" id="collapseInstrumentConfig">
             <div class="card card-body">
 
-                <div id="tiltConfig">
+                <div id="tiltConfig" style="display:none">
                     <div class="form-check mt-3">
                         <label class="form-check-label" for="enableTiltCompensation">Enable Tilt
                             Compensation</label>
@@ -1912,15 +2005,15 @@
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </div>
+                </div>
 
-                    <div class="form-check mt-3">
-                        <label class="form-check-label" for="outputTipAltitude">Output Tip Altitude</label>
-                        <input class="form-check-input" type="checkbox" value="" id="outputTipAltitude">
-                        <span class="tt" data-bs-placement="right"
-                            title="Output pole tip altitude instead of antenna altitude. Default: Disabled.">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                    </div>
+                <div class="form-check mt-3">
+                    <label class="form-check-label" for="outputTipAltitude">Output Tip Altitude</label>
+                    <input class="form-check-input" type="checkbox" value="" id="outputTipAltitude">
+                    <span class="tt" data-bs-placement="right"
+                        title="Output pole tip altitude instead of antenna altitude. Default: Disabled.">
+                        <span class="icon-info-circle text-primary ms-2"></span>
+                    </span>
                 </div>
 
                 <div id="antennaPhaseCenterConfig">
@@ -1971,20 +2064,50 @@
             <div class="card card-body">
 
                 <div id="uploadNewFirmwareDiv" class="mb-2">
-                    <label class="form-check-label">System Firmware:</label>
-                    <span id="rtkFirmwareVersionUpgrade" style="display:inline;">v0.0</span>
+                    System Firmware: <span id="espFirmwareVersion" style="display:inline;">0.0</span><br>
+                    <span id="gnssFirmwareVersion" style="display:inline;">GNSS Firmware: 0.0</span><br>
+                    <div id="imuFirmwareVersionStrPresent" style="display:none">
+                        IMU Firmware: <span id="imuFirmwareVersionStr" style="display:inline;">0.0</span>
+                    </div>
+                    <div id="loraFirmwareVersionStrPresent" style="display:none">
+                        LoRa Firmware: <span id="loraFirmwareVersionStr" style="display:inline;">0.0</span>
+                    </div>
                 </div>
 
                 <div>
                     <div>
                         <button type="button" id="btnCheckNewFirmware" class="btn btn-primary"
-                            onClick="checkNewFirmware()">Check for New Firmware</button>
+                            onClick="checkNewFirmware()">Check for Updates</button>
 
-                        <span class="tt" data-bs-placement="right"
-                            title="Check SparkFun to see if new firmware is available for this device.">
+                        <span id="firmwareUpdateBubble" class="tt" data-bs-placement="right"
+                            title="Check to see if new firmware is available for this device.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                         <p id="firmwareCheckNewMsg"></p>
+
+                        <div class="form-check mt-3" id="espUpdateFirmwareDiv" style="display:none;">
+                            System Update: <progress id="espUpdateFirmwareProgressBar" value="37" max="100"
+                                    style="width:300px;"></progress>
+                                <p id="espUpdateFirmwareProgressMsg" class="inlineSuccess">37%</p>
+                        </div>
+
+                        <div class="form-check mt-3" id="gnssFirmwareUpdateDiv" style="display:none;">
+                            GNSS Update: <progress id="gnssFirmwareUpdateProgressBar" value="37" max="100"
+                                    style="width:300px;"></progress>
+                                <p id="gnssFirmwareUpdateProgressMsg" class="inlineSuccess">37%</p>
+                        </div>
+
+                        <div class="form-check mt-3" id="loraFirmwareUpdateDiv" style="display:none;">
+                            LoRa Update: <progress id="loraFirmwareUpdateProgressBar" value="37" max="100"
+                                    style="width:300px;"></progress>
+                                <p id="loraFirmwareUpdateProgressMsg" class="inlineSuccess">37%</p>
+                        </div>
+
+                        <div class="form-check mt-3" id="imuFirmwareUpdateDiv" style="display:none;">
+                            IMU Update: <progress id="imuFirmwareUpdateProgressBar" value="37" max="100"
+                                    style="width:300px;"></progress>
+                                <p id="imuFirmwareUpdateProgressMsg" class="inlineSuccess">37%</p>
+                        </div>
 
                         <div class="form-check mt-3">
                             <label class="form-check-label" for="enableRCFirmware">Allow Beta Firmware</label>
@@ -2020,29 +2143,6 @@
                         </div>
 
                     </div>
-                    <br>
-
-                    <div align="center" id="divGetNewFirmware" style="display:none">
-                        <button type="button" id="btnGetNewFirmware" class="btn btn-primary box-margin20"
-                            onClick="getNewFirmware()">Update to v3.14.15</button>
-
-                        <center><progress id="firmwareUpdateProgressBar" value="12" max="100"
-                                style="width:300px;"></progress>
-                            <p id="firmwareUpdateProgressMsg" class="inlineSuccess">37%</p>
-                        </center>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="btn btn-primary">
-                        <input type="file" name="binfile" id="submitFirmwareFile" onchange="firmwareUploadWait()" />
-                        Upload BIN
-                    </label>
-                    <span class="tt" data-bs-placement="right"
-                        title="Update the unit's firmware by uploading a binary file from the connected phone or PC.">
-                        <span class="icon-info-circle text-primary ms-2"></span>
-                    </span><br>
-                    <p id="firmwareUploadMsg" class="inlineSuccess"></p>
                 </div>
                 <br>
 
@@ -2285,14 +2385,13 @@
                     <label class="form-check-label" for="enableFactoryDefaults">Enable Factory Defaults</label>
                     <input class="form-check-input" type="checkbox" value="" id="enableFactoryDefaults" unchecked>
                     <span class="tt" data-bs-placement="right"
-                        title="Factory Defaults will erase any user settings and reset the internal receiver to stock settings. Any logs on SD are maintained. To prevent accidental reset the checkbox must first be checked before the button is pressed.">
+                        title="Factory Defaults will erase any user settings and reset the internal receiver to stock settings. Any other profiles are maintained. Any logs on SD are maintained. To prevent accidental reset the checkbox must first be checked before the button is pressed.">
                         <span class="icon-info-circle text-primary ms-2"></span>
                     </span>
                 </div>
                 <div class="form-check">
                     <button type="button" id="factoryDefaults" class="btn btn-primary"
                         onClick="resetToFactoryDefaults()" disabled>Reset to Factory Defaults</button>
-                    <p id="factoryDefaultsMsg" class="inlineSuccess"></p>
                 </div>
             </div>
         </div>

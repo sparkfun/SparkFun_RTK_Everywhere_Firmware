@@ -46,7 +46,7 @@ void printMosaicCardSpace()
         // On Flex mosaic-X5, the internal mosaic SD card is not accessible
         char myString[70];
         snprintf(myString, sizeof(myString), "SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
-        if(!inMainMenu)
+        if (!inMainMenu)
             systemPrintln(myString);
     }
 }
@@ -55,7 +55,7 @@ void printMosaicCardSpace()
 // Control the messages that get logged to SD
 //----------------------------------------
 
-#ifdef  COMPILE_MENU_LOGGING
+#ifdef COMPILE_MENU_LOGGING
 
 void menuLogMosaic()
 {
@@ -155,7 +155,7 @@ void menuLogMosaic()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-#endif  // COMPILE_MENU_LOGGING
+#endif // COMPILE_MENU_LOGGING
 
 //==========================================================================
 // GNSS_MOSAIC class implementation
@@ -311,10 +311,7 @@ void GNSS_MOSAIC::begin()
         if (isPresent() == false) // Detect if the module is present
             return;
 
-        // Set COM2 (Radio) protocol(s)
-        // Both Ext Radio and LoRa need RTCM on UART2
-        // Note: this is probably redundant? I'm now not sure why I added it...
-        setCorrRadioExtPort((settings.enableExtCorrRadio || settings.enableLora), true); // Force the setting
+        // Set COM2 (Radio) protocol(s) is handled by correctionUpdateSource()
 
         updateSD(); // Check card size and free space
 
@@ -633,7 +630,7 @@ bool GNSS_MOSAIC::configureOnce()
     // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format
     response &= configureGNSSCOM(pointPerfectLbandNeeded());
 
-    // COM2 is configured by setCorrRadioExtPort
+    // COM2 is configured by setExternalCorrections
 
     // Configure USB1 for NMEA and RTCMv3. No L-Band. Not encapsulated.
     response &= sendWithResponse("sdio,USB1,auto,RTCMv3+NMEA\n\r", "DataInOut");
@@ -701,6 +698,24 @@ bool GNSS_MOSAIC::configureRover()
         systemPrintln("mosaic-X5 Rover failed to configure");
 
     return (response);
+}
+
+//----------------------------------------
+// Configure the RTCM 1033 Antenna Description
+//----------------------------------------
+bool GNSS_MOSAIC::configureRtcm1033()
+{
+    if (present.rtcm1033AntennaDescription)
+    {
+        String setting =
+            String("sao,Main,,,,\"" + String(settings.rtcm1033AntennaDescriptor) + "\",\""
+            + String(settings.rtcm1033AntennaSerialNr) + "\","
+            + String(settings.rtcm1033AntennaSetupID)
+            + "\n\r");
+        return sendWithResponse(setting, "AntennaOffset");
+    }
+
+    return true; // Return true to clear configuration
 }
 
 //----------------------------------------
@@ -1288,6 +1303,22 @@ uint32_t GNSS_MOSAIC::getTimeAccuracy()
 }
 
 //----------------------------------------
+// Sets the pieces of the version number
+//----------------------------------------
+bool GNSS_MOSAIC::getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, uint8_t &revision)
+{
+    if (online.gnss)
+    {
+        major = _versionMajor;
+        minor = _versionMinor;
+        patch = _versionPatch;
+        revision = _versionRevision;
+        return (true);
+    }
+    return (false);
+}
+
+//----------------------------------------
 // Returns full year, ie 2023, not 23.
 //----------------------------------------
 uint16_t GNSS_MOSAIC::getYear()
@@ -1369,23 +1400,6 @@ bool GNSS_MOSAIC::isConfirmedTime()
     return _validTime;
 }
 
-// Returns true if data is arriving on the Radio Ext port
-bool GNSS_MOSAIC::isCorrRadioExtPortActive()
-{
-    if (!settings.enableExtCorrRadio)
-        return false;
-
-    if (_radioExtBytesReceived_millis > 0) // Avoid a false positive
-    {
-        // Return true if _radioExtBytesReceived_millis increased
-        // in the last settings.correctionsSourcesLifetime_s
-        if ((millis() - _radioExtBytesReceived_millis) < (settings.correctionsSourcesLifetime_s * 1000))
-            return true;
-    }
-
-    return false;
-}
-
 //----------------------------------------
 // Return true if GNSS receiver has a higher quality DGPS fix than 3D
 //----------------------------------------
@@ -1396,6 +1410,28 @@ bool GNSS_MOSAIC::isDgpsFixed()
     if ((_fixType == 2) || (_fixType == 6))
         return (true);
     return (false);
+}
+
+//----------------------------------------
+// Returns 0 if corrections can not be arriving on the selected port
+// Returns 2 if corrections truly are arriving on the selected port
+//----------------------------------------
+int GNSS_MOSAIC::isExternalCorrectionActive(uint8_t port)
+{
+    // FPM and Facet mosaic only support corrections on COM2
+    // Ignore port
+    if (_externalCorrectionsEnabled < 1)
+        return 0;
+
+    if (_radioExtBytesReceived_millis > 0) // Avoid a false positive
+    {
+        // Return true if _radioExtBytesReceived_millis increased
+        // in the last settings.correctionsSourcesLifetime_s
+        if ((millis() - _radioExtBytesReceived_millis) < (settings.correctionsSourcesLifetime_s * 1000))
+            return 2;
+    }
+
+    return 0;
 }
 
 //----------------------------------------
@@ -2167,42 +2203,65 @@ bool GNSS_MOSAIC::setConstellations()
     return (sendWithResponse(setting, "SatelliteTracking", 1000, 200));
 }
 
-// Enable / disable corrections protocol(s) on the Radio External port
+// Enable / disable external corrections protocol(s) on the chosen port
 // Always update if force is true. Otherwise, only update if enable has changed state
 // Notes:
 //   NrBytesReceived is reset when sdio,COM2 is sent. This causes  NrBytesReceived to
 //   be less than previousNrBytesReceived, which in turn causes a corrections timeout.
 //   So, we need to reset previousNrBytesReceived and firstTimeNrBytesReceived here.
-bool GNSS_MOSAIC::setCorrRadioExtPort(bool enable, bool force)
+bool GNSS_MOSAIC::setExternalCorrections(uint8_t port, bool enable, bool force, const char *debug)
 {
-    if (force || (enable != _corrRadioExtPortEnabled))
+    // mosaic has UARTs 1-4, but we will only ever use 2 for corrections
+    if ((port < 2) || (port > 2))
     {
-        String setting = String("sdio,COM2,");
-        if (enable)
-            setting += String("RTCMv3,");
-        else
-            setting += String("none,");
-        // Configure COM2 for NMEA and RTCMv3 output. No L-Band. Not encapsulated.
-        setting += String("RTCMv3+NMEA\n\r");
+        systemPrintf("setExternalCorrections: invalid port %d\r\n", port);
+        return false;
+    }
 
-        if (sendWithResponse(setting, "DataInOut"))
+    if (online.gnss)
+    {
+        // Someday, read/modify/write setPortInputProtocols
+
+        if (force || (enable != _externalCorrectionsEnabled))
         {
-            if ((settings.debugCorrections == true) && !inMainMenu)
+            String setting = String("sdio,COM2,");
+            if (enable)
+                setting += String("RTCMv3,");
+            else
+                setting += String("none,");
+            // Configure COM2 for NMEA and RTCMv3 output. No L-Band. Not encapsulated.
+            setting += String("RTCMv3+NMEA\n\r");
+
+            if (sendWithResponse(setting, "DataInOut"))
             {
-                systemPrintf("Radio Ext corrections: %s -> %s%s\r\n", _corrRadioExtPortEnabled ? "enabled" : "disabled",
-                             enable ? "enabled" : "disabled", force ? " (Forced)" : "");
-            }
+                if ((settings.debugCorrections == true) && !inMainMenu)
+                {
+                    systemPrintf("setExternalCorrections: %s -> %s%s%s%s%s\r\n",
+                                 _externalCorrectionsEnabled == -1 ? "not set" :
+                                 _externalCorrectionsEnabled ? "enabled" : "disabled",
+                                 enable ? "enabled" : "disabled",
+                                 force ? " (Forced)" : "",
+                                 debug ? " (" : "",
+                                 debug ? debug : "",
+                                 debug ? ")" : "");
+                }
 
-            _corrRadioExtPortEnabled = enable;
-            previousNrBytesReceived = 0;
-            firstTimeNrBytesReceived = true;
-            return true;
-        }
-        else
-        {
-            systemPrintf("Radio Ext corrections FAILED: %s -> %s%s\r\n",
-                         _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled",
-                         force ? " (Forced)" : "");
+                _externalCorrectionsEnabled = enable;
+                previousNrBytesReceived = 0;
+                firstTimeNrBytesReceived = true;
+                return true;
+            }
+            else
+            {
+                systemPrintf("setExternalCorrections FAILED: %s -> %s%s%s%s%s\r\n",
+                                 _externalCorrectionsEnabled == -1 ? "not set" :
+                                 _externalCorrectionsEnabled ? "enabled" : "disabled",
+                                 enable ? "enabled" : "disabled",
+                                 force ? " (Forced)" : "",
+                                 debug ? " (" : "",
+                                 debug ? debug : "",
+                                 debug ? ")" : "");
+            }
         }
     }
 
@@ -2632,8 +2691,8 @@ void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
 {
     _latitude = sempSbfGetF8(parse, 16) * 180.0 / PI; // Convert from radians to degrees
     _longitude = sempSbfGetF8(parse, 24) * 180.0 / PI;
-    _altitude = sempSbfGetF8(parse, 32); // Ellipsoidal height
-    _geoidalSeparation = (double)sempSbfGetF4(parse, 40); // Geoid undulation
+    _altitude = sempSbfGetF8(parse, 32);                            // Ellipsoidal height
+    _geoidalSeparation = (double)sempSbfGetF4(parse, 40);           // Geoid undulation
     _horizontalAccuracy = ((float)sempSbfGetU2(parse, 90)) / 100.0; // Convert from cm to m
 
     // NrSV is the total number of satellites used in the PVT computation.
@@ -2990,12 +3049,12 @@ void GNSS_MOSAIC::updateSD()
 //----------------------------------------
 void GNSS_MOSAIC::waitSBFReceiverSetup(HardwareSerial *serialPort, unsigned long timeout)
 {
-    uint8_t * buffer;
+    uint8_t *buffer;
     size_t bufferLength;
 
     // Note: _isBlocking should be set externally - if needed
 
-    const SEMP_PARSER_DESCRIPTION * sbfParserTable[] = {&sempSbfParserDescription};
+    const SEMP_PARSER_DESCRIPTION *sbfParserTable[] = {&sempSbfParserDescription};
     const int sbfParserCount = sizeof(sbfParserTable) / sizeof(sbfParserTable[0]);
     SEMP_PARSE_STATE *sbfParse;
 
@@ -3174,7 +3233,7 @@ void nmeaExtractStdDeviations(char *nmeaSentence, int sentenceLength)
 // This function mops up any non-SBF data rejected by the SBF parser
 // It is raw L-Band (containing SPARTN), so pass it to the SPARTN parser
 //----------------------------------------
-void processNonSBFData(const uint8_t * buffer, size_t length)
+void processNonSBFData(const uint8_t *buffer, size_t length)
 {
     for (uint32_t dataOffset = 0; dataOffset < length; dataOffset++)
         // Update the SPARTN parser state based on the non-SBF byte
@@ -3194,10 +3253,8 @@ void processSBFReceiverSetup(SEMP_PARSE_STATE *parse, uint16_t type)
 
         // gnssFirmwareVersion is 4.14.4, 4.14.10.1, etc.
         // Create gnssFirmwareVersionInt from the first two fields only, so it will fit on the OLED
-        int verMajor = 0;
-        int verMinor = 0;
-        sscanf(gnssFirmwareVersion, "%d.%d.", &verMajor, &verMinor); // Do we care if this fails?
-        gnssFirmwareVersionInt = (verMajor * 100) + verMinor;
+        sscanf(gnssFirmwareVersion, "%d.%d.%d.%d", &_versionMajor, &_versionMinor, &_versionPatch, &_versionRevision); // Do we care if this fails?
+        gnssFirmwareVersionInt = (_versionMajor * 100) + _versionMinor;
 
         GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
         mosaic->_receiverSetupSeen = true;
@@ -3366,97 +3423,104 @@ bool mosaicCommandList(RTK_Settings_Types type,
                        int settingsIndex,
                        bool inCommands,
                        int qualifier,
-                       char * settingName,
-                       char * settingValue)
+                       char *settingName,
+                       char *settingValue)
 {
     switch (type)
     {
-        default:
-            return false;
+    default:
+        return false;
 
-        case tMosaicConst: {
-            // Record Mosaic Constellations
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
-                         mosaicSignalConstellations[x].configName);
+    case tMosaicConst:
+    {
+        // Record Mosaic Constellations
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                     mosaicSignalConstellations[x].configName);
 
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, "tMosaicConst", settingValue);
-            }
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicConst", settingValue);
         }
-        break;
-        case tMosaicMSNmea: {
-            // Record Mosaic NMEA message streams
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
-                         mosaicMessagesNMEA[x].msgTextName);
+    }
+    break;
+    case tMosaicMSNmea:
+    {
+        // Record Mosaic NMEA message streams
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                     mosaicMessagesNMEA[x].msgTextName);
 
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, "tMosaicMSNmea", settingValue);
-            }
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicMSNmea", settingValue);
         }
-        break;
-        case tMosaicSINmea: {
-            // Record Mosaic NMEA stream intervals
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[settingsIndex].name, x);
+    }
+    break;
+    case tMosaicSINmea:
+    {
+        // Record Mosaic NMEA stream intervals
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[settingsIndex].name, x);
 
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, "tMosaicSINmea", mosaicMsgRates[atoi(settingValue)].humanName);
-            }
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicSINmea", mosaicMsgRates[atoi(settingValue)].humanName);
         }
-        break;
-        case tMosaicMIRvRT: {
-            // Record Mosaic Rover RTCM intervals
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
-                         mosaicRTCMv3MsgIntervalGroups[x].name);
+    }
+    break;
+    case tMosaicMIRvRT:
+    {
+        // Record Mosaic Rover RTCM intervals
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                     mosaicRTCMv3MsgIntervalGroups[x].name);
 
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, "tMosaicMIRvRT", settingValue);
-            }
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicMIRvRT", settingValue);
         }
-        break;
-        case tMosaicMIBaRT: {
-            // Record Mosaic Base RTCM intervals
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
-                         mosaicRTCMv3MsgIntervalGroups[x].name);
+    }
+    break;
+    case tMosaicMIBaRT:
+    {
+        // Record Mosaic Base RTCM intervals
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                     mosaicRTCMv3MsgIntervalGroups[x].name);
 
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, "tMosaicMIBaRT", settingValue);
-            }
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicMIBaRT", settingValue);
         }
-        break;
-        case tMosaicMERvRT: {
-            // Record Mosaic Rover RTCM enabled
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
-                         mosaicMessagesRTCMv3[x].name);
+    }
+    break;
+    case tMosaicMERvRT:
+    {
+        // Record Mosaic Rover RTCM enabled
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                     mosaicMessagesRTCMv3[x].name);
 
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, "tMosaicMERvRT", settingValue);
-            }
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicMERvRT", settingValue);
         }
-        break;
-        case tMosaicMEBaRT: {
-            // Record Mosaic Base RTCM enabled
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
-                         mosaicMessagesRTCMv3[x].name);
+    }
+    break;
+    case tMosaicMEBaRT:
+    {
+        // Record Mosaic Base RTCM enabled
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+                     mosaicMessagesRTCMv3[x].name);
 
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, "tMosaicMEBaRT", settingValue);
-            }
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "tMosaicMEBaRT", settingValue);
         }
-        break;
+    }
+    break;
     }
     return true;
 }
@@ -3557,93 +3621,100 @@ void mosaicCommandTypeJson(JsonArray &command_types)
 //----------------------------------------
 bool mosaicCreateString(RTK_Settings_Types type,
                         int settingsIndex,
-                        char * newSettings)
+                        char *newSettings)
 {
     switch (type)
     {
-        default:
-            return false;
+    default:
+        return false;
 
-        case tMosaicConst: {
-            // Record Mosaic Constellations
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50];
-                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
-                         mosaicSignalConstellations[x].configName,
-                         ((settings.mosaicConstellations[x] == 0) ? "false" : "true"));
-                stringRecord(newSettings, tempString);
-            }
+    case tMosaicConst:
+    {
+        // Record Mosaic Constellations
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50];
+            snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                     mosaicSignalConstellations[x].configName,
+                     ((settings.mosaicConstellations[x] == 0) ? "false" : "true"));
+            stringRecord(newSettings, tempString);
         }
-        break;
-        case tMosaicMSNmea: {
-            // Record Mosaic NMEA message streams
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50]; // messageRateNMEA_GGA,1,
-                snprintf(tempString, sizeof(tempString), "%s%s,%0d,", rtkSettingsEntries[settingsIndex].name,
-                         mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageStreamNMEA[x]);
-                stringRecord(newSettings, tempString);
-            }
+    }
+    break;
+    case tMosaicMSNmea:
+    {
+        // Record Mosaic NMEA message streams
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50]; // messageRateNMEA_GGA,1,
+            snprintf(tempString, sizeof(tempString), "%s%s,%0d,", rtkSettingsEntries[settingsIndex].name,
+                     mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageStreamNMEA[x]);
+            stringRecord(newSettings, tempString);
         }
-        break;
-        case tMosaicSINmea: {
-            // Record Mosaic NMEA stream intervals
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50]; // streamIntervalNMEA_1,10,
-                snprintf(tempString, sizeof(tempString), "%s%d,%0d,", rtkSettingsEntries[settingsIndex].name, x,
-                         settings.mosaicStreamIntervalsNMEA[x]);
-                stringRecord(newSettings, tempString);
-            }
+    }
+    break;
+    case tMosaicSINmea:
+    {
+        // Record Mosaic NMEA stream intervals
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50]; // streamIntervalNMEA_1,10,
+            snprintf(tempString, sizeof(tempString), "%s%d,%0d,", rtkSettingsEntries[settingsIndex].name, x,
+                     settings.mosaicStreamIntervalsNMEA[x]);
+            stringRecord(newSettings, tempString);
         }
-        break;
-        case tMosaicMIRvRT: {
-            // Record Mosaic Rover RTCM intervals
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50];
-                snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
-                         mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
-                stringRecord(newSettings, tempString);
-            }
+    }
+    break;
+    case tMosaicMIRvRT:
+    {
+        // Record Mosaic Rover RTCM intervals
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50];
+            snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
+                     mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
+            stringRecord(newSettings, tempString);
         }
-        break;
-        case tMosaicMIBaRT: {
-            // Record Mosaic Base RTCM intervals
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50];
-                snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
-                         mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Base[x]);
-                stringRecord(newSettings, tempString);
-            }
+    }
+    break;
+    case tMosaicMIBaRT:
+    {
+        // Record Mosaic Base RTCM intervals
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50];
+            snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[settingsIndex].name,
+                     mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Base[x]);
+            stringRecord(newSettings, tempString);
         }
-        break;
-        case tMosaicMERvRT: {
-            // Record Mosaic Rover RTCM enabled
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50];
-                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
-                         mosaicMessagesRTCMv3[x].name,
-                         settings.mosaicMessageEnabledRTCMv3Rover[x] == 0 ? "false" : "true");
-                stringRecord(newSettings, tempString);
-            }
+    }
+    break;
+    case tMosaicMERvRT:
+    {
+        // Record Mosaic Rover RTCM enabled
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50];
+            snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                     mosaicMessagesRTCMv3[x].name,
+                     settings.mosaicMessageEnabledRTCMv3Rover[x] == 0 ? "false" : "true");
+            stringRecord(newSettings, tempString);
         }
-        break;
-        case tMosaicMEBaRT: {
-            // Record Mosaic Base RTCM enabled
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                char tempString[50];
-                snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
-                         mosaicMessagesRTCMv3[x].name,
-                         settings.mosaicMessageEnabledRTCMv3Base[x] == 0 ? "false" : "true");
-                stringRecord(newSettings, tempString);
-            }
+    }
+    break;
+    case tMosaicMEBaRT:
+    {
+        // Record Mosaic Base RTCM enabled
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            char tempString[50];
+            snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[settingsIndex].name,
+                     mosaicMessagesRTCMv3[x].name,
+                     settings.mosaicMessageEnabledRTCMv3Base[x] == 0 ? "false" : "true");
+            stringRecord(newSettings, tempString);
         }
-        break;
+    }
+    break;
     }
     return true;
 }
@@ -3652,94 +3723,101 @@ bool mosaicCreateString(RTK_Settings_Types type,
 // Return setting value as a string
 //----------------------------------------
 bool mosaicGetSettingValue(RTK_Settings_Types type,
-                           const char * suffix,
+                           const char *suffix,
                            int settingsIndex,
                            int qualifier,
-                           char * settingValueStr)
+                           char *settingValueStr)
 {
     switch (type)
     {
-        case tMosaicConst: {
-            for (int x = 0; x < qualifier; x++)
+    case tMosaicConst:
+    {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
             {
-                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
-                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
-                {
-                    writeToString(settingValueStr, settings.mosaicConstellations[x]);
-                    return true;
-                }
-            }
-        }
-        break;
-        case tMosaicMSNmea: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
-                    (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.mosaicMessageStreamNMEA[x]);
-                    return true;
-                }
-            }
-        }
-        break;
-        case tMosaicSINmea: {
-            int stream;
-            if (sscanf(suffix, "%d", &stream) == 1)
-            {
-                writeToString(settingValueStr, settings.mosaicStreamIntervalsNMEA[stream]);
+                writeToString(settingValueStr, settings.mosaicConstellations[x]);
                 return true;
             }
         }
-        break;
-        case tMosaicMIRvRT: {
-            for (int x = 0; x < qualifier; x++)
+    }
+    break;
+    case tMosaicMSNmea:
+    {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
+                (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
             {
-                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
-                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
-                {
-                    writeToString(settingValueStr, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
-                    return true;
-                }
+                writeToString(settingValueStr, settings.mosaicMessageStreamNMEA[x]);
+                return true;
             }
         }
-        break;
-        case tMosaicMIBaRT: {
-            for (int x = 0; x < qualifier; x++)
+    }
+    break;
+    case tMosaicSINmea:
+    {
+        int stream;
+        if (sscanf(suffix, "%d", &stream) == 1)
+        {
+            writeToString(settingValueStr, settings.mosaicStreamIntervalsNMEA[stream]);
+            return true;
+        }
+    }
+    break;
+    case tMosaicMIRvRT:
+    {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
             {
-                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
-                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
-                {
-                    writeToString(settingValueStr, settings.mosaicMessageIntervalsRTCMv3Base[x]);
-                    return true;
-                }
+                writeToString(settingValueStr, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
+                return true;
             }
         }
-        break;
-        case tMosaicMERvRT: {
-            for (int x = 0; x < qualifier; x++)
+    }
+    break;
+    case tMosaicMIBaRT:
+    {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
             {
-                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
-                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
-                {
-                    writeToString(settingValueStr, settings.mosaicMessageEnabledRTCMv3Rover[x]);
-                    return true;
-                }
+                writeToString(settingValueStr, settings.mosaicMessageIntervalsRTCMv3Base[x]);
+                return true;
             }
         }
-        break;
-        case tMosaicMEBaRT: {
-            for (int x = 0; x < qualifier; x++)
+    }
+    break;
+    case tMosaicMERvRT:
+    {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
             {
-                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
-                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
-                {
-                    writeToString(settingValueStr, settings.mosaicMessageEnabledRTCMv3Base[x]);
-                    return true;
-                }
+                writeToString(settingValueStr, settings.mosaicMessageEnabledRTCMv3Rover[x]);
+                return true;
             }
         }
-        break;
+    }
+    break;
+    case tMosaicMEBaRT:
+    {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+            {
+                writeToString(settingValueStr, settings.mosaicMessageEnabledRTCMv3Base[x]);
+                return true;
+            }
+        }
+    }
+    break;
     }
     return false;
 }
@@ -3816,102 +3894,109 @@ void mosaicNewClass()
     present.dynamicModel = true;
     present.mosaicMicroSd = true;
     // present.needsExternalPpl = true; // Nope. No L-Band support...
+    present.rtcm1033AntennaDescription = true;
 }
 
 //----------------------------------------
 // Called by gnssNewSettingValue to save a mosaic specific setting
 //----------------------------------------
-bool mosaicNewSettingValue(struct Settings * tempSettings,
+bool mosaicNewSettingValue(struct Settings *tempSettings,
                            RTK_Settings_Types type,
-                           const char * suffix,
+                           const char *suffix,
                            int qualifier,
                            double d)
 {
     switch (type)
     {
-        case tCmnCnst:
-            for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
+    case tCmnCnst:
+        for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
+        {
+            if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
             {
-                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
-                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
-                {
-                    tempSettings->mosaicConstellations[x] = d;
-                    return true;
-                }
-            }
-            break;
-        case tMosaicConst:
-            // Covered by tCmnCnst
-            break;
-        case tMosaicMSNmea: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
-                    (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
-                {
-                    tempSettings->mosaicMessageStreamNMEA[x] = d;
-                    return true;
-                }
-            }
-        }
-        break;
-        case tMosaicSINmea: {
-            int stream;
-            if (sscanf(suffix, "%d", &stream) == 1)
-            {
-                tempSettings->mosaicStreamIntervalsNMEA[stream] = d;
+                tempSettings->mosaicConstellations[x] = d;
                 return true;
             }
         }
         break;
-        case tMosaicMIRvRT: {
-            for (int x = 0; x < qualifier; x++)
+    case tMosaicConst:
+        // Covered by tCmnCnst
+        break;
+    case tMosaicMSNmea:
+    {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
+                (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
             {
-                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
-                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
-                {
-                    tempSettings->mosaicMessageIntervalsRTCMv3Rover[x] = d;
-                    return true;
-                }
+                tempSettings->mosaicMessageStreamNMEA[x] = d;
+                return true;
             }
         }
-        break;
-        case tMosaicMIBaRT: {
-            for (int x = 0; x < qualifier; x++)
+    }
+    break;
+    case tMosaicSINmea:
+    {
+        int stream;
+        if (sscanf(suffix, "%d", &stream) == 1)
+        {
+            tempSettings->mosaicStreamIntervalsNMEA[stream] = d;
+            return true;
+        }
+    }
+    break;
+    case tMosaicMIRvRT:
+    {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
             {
-                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
-                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
-                {
-                    tempSettings->mosaicMessageIntervalsRTCMv3Base[x] = d;
-                    return true;
-                }
+                tempSettings->mosaicMessageIntervalsRTCMv3Rover[x] = d;
+                return true;
             }
         }
-        break;
-        case tMosaicMERvRT: {
-            for (int x = 0; x < qualifier; x++)
+    }
+    break;
+    case tMosaicMIBaRT:
+    {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
             {
-                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
-                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
-                {
-                    tempSettings->mosaicMessageEnabledRTCMv3Rover[x] = d;
-                    return true;
-                }
+                tempSettings->mosaicMessageIntervalsRTCMv3Base[x] = d;
+                return true;
             }
         }
-        break;
-        case tMosaicMEBaRT: {
-            for (int x = 0; x < qualifier; x++)
+    }
+    break;
+    case tMosaicMERvRT:
+    {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
             {
-                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
-                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
-                {
-                    tempSettings->mosaicMessageEnabledRTCMv3Base[x] = d;
-                    return true;
-                }
+                tempSettings->mosaicMessageEnabledRTCMv3Rover[x] = d;
+                return true;
             }
         }
-        break;
+    }
+    break;
+    case tMosaicMEBaRT:
+    {
+        for (int x = 0; x < qualifier; x++)
+        {
+            if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+            {
+                tempSettings->mosaicMessageEnabledRTCMv3Base[x] = d;
+                return true;
+            }
+        }
+    }
+    break;
     }
     return false;
 }
@@ -3919,93 +4004,100 @@ bool mosaicNewSettingValue(struct Settings * tempSettings,
 //----------------------------------------
 // Called by gnssSettingsToFile to save mosaic specific settings
 //----------------------------------------
-bool mosaicSettingsToFile(char * line,
+bool mosaicSettingsToFile(char *line,
                           size_t lineSize,
                           RTK_Settings_Types type,
                           int settingsIndex)
 {
     switch (type)
     {
-        default:
-            return false;
+    default:
+        return false;
 
-        case tMosaicConst: {
-            // Record Mosaic Constellations
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                // constellation_GLONASS=1
-                snprintf(line, lineSize, "%s%s=%0d\r\n", rtkSettingsEntries[settingsIndex].name,
-                         mosaicSignalConstellations[x].configName, settings.mosaicConstellations[x]);
-                nvmRecordStringToFile(line);
-            }
+    case tMosaicConst:
+    {
+        // Record Mosaic Constellations
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            // constellation_GLONASS=1
+            snprintf(line, lineSize, "%s%s=%0d\r\n", rtkSettingsEntries[settingsIndex].name,
+                     mosaicSignalConstellations[x].configName, settings.mosaicConstellations[x]);
+            nvmRecordStringToFile(line);
         }
-        break;
-        case tMosaicMSNmea: {
-            // Record Mosaic NMEA message streams
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                // messageStreamNMEA_GGA=1
-                snprintf(line, lineSize, "%s%s=%0d\r\n", rtkSettingsEntries[settingsIndex].name,
-                         mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageStreamNMEA[x]);
-                nvmRecordStringToFile(line);
-            }
+    }
+    break;
+    case tMosaicMSNmea:
+    {
+        // Record Mosaic NMEA message streams
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            // messageStreamNMEA_GGA=1
+            snprintf(line, lineSize, "%s%s=%0d\r\n", rtkSettingsEntries[settingsIndex].name,
+                     mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageStreamNMEA[x]);
+            nvmRecordStringToFile(line);
         }
-        break;
-        case tMosaicSINmea: {
-            // Record Mosaic NMEA stream intervals
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                // streamIntervalNMEA_1=1
-                snprintf(line, lineSize, "%s%d=%0d\r\n", rtkSettingsEntries[settingsIndex].name, x,
-                         settings.mosaicStreamIntervalsNMEA[x]);
-                nvmRecordStringToFile(line);
-            }
+    }
+    break;
+    case tMosaicSINmea:
+    {
+        // Record Mosaic NMEA stream intervals
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            // streamIntervalNMEA_1=1
+            snprintf(line, lineSize, "%s%d=%0d\r\n", rtkSettingsEntries[settingsIndex].name, x,
+                     settings.mosaicStreamIntervalsNMEA[x]);
+            nvmRecordStringToFile(line);
         }
-        break;
-        case tMosaicMIRvRT: {
-            // Record Mosaic Rover RTCM intervals
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                // messageIntervalRTCMRover_RTCM1001=0.2
-                snprintf(line, lineSize, "%s%s=%0.2f\r\n", rtkSettingsEntries[settingsIndex].name,
-                         mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
-                nvmRecordStringToFile(line);
-            }
+    }
+    break;
+    case tMosaicMIRvRT:
+    {
+        // Record Mosaic Rover RTCM intervals
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            // messageIntervalRTCMRover_RTCM1001=0.2
+            snprintf(line, lineSize, "%s%s=%0.2f\r\n", rtkSettingsEntries[settingsIndex].name,
+                     mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
+            nvmRecordStringToFile(line);
         }
-        break;
-        case tMosaicMIBaRT: {
-            // Record Mosaic Base RTCM intervals
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                // messageIntervalRTCMBase_RTCM1001=0.2
-                snprintf(line, lineSize, "%s%s=%0.2f\r\n", rtkSettingsEntries[settingsIndex].name,
-                         mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Base[x]);
-                nvmRecordStringToFile(line);
-            }
+    }
+    break;
+    case tMosaicMIBaRT:
+    {
+        // Record Mosaic Base RTCM intervals
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            // messageIntervalRTCMBase_RTCM1001=0.2
+            snprintf(line, lineSize, "%s%s=%0.2f\r\n", rtkSettingsEntries[settingsIndex].name,
+                     mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Base[x]);
+            nvmRecordStringToFile(line);
         }
-        break;
-        case tMosaicMERvRT: {
-            // Record Mosaic Rover RTCM enabled
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                // messageEnabledRTCMRover_RTCM1001=0
-                snprintf(line, lineSize, "%s%s=%0d\r\n", rtkSettingsEntries[settingsIndex].name,
-                         mosaicMessagesRTCMv3[x].name, settings.mosaicMessageEnabledRTCMv3Rover[x]);
-                nvmRecordStringToFile(line);
-            }
+    }
+    break;
+    case tMosaicMERvRT:
+    {
+        // Record Mosaic Rover RTCM enabled
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            // messageEnabledRTCMRover_RTCM1001=0
+            snprintf(line, lineSize, "%s%s=%0d\r\n", rtkSettingsEntries[settingsIndex].name,
+                     mosaicMessagesRTCMv3[x].name, settings.mosaicMessageEnabledRTCMv3Rover[x]);
+            nvmRecordStringToFile(line);
         }
-        break;
-        case tMosaicMEBaRT: {
-            // Record Mosaic Base RTCM enabled
-            for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
-            {
-                // messageEnabledRTCMBase_RTCM1001=0
-                snprintf(line, lineSize, "%s%s=%0d\r\n", rtkSettingsEntries[settingsIndex].name,
-                         mosaicMessagesRTCMv3[x].name, settings.mosaicMessageEnabledRTCMv3Base[x]);
-                nvmRecordStringToFile(line);
-            }
+    }
+    break;
+    case tMosaicMEBaRT:
+    {
+        // Record Mosaic Base RTCM enabled
+        for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
+        {
+            // messageEnabledRTCMBase_RTCM1001=0
+            snprintf(line, lineSize, "%s%s=%0d\r\n", rtkSettingsEntries[settingsIndex].name,
+                     mosaicMessagesRTCMv3[x].name, settings.mosaicMessageEnabledRTCMv3Base[x]);
+            nvmRecordStringToFile(line);
         }
-        break;
+    }
+    break;
     }
     return true;
 }

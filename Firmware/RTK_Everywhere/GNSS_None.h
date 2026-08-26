@@ -98,6 +98,14 @@ public:
         return false;
     }
 
+    // Configure the RTCM 1033 Antenna Description
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configureRtcm1033()
+    {
+        return false;
+    }
+
     // Responds with the messages supported on this platform
     // Inputs:
     //   returnText: String to receive message names
@@ -348,6 +356,12 @@ public:
         return 0;
     }
 
+    // Sets the pieces of the version number
+    bool getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, uint8_t &revision)
+    {
+        return false;
+    }
+
     // Returns full year, ie 2023, not 23.
     uint16_t getYear()
     {
@@ -385,16 +399,16 @@ public:
         return false;
     }
 
-    // Returns true if data is arriving on the Radio Ext port
-    bool isCorrRadioExtPortActive()
-    {
-        return false;
-    }
-
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed()
     {
         return false;
+    }
+
+    // Returns 0 since corrections can not be arriving on the selected port
+    int isExternalCorrectionActive(uint8_t port)
+    {
+        return 0;
     }
 
     // Some functions merely need to know if we have an RTK Float.
@@ -548,8 +562,8 @@ public:
         return true;
     }
 
-    // Enable / disable corrections protocol(s) on the Radio External port
-    bool setCorrRadioExtPort(bool enable, bool force)
+    // Enable / disable external corrections protocol(s) on the chosen port
+    bool setExternalCorrections(uint8_t port, bool enable, bool force, const char *debug = nullptr)
     {
         return true;
     }
