@@ -145,9 +145,20 @@ bool HYBRID_DISPLAY::reset(bool clearDisplay)
     if (_isOLED)
         return _oled->reset(clearDisplay);
     else
-        return _epaper->reset(clearDisplay);
+    {
+        // If not in deep sleep, wait for any previous display calls to complete
+        if (!theDisplay->_inDeepSleep)
+        {
+            unsigned long startTime = millis();
+            while (_epaper->isBusy() && ((millis() - startTime) < 3000))
+                delay(10);
+        }
+        bool retVal = _epaper->reset();
+        theDisplay->_inDeepSleep = false;
+        return retVal;
+    }
 }
-void HYBRID_DISPLAY::display(void)
+void HYBRID_DISPLAY::display(bool partial)
 {
     if (_isOLED)
         _oled->display();
@@ -160,7 +171,7 @@ void HYBRID_DISPLAY::display(void)
             while (_epaper->isBusy() && ((millis() - startTime) < 3000))
                 delay(10);
         }
-        _epaper->display();
+        _epaper->display(partial);
         theDisplay->_inDeepSleep = false;
     }
 }
@@ -323,40 +334,6 @@ size_t HYBRID_DISPLAY::write(uint8_t theChar)
         return _oled->write(theChar);
     else
         return _epaper->write(theChar);
-}
-void HYBRID_DISPLAY::displayBackground(void)
-{
-    if (_isOLED)
-        _oled->display();
-    else
-    {
-        // If not in deep sleep, wait for any previous display calls to complete
-        if (!theDisplay->_inDeepSleep)
-        {
-            unsigned long startTime = millis();
-            while (_epaper->isBusy() && ((millis() - startTime) < 3000))
-                delay(10);
-        }
-        _epaper->displayBackground();
-        theDisplay->_inDeepSleep = false;
-    }
-}
-void HYBRID_DISPLAY::displayPartial(void)
-{
-    if (_isOLED)
-        _oled->display();
-    else
-    {
-        // If not in deep sleep, wait for any previous display calls to complete
-        if (!theDisplay->_inDeepSleep)
-        {
-            unsigned long startTime = millis();
-            while (_epaper->isBusy() && ((millis() - startTime) < 3000))
-                delay(10);
-        }
-        _epaper->displayPartial();
-        theDisplay->_inDeepSleep = false;
-    }
 }
 bool HYBRID_DISPLAY::isBusy(void)
 {
@@ -881,12 +858,11 @@ void displayUpdate()
 
             if (present.display_type == DISPLAY_184x88)
             {
-                // displayBackground one time in epaperRefreshLimit. Otherwise displayPartial
                 static int epaperRefresh = 0;
                 if (epaperRefresh == 0)
-                    theDisplay->displayBackground();
+                    theDisplay->display();
                 else
-                    theDisplay->displayPartial();
+                    theDisplay->display(true);
                 theDisplay->deepSleep();
                 epaperRefresh++;
                 const int epaperRefreshLimit = 20;

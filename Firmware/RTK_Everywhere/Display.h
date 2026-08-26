@@ -2,6 +2,52 @@
 Display.h
 
   Declarations and definitions for the Display layer
+
+  class HYBRID_DISPLAY knows how to talk to both OLED (64x48 and 128x64) and e-paper (184x88)
+
+  The challenge with e-paper is that the GoodDisplay GDEM0097T61 0.97 inch display has
+  SSD1680 "ping-pong" mode enabled. I think this is how it is able to support partial
+  updates. This can lead to some very interesting effects when the display alternates
+  between the RAM banks on successive writes. The trick is to make sure that the same
+  changes are written to the display twice and so are made in both halves of the RAM.
+
+  The strategy:
+
+  After a full update (with black-white reversals), the e-paper display is busy for
+  ~2.2 seconds.
+
+  After a partial update, the e-paper display is busy for a little over 500 milliseconds.
+
+  So, we'll change displayUpdate() so that:
+  OLED is updated every 500ms as normal
+  e-paper is updated every 600ms, and that two successive writes take place each time
+  So this means e-paper can display new information every ~1.2s
+
+  When the display undergoes a radical change (when a message is painted, or the user
+  opens the button menu, etc.), e-paper gets a full update.
+  For the normal RTK status display, we'll use partial updates and let the user select
+  how often full updates happen. Say in the range 15s to 1 minute? Default to 1 minute?
+  TBD / TBC...
+  When the menu is open, we can _probably_ use partial updates until the menu is closed
+  again. Again this is TBD / TBC...
+
+  If we wanted to be very, very clever, we could use ping-pong to our advantage:
+  Any flashing icons are only written to one half of the RAM
+  The same area in the other half is left empty
+  That way, we would get the flashing icons "for free" and would be able to swap
+  between them on successive partial updates.
+
+  Humm. But, to extend the life of the e-paper display, we should keep it in deep
+  sleep as much as possible and only update the display when something actually changes.
+  So, that goes against my clever flashing icon strategy...
+
+  OK. The strategy for e-paper is:
+  No blinking icons
+  If we need new icons for (e.g.) RTK Float, add them. No blinking crosshairs to indicate Float.
+  No blinking download arrows. If corrections are incoming, the arrow is always there.
+  Write everything twice - by taking a copy of the iconPropertyList vector and using it again
+  on the second write. 
+
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifndef __DISPLAY_H__
@@ -49,7 +95,7 @@ class HYBRID_DISPLAY
     uint8_t getWidth(void);
     uint8_t getHeight(void);
     bool reset(bool clearDisplay);
-    void display(void);
+    void display(bool partial = false);
     void erase(void);
     void invert(bool bInvert);
     void flipVertical(bool bFlip);
@@ -78,8 +124,6 @@ class HYBRID_DISPLAY
     void setVcomDeselect(uint8_t vcomDeselect);
     void setContrast(uint8_t contrast);
 
-    void displayBackground(void);
-    void displayPartial(void);
     bool isBusy(void);
     void deepSleep(bool mode2 = false);
 
