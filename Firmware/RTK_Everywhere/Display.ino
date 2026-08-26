@@ -554,29 +554,26 @@ void beginDisplay(TwoWire *i2cBus)
             // Display the brand logo
             RTKBrandAttribute *brandAttribute = getBrandAttributeFromProductVariant(productVariant);
             theDisplay->erase();
-            x = (theDisplay->getWidth() - brandAttribute->logoWidth) / 2;
-            y = (theDisplay->getHeight() - brandAttribute->logoHeight) / 2;
-            displayBitmap(x, y, brandAttribute->logoWidth, brandAttribute->logoHeight, brandAttribute->logoPointer);
-            theDisplay->display();
-            oled->erase();
 
             uint8_t logoWidth = brandAttribute->logoWidth;
             uint8_t logoHeight = brandAttribute->logoHeight;
             const uint8_t *logoPointer = brandAttribute->logoPointer;
 
             // logoSparkPNT was drawn for the 64 pixel wide displays (Facet mosaic-X5). Use the wider
-            // logoSparkPNT_128x64 splash on the 128 pixel wide displays (Facet FP, Postcard) instead.
-            if (brandAttribute->brand == BRAND_SPARKPNT && present.display_type == DISPLAY_128x64)
+            // logoSparkPNT_128x64 splash on the 128 and 184 pixel wide displays (Facet FP, Postcard) instead.
+            if ((brandAttribute->brand == BRAND_SPARKPNT)
+                && ((present.display_type == DISPLAY_128x64)
+                    || (present.display_type == DISPLAY_184x88)))
             {
                 logoWidth = logoSparkPNT_128x64_Width;
                 logoHeight = logoSparkPNT_128x64_Height;
                 logoPointer = logoSparkPNT_128x64;
             }
 
-            x = (oled->getWidth() - logoWidth) / 2;
-            y = (oled->getHeight() - logoHeight) / 2;
+            x = (theDisplay->getWidth() - logoWidth) / 2;
+            y = (theDisplay->getHeight() - logoHeight) / 2;
             displayBitmap(x, y, logoWidth, logoHeight, logoPointer);
-            oled->display();
+            theDisplay->display();
             splashStart = millis();
             return;
         }
@@ -953,10 +950,8 @@ void displaySplashCommon(bool nameKnown)
 
         yPos = yPos + fontHeight + 7;
         char unitFirmware[50];
-        firmwareVersionGet(unitFirmware, sizeof(unitFirmware), false);
-        printTextCenter(unitFirmware, yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
         espFirmwareVersionGet(unitFirmware, sizeof(unitFirmware), false);
-        printTextCenter(unitFirmware, yPos, QW_FONT_5X7, 1, false);
+        printTextCenter(unitFirmware, yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
 
         theDisplay->display();
 
