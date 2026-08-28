@@ -1516,6 +1516,9 @@ function changeProfile() {
 }
 
 function saveConfig() {
+    clearSuccess('nmeaDefaults');
+    clearSuccess('loggingDefaults');
+
     validateFields();
 
     if (errorCount == 1) {
@@ -1822,6 +1825,8 @@ function zeroBaseMessages() {
 }
 
 function resetToSurveyingDefaults() {
+    clearSuccess('loggingDefaults');
+
     zeroMessages();
     if ((platformPrefix == "EVK") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS.substring(0, 3) == "ZED"))) {
         ge("ubxMessageRate_NMEA_GGA").value = 1;
@@ -1857,8 +1862,12 @@ function resetToSurveyingDefaults() {
         ge("messageRateNMEA_GLL").value = 1;
         ge("messageRateNMEA_GST").value = 1; //Supported on >= v4
     }
+
+    showSuccess('nmeaDefaults', "Default messages applied");
 }
 function resetToLoggingDefaults() {
+    clearSuccess('nmeaDefaults');
+
     zeroMessages();
     if ((platformPrefix == "EVK") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS.substring(0, 3) == "ZED"))) {
         ge("ubxMessageRate_NMEA_GGA").value = 1;
@@ -1920,7 +1929,17 @@ function resetToLoggingDefaults() {
         ge("messageEnabledRTCMRover_RTCM1020").checked = true;
         ge("messageEnabledRTCMRover_RTCM1042").checked = true;
         ge("messageEnabledRTCMRover_RTCM1046").checked = true;
+        ge("messageEnabledRTCMRover_MSM4").checked = true;
+
+        // Match option 12 of the serial menu: MSM4 at 1Hz, RTCM1019/1020/1042/1046 every 5s
+        ge("messageIntervalRTCMRover_RTCM1019").value = 5.0;
+        ge("messageIntervalRTCMRover_RTCM1020").value = 5.0;
+        ge("messageIntervalRTCMRover_RTCM1042").value = 5.0;
+        ge("messageIntervalRTCMRover_RTCM1046").value = 5.0;
+        ge("messageIntervalRTCMRover_MSM4").value = 1.0;
     }
+
+    showSuccess('loggingDefaults', "PPP logging applied");
 }
 
 function resetToRTCMDefaults() {
