@@ -1647,3 +1647,26 @@ void systemDisplayConfiguration()
         systemPrintf("I2C-1: SCL: %d, SDA: %d\r\n", pin_I2C1_SCL, pin_I2C1_SDA);
     i2cBusEnumerate(i2c_1, 1);
 }
+
+//----------------------------------------
+// Determine the certificate that should be used with the server
+//----------------------------------------
+const char * getCertFromServer(const char * server)
+{
+    const char * cert;
+    const char * githubUserContent = "raw.githubusercontent.com";
+    const char * sparkfun = "sparkfun.com";
+
+    cert = nullptr;
+    if (server)
+    {
+        // GitHub
+        if (strncmp(server, githubUserContent, strlen(githubUserContent)) == 0)
+            cert = GITHUB_RAW_PUBLIC_CERT;
+
+        // SparkFun
+        if (strncmp(server, sparkfun, strlen(sparkfun)) == 0)
+            cert = AWS_PUBLIC_CERT;
+    }
+    return cert;
+}
