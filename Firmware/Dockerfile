@@ -81,7 +81,7 @@ RUN arduino-cli lib install "SparkFun IM19 IMU Arduino Library"@1.1.1
 RUN arduino-cli lib install "SparkFun UM980 Triband RTK GNSS Arduino Library"@2.0.2
 RUN arduino-cli lib install "SparkFun LG290P Quadband RTK GNSS Arduino Library"@3.1.1
 RUN arduino-cli lib install "SparkFun I2C Expander Arduino Library"@1.0.1
-#RUN arduino-cli lib install "SparkFun SSD168x I2C Interface Library"@1.0.0
+#RUN arduino-cli lib install "SparkFun SSD168x I2C Interface Library"@1.0.1
 
 # Install the depends last. See:
 # https://community.sparkfun.com/t/rtk-everywhere-firmware-no-longer-builds-for-me/68045
@@ -99,8 +99,8 @@ RUN arduino-cli config set library.enable_unsafe_install true
 # Install SparkFun fork of ESP32_BleSerial
 RUN arduino-cli lib install --git-url https://github.com/sparkfun/ESP32_BleSerial.git
 
-# Install SparkFun SSD168x I2C Interface Library
-RUN arduino-cli lib install --git-url https://github.com/sparkfun/SparkFun_SSD168x_I2C_Interface_Library.git
+# Install release_candidate of SparkFun SSD168x I2C Interface Library
+RUN arduino-cli lib install --git-url https://github.com/sparkfun/SparkFun_SSD168x_I2C_Interface_Library.git#release_candidate
 
 # The Accessory and Authentication Coprocessor libraries depends=SparkFun Toolkit (>=1.0.6)
 RUN arduino-cli lib install "SparkFun Toolkit"@1.0.6

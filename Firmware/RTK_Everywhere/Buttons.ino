@@ -40,12 +40,12 @@ void powerDown(bool displayInfo)
         delay(2000);
     }
 
-    // Wes' idea: display serialNumber on e-paper
     if (present.display_type == DISPLAY_184x88)
     {
         theDisplay->reset(true); // Ensure epaper memory is clear
-        paintSerial6digitLarge(); // 6 characters, large fonts
-        theDisplay->display();
+        theDisplay->displayNothing();
+        while (theDisplay->isBusy())
+            ; // Do nothing
         theDisplay->deepSleep();
     }
 

@@ -5,53 +5,41 @@ Display.h
 
   class HYBRID_DISPLAY knows how to talk to both OLED (64x48 and 128x64) and e-paper (184x88)
 
-  The challenge with e-paper is that the GoodDisplay GDEM0097T61 0.97 inch display has
-  SSD1680 "ping-pong" mode enabled. I think this is how it is able to support partial
-  updates. This can lead to some very interesting effects when the display alternates
-  between the RAM banks on successive writes. The trick is to make sure that the same
-  changes are written to the display twice and so are made in both halves of the RAM.
+  To extend the life of the e-paper display, we should keep it in deep sleep as much as possible
+  and only update the display when something actually changes.
 
-  The strategy:
-
-  After a full update (with black-white reversals), the e-paper display is busy for
-  ~2.2 seconds.
-
-  After a partial update, the e-paper display is busy for a little over 500 milliseconds.
-
-  So, we'll change displayUpdate() so that:
-  OLED is updated every 500ms as normal
-  e-paper is updated every 600ms, and that two successive writes take place each time
-  So this means e-paper can display new information every ~1.2s
-
-  When the display undergoes a radical change (when a message is painted, or the user
-  opens the button menu, etc.), e-paper gets a full update.
-  For the normal RTK status display, we'll use partial updates and let the user select
-  how often full updates happen. Say in the range 15s to 1 minute? Default to 1 minute?
-  TBD / TBC...
-  When the menu is open, we can _probably_ use partial updates until the menu is closed
-  again. Again this is TBD / TBC...
-
-  If we wanted to be very, very clever, we could use ping-pong to our advantage:
-  Any flashing icons are only written to one half of the RAM
-  The same area in the other half is left empty
-  That way, we would get the flashing icons "for free" and would be able to swap
-  between them on successive partial updates.
-
-  Humm. But, to extend the life of the e-paper display, we should keep it in deep
-  sleep as much as possible and only update the display when something actually changes.
-  So, that goes against my clever flashing icon strategy...
-
-  OK. The strategy for e-paper is:
+  The strategy for e-paper is:
   No blinking icons
-  If we need new icons for (e.g.) RTK Float, add them. No blinking crosshairs to indicate Float.
+  If we need new icons for (e.g.) RTK Float, we'll add them. No blinking crosshairs to indicate Float.
   No blinking download arrows. If corrections are incoming, the arrow is always there.
-  Write everything twice - by taking a copy of the iconPropertyList vector and using it again
-  on the second write. 
+
+  To minimise the number of full updates - with the distracting 2.2s black-white reversals:
+  The main loop calls displayUpdate() frequently
+  displayUpdate will update the OLED every ~0.5s changing text and icons as needed
+  displayUpdate will update e-paper every 1.0s. I.e. longer the partial update BUSY period,
+    allowing some deepSleep between partial updates
+  A full update is performed once per minute (with black-white reversals)
+
+  Special displays:
+
+  displayMessage will perform a full update on the first call
+  Any successive displayMessage calls will perform a partial update
+  So, "Rover" followed by "Rover Success" will only do a full update on the "Rover"
+  "Rover success" will be a partial update - to avoid the reversals
+
 
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 #ifndef __DISPLAY_H__
 #define __DISPLAY_H__
+
+typedef enum {
+  NOTHING,
+  SPLASH,
+  MESSAGE,
+  REGULAR,
+  MENU
+} displayContent_e;
 
 class HYBRID_DISPLAY
 {
@@ -62,6 +50,7 @@ class HYBRID_DISPLAY
 
   protected:
     bool _inDeepSleep;
+    displayContent_e _displayContent;
 
   public:
     // Constructor
@@ -73,6 +62,7 @@ class HYBRID_DISPLAY
       else
         _epaper = new SSD1680I2C184x88Rotated;
       _inDeepSleep = false;
+      _displayContent = NOTHING;
     }
 
     ~HYBRID_DISPLAY()
@@ -95,7 +85,6 @@ class HYBRID_DISPLAY
     uint8_t getWidth(void);
     uint8_t getHeight(void);
     bool reset(bool clearDisplay);
-    void display(bool partial = false);
     void erase(void);
     void invert(bool bInvert);
     void flipVertical(bool bFlip);
@@ -136,6 +125,14 @@ class HYBRID_DISPLAY
     size_t print(unsigned long i);
     size_t print(int i);
     size_t print(char c);
+
+    void displayNothing(void); // Record that the display is clear, then call display
+    void displaySplash(void); // Record that splash is being displayed, then call display
+    void displayMessage(void); // Record that a message is being displayed, then call display
+    void displayRegular(void); // Record that regular displayUpdate info is being displayed, then call display
+
+  protected:
+    void display(bool partial = false);
 };
 
 HYBRID_DISPLAY *theDisplay = nullptr;

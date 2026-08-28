@@ -175,6 +175,72 @@ void HYBRID_DISPLAY::display(bool partial)
         theDisplay->_inDeepSleep = false;
     }
 }
+void HYBRID_DISPLAY::displayNothing(void)
+{
+    if (_displayContent == NOTHING)
+        display(true); // Partial update if already displaying nothing
+    else
+    {
+        _displayContent = NOTHING;
+        display(); // Full update on first call
+    }
+}
+void HYBRID_DISPLAY::displaySplash(void)
+{
+    if (_displayContent == SPLASH)
+        display(true); // Partial update if already displaying splash
+    else
+    {
+        _displayContent = SPLASH;
+        display(); // Full update on first call
+    }
+}
+void HYBRID_DISPLAY::displayMessage(void)
+{
+    // displayMessage is called during firmware update. It needs a full-update timer
+
+    static unsigned long previousFullUpdate = 0;
+    const unsigned long fullUpdateEvery_ms = 60000;
+    if (_displayContent == MESSAGE)
+    {
+        if ((millis() - previousFullUpdate) > fullUpdateEvery_ms)
+        {
+            display(); // Time for a full update
+            previousFullUpdate = millis();
+        }
+        else
+            display(true); // Partial update
+    }
+    else
+    {
+        _displayContent = MESSAGE;
+        display(); // Full update on first call
+        previousFullUpdate = millis();
+    }
+}
+void HYBRID_DISPLAY::displayRegular(void)
+{
+    static unsigned long previousFullUpdate = 0;
+    const unsigned long fullUpdateEvery_ms = 60000;
+    if (_displayContent == REGULAR)
+    {
+        if ((millis() - previousFullUpdate) > fullUpdateEvery_ms)
+        {
+            display(); // Time for a full update
+            previousFullUpdate = millis();
+        }
+        else
+            display(true); // Partial update
+    }
+    else
+    {
+        _displayContent = REGULAR;
+        display(); // Full update on first call
+        previousFullUpdate = millis();
+    }
+    // displayUpdate will put e-paper into deepSleep when needed
+}
+
 void HYBRID_DISPLAY::erase(void)
 {
     if (_isOLED)
@@ -550,7 +616,7 @@ void beginDisplay(TwoWire *i2cBus)
             x = (theDisplay->getWidth() - logoWidth) / 2;
             y = (theDisplay->getHeight() - logoHeight) / 2;
             displayBitmap(x, y, logoWidth, logoHeight, logoPointer);
-            theDisplay->display();
+            theDisplay->displaySplash();
             splashStart = millis();
             return;
         }
@@ -584,6 +650,8 @@ void displayUpdate()
             theDisplay->erase();
 
             iconPropertyList.clear(); // Redundant?
+
+            bool textToPrint = false;
 
             switch (systemState)
             {
@@ -816,12 +884,14 @@ void displayUpdate()
                 break;
             case (STATE_DISPLAY_SETUP):
                 paintDisplaySetup();
+                textToPrint = true;
                 break;
             case (STATE_WEB_CONFIG_NOT_STARTED):
                 displayWebConfigNotStarted(); // Display 'Web Config'
                 break;
             case (STATE_WEB_CONFIG):
                 displayWebConfig(iconPropertyList); // Display IP, subnet mask, etc.
+                textToPrint = true;
                 break;
 
             case (STATE_KEYS_REQUESTED):
@@ -849,27 +919,26 @@ void displayUpdate()
             blinkState <<= 1;
             if (blinkState == 0)
                 blinkState = 0b00000001;
-            for (auto it = iconPropertyList.begin(); it != iconPropertyList.end(); it = std::next(it))
+            if ((iconPropertyList.begin() != iconPropertyList.end()) || textToPrint) // Check there is something to display
             {
-                if ((it->duty & blinkState) > 0)
-                    displayBitmap(it->icon.xPos, it->icon.yPos, it->icon.width, it->icon.height,
-                                  (const uint8_t *)it->icon.bitmap);
-            }
+                for (auto it = iconPropertyList.begin(); it != iconPropertyList.end(); it = std::next(it))
+                {
+                    if ((it->duty & blinkState) > 0)
+                        displayBitmap(it->icon.xPos, it->icon.yPos, it->icon.width, it->icon.height,
+                                    (const uint8_t *)it->icon.bitmap);
+                }
 
-            if (present.display_type == DISPLAY_184x88)
-            {
-                static int epaperRefresh = 0;
-                if (epaperRefresh == 0)
-                    theDisplay->display();
-                else
-                    theDisplay->display(true);
-                theDisplay->deepSleep();
-                epaperRefresh++;
-                const int epaperRefreshLimit = 20;
-                epaperRefresh %= epaperRefreshLimit;
+                theDisplay->displayRegular(); // Push internal buffer to display
             }
+        }
+        else
+        {
+            // It is not yet time to update the display
+            // Check busy and put the display into deepSleep if needed
+            if (theDisplay->isBusy())
+                ; // Do nothing
             else
-                theDisplay->display(); // Push internal buffer to display
+                theDisplay->deepSleep();
         }
     } // End display online
 }
@@ -929,7 +998,7 @@ void displaySplashCommon(bool nameKnown)
         espFirmwareVersionGet(unitFirmware, sizeof(unitFirmware), false);
         printTextCenter(unitFirmware, yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
 
-        theDisplay->display();
+        theDisplay->displaySplash();
 
         // Restart the timer for the splash screen display
         if (!nameKnown)
@@ -958,7 +1027,7 @@ void displayError(const char *errorMessage)
         // theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
         theDisplay->print(errorMessage);
 
-        theDisplay->display(); // Push internal buffer to display
+        theDisplay->displayMessage(); // Push internal buffer to display
 
         while (1)
             delay(10); // Hard freeze
@@ -1455,17 +1524,17 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             if (wifiStationRunning && networkInterfaceHasInternet(NETWORK_WIFI_STATION))
             {
                 // Display solid icon based on RSSI
-                displayWiFiIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
+                displayWiFiIcon(iconList, prop, ICON_POSITION_184x88, 0b11111111);
             }
             else if (wifiStationRunning && (networkInterfaceHasInternet(NETWORK_WIFI_STATION) == false))
             {
                 // We are not connected, no blink on e-paper
-                displayWiFiNotConnectedIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
+                displayWiFiNotConnectedIcon(iconList, prop, ICON_POSITION_184x88, 0b11111111);
             }
             else if (wifiSoftApRunning)
             {
                 // We are in AP mode, solid WiFi icon
-                displayWiFiIcon(iconList, prop, ICON_POSITION_CENTER, 0b11111111);
+                displayWiFiIcon(iconList, prop, ICON_POSITION_184x88, 0b11111111);
             }
 
 #ifdef COMPILE_CELLULAR
@@ -2865,33 +2934,6 @@ void paintSerial6digit(uint8_t xPos, uint8_t yPos) // 184x88 e-paper only
     theDisplay->setCursor(xPos, yPos);
     theDisplay->print(serialNumber);
 }
-void paintSerial6digitLarge() // 184x88 e-paper only
-{
-    // Print six character serial number - using a mix of fonts
-    int width = 0;
-    for (int i = 0; i < 6; i++)
-    {
-        if ((serialNumber[i] >= '0') && (serialNumber[i] <= '9'))
-            width += 12; // 12x48 font for numbers
-        else
-            width += 31; // 31x48 font for letters
-    }
-    uint8_t yPos = 20; // (88 - 48) / 2
-    uint8_t xPos;
-    if (width > theDisplay->getWidth())
-        xPos = 0;
-    else
-        xPos = (theDisplay->getWidth() - width) / 2;
-    theDisplay->setCursor(xPos, yPos);
-    for (int i = 0; i < 6; i++)
-    {
-        if ((serialNumber[i] >= '0') && (serialNumber[i] <= '9'))
-            theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_LARGENUM);
-        else
-            theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_31X48);
-        theDisplay->print(serialNumber[i]);
-    }
-}
 void paintMACAddress4digit(uint8_t xPos, uint8_t yPos)
 {
     char macAddress[5];
@@ -2929,7 +2971,7 @@ void displayBaseStart(uint16_t displayTime)
         else
             printTextCenter("Base", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3026,7 +3068,7 @@ void displayRoverStart(uint16_t displayTime)
         printTextCenter("Rover", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3047,7 +3089,7 @@ void displayNoRingBuffer(uint16_t displayTime)
         yPos += fontHeight;
         printTextCenter("Buffer Sz", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3065,7 +3107,7 @@ void displayRoverSuccess(uint16_t displayTime)
         printTextCenter("Rover", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);                // text, y, font type, kerning, inverted
         printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3083,7 +3125,7 @@ void displayRoverFail(uint16_t displayTime)
         printTextCenter("Rover", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);               // text, y, font type, kerning, inverted
         printTextCenter("Failed", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3119,7 +3161,7 @@ void displaySurveyStart(uint16_t displayTime)
         printTextCenter("Survey", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3137,7 +3179,7 @@ void displaySurveyStarted(uint16_t displayTime)
         printTextCenter("Survey", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);               // text, y, font type, kerning, inverted
         printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3156,7 +3198,7 @@ void displaySDFail(uint16_t displayTime)
         printTextCenter("Format", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);               // text, y, font type, kerning, inverted
         printTextCenter("SD Card", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3240,7 +3282,7 @@ void displayFirmwareUpdateProgress(int percentComplete)
         snprintf(temp, sizeof(temp), "%d%%", percentComplete);
         printTextCenter(temp, yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
-        theDisplay->display(); // Push internal buffer to display
+        theDisplay->displayMessage(); // Push internal buffer to display
     }
 }
 
@@ -3258,7 +3300,7 @@ void displayHalt()
         int yPos = (theDisplay->getHeight() - 16) / 2;
         QwiicFont *font = (theDisplay->getWidth() > 64) ? (QwiicFont *)&QW_FONT_31X48 : (QwiicFont *)&QW_FONT_8X16;
         printTextCenter("Halt", yPos, *font, QW_EP_FONT_31X48, 1, false); // text, y, font type, kerning, inverted
-        theDisplay->display();                                // Push internal buffer to display
+        theDisplay->displayMessage(); // Push internal buffer to display
     }
 }
 
@@ -3478,7 +3520,7 @@ void displayMessage(const char *message, uint16_t displayTime)
         if (wordCount == 2)
             yPos -= (fontHeight / 2);
 
-        theDisplay->erase();
+        theDisplay->erase(); // erase only clears the library graphics buffer
 
         // drawFrame();
 
@@ -3491,7 +3533,7 @@ void displayMessage(const char *message, uint16_t displayTime)
             yPos += fontHeight;
         }
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3596,7 +3638,7 @@ void paintKeyDaysRemaining(int daysRemaining, uint16_t displayTime)
         theDisplay->setCursor(textX, y);
         theDisplay->print("Expire");
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3629,7 +3671,7 @@ void paintKeyUpdateFail(uint16_t displayTime)
         y += fontHeight + 1;
         printTextCenter("No Network", y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3662,7 +3704,7 @@ void paintNtripWiFiFail(uint16_t displayTime, bool Client)
         y += fontHeight + 1;
         printTextCenter("No WiFi", y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3739,7 +3781,7 @@ void paintKeyProvisionFail(uint16_t displayTime)
         y += fontHeight;
         printTextCenter(hardwareID, y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3771,7 +3813,7 @@ void displayNtpStart(uint16_t displayTime)
 
         printTextCenter("NTP", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3789,7 +3831,7 @@ void displayNtpStarted(uint16_t displayTime)
         printTextCenter("NTP", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);                  // text, y, font type, kerning, inverted
         printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3807,7 +3849,7 @@ void displayNtpNotReady(uint16_t displayTime)
         printTextCenter("Ethernet", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);               // text, y, font type, kerning, inverted
         printTextCenter("Not Ready", yPos + fontHeight, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3825,7 +3867,7 @@ void displayNTPFail(uint16_t displayTime)
         printTextCenter("NTP", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);                 // text, y, font type, kerning, inverted
         printTextCenter("Failed", yPos + fontHeight, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
-        theDisplay->display();
+        theDisplay->displayMessage();
 
         delay(displayTime);
     }
@@ -3983,6 +4025,7 @@ void paintGenericUpdate(const char *device, const char *update)
         printTextCenter("Button", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, true); // text, y, font type, kerning, inverted
         yPos = yPos + fontHeight + 1;
         printTextCenter("To Exit", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, true);
-        theDisplay->display(); // Push internal buffer to display
+        theDisplay->displayMessage(); // Push internal buffer to display
     }
 }
+
