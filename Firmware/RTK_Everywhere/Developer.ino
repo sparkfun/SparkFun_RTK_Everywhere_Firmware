@@ -210,6 +210,8 @@ bool csvOpenCsvFile(const char * url,
 
 #ifndef COMPILE_OTA_AUTO
 
+bool otaDebugVerbose = false;
+
 void firmwareMenu() {systemPrintln("**OTA Auto not compiled**");}
 void otaAutoUpdate() {}
 bool otaIsChipSupported(const char * subsystem, const char * chip) {return false;}
