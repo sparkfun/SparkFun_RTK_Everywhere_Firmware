@@ -3368,12 +3368,16 @@ void paintDisplaySetup()
 {
     constructSetupDisplay(&setupButtons); // Construct the vector (linked list) of buttons
 
-    uint8_t maxButtons = (present.display_type == DISPLAY_128x64) ? 5 : 
-                         (present.display_type == DISPLAY_184x88) ? 6 : 4;
+    // For the 8X16 font, only the 'top' 12 rows are used
+    // The 184x88 menu looks much better in the 10x20 font, so limit the buttons to 4 (same as 64x48)
+    uint8_t maxButtons = (present.display_type == DISPLAY_128x64) ? 5 : 4;
 
     uint8_t printedButtons = 0;
 
     uint8_t thisIsButton = 0;
+
+    // For the 8X16 font, only the 'top' 12 rows are used
+    uint8_t yinc = present.display_type == DISPLAY_184x88 ? 20 : 12;
 
     for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
     {
@@ -3384,14 +3388,15 @@ void paintDisplaySetup()
             {
                 if (it->newState == STATE_PROFILE)
                 {
-                    int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
+                    int nameWidth = present.display_type == DISPLAY_128x64 ? 17 :
+                                    present.display_type == DISPLAY_184x88 ? 18 : 9;
                     char miniProfileName[nameWidth] = {0};
                     snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", it->newProfile,
                              it->name); // Prefix with index #
-                    printTextCenter(miniProfileName, 12 * printedButtons, QW_FONT_8X16, QW_EP_FONT_8X16, 1, printedButtons == 0);
+                    printTextCenter(miniProfileName, yinc * printedButtons, QW_FONT_8X16, QW_EP_FONT_10X20, 1, printedButtons == 0);
                 }
                 else
-                    printTextCenter(it->name, 12 * printedButtons, QW_FONT_8X16, QW_EP_FONT_8X16, 1, printedButtons == 0);
+                    printTextCenter(it->name, yinc * printedButtons, QW_FONT_8X16, QW_EP_FONT_10X20, 1, printedButtons == 0);
                 printedButtons++;
             }
         }
@@ -3409,7 +3414,7 @@ void paintDisplaySetup()
         {
             if (printedButtons < maxButtons) // Do we have room to display it?
             {
-                printTextCenter(it->name, 12 * printedButtons, QW_FONT_8X16, QW_EP_FONT_8X16, 1, printedButtons == 0);
+                printTextCenter(it->name, yinc * printedButtons, QW_FONT_8X16, QW_EP_FONT_10X20, 1, printedButtons == 0);
                 printedButtons++;
             }
 
@@ -3421,16 +3426,23 @@ void paintDisplaySetup()
 
 // Given text, and location, print text center of the screen.
 // In a perfect world, this would work correctly with all fonts.
-// But, in reality, it is hardwired for 5X7 and 8X16...
+// But, in reality, it is hardwired for 5X7, 8X16 and 10X20...
 void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, QwiicEpFont &fontEpType,
                      uint8_t kerning, bool highlight) // text, y, font type, kearning, inverted
 {
     theDisplay->setFont(fontType, fontEpType);
     theDisplay->setDrawMode(grROPXOR, grEpROPXOR);
 
+    // For the 8X16 font, only the 'top' 12 rows are used
+    uint8_t boxHeight = fontType.height == 16 ? 12 : 7; // 8X16 vs. 5X7
+
     uint8_t fontWidth = fontType.width;
     if (present.display_type == DISPLAY_184x88)
+    {
         fontWidth = fontEpType.width;
+        if (fontEpType.height == 20)
+            boxHeight = 20;
+    }
     if (fontWidth == 8)
         fontWidth = 7; // 8x16, but widest character is only 7 pixels.
 
@@ -3470,9 +3482,6 @@ void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, QwiicE
         }
         if ((xBoxStart + xBoxWidth) > theDisplay->getWidth())
             xBoxWidth = theDisplay->getWidth() - xBoxStart;
-
-        // For the 8X16 font, only the 'top' 12 rows are used
-        uint8_t boxHeight = fontType.height == 16 ? 12 : 7;
 
         theDisplay->rectangleFill(xBoxStart, yPos, xBoxWidth, boxHeight, 1); // x, y, width, height, color
     }
