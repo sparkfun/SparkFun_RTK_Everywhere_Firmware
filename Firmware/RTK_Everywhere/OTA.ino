@@ -279,7 +279,7 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
 
         systemPrintf("Getting %s firmware file\r\n", otaSubsystem[subsystemIndex]);
         String server = getServerFromUrl(target->_url);
-        cert = otaGetCert(target->_url);
+        cert = getCertFromUrl(target->_url);
         if (openUrl(target->_url,
                     cert,
                     server,
@@ -330,23 +330,6 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
         return success;
     } while (0);
     return false;
-}
-
-//----------------------------------------
-// Determine the certificate that should be used with the URL
-//----------------------------------------
-const char * otaGetCert(const char * url)
-{
-    const char * cert;
-    const char * githubUserContent = "https://raw.githubusercontent.com/";
-
-    cert = nullptr;
-    if (url)
-    {
-        if (strncmp(url, githubUserContent, strlen(githubUserContent)) == 0)
-            cert = GITHUB_RAW_PUBLIC_CERT;
-    }
-    return cert;
 }
 
 //----------------------------------------
@@ -1141,7 +1124,7 @@ void otaStateGetSystemsToUpdate()
             systemPrintln("Creating list of subsystems to update");
 
         // Get CVS file listing the firmware for this system
-        cert = otaGetCert(settings.csvUrl);
+        cert = getCertFromUrl(settings.csvUrl);
         if (csvOpenCsvFile(settings.csvUrl,
                            cert,
                            &otaCsvFileData,
