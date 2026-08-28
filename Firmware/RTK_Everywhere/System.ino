@@ -1670,3 +1670,40 @@ const char * getCertFromServer(const char * server)
     }
     return cert;
 }
+
+//----------------------------------------
+// Extract the web server from the URL
+//----------------------------------------
+String getServerFromUrl(const char * url)
+{
+    const char * http = "http://";
+    const char * https = "https://";
+    int index;
+    size_t length;
+    size_t pos;
+
+    // Locate the third slash
+    if (url == nullptr)
+        return String("");
+
+    index = 0;
+    length = strlen(url) - pos;
+    char server[length + 1];
+    if (strncmp(url, https, strlen(https)) == 0)
+        pos = strlen(https);
+    else if (strncmp(url, http, strlen(http)) == 0)
+        pos = strlen(http);
+    if (pos)
+    {
+        strcpy(server, &url[pos]);
+        for (index = 0; index < length - pos; index++)
+        {
+            if (server[index] == 0)
+                break;
+            if (server[index] == '/')
+                break;
+        }
+    }
+    server[index] = 0;
+    return String(server);
+}

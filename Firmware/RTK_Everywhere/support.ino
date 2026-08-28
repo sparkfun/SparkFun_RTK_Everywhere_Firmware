@@ -1691,41 +1691,6 @@ const char * getCertName(const char * cert)
 }
 
 //----------------------------------------
-// Extract the web server from the URL
-//----------------------------------------
-String getServerFromUrl(const char * url)
-{
-    int index;
-    size_t length;
-    int slashCount;
-
-    // Locate the third slash
-    if (url == nullptr)
-        return String("");
-
-    length = strlen(url);
-    char server[length + 1];
-    strcpy(server, url);
-    slashCount = 0;
-    index = 0;
-    if ((strncmp(url, "https://", 8) == 0) || (strncmp(url, "http://", 7) == 0))
-    {
-        for (index = 0; index < length; index++)
-        {
-            if (server[index] == 0)
-                break;
-            if (server[index] == '/')
-            {
-                if (++slashCount == 3)
-                    break;
-            }
-        }
-    }
-    server[index] = 0;
-    return String(server);
-}
-
-//----------------------------------------
 // Open the URL
 //----------------------------------------
 #ifdef COMPILE_NETWORK
