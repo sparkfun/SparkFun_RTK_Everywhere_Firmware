@@ -3138,15 +3138,18 @@ bool GNSS_MOSAIC::isPresent()
     if (productVariant == RTK_FACET_MOSAIC)
     {
         // Set COM4 to: CMD input (only), SBF output (only)
-        // Mosaic could still be starting up, so allow many retries
-        return isPresentOnSerial(serial2GNSS, "sdio,COM4,CMD,SBF\n\r", "DataInOut", "COM4>", 10);
+        // The module is already confirmed to be a mosaic-X5 here, so poll patiently while it
+        // boots (documented as ~10 seconds typical, but can run longer) instead of soft-resetting
+        // it. A soft reset issued mid-boot restarts the boot process, turning a merely slow boot
+        // into a guaranteed failure.
+        return isPresentOnSerial(serial2GNSS, "sdio,COM4,CMD,SBF\n\r", "DataInOut", "COM4>", 25, false);
     }
     else if (productVariant == RTK_FACET_FP)
     {
         // Set COM1 to: auto input, RTCMv3+SBF+NMEA+Encapsulate output
-        // Mosaic could still be starting up, so allow many retries
+        // See comment above - no soft reset here either, the module is already known to be a mosaic-X5
         return isPresentOnSerial(serialGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>",
-                                 10);
+                                 25, false);
     }
     else
         systemPrintln("MOSAIC isPresent: Uncaught platform");
@@ -3156,7 +3159,7 @@ bool GNSS_MOSAIC::isPresent()
 
 // Return true if the receiver is detected
 bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response,
-                                    const char *console, int retryLimit)
+                                    const char *console, int retryLimit, bool attemptSoftReset)
 {
     // Mosaic could still be starting up, so allow many retries
     int retries = 0;
@@ -3171,6 +3174,12 @@ bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *comm
 
     if (retries == retryLimit)
     {
+        if (!attemptSoftReset)
+        {
+            systemPrintln("Could not communicate with mosaic-X5 at selected baud rate");
+            return (false);
+        }
+
         systemPrintln("Could not communicate with mosaic-X5 at selected baud rate. Attempting a soft reset...");
 
         sendWithResponse(serialPort, "erst,soft,none\n\r", "ResetReceiver", 100);
