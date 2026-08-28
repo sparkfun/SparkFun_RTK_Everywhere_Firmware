@@ -662,10 +662,52 @@ bool gnssCmdUpdateConstellations(const char *settingName, void *settingData, int
 //----------------------------------------
 // Update the message rates following a set command
 //----------------------------------------
-// TODO make RTCM and NMEA specific call backs
 bool gnssCmdUpdateMessageRates(const char *settingName, void *settingData, int settingType)
 {
-    gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
+    bool requested = false;
+
+    // NMEA stream / rate settings
+    if ((strncmp(settingName, "messageRateNMEA_", strlen("messageRateNMEA_")) == 0) ||
+        (strncmp(settingName, "ubxMessageRate_NMEA_", strlen("ubxMessageRate_NMEA_")) == 0) ||
+        (strncmp(settingName, "messageStreamNMEA_", strlen("messageStreamNMEA_")) == 0) ||
+        (strncmp(settingName, "streamIntervalNMEA_", strlen("streamIntervalNMEA_")) == 0))
+    {
+        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA);
+        requested = true;
+    }
+
+    // Rover RTCM stream / rate settings
+    if ((strncmp(settingName, "messageRateRTCMRover_", strlen("messageRateRTCMRover_")) == 0) ||
+        (strncmp(settingName, "ubxMessageRate_RTCM_", strlen("ubxMessageRate_RTCM_")) == 0) ||
+        (strncmp(settingName, "messageIntervalRTCMRover_", strlen("messageIntervalRTCMRover_")) == 0) ||
+        (strncmp(settingName, "messageEnabledRTCMRover_", strlen("messageEnabledRTCMRover_")) == 0))
+    {
+        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
+        requested = true;
+    }
+
+    // Base RTCM stream / rate settings
+    if ((strncmp(settingName, "messageRateRTCMBase_", strlen("messageRateRTCMBase_")) == 0) ||
+        (strncmp(settingName, "ubxMessageRateBase_RTCM_", strlen("ubxMessageRateBase_RTCM_")) == 0) ||
+        (strncmp(settingName, "messageIntervalRTCMBase_", strlen("messageIntervalRTCMBase_")) == 0) ||
+        (strncmp(settingName, "messageEnabledRTCMBase_", strlen("messageEnabledRTCMBase_")) == 0))
+    {
+        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
+        requested = true;
+    }
+
+    // Other message groups (e.g. UBX RXM / PQTM)
+    if ((strncmp(settingName, "ubxMessageRate_RXM_", strlen("ubxMessageRate_RXM_")) == 0) ||
+        (strncmp(settingName, "messageRatePQTM_", strlen("messageRatePQTM_")) == 0))
+    {
+        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_OTHER);
+        requested = true;
+    }
+
+    // Fallback for unknown message-rate keys: preserve legacy behavior
+    if (requested == false)
+        gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
+
     return (true);
 }
 

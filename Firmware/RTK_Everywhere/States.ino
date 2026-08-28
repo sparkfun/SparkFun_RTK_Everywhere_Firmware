@@ -527,8 +527,10 @@ void stateUpdate()
 
                     webServerParseIncomingSettings();
 
-                    gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go
-                                             // through a full (re)configuration
+                    // Each setting update requests any required GNSS reconfiguration via
+                    // its per-setting callback. Avoid forcing a full defaults request here,
+                    // which can trigger unrelated GNSS config churn.
+                    //gnssConfigureDefaults(); // Cause full reconfiguration
 
                     recordSystemSettings(); // Record these settings to unit
 
