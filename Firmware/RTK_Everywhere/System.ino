@@ -60,7 +60,9 @@ void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
     displayFirmwareUpdateProgress(progressPercent);
 }
 
+//----------------------------------------
 // Initialize PSRAM if available
+//----------------------------------------
 void beginPsram()
 {
     if (settings.enablePsram == true)
@@ -83,7 +85,9 @@ void beginPsram()
     }
 }
 
+//----------------------------------------
 // Validate the heap
+//----------------------------------------
 void rtkValidateHeap(const char *string)
 {
     // Validate the heap
@@ -104,7 +108,9 @@ void rtkValidateHeap(const char *string)
     }
 }
 
+//----------------------------------------
 // Free memory to PSRAM when available
+//----------------------------------------
 void rtkFree(void *data, const char *text)
 {
     if (settings.debugMalloc && !inMainMenu)
@@ -115,7 +121,9 @@ void rtkFree(void *data, const char *text)
     free(data);
 }
 
+//----------------------------------------
 // Allocate memory from PSRAM when available
+//----------------------------------------
 void *rtkMalloc(size_t sizeInBytes, const char *text)
 {
     const char *area;
@@ -190,37 +198,50 @@ void *rtkMalloc(size_t sizeInBytes, const char *text)
     return data;
 }
 
+//----------------------------------------
 // Determine if the address is in the EEPROM (Flash)
+//----------------------------------------
 bool rtkIsAddressInEEPROM(void *addr)
 {
     return ((addr >= (void *)0x3f400000) && (addr <= (void *)0x3f7fffff));
 }
 
+//----------------------------------------
 // Determine if the address is in PSRAM (SPI RAM)
+//----------------------------------------
 bool rtkIsAddressInPSRAM(void *addr)
 {
     return ((addr >= (void *)0x3f800000) && (addr <= (void *)0x3fbfffff));
 }
 
+//----------------------------------------
 // Determine if the address is in PSRAM or SRAM
+//----------------------------------------
 bool rtkIsAddressInRAM(void *addr)
 {
     return rtkIsAddressInSRAM(addr) || rtkIsAddressInPSRAM(addr);
 }
 
+//----------------------------------------
+// Determine if the address is in ROM
+//----------------------------------------
 bool rtkIsAddressInROM(void *addr)
 {
     return (((addr >= (void *)0x3ff90000) && (addr <= (void *)0x3ff9ffff)) ||
             ((addr >= (void *)0x40000000) && (addr <= (void *)0x4005ffff)));
 }
 
+//----------------------------------------
 // Determine if the address is in SRAM
+//----------------------------------------
 bool rtkIsAddressInSRAM(void *addr)
 {
     return ((addr >= (void *)0x3ffae000) && (addr <= (void *)0x3ffdffff));
 }
 
+//----------------------------------------
 // See https://en.cppreference.com/w/cpp/memory/new/operator_delete
+//----------------------------------------
 void operator delete(void *ptr) noexcept
 {
     // free(ptr);
@@ -229,12 +250,17 @@ void operator delete(void *ptr) noexcept
     rtkFree(ptr, "buffer");
 }
 
+//----------------------------------------
+// See https://en.cppreference.com/w/cpp/memory/new/operator_delete
+//----------------------------------------
 void operator delete[](void *ptr) noexcept
 {
     rtkFree(ptr, "array");
 }
 
+//----------------------------------------
 // See https://en.cppreference.com/w/cpp/memory/new/operator_new
+//----------------------------------------
 void *operator new(std::size_t count)
 {
     // void *data = malloc(count);
@@ -244,12 +270,17 @@ void *operator new(std::size_t count)
     return rtkMalloc(count, "new buffer");
 }
 
+//----------------------------------------
+// See https://en.cppreference.com/w/cpp/memory/new/operator_new
+//----------------------------------------
 void *operator new[](std::size_t count)
 {
     return rtkMalloc(count, "new array");
 }
 
+//----------------------------------------
 // Continue showing display until time threshold
+//----------------------------------------
 void finishDisplay()
 {
     if (ENABLE_DEVELOPER)
@@ -266,13 +297,17 @@ void finishDisplay()
     }
 }
 
+//----------------------------------------
 // Start the beeper and limit its beep length using the tickerBeepUpdate task
+//----------------------------------------
 void beepDurationMs(uint16_t lengthMs)
 {
     beepMultiple(1, lengthMs, 0); // Number of beeps, length of beep, length of quiet
 }
 
+//----------------------------------------
 // Number of beeps, length of beep ms, length of quiet ms
+//----------------------------------------
 void beepMultiple(int numberOfBeeps, int lengthOfBeepMs, int lengthOfQuietMs)
 {
     beepCount = numberOfBeeps;
@@ -280,6 +315,9 @@ void beepMultiple(int numberOfBeeps, int lengthOfBeepMs, int lengthOfQuietMs)
     beepQuietLengthMs = lengthOfQuietMs;
 }
 
+//----------------------------------------
+// Start the beep sound
+//----------------------------------------
 void beepOn()
 {
     // Disallow beeper if setting is turned off
@@ -292,6 +330,9 @@ void beepOn()
     }
 }
 
+//----------------------------------------
+// Stop the beep sound
+//----------------------------------------
 void beepOff()
 {
     // Disallow beeper if setting is turned off
@@ -304,8 +345,10 @@ void beepOff()
     }
 }
 
+//----------------------------------------
 // Only useful for pin_chargerLED on Facet mosaic
 // pin_chargerLED is analog-only and is connected via a blocking diode. LOW will not be 0V
+//----------------------------------------
 bool readAnalogPinAsDigital(int pin)
 {
     if (pin >= 34) // If the pin is analog-only
@@ -314,9 +357,11 @@ bool readAnalogPinAsDigital(int pin)
     return digitalRead(pin);
 }
 
+//----------------------------------------
 // Update battery levels every 5 seconds
 // Update battery charger as needed
 // Output serial message if enabled
+//----------------------------------------
 void updateBattery()
 {
     if (online.batteryFuelGauge == true)
@@ -415,7 +460,9 @@ void updateBattery()
     }
 }
 
+//----------------------------------------
 // Updates global variables with battery levels
+//----------------------------------------
 void checkBatteryLevels()
 {
     if (online.batteryFuelGauge == false)
@@ -440,7 +487,9 @@ void checkBatteryLevels()
 #endif // COMPILE_BQ40Z50
 }
 
+//----------------------------------------
 // Ping an I2C device and see if it responds
+//----------------------------------------
 bool i2cIsDevicePresent(TwoWire *i2cBus, uint8_t deviceAddress)
 {
     i2cBus->beginTransmission(deviceAddress);
@@ -449,7 +498,9 @@ bool i2cIsDevicePresent(TwoWire *i2cBus, uint8_t deviceAddress)
     return false;
 }
 
+//----------------------------------------
 // Read an I2C device register and check for an expected value
+//----------------------------------------
 bool i2cIsDeviceRegisterPresent(TwoWire *i2cBus, uint8_t deviceAddress, uint8_t registerAddress, uint8_t expectedValue)
 {
     int maxRetries = 3;
@@ -474,7 +525,9 @@ bool i2cIsDeviceRegisterPresent(TwoWire *i2cBus, uint8_t deviceAddress, uint8_t 
     return false;
 }
 
+//----------------------------------------
 // Create a test file in file structure to make sure we can
+//----------------------------------------
 bool createTestFile()
 {
     SdFile testFile;
@@ -500,7 +553,9 @@ bool createTestFile()
     return (false);
 }
 
+//----------------------------------------
 // If debug option is on, print available heap
+//----------------------------------------
 void reportHeapNow(bool alwaysPrint)
 {
     if (alwaysPrint || (settings.enableHeapReport == true))
@@ -518,7 +573,9 @@ void reportHeapNow(bool alwaysPrint)
     }
 }
 
+//----------------------------------------
 // If debug option is on, print available heap
+//----------------------------------------
 void reportHeap()
 {
     if (settings.enableHeapReport == true)
@@ -530,8 +587,10 @@ void reportHeap()
     }
 }
 
+//----------------------------------------
 // Determine MUX pins for this platform and set MUX to ADC/DAC to avoid I2C bus failure
 // See issue #474: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
+//----------------------------------------
 void beginMux()
 {
     if (present.portDataMux == false)
@@ -540,8 +599,10 @@ void beginMux()
     setMuxport(MUX_ADC_DAC); // Set mux to user's choice: NMEA, I2C, PPS, or DAC
 }
 
+//----------------------------------------
 // Set the port of the 1:4 dual channel analog mux
 // This allows NMEA, I2C, PPS/Event, and ADC/DAC to be routed through data port via software select
+//----------------------------------------
 void setMuxport(int channelNumber)
 {
     if (present.portDataMux == false)
@@ -574,9 +635,11 @@ void setMuxport(int channelNumber)
     }
 }
 
+//----------------------------------------
 // Create $GNTXT, type message complete with CRC
 // https://www.nmea.org/Assets/20160520%20txt%20amendment.pdf
 // Used for recording system events (boot reason, event triggers, etc) inside the log
+//----------------------------------------
 void createNMEASentence(customNmeaType_e textID, char *nmeaMessage, size_t sizeOfNmeaMessage, char *textMessage)
 {
     // Currently we don't have messages longer than 82 char max so we hardcode the sentence numbers
@@ -595,14 +658,18 @@ void createNMEASentence(customNmeaType_e textID, char *nmeaMessage, size_t sizeO
     snprintf(nmeaMessage, sizeOfNmeaMessage, "%s%02X", nmeaTxt, CRC);
 }
 
+//----------------------------------------
 // Get the default settings
+//----------------------------------------
 void getDefaultSettings(struct Settings *tempSettings)
 {
     static const Settings defaultSettings;
     memcpy(tempSettings, &defaultSettings, sizeof(defaultSettings));
 }
 
+//----------------------------------------
 // Reset settings struct to default initializers
+//----------------------------------------
 void settingsToDefaults()
 {
     getDefaultSettings(&settings);
@@ -610,7 +677,9 @@ void settingsToDefaults()
     checkGNSSArrayDefaults(); // This calls recordSystemSettings if any GNSS defaults are applied
 }
 
+//----------------------------------------
 // Periodically print information if enabled
+//----------------------------------------
 void printReports()
 {
     if (bluetoothCommandIsConnected() == true)
@@ -680,11 +749,13 @@ void printReports()
     }
 }
 
+//----------------------------------------
 // Given a user's string, try to identify the type and return the coordinate in DD.ddddddddd format
 // Note: CoordinateInputType will be COORDINATE_INPUT_TYPE_DDMM for both 5-digit (DDDMM) longitude
 //       and 4-digit (DDMM) latitude
 //       CoordinateInputType will be COORDINATE_INPUT_TYPE_DDMMSS for both 7-digit (DDDMMSS) longitude
 //       and 6-digit (DDMMSS) latitude
+//----------------------------------------
 CoordinateInputType coordinateIdentifyInputType(const char *userEntryOriginal, double *coordinate)
 {
     char userEntry[50];
@@ -871,8 +942,10 @@ CoordinateInputType coordinateIdentifyInputType(const char *userEntryOriginal, d
     return (coordinateInputType);
 }
 
+//----------------------------------------
 // Given a coordinate and input type, output a string
 // So DD.ddddddddd can become 'DD MM SS.ssssss', etc
+//----------------------------------------
 void coordinateConvertInput(double coordinate, CoordinateInputType coordinateInputType, char *coordinateString,
                             int sizeOfCoordinateString)
 {
@@ -946,7 +1019,10 @@ void coordinateConvertInput(double coordinate, CoordinateInputType coordinateInp
         log_d("Unknown coordinate input type");
     }
 }
+
+//----------------------------------------
 // Given an input type, return a printable string
+//----------------------------------------
 const char *coordinatePrintableInputType(CoordinateInputType coordinateInputType)
 {
     switch (coordinateInputType)
@@ -994,7 +1070,9 @@ const char *coordinatePrintableInputType(CoordinateInputType coordinateInputType
     return ("Unknown");
 }
 
+//----------------------------------------
 // Resest the system
+//----------------------------------------
 void systemReset()
 {
     Serial.println("System reset");
@@ -1002,7 +1080,9 @@ void systemReset()
     ESP.restart();
 }
 
+//----------------------------------------
 // Print the error message every 15 seconds
+//----------------------------------------
 void reportFatalError(const char *errorMsg)
 {
     uint32_t currentMsec;
@@ -1033,7 +1113,9 @@ void reportFatalError(const char *errorMsg)
     }
 }
 
+//----------------------------------------
 // This allows the measurementScaleTable to be alphabetised if desired
+//----------------------------------------
 int measurementScaleToIndex(uint8_t scale)
 {
     for (int i = 0; i < MEASUREMENT_UNITS_MAX; i++)
@@ -1045,7 +1127,9 @@ int measurementScaleToIndex(uint8_t scale)
     return -1; // This should never happen...
 }
 
+//----------------------------------------
 // Returns string of the HPA units
+//----------------------------------------
 const char *getHpaUnits(double hpa, char *buffer, int length, int decimals, bool limit)
 {
     static const char unknown[] = "Unknown";
@@ -1078,7 +1162,9 @@ const char *getHpaUnits(double hpa, char *buffer, int length, int decimals, bool
     return unknown;
 }
 
+//----------------------------------------
 // Return true if a USB cable is detected
+//----------------------------------------
 bool isUsbAttached()
 {
     if (pin_powerAdapterDetect != PIN_UNDEFINED)
@@ -1091,7 +1177,9 @@ bool isUsbAttached()
     return false;
 }
 
+//----------------------------------------
 // Return true if charger is actively charging
+//----------------------------------------
 bool isCharging()
 {
     if (present.fuelgauge_max17048 == true && online.batteryFuelGauge == true)
@@ -1124,8 +1212,10 @@ bool isCharging()
     return false;
 }
 
+//----------------------------------------
 // Remove leading and trailing whitespaces: ' ', \t, \v, \f, \r, \n
 // https://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
+//----------------------------------------
 void trim(char *str)
 {
     char *p = str;
@@ -1139,7 +1229,9 @@ void trim(char *str)
     memmove(str, p, l + 1);
 }
 
+//----------------------------------------
 // Read the MAC addresses directly from the chip
+//----------------------------------------
 void getMacAddresses(uint8_t *macAddress, const char *name, esp_mac_type_t type, bool debug)
 {
     esp_err_t status;
@@ -1152,7 +1244,9 @@ void getMacAddresses(uint8_t *macAddress, const char *name, esp_mac_type_t type,
                      macAddress[3], macAddress[4], macAddress[5], name);
 }
 
+//----------------------------------------
 // Start the I2C GPIO expander responsible for switches (generally the RTK Facet FP)
+//----------------------------------------
 void beginGpioExpanderSwitches()
 {
     if (present.gpioExpanderSwitches)
@@ -1188,15 +1282,19 @@ void beginGpioExpanderSwitches()
     }
 }
 
+//----------------------------------------
 // Drive GPIO pin high to bring GNSS out of reset
+//----------------------------------------
 void gpioExpanderGnssBoot()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_GNSS_Reset, HIGH);
 }
 
+//----------------------------------------
 // This drives the GNSS_Reset low, which causes the GNSS and IMU to reset on the FP
 // Use a fast reset if the GNSS is LG290P or unknown
+//----------------------------------------
 void gpioExpanderGnssReset()
 {
     if (online.gpioExpanderSwitches == true)
@@ -1212,17 +1310,23 @@ void gpioExpanderGnssReset()
     }
 }
 
+//----------------------------------------
 // On Flex modules, the IMU reset is tied to the GNSS reset
+//----------------------------------------
 void gpioExpanderImuReset()
 {
     gpioExpanderGnssReset();
 }
 
+//----------------------------------------
+// Boot the IMU, on Flex modules, the IMU reset is tied to the GNSS reset
+//----------------------------------------
 void gpioExpanderImuBoot()
 {
     gpioExpanderGnssBoot();
 }
 
+//----------------------------------------
 // Detect if a GNSS is present by:
 // Driving gpioExpanderSwitch_GNSS_Reset LOW to place the GNSS in RESET
 // Change gpioExpanderSwitch_GNSS_Reset to INPUT
@@ -1232,14 +1336,23 @@ void gpioExpanderImuBoot()
 // But we need to be careful. If we put an LG290P into RESET, it brings down the
 // I2C bus. So, we need to be quick! Drive reset low, then immediately change to
 // INPUT using a direct write - not the read-modify-write through the library.
+//----------------------------------------
 bool gpioExpanderDetectGnss()
 {
     return gpioExpanderDetectGnssCommon(false);
 }
+
+//----------------------------------------
+// Attempt to detect the GNSS
+//----------------------------------------
 bool gpioExpanderDetectGnssForced()
 {
     return gpioExpanderDetectGnssCommon(true);
 }
+
+//----------------------------------------
+// Attempt to detect the GNSS
+//----------------------------------------
 bool gpioExpanderDetectGnssCommon(bool forceDetection)
 {
     if (online.gpioExpanderSwitches == true)
@@ -1293,9 +1406,11 @@ bool gpioExpanderDetectGnssCommon(bool forceDetection)
     return (true); // Default to true so gnssDetectReceiverType() will continue with detection
 }
 
+//----------------------------------------
 // Use the same technique as gpioExpanderDetectGnssForced() to perform a fast GNSS reset:
 // avoiding the slow read-modify-write in the TCA9534 library;
 // without the slow flexModuleDetected for loop.
+//----------------------------------------
 void gpioExpanderGnssResetFast()
 {
     if (online.gpioExpanderSwitches == true)
@@ -1330,45 +1445,63 @@ void gpioExpanderGnssResetFast()
     }
 }
 
+//----------------------------------------
 // The IMU is on UART3 of the Facet FP module connected to switch 3
+//----------------------------------------
 void gpioExpanderSelectImu()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, LOW);
 }
 
+//----------------------------------------
 // Connect ESP32 UART2 to LoRa UART2 via SW3 for configuration and bootloading/firmware updates
+//----------------------------------------
 void gpioExpanderSelectLoraConfigure()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, HIGH);
 }
 
+//----------------------------------------
 // Connect Facet FP GNSS receiver UART2 to LoRa UART0 via SW4 for normal TX/RX of corrections and data
+//----------------------------------------
 void gpioExpanderSelectLoraCommunication()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S4, HIGH);
 }
 
+//----------------------------------------
 // Connect Facet FP GNSS UART2 to 4-pin JST RADIO port via SW4 (Default)
+//----------------------------------------
 void gpioExpanderSelectRadioPort()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S4, LOW);
 }
 
+//----------------------------------------
 // Drive GPIO pin high to enable LoRa Radio
+//----------------------------------------
 void gpioExpanderLoraEnable()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraEnable, HIGH);
 }
+
+//----------------------------------------
+// Drive GPIO pin low to disable LoRa Radio
+//----------------------------------------
 void gpioExpanderLoraDisable()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraEnable, LOW);
 }
+
+//----------------------------------------
+// Determine if the LoRa Radio is on
+//----------------------------------------
 bool gpioExpanderLoraIsOn()
 {
     if (online.gpioExpanderSwitches == true)
@@ -1378,32 +1511,46 @@ bool gpioExpanderLoraIsOn()
     }
     return (false);
 }
+
+//----------------------------------------
+// Set the LoRa Radio in a boot state
+//----------------------------------------
 void gpioExpanderLoraBootEnable()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraBoot, HIGH);
 }
+
+//----------------------------------------
+// Set the LoRa Radio in a run state
+//----------------------------------------
 void gpioExpanderLoraBootDisable()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_LoraBoot, LOW);
 }
 
+//----------------------------------------
 // Connect Facet FP GNSS receiver UART1 to CH342 for firmware upgrade with baud rate changes
+//----------------------------------------
 void gpioExpanderConnectGNSSToCH342()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S5, HIGH);
 }
 
+//----------------------------------------
 // Connect Facet FP GNSS receiver UART1 to ESP32 UART1 for normal comms
+//----------------------------------------
 void gpioExpanderConnectGNSSToESP32()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S5, LOW);
 }
 
+//----------------------------------------
 // Read the switches value from the GPIO expander
+//----------------------------------------
 int gpioExpanderSwitchesRead()
 {
     uint8_t data;
@@ -1414,6 +1561,9 @@ int gpioExpanderSwitchesRead()
     return -1;
 }
 
+//----------------------------------------
+// Decode and display the GPIO expander state
+//----------------------------------------
 void gpioExpanderDisplay()
 {
     int data;
@@ -1478,6 +1628,9 @@ void gpioExpanderDisplay()
     }
 }
 
+//----------------------------------------
+// Decode and display the product configuration
+//----------------------------------------
 void systemDisplayConfiguration()
 {
     const char *brand;
