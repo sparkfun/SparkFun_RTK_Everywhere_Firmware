@@ -2,7 +2,63 @@
 System.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+// Global variables used by firmwareUpdateProgressCallback, called by all
+// firmware update procedures
+static uint32_t firmwareUpdateBytesToProcess;
+static uint32_t firmwareUpdateBytesProcessed;
 static uint8_t firmwareUpdateLastPercent;
+
+//----------------------------------------
+// Resets the progress-bar state. Must be called once at the start of each
+// firmware update - these otherwise carry over from the previous update
+// (bytesProcessed and lastPercent both already at their prior-run end
+// values), which suppresses every progress print on a second run since
+// percent is already 100 and "unchanged".
+//----------------------------------------
+void firmwareUpdateProgressReset(size_t fileBytes)
+{
+    firmwareUpdateBytesToProcess = fileBytes;
+    firmwareUpdateBytesProcessed = 0;
+    firmwareUpdateLastPercent = 0;
+}
+
+//----------------------------------------
+// Callback for all firmware update targets. Called with the number of
+// bytes just written to flash. Used to track and print progress.
+//----------------------------------------
+void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
+                                    uint16_t bytesProcessed)
+{
+    const uint8_t progressBarWidth = 20;
+
+    firmwareUpdateBytesProcessed += bytesProcessed;
+
+    uint32_t progressPercent = 0;
+    if (firmwareUpdateBytesToProcess > 0)
+        progressPercent = (firmwareUpdateBytesProcessed * 100UL) / firmwareUpdateBytesToProcess;
+
+    if (progressPercent > 100)
+        progressPercent = 100;
+
+    uint8_t filled = (progressPercent * progressBarWidth) / 100;
+
+    // Don't update unless there is a change
+    if (progressPercent == firmwareUpdateLastPercent)
+        return;
+
+    firmwareUpdateLastPercent = progressPercent;
+
+    systemPrintf("%s Update Progress: [", chipOrSubsystemName);
+    for (uint8_t i = 0; i < progressBarWidth; i++)
+        systemWrite(i < filled ? '#' : '-');
+
+    systemPrint("] ");
+    systemPrint(progressPercent);
+    systemPrintln("%");
+
+    // Update the display
+    displayFirmwareUpdateProgress(progressPercent);
+}
 
 // Initialize PSRAM if available
 void beginPsram()
@@ -1345,53 +1401,6 @@ void gpioExpanderConnectGNSSToESP32()
 {
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S5, LOW);
-}
-
-// Resets the progress-bar state. Must be called once at the start of each
-// firmware update - these otherwise carry over from the previous update
-// (bytesProcessed and lastPercent both already at their prior-run end
-// values), which suppresses every progress print on a second run since
-// percent is already 100 and "unchanged".
-void firmwareUpdateProgressReset(size_t fileBytes)
-{
-    firmwareUpdateBytesToProcess = fileBytes;
-    firmwareUpdateBytesProcessed = 0;
-    firmwareUpdateLastPercent = 0;
-}
-
-// Callback for all firmware update targets. Called with the number of bytes written to flash so far. Used to track
-// and print progress.
-void firmwareUpdateProgressCallback(const char *subsystemName, uint16_t bytesProcessed)
-{
-    const uint8_t progressBarWidth = 20;
-
-    firmwareUpdateBytesProcessed += bytesProcessed;
-
-    uint32_t progressPercent = 0;
-    if (firmwareUpdateBytesToProcess > 0)
-        progressPercent = (firmwareUpdateBytesProcessed * 100UL) / firmwareUpdateBytesToProcess;
-
-    if (progressPercent > 100)
-        progressPercent = 100;
-
-    uint8_t filled = (progressPercent * progressBarWidth) / 100;
-
-    // Don't update unless there is a change
-    if (progressPercent == firmwareUpdateLastPercent)
-        return;
-
-    firmwareUpdateLastPercent = progressPercent;
-
-    systemPrintf("%s Update Progress: [", subsystemName);
-    for (uint8_t i = 0; i < progressBarWidth; i++)
-        systemWrite(i < filled ? '#' : '-');
-
-    systemPrint("] ");
-    systemPrint(progressPercent);
-    systemPrintln("%");
-
-    // Update the display
-    displayFirmwareUpdateProgress(progressPercent);
 }
 
 // Read the switches value from the GPIO expander

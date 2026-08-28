@@ -483,10 +483,6 @@ const char *wifiSoftApPassword = nullptr;
 
 bool apConfigFirmwareUpdateInProcess; // Goes true once WiFi is connected and OTA pull begins
 
-// Global variables used by firmwareUpdateProgressCallback, called by all firmware update procedures
-uint32_t firmwareUpdateBytesToProcess = 0;
-uint32_t firmwareUpdateBytesProcessed = 0;
-
 char otaReportedVersion[50];
 bool otaRequestFirmwareVersionCheck = false;
 bool otaRequestFirmwareUpdate = false;
