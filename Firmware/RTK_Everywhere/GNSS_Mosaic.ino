@@ -1749,6 +1749,7 @@ void GNSS_MOSAIC::menuMessages()
         systemPrintln("3) Set Base RTCM Messages");
 
         systemPrintln("10) Reset to Defaults");
+        systemPrintln("11) Reset to PPP Logging (NMEAx7 / RTCMx4 - 30 second decimation)");
         systemPrintln("12) Reset to High-rate PPP Logging (NMEAx7 / RTCMx4 - 1Hz)");
 
         systemPrintln("x) Exit");
@@ -1761,7 +1762,7 @@ void GNSS_MOSAIC::menuMessages()
             menuMessagesRTCM(true);
         else if (incoming == 3)
             menuMessagesRTCM(false);
-        else if (incoming == 10 || incoming == 12)
+        else if (incoming == 10 || incoming == 11 || incoming == 12)
         {
             // Reset NMEA intervals to default
             uint8_t mosaicStreamIntervalsNMEA[MOSAIC_NUM_NMEA_STREAMS] = MOSAIC_DEFAULT_NMEA_STREAM_INTERVALS;
@@ -1794,15 +1795,11 @@ void GNSS_MOSAIC::menuMessages()
             if (incoming == 10)
                 systemPrintln("Reset to Defaults");
 
-            else if (incoming == 12)
+            else if (incoming == 11 || incoming == 12)
             {
-                // Reset RTCMv3 Rover intervals to defaults
-                for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
-                    settings.mosaicMessageIntervalsRTCMv3Rover[x] = mosaicRTCMv3MsgIntervalGroups[x].defaultInterval;
-
-                // Disable all RTCMv3 Rover messages
-                for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
-                    settings.mosaicMessageEnabledRTCMv3Rover[x] = 0;
+                // Option 11 decimates to once every 30s (good for long logging sessions)
+                // Option 12 runs MSM4 at 1Hz and RTCM 19/20/42/46 at 0.2Hz for high-rate PPP logging
+                float rtcmInterval = (incoming == 11) ? 30.0 : 5.0;
 
                 // Enable the messages needed for PPP logging: RTCM1019, RTCM1020, RTCM1042, RTCM1046, MSM4
                 const char *pppMessages[] = {"RTCM1019", "RTCM1020", "RTCM1042", "RTCM1046", "MSM4"};
@@ -1812,18 +1809,24 @@ void GNSS_MOSAIC::menuMessages()
                     settings.mosaicMessageEnabledRTCMv3Rover[msg] = 1;
                 }
 
-                // Set RTCM1019, RTCM1020, RTCM1042 and RTCM1046 to a 5.0s interval
-                // MSM4 keeps its default interval (1.0s = 1Hz)
-                const char *slowMessages[] = {"RTCM1019", "RTCM1020", "RTCM1042", "RTCM1046"};
-                for (int x = 0; x < 4; x++)
+                // Set RTCM1019, RTCM1020, RTCM1042 and RTCM1046 to the desired interval
+                // Option 11 also slows MSM4 to the same 30s interval; option 12 leaves MSM4 at its default (1.0s = 1Hz)
+                const char *slowMessages4[] = {"RTCM1019", "RTCM1020", "RTCM1042", "RTCM1046"};
+                const char *slowMessages5[] = {"RTCM1019", "RTCM1020", "RTCM1042", "RTCM1046", "MSM4"};
+                const char **slowMessages = (incoming == 11) ? slowMessages5 : slowMessages4;
+                int numSlowMessages = (incoming == 11) ? 5 : 4;
+                for (int x = 0; x < numSlowMessages; x++)
                 {
                     int msg = getRtcmMessageNumberByName(slowMessages[x]);
-                    settings.mosaicMessageIntervalsRTCMv3Rover[mosaicMessagesRTCMv3[msg].intervalGroup] = 5.0;
+                    settings.mosaicMessageIntervalsRTCMv3Rover[mosaicMessagesRTCMv3[msg].intervalGroup] = rtcmInterval;
                 }
 
                 gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER); // Request receiver to use new settings
 
-                systemPrintln("Reset to High-rate PPP Logging (NMEAx7 / MSM4 RTCMx4 - 1Hz)");
+                if (incoming == 12)
+                    systemPrintln("Reset to High-rate PPP Logging (RTCM1019/1020/1042/1046 @ 5.0s, MSM4 @ 1Hz)");
+                else
+                    systemPrintln("Reset to PPP Logging (RTCM1019/1020/1042/1046/MSM4 @ 30.0s)");
             }
         }
 
