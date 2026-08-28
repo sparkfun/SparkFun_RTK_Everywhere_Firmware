@@ -1649,6 +1649,59 @@ void systemDisplayConfiguration()
 }
 
 //----------------------------------------
+// Get an IP address associated with server
+//----------------------------------------
+String getServerIpAddress(const char * server)
+{
+    struct addrinfo hints, * res, * p;
+    char ipstr[INET6_ADDRSTRLEN];
+    String ipAddress;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC; // Support IPv4 or IPv6
+    hints.ai_socktype = SOCK_STREAM;
+
+    int status = getaddrinfo(server, NULL, &hints, &res);
+    if (status != 0)
+        systemPrintf("getaddrinfo error: %d\r\n", status);
+    else
+    {
+        void * addr = nullptr;
+        const char * ipVersion;
+
+        for (p = res; p != NULL; p = p->ai_next)
+        {
+            // Check for an IPv4 address
+            if (p->ai_family == AF_INET)
+            {
+                struct sockaddr_in * ipv4 = (struct sockaddr_in *)p->ai_addr;
+                addr = &(ipv4->sin_addr);
+                ipVersion = "IPv4";
+                break;
+            }
+
+            // Check for an IPv6 address
+            else if (p->ai_family == AF_INET6)
+            {
+                struct sockaddr_in6 * ipv6 = (struct sockaddr_in6 *)p->ai_addr;
+                addr = &(ipv6->sin6_addr);
+                ipVersion = "IPv6";
+                break;
+            }
+        }
+
+        if (addr)
+        {
+            inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
+            ipAddress = String(ipstr);
+        }
+
+        freeaddrinfo(res); // Free the memory
+    }
+    return ipAddress;
+}
+
+//----------------------------------------
 // Determine the certificate that should be used with the server
 //----------------------------------------
 const char * getCertFromServer(const char * server)
