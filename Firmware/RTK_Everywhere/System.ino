@@ -8,6 +8,8 @@ static uint32_t firmwareUpdateBytesToProcess;
 static uint32_t firmwareUpdateBytesProcessed;
 static uint8_t firmwareUpdateLastPercent;
 
+//====================== Firmware Update Support ======================
+
 //----------------------------------------
 // Resets the progress-bar state. Must be called once at the start of each
 // firmware update - these otherwise carry over from the previous update
@@ -59,6 +61,625 @@ void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
     // Update the display
     displayFirmwareUpdateProgress(progressPercent);
 }
+
+//======================== Certificate Support ========================
+
+//----------------------------------------
+// Determine the certificate that should be used with the server
+//----------------------------------------
+const char * getCertFromServer(const char * server)
+{
+    const char * cert;
+    const char * githubUserContent = "raw.githubusercontent.com";
+    const char * sparkfun = "sparkfun.com";
+
+    cert = nullptr;
+    if (server)
+    {
+        // GitHub
+        if (strncmp(server, githubUserContent, strlen(githubUserContent)) == 0)
+            cert = GITHUB_RAW_PUBLIC_CERT;
+
+        // SparkFun
+        if (strncmp(server, sparkfun, strlen(sparkfun)) == 0)
+            cert = AWS_PUBLIC_CERT;
+    }
+    return cert;
+}
+
+//----------------------------------------
+// Determine the certificate that should be used with the URL
+//----------------------------------------
+const char * getCertFromUrl(const char * url)
+{
+    // Locate the server
+    String serverString = getServerFromUrl(url);
+
+    // Return the certificate
+    return getCertFromServer(serverString.c_str());
+}
+
+//----------------------------------------
+// Translate the certificate into a certificate name
+//----------------------------------------
+const char * getCertName(const char * cert)
+{
+    if (cert == nullptr)
+        return "None";
+    if (cert == GITHUB_RAW_PUBLIC_CERT)
+        return "github";
+    if (cert == AWS_PUBLIC_CERT)
+        return "aws";
+    return "Unknown";
+}
+
+//=========================== Server Support ===========================
+
+//----------------------------------------
+// Get an IP address associated with server
+//----------------------------------------
+String getServerIpAddress(const char * server)
+{
+    struct addrinfo hints, * res, * p;
+    char ipstr[INET6_ADDRSTRLEN];
+    String ipAddress;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC; // Support IPv4 or IPv6
+    hints.ai_socktype = SOCK_STREAM;
+
+    int status = getaddrinfo(server, NULL, &hints, &res);
+    if (status != 0)
+        systemPrintf("getaddrinfo error: %d\r\n", status);
+    else
+    {
+        void * addr = nullptr;
+        const char * ipVersion;
+
+        for (p = res; p != NULL; p = p->ai_next)
+        {
+            // Check for an IPv4 address
+            if (p->ai_family == AF_INET)
+            {
+                struct sockaddr_in * ipv4 = (struct sockaddr_in *)p->ai_addr;
+                addr = &(ipv4->sin_addr);
+                ipVersion = "IPv4";
+                break;
+            }
+
+            // Check for an IPv6 address
+            else if (p->ai_family == AF_INET6)
+            {
+                struct sockaddr_in6 * ipv6 = (struct sockaddr_in6 *)p->ai_addr;
+                addr = &(ipv6->sin6_addr);
+                ipVersion = "IPv6";
+                break;
+            }
+        }
+
+        if (addr)
+        {
+            inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
+            ipAddress = String(ipstr);
+        }
+
+        freeaddrinfo(res); // Free the memory
+    }
+    return ipAddress;
+}
+
+//----------------------------------------
+// Returns true if we successfully establish a secure connection to the
+// server or false upon failure.
+//----------------------------------------
+bool securelyConnectToServer(const char * url,
+                             NetworkClientSecure &client,
+                             const char * cert)
+{
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+    {
+        systemPrintf("url: %p (%s)\r\n", url, url ? url : "");
+        systemPrintf("cert: %p\r\n", cert);
+    }
+
+    // Verify a certificate is available
+    if ((cert == nullptr) || (strlen(cert) == 0))
+    {
+        systemPrintf("No certificate specified!\r\n");
+        return false;
+    }
+
+    // Allocate space to assemble the final URL
+    size_t length = strlen(url);
+    char urlString[length + 15 + 1];
+
+    // Locate the server
+    String serverString = getServerFromUrl(url);
+    const char * server = serverString.c_str();
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintf("server: %s\r\n", server);
+
+    // Translate the server name into an IP address
+    String ipAddressString = getServerIpAddress(server);
+    const char * ipAddress = ipAddressString.c_str();
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintf("ipAddress: %s\r\n", ipAddress);
+
+    // Use the certificate for the connection to the server
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Using TLS certificate: %s\r\n", getCertName(cert));
+    client.setCACert(cert);
+
+    // Preflight TLS handshake using the expected host name.
+    // With CA configured, connect() fails if certificate validation fails.
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Checking TLS connection to %s (%s:443)\r\n",
+                     server, ipAddress);
+    if (!client.connect(server, 443))
+    {
+        systemPrintln("TLS socket connect failed");
+        return false;
+    }
+
+    systemPrintf("TLS certificate verified for %s (%s)\r\n", server, ipAddress);
+
+    client.stop();
+    return true;
+}
+
+//----------------------------------------
+// Extract the web server from the URL
+//----------------------------------------
+String getServerFromUrl(const char * url)
+{
+    const char * http = "http://";
+    const char * https = "https://";
+    int index;
+    size_t length;
+    size_t pos;
+
+    // Locate the third slash
+    if (url == nullptr)
+        return String("");
+
+    index = 0;
+    length = strlen(url) - pos;
+    char server[length + 1];
+    if (strncmp(url, https, strlen(https)) == 0)
+        pos = strlen(https);
+    else if (strncmp(url, http, strlen(http)) == 0)
+        pos = strlen(http);
+    if (pos)
+    {
+        strcpy(server, &url[pos]);
+        for (index = 0; index < length - pos; index++)
+        {
+            if (server[index] == 0)
+                break;
+            if (server[index] == '/')
+                break;
+        }
+    }
+    server[index] = 0;
+    return String(server);
+}
+
+//----------------------------------------
+// Expand the buffer
+//----------------------------------------
+bool bufferExpand(const char * description,
+                  uint8_t * &buffer,
+                  size_t &bufferBytes,
+                  size_t allocBytes,
+                  bool debug)
+{
+    // Allocate a larger buffer
+    size_t moreBytes = bufferBytes + allocBytes;
+    uint8_t * temp = (uint8_t *)rtkMalloc(moreBytes, description);
+    if (temp == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate buffer\r\n");
+        return false;
+    }
+
+    // Zero the new space
+    memset(&temp[bufferBytes], 0, allocBytes);
+
+    // Copy data into the larger buffer and free the origin buffer
+    if (buffer)
+    {
+        memcpy(temp, buffer, bufferBytes);
+        free(buffer);
+    }
+
+    // Start using the larger buffer
+    buffer = temp;
+    bufferBytes = moreBytes;
+    if (debug)
+        systemPrintf("buffer: %p, bufferBytes: %d\r\n", buffer, bufferBytes);
+    return true;
+}
+
+//----------------------------------------
+// Get the next network file name
+//----------------------------------------
+bool serverGetNextFileName(NetworkClient * stream,
+                           const char * dirSuffix,
+                           const char * filePrefix,
+                           const char * fileSuffix,
+                           const char * namePart,
+                           const char * extension,
+                           int &fileCount,
+                           const char * bufferDescription,
+                           uint8_t * &buffer,
+                           size_t &bufferBytes,
+                           size_t &bufferOffset,
+                           const size_t allocBytes,
+                           bool debug)
+{
+    char * fileName;
+    size_t offset;
+    size_t suffixBytes;
+
+    do
+    {
+        // Expand the buffer if necessary
+        size_t requiredBufferSize = bufferOffset + 256;
+        while ((bufferBytes < requiredBufferSize)
+            && (bufferExpand(bufferDescription,
+                             buffer,
+                             bufferBytes,
+                             allocBytes,
+                             settings.debugFirmwareUpdate && otaDebugVerbose) == false))
+        {
+        }
+        if (bufferBytes < requiredBufferSize)
+            // There may be some file names in the buffer but there are
+            // more.  Display the ones that were found and skip the rest.
+            break;
+
+        // Read in the file name
+        offset = bufferOffset;
+        fileName = (char *)&buffer[offset];
+        suffixBytes = strlen(dirSuffix);
+        while ((offset < (bufferBytes - 1))
+            && (stream->connected() || stream->available()))
+        {
+            if (stream->available())
+            {
+                // Build up the file name one character at a time
+                buffer[offset] = stream->read();
+                if (buffer[offset] == fileSuffix[0])
+                    break;
+                offset += 1;
+            }
+        }
+
+        // Get more data if necessary, call this routine again to expand
+        // the buffer
+        if (buffer[offset] != fileSuffix[0])
+            return true;
+
+        // Zero terminate the file name string
+        buffer[offset++] = 0;
+
+        // Display the file name
+        if (debug)
+            systemPrintf("File: %s\r\n", fileName);
+
+        // Determine if this file should be in the list
+        if (((namePart == nullptr) || strstr(fileName, namePart))
+            && ((extension == nullptr) || strstr(fileName, extension)))
+        {
+            // Add this file name to the buffer
+            bufferOffset = offset;
+            fileCount += 1;
+        }
+
+        // Locate the next file name
+        if (stream->findUntil(filePrefix, dirSuffix))
+            return true;
+
+        // End of file list
+    } while (0);
+    return false;
+}
+
+//----------------------------------------
+// Sort the list of files
+//----------------------------------------
+void serverSortFileList(const char ** nameArray, int * sortArray, int fileCount)
+{
+    // Bubble sort the file names newest to oldest
+    for (int i = 0; i < (fileCount - 1); i++)
+        for (int j = i + 1; j < fileCount; j++)
+            // Determine if the entries should be switched
+            if (strcmp(nameArray[sortArray[i]], nameArray[sortArray[j]]) < 0)
+            {
+                // Switch the entries
+                int temp = sortArray[i];
+                sortArray[i] = sortArray[j];
+                sortArray[j] = temp;
+            }
+}
+
+//----------------------------------------
+// Select a URL from a web site directory listing
+//----------------------------------------
+String serverSelectFileNameFromDirectoryListing(const char * url,
+                                                const char * dirPrefix,
+                                                const char * dirSuffix,
+                                                const char * fileListPrefix,
+                                                const char * filePrefix,
+                                                const char * fileSuffix,
+                                                const char * namePart,
+                                                const char * extension,
+                                                const char * fileServerPath)
+{
+    const size_t allocBytes = 1024;
+    uint8_t * buffer = nullptr;
+    size_t bufferBytes = allocBytes;
+    const char * bufferDescription = "Web page file list";
+    size_t bufferOffset = 0;
+    int fileCount = 0;
+    HTTPClient http;
+    int incoming;
+    int index;
+    const char ** nameArray = nullptr;
+    const char * nameArrayDescription = "Array of file name addresses";
+    size_t requiredBytes;
+    String selectedEntry;
+    int * sortArray = nullptr;
+    const char * sortArrayDescription = "Array of indexes into name buffer";
+    NetworkClient * stream;
+
+    do
+    {
+        systemPrintf("URL: %s\r\n", url);
+        if (!http.begin(url))
+        {
+            systemPrintln("Unable to begin HTTP request.");
+            break;
+        }
+
+        int httpCode = http.GET();
+        if (httpCode != HTTP_CODE_OK)
+        {
+            systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
+            break;
+        }
+
+        // Allocate space for the directory listing
+        if (bufferExpand(bufferDescription,
+                         buffer,
+                         bufferBytes,
+                         allocBytes,
+                         settings.debugFirmwareUpdate && otaDebugVerbose) == false)
+        {
+            break;
+        }
+
+        // Get TCP stream
+        stream = http.getStreamPtr();
+
+        // Locate the beginning of the directory listing
+        if (dirPrefix && (stream->find(dirPrefix) == false))
+        {
+            systemPrintf("Directory prefix not found!\r\n");
+            break;
+        }
+
+        if (fileListPrefix && (stream->find(fileListPrefix) == false))
+        {
+            systemPrintf("File list prefix not found!\r\n");
+            break;
+        }
+
+        // Locate the first file name
+        if (stream->findUntil(filePrefix, dirSuffix) == false)
+        {
+            systemPrintf("File not found!\r\n");
+            break;
+        }
+
+        // Get the list of files
+        while (serverGetNextFileName(stream,
+                                     dirSuffix,
+                                     filePrefix,
+                                     fileSuffix,
+                                     namePart,
+                                     extension,
+                                     fileCount,
+                                     bufferDescription,
+                                     buffer,
+                                     bufferBytes,
+                                     bufferOffset,
+                                     allocBytes,
+                                     settings.debugFirmwareUpdate && otaDebugVerbose))
+        {
+        }
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        {
+            dumpBuffer((uintptr_t)buffer, buffer, bufferOffset);
+            systemPrintf("fileCount: %d\r\n", fileCount);
+        }
+
+        // Verify that files were found
+        if (fileCount == 0)
+        {
+            systemPrintf("No files found\r\n");
+            break;
+        }
+
+        // Allocate the arrays
+        requiredBytes = sizeof(const char *) * fileCount;
+        nameArray = (const char **)rtkMalloc(requiredBytes, nameArrayDescription);
+        if (nameArray == nullptr)
+            break;
+        requiredBytes = sizeof(int) * fileCount;
+        sortArray = (int *)rtkMalloc(requiredBytes, sortArrayDescription);
+        if (sortArray == nullptr)
+            break;
+
+        // Initialize the arrays
+        const char * data = (const char *)buffer;
+        for (index = 0; index < fileCount; index++)
+        {
+            sortArray[index] = index;
+            nameArray[index] = data;
+            data += strlen(data) + 1;
+        }
+
+        // Sort the file names
+        serverSortFileList(nameArray, sortArray, fileCount);
+
+        // Display the file list
+file_menu:
+        systemPrintf("\r\nFile Menu\r\n");
+        for (index = 0; index < fileCount; index++)
+            systemPrintf("%d) %s\r\n", index, nameArray[sortArray[index]]);
+        systemPrintf("Select file: ");
+
+        // Get the user's selection
+        if (systemGetNumberFromUser(&incoming) == false)
+            break;
+
+        // Validate the user entry
+        if ((incoming >= fileCount) || (incoming < 0))
+            goto file_menu;
+
+        // Build the selected entry string
+        selectedEntry = fileServerPath;
+        selectedEntry += nameArray[sortArray[incoming]];
+    } while (0);
+
+    // Done with the buffers and the HTTP object
+    if (sortArray)
+        rtkFree(sortArray, sortArrayDescription);
+    if (nameArray)
+        rtkFree(nameArray, nameArrayDescription);
+    if (buffer)
+        rtkFree(buffer, bufferDescription);
+    http.end();
+    return selectedEntry;
+}
+
+//============================ I2C Support ============================
+
+//----------------------------------------
+// Ping an I2C device and see if it responds
+//----------------------------------------
+bool i2cIsDevicePresent(TwoWire *i2cBus, uint8_t deviceAddress)
+{
+    i2cBus->beginTransmission(deviceAddress);
+    if (i2cBus->endTransmission() == 0)
+        return true;
+    return false;
+}
+
+//========================= User Input Support =========================
+
+//----------------------------------------
+// Get a string from the user
+//----------------------------------------
+String systemGetStringFromUser()
+{
+    uint32_t start = millis();
+
+    // Build the string as the user inputs a character at a time
+    String input;
+    while (1)
+    {
+        // Check for timeout
+        if ((millis() - start) > (15 * 1000))
+        {
+            input = "";
+            break;
+        }
+
+        // Wait for a character
+        if (Serial.available() == false)
+            delay(10);
+        else
+        {
+            // Get the character
+            start = millis();
+            int incoming = Serial.read();
+
+            // Handle end-of-line
+            if ((incoming == '\r') || (incoming == '\n'))
+            {
+                systemPrintln();
+                break;
+            }
+
+            // Handle backspace
+            else if (incoming == '\b')
+            {
+                if (input.length() == 0)
+                    systemWrite('\a');
+                else
+                {
+                    systemPrint("\b \b");
+                    input = input.substring(0, input.length() - 1);
+                }
+            }
+
+            // Save the character
+            else
+            {
+                systemWrite(incoming);
+                input += (char)incoming;
+            }
+        }
+    }
+    return input;
+}
+
+//----------------------------------------
+// Get a number from the user
+//----------------------------------------
+bool systemGetNumberFromUser(int * value)
+{
+    // Get the URL
+    String string = systemGetStringFromUser();
+
+    // Check for no entry or timeout
+    if (string.length() == 0)
+        return false;
+
+    // Attempt to convert the string to a value
+    return sscanf(string.c_str(), "%d", value);
+}
+
+//----------------------------------------
+// Read an I2C device register and check for an expected value
+//----------------------------------------
+bool i2cIsDeviceRegisterPresent(TwoWire *i2cBus, uint8_t deviceAddress, uint8_t registerAddress, uint8_t expectedValue)
+{
+    int maxRetries = 3;
+
+    while (maxRetries > 0)
+    {
+        maxRetries--;
+        delay(1);
+
+        i2cBus->beginTransmission(deviceAddress);
+        i2cBus->write(registerAddress);
+        if (i2cBus->endTransmission() != 0)
+            continue;
+
+        i2cBus->requestFrom(deviceAddress, (uint8_t)1);
+        if (i2cBus->available())
+        {
+            return (i2cBus->read() == expectedValue);
+        }
+    }
+
+    return false;
+}
+
+//========================= Other Support =========================
 
 //----------------------------------------
 // Initialize PSRAM if available
@@ -485,44 +1106,6 @@ void checkBatteryLevels()
             (float)bq40z50Battery->getAverageCurrentMa() / bq40z50Battery->getFullChargeCapacityMah() * 100.0;
     }
 #endif // COMPILE_BQ40Z50
-}
-
-//----------------------------------------
-// Ping an I2C device and see if it responds
-//----------------------------------------
-bool i2cIsDevicePresent(TwoWire *i2cBus, uint8_t deviceAddress)
-{
-    i2cBus->beginTransmission(deviceAddress);
-    if (i2cBus->endTransmission() == 0)
-        return true;
-    return false;
-}
-
-//----------------------------------------
-// Read an I2C device register and check for an expected value
-//----------------------------------------
-bool i2cIsDeviceRegisterPresent(TwoWire *i2cBus, uint8_t deviceAddress, uint8_t registerAddress, uint8_t expectedValue)
-{
-    int maxRetries = 3;
-
-    while (maxRetries > 0)
-    {
-        maxRetries--;
-        delay(1);
-
-        i2cBus->beginTransmission(deviceAddress);
-        i2cBus->write(registerAddress);
-        if (i2cBus->endTransmission() != 0)
-            continue;
-
-        i2cBus->requestFrom(deviceAddress, (uint8_t)1);
-        if (i2cBus->available())
-        {
-            return (i2cBus->read() == expectedValue);
-        }
-    }
-
-    return false;
 }
 
 //----------------------------------------
@@ -1244,43 +1827,7 @@ void getMacAddresses(uint8_t *macAddress, const char *name, esp_mac_type_t type,
                      macAddress[3], macAddress[4], macAddress[5], name);
 }
 
-//----------------------------------------
-// Start the I2C GPIO expander responsible for switches (generally the RTK Facet FP)
-//----------------------------------------
-void beginGpioExpanderSwitches()
-{
-    if (present.gpioExpanderSwitches)
-    {
-        if (gpioExpanderSwitches == nullptr)
-            gpioExpanderSwitches = new SFE_PCA95XX(PCA95XX_PCA9534);
-
-        // In Facet FP, the GPIO Expander has been assigned address 0x21
-        if (gpioExpanderSwitches->begin(0x21, *i2c_0) == false)
-        {
-            systemPrintln("GPIO expander for switches not detected");
-            delete gpioExpanderSwitches;
-            gpioExpanderSwitches = nullptr;
-            return;
-        }
-
-        // SW1 is on pin 0. Driving it high will disconnect the ESP32 from USB
-        // GNSS_RST is on pin 5. Driving it low when an LG290P is connected will kill the I2C bus.
-        for (uint8_t i = 0; i < gpioExpanderNumSwitches; i++)
-        {
-            // Set all pins to low except GNSS RESET
-            if (i == gpioExpanderSwitch_GNSS_Reset)
-                gpioExpanderSwitches->digitalWrite(i, HIGH);
-            else
-                gpioExpanderSwitches->digitalWrite(i, LOW);
-
-            gpioExpanderSwitches->pinMode(i, OUTPUT);
-        }
-
-        online.gpioExpanderSwitches = true;
-
-        systemPrintln("GPIO Expander for switches configuration complete");
-    }
-}
+//======================= GPIO Expander Support =======================
 
 //----------------------------------------
 // Drive GPIO pin high to bring GNSS out of reset
@@ -1562,6 +2109,44 @@ int gpioExpanderSwitchesRead()
 }
 
 //----------------------------------------
+// Start the I2C GPIO expander responsible for switches (generally the RTK Facet FP)
+//----------------------------------------
+void beginGpioExpanderSwitches()
+{
+    if (present.gpioExpanderSwitches)
+    {
+        if (gpioExpanderSwitches == nullptr)
+            gpioExpanderSwitches = new SFE_PCA95XX(PCA95XX_PCA9534);
+
+        // In Facet FP, the GPIO Expander has been assigned address 0x21
+        if (gpioExpanderSwitches->begin(0x21, *i2c_0) == false)
+        {
+            systemPrintln("GPIO expander for switches not detected");
+            delete gpioExpanderSwitches;
+            gpioExpanderSwitches = nullptr;
+            return;
+        }
+
+        // SW1 is on pin 0. Driving it high will disconnect the ESP32 from USB
+        // GNSS_RST is on pin 5. Driving it low when an LG290P is connected will kill the I2C bus.
+        for (uint8_t i = 0; i < gpioExpanderNumSwitches; i++)
+        {
+            // Set all pins to low except GNSS RESET
+            if (i == gpioExpanderSwitch_GNSS_Reset)
+                gpioExpanderSwitches->digitalWrite(i, HIGH);
+            else
+                gpioExpanderSwitches->digitalWrite(i, LOW);
+
+            gpioExpanderSwitches->pinMode(i, OUTPUT);
+        }
+
+        online.gpioExpanderSwitches = true;
+
+        systemPrintln("GPIO Expander for switches configuration complete");
+    }
+}
+
+//----------------------------------------
 // Decode and display the GPIO expander state
 //----------------------------------------
 void gpioExpanderDisplay()
@@ -1799,563 +2384,4 @@ void systemDisplayConfiguration()
     if (present.i2c1 && (pin_I2C1_SCL != PIN_UNDEFINED))
         systemPrintf("I2C-1: SCL: %d, SDA: %d\r\n", pin_I2C1_SCL, pin_I2C1_SDA);
     i2cBusEnumerate(i2c_1, 1);
-}
-
-//----------------------------------------
-// Get an IP address associated with server
-//----------------------------------------
-String getServerIpAddress(const char * server)
-{
-    struct addrinfo hints, * res, * p;
-    char ipstr[INET6_ADDRSTRLEN];
-    String ipAddress;
-
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC; // Support IPv4 or IPv6
-    hints.ai_socktype = SOCK_STREAM;
-
-    int status = getaddrinfo(server, NULL, &hints, &res);
-    if (status != 0)
-        systemPrintf("getaddrinfo error: %d\r\n", status);
-    else
-    {
-        void * addr = nullptr;
-        const char * ipVersion;
-
-        for (p = res; p != NULL; p = p->ai_next)
-        {
-            // Check for an IPv4 address
-            if (p->ai_family == AF_INET)
-            {
-                struct sockaddr_in * ipv4 = (struct sockaddr_in *)p->ai_addr;
-                addr = &(ipv4->sin_addr);
-                ipVersion = "IPv4";
-                break;
-            }
-
-            // Check for an IPv6 address
-            else if (p->ai_family == AF_INET6)
-            {
-                struct sockaddr_in6 * ipv6 = (struct sockaddr_in6 *)p->ai_addr;
-                addr = &(ipv6->sin6_addr);
-                ipVersion = "IPv6";
-                break;
-            }
-        }
-
-        if (addr)
-        {
-            inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
-            ipAddress = String(ipstr);
-        }
-
-        freeaddrinfo(res); // Free the memory
-    }
-    return ipAddress;
-}
-
-//----------------------------------------
-// Determine the certificate that should be used with the server
-//----------------------------------------
-const char * getCertFromServer(const char * server)
-{
-    const char * cert;
-    const char * githubUserContent = "raw.githubusercontent.com";
-    const char * sparkfun = "sparkfun.com";
-
-    cert = nullptr;
-    if (server)
-    {
-        // GitHub
-        if (strncmp(server, githubUserContent, strlen(githubUserContent)) == 0)
-            cert = GITHUB_RAW_PUBLIC_CERT;
-
-        // SparkFun
-        if (strncmp(server, sparkfun, strlen(sparkfun)) == 0)
-            cert = AWS_PUBLIC_CERT;
-    }
-    return cert;
-}
-
-//----------------------------------------
-// Translate the certificate into a certificate name
-//----------------------------------------
-const char * getCertName(const char * cert)
-{
-    if (cert == nullptr)
-        return "None";
-    if (cert == GITHUB_RAW_PUBLIC_CERT)
-        return "github";
-    if (cert == AWS_PUBLIC_CERT)
-        return "aws";
-    return "Unknown";
-}
-
-//----------------------------------------
-// Returns true if we successfully establish a secure connection to the
-// server or false upon failure.
-//----------------------------------------
-bool securelyConnectToServer(const char * url,
-                             NetworkClientSecure &client,
-                             const char * cert)
-{
-    if (settings.debugFirmwareUpdate && otaDebugVerbose)
-    {
-        systemPrintf("url: %p (%s)\r\n", url, url ? url : "");
-        systemPrintf("cert: %p\r\n", cert);
-    }
-
-    // Verify a certificate is available
-    if ((cert == nullptr) || (strlen(cert) == 0))
-    {
-        systemPrintf("No certificate specified!\r\n");
-        return false;
-    }
-
-    // Allocate space to assemble the final URL
-    size_t length = strlen(url);
-    char urlString[length + 15 + 1];
-
-    // Locate the server
-    String serverString = getServerFromUrl(url);
-    const char * server = serverString.c_str();
-    if (settings.debugFirmwareUpdate && otaDebugVerbose)
-        systemPrintf("server: %s\r\n", server);
-
-    // Translate the server name into an IP address
-    String ipAddressString = getServerIpAddress(server);
-    const char * ipAddress = ipAddressString.c_str();
-    if (settings.debugFirmwareUpdate && otaDebugVerbose)
-        systemPrintf("ipAddress: %s\r\n", ipAddress);
-
-    // Use the certificate for the connection to the server
-    if (settings.debugFirmwareUpdate)
-        systemPrintf("Using TLS certificate: %s\r\n", getCertName(cert));
-    client.setCACert(cert);
-
-    // Preflight TLS handshake using the expected host name.
-    // With CA configured, connect() fails if certificate validation fails.
-    if (settings.debugFirmwareUpdate)
-        systemPrintf("Checking TLS connection to %s (%s:443)\r\n",
-                     server, ipAddress);
-    if (!client.connect(server, 443))
-    {
-        systemPrintln("TLS socket connect failed");
-        return false;
-    }
-
-    systemPrintf("TLS certificate verified for %s (%s)\r\n", server, ipAddress);
-
-    client.stop();
-    return true;
-}
-
-//----------------------------------------
-// Extract the web server from the URL
-//----------------------------------------
-String getServerFromUrl(const char * url)
-{
-    const char * http = "http://";
-    const char * https = "https://";
-    int index;
-    size_t length;
-    size_t pos;
-
-    // Locate the third slash
-    if (url == nullptr)
-        return String("");
-
-    index = 0;
-    length = strlen(url) - pos;
-    char server[length + 1];
-    if (strncmp(url, https, strlen(https)) == 0)
-        pos = strlen(https);
-    else if (strncmp(url, http, strlen(http)) == 0)
-        pos = strlen(http);
-    if (pos)
-    {
-        strcpy(server, &url[pos]);
-        for (index = 0; index < length - pos; index++)
-        {
-            if (server[index] == 0)
-                break;
-            if (server[index] == '/')
-                break;
-        }
-    }
-    server[index] = 0;
-    return String(server);
-}
-
-//----------------------------------------
-// Get a string from the user
-//----------------------------------------
-String systemGetStringFromUser()
-{
-    uint32_t start = millis();
-
-    // Build the string as the user inputs a character at a time
-    String input;
-    while (1)
-    {
-        // Check for timeout
-        if ((millis() - start) > (15 * 1000))
-        {
-            input = "";
-            break;
-        }
-
-        // Wait for a character
-        if (Serial.available() == false)
-            delay(10);
-        else
-        {
-            // Get the character
-            start = millis();
-            int incoming = Serial.read();
-
-            // Handle end-of-line
-            if ((incoming == '\r') || (incoming == '\n'))
-            {
-                systemPrintln();
-                break;
-            }
-
-            // Handle backspace
-            else if (incoming == '\b')
-            {
-                if (input.length() == 0)
-                    systemWrite('\a');
-                else
-                {
-                    systemPrint("\b \b");
-                    input = input.substring(0, input.length() - 1);
-                }
-            }
-
-            // Save the character
-            else
-            {
-                systemWrite(incoming);
-                input += (char)incoming;
-            }
-        }
-    }
-    return input;
-}
-
-//----------------------------------------
-// Get a number from the user
-//----------------------------------------
-bool systemGetNumberFromUser(int * value)
-{
-    // Get the URL
-    String string = systemGetStringFromUser();
-
-    // Check for no entry or timeout
-    if (string.length() == 0)
-        return false;
-
-    // Attempt to convert the string to a value
-    return sscanf(string.c_str(), "%d", value);
-}
-
-//----------------------------------------
-// Expand the buffer
-//----------------------------------------
-bool bufferExpand(const char * description,
-                  uint8_t * &buffer,
-                  size_t &bufferBytes,
-                  size_t allocBytes,
-                  bool debug)
-{
-    // Allocate a larger buffer
-    size_t moreBytes = bufferBytes + allocBytes;
-    uint8_t * temp = (uint8_t *)rtkMalloc(moreBytes, description);
-    if (temp == nullptr)
-    {
-        systemPrintf("ERROR: Failed to allocate buffer\r\n");
-        return false;
-    }
-
-    // Zero the new space
-    memset(&temp[bufferBytes], 0, allocBytes);
-
-    // Copy data into the larger buffer and free the origin buffer
-    if (buffer)
-    {
-        memcpy(temp, buffer, bufferBytes);
-        free(buffer);
-    }
-
-    // Start using the larger buffer
-    buffer = temp;
-    bufferBytes = moreBytes;
-    if (debug)
-        systemPrintf("buffer: %p, bufferBytes: %d\r\n", buffer, bufferBytes);
-    return true;
-}
-
-//----------------------------------------
-// Get the next network file name
-//----------------------------------------
-bool serverGetNextFileName(NetworkClient * stream,
-                           const char * dirSuffix,
-                           const char * filePrefix,
-                           const char * fileSuffix,
-                           const char * namePart,
-                           const char * extension,
-                           int &fileCount,
-                           const char * bufferDescription,
-                           uint8_t * &buffer,
-                           size_t &bufferBytes,
-                           size_t &bufferOffset,
-                           const size_t allocBytes,
-                           bool debug)
-{
-    char * fileName;
-    size_t offset;
-    size_t suffixBytes;
-
-    do
-    {
-        // Expand the buffer if necessary
-        size_t requiredBufferSize = bufferOffset + 256;
-        while ((bufferBytes < requiredBufferSize)
-            && (bufferExpand(bufferDescription,
-                             buffer,
-                             bufferBytes,
-                             allocBytes,
-                             settings.debugFirmwareUpdate && otaDebugVerbose) == false))
-        {
-        }
-        if (bufferBytes < requiredBufferSize)
-            // There may be some file names in the buffer but there are
-            // more.  Display the ones that were found and skip the rest.
-            break;
-
-        // Read in the file name
-        offset = bufferOffset;
-        fileName = (char *)&buffer[offset];
-        suffixBytes = strlen(dirSuffix);
-        while ((offset < (bufferBytes - 1))
-            && (stream->connected() || stream->available()))
-        {
-            if (stream->available())
-            {
-                // Build up the file name one character at a time
-                buffer[offset] = stream->read();
-                if (buffer[offset] == fileSuffix[0])
-                    break;
-                offset += 1;
-            }
-        }
-
-        // Get more data if necessary, call this routine again to expand
-        // the buffer
-        if (buffer[offset] != fileSuffix[0])
-            return true;
-
-        // Zero terminate the file name string
-        buffer[offset++] = 0;
-
-        // Display the file name
-        if (debug)
-            systemPrintf("File: %s\r\n", fileName);
-
-        // Determine if this file should be in the list
-        if (((namePart == nullptr) || strstr(fileName, namePart))
-            && ((extension == nullptr) || strstr(fileName, extension)))
-        {
-            // Add this file name to the buffer
-            bufferOffset = offset;
-            fileCount += 1;
-        }
-
-        // Locate the next file name
-        if (stream->findUntil(filePrefix, dirSuffix))
-            return true;
-
-        // End of file list
-    } while (0);
-    return false;
-}
-
-//----------------------------------------
-// Sort the list of files
-//----------------------------------------
-void serverSortFileList(const char ** nameArray, int * sortArray, int fileCount)
-{
-    // Bubble sort the file names newest to oldest
-    for (int i = 0; i < (fileCount - 1); i++)
-        for (int j = i + 1; j < fileCount; j++)
-            // Determine if the entries should be switched
-            if (strcmp(nameArray[sortArray[i]], nameArray[sortArray[j]]) < 0)
-            {
-                // Switch the entries
-                int temp = sortArray[i];
-                sortArray[i] = sortArray[j];
-                sortArray[j] = temp;
-            }
-}
-
-//----------------------------------------
-// Select a URL from a web site directory listing
-//----------------------------------------
-String serverSelectFileNameFromDirectoryListing(const char * url,
-                                                const char * dirPrefix,
-                                                const char * dirSuffix,
-                                                const char * fileListPrefix,
-                                                const char * filePrefix,
-                                                const char * fileSuffix,
-                                                const char * namePart,
-                                                const char * extension,
-                                                const char * fileServerPath)
-{
-    const size_t allocBytes = 1024;
-    uint8_t * buffer = nullptr;
-    size_t bufferBytes = allocBytes;
-    const char * bufferDescription = "Web page file list";
-    size_t bufferOffset = 0;
-    int fileCount = 0;
-    HTTPClient http;
-    int incoming;
-    int index;
-    const char ** nameArray = nullptr;
-    const char * nameArrayDescription = "Array of file name addresses";
-    size_t requiredBytes;
-    String selectedEntry;
-    int * sortArray = nullptr;
-    const char * sortArrayDescription = "Array of indexes into name buffer";
-    NetworkClient * stream;
-
-    do
-    {
-        systemPrintf("URL: %s\r\n", url);
-        if (!http.begin(url))
-        {
-            systemPrintln("Unable to begin HTTP request.");
-            break;
-        }
-
-        int httpCode = http.GET();
-        if (httpCode != HTTP_CODE_OK)
-        {
-            systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
-            break;
-        }
-
-        // Allocate space for the directory listing
-        if (bufferExpand(bufferDescription,
-                         buffer,
-                         bufferBytes,
-                         allocBytes,
-                         settings.debugFirmwareUpdate && otaDebugVerbose) == false)
-        {
-            break;
-        }
-
-        // Get TCP stream
-        stream = http.getStreamPtr();
-
-        // Locate the beginning of the directory listing
-        if (dirPrefix && (stream->find(dirPrefix) == false))
-        {
-            systemPrintf("Directory prefix not found!\r\n");
-            break;
-        }
-
-        if (fileListPrefix && (stream->find(fileListPrefix) == false))
-        {
-            systemPrintf("File list prefix not found!\r\n");
-            break;
-        }
-
-        // Locate the first file name
-        if (stream->findUntil(filePrefix, dirSuffix) == false)
-        {
-            systemPrintf("File not found!\r\n");
-            break;
-        }
-
-        // Get the list of files
-        while (serverGetNextFileName(stream,
-                                     dirSuffix,
-                                     filePrefix,
-                                     fileSuffix,
-                                     namePart,
-                                     extension,
-                                     fileCount,
-                                     bufferDescription,
-                                     buffer,
-                                     bufferBytes,
-                                     bufferOffset,
-                                     allocBytes,
-                                     settings.debugFirmwareUpdate && otaDebugVerbose))
-        {
-        }
-        if (settings.debugFirmwareUpdate && otaDebugVerbose)
-        {
-            dumpBuffer((uintptr_t)buffer, buffer, bufferOffset);
-            systemPrintf("fileCount: %d\r\n", fileCount);
-        }
-
-        // Verify that files were found
-        if (fileCount == 0)
-        {
-            systemPrintf("No files found\r\n");
-            break;
-        }
-
-        // Allocate the arrays
-        requiredBytes = sizeof(const char *) * fileCount;
-        nameArray = (const char **)rtkMalloc(requiredBytes, nameArrayDescription);
-        if (nameArray == nullptr)
-            break;
-        requiredBytes = sizeof(int) * fileCount;
-        sortArray = (int *)rtkMalloc(requiredBytes, sortArrayDescription);
-        if (sortArray == nullptr)
-            break;
-
-        // Initialize the arrays
-        const char * data = (const char *)buffer;
-        for (index = 0; index < fileCount; index++)
-        {
-            sortArray[index] = index;
-            nameArray[index] = data;
-            data += strlen(data) + 1;
-        }
-
-        // Sort the file names
-        serverSortFileList(nameArray, sortArray, fileCount);
-
-        // Display the file list
-file_menu:
-        systemPrintf("\r\nFile Menu\r\n");
-        for (index = 0; index < fileCount; index++)
-            systemPrintf("%d) %s\r\n", index, nameArray[sortArray[index]]);
-        systemPrintf("Select file: ");
-
-        // Get the user's selection
-        if (systemGetNumberFromUser(&incoming) == false)
-            break;
-
-        // Validate the user entry
-        if ((incoming >= fileCount) || (incoming < 0))
-            goto file_menu;
-
-        // Build the selected entry string
-        selectedEntry = fileServerPath;
-        selectedEntry += nameArray[sortArray[incoming]];
-    } while (0);
-
-    // Done with the buffers and the HTTP object
-    if (sortArray)
-        rtkFree(sortArray, sortArrayDescription);
-    if (nameArray)
-        rtkFree(nameArray, nameArrayDescription);
-    if (buffer)
-        rtkFree(buffer, bufferDescription);
-    http.end();
-    return selectedEntry;
 }
