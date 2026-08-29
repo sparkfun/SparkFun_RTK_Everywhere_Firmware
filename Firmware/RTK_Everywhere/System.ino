@@ -1567,40 +1567,37 @@ void systemDisplayConfiguration()
         systemPrintf("Display: None\r\n");
 
     // Display the button support
-    if (pin_modeButton >= 0)
-        systemPrintf("Mode button: %d, %s\r\n", pin_modeButton,
-                     digitalRead(pin_modeButton) ? "High" : "Low");
-    if (pin_powerButton >= 0)
-        systemPrintf("Power button: %d, %s\r\n", pin_powerButton,
-                     digitalRead(pin_powerButton) ? "High" : "Low");
-    if (pin_powerFastOff >= 0)
-        systemPrintf("Fast Off: %d, %s\r\n", pin_powerFastOff,
-                     digitalRead(pin_powerFastOff) ? "High" : "Low");
+    if (pin_modeButton != PIN_UNDEFINED)
+        systemPrintf("Mode button: %d, %s\r\n", pin_modeButton, digitalRead(pin_modeButton) ? "High" : "Low");
+    if (pin_powerButton != PIN_UNDEFINED)
+        systemPrintf("Power button: %d, %s\r\n", pin_powerButton, digitalRead(pin_powerButton) ? "High" : "Low");
+    if (pin_powerFastOff != PIN_UNDEFINED)
+        systemPrintf("Fast Off: %d, %s\r\n", pin_powerFastOff, digitalRead(pin_powerFastOff) ? "High" : "Low");
 
     // Display the Bluetooth status LED connection
-    if (pin_bluetoothStatusLED >= 0)
-        systemPrintf("Bluetooth Status LED: %d, %s\r\n",
-                     pin_bluetoothStatusLED, digitalRead(pin_bluetoothStatusLED) ? "On" : "Off");
+    if (pin_bluetoothStatusLED != PIN_UNDEFINED)
+        systemPrintf("Bluetooth Status LED: %d, %s\r\n", pin_bluetoothStatusLED,
+                     digitalRead(pin_bluetoothStatusLED) ? "On" : "Off");
 
     // Display USB power detect
-    if (pin_powerAdapterDetect >= 0)
-        systemPrintf("USB power detect: %d, %s\r\n",
-                     pin_powerAdapterDetect, digitalRead(pin_powerAdapterDetect) ? "USB Power" : "Disconnected");
+    if (pin_powerAdapterDetect != PIN_UNDEFINED)
+        systemPrintf("USB power detect: %d, %s\r\n", pin_powerAdapterDetect,
+                     digitalRead(pin_powerAdapterDetect) ? "USB Power" : "Disconnected");
 
     // Display USB power detect
-    if (pin_beeper >= 0)
+    if (pin_beeper != PIN_UNDEFINED)
         systemPrintf("Beeper: %d\r\n", pin_beeper);
 
     // Display the heap
     reportHeapNow(true);
 
     // Display the I2C bus configurations
-    if (pin_I2C0_SCL >= 0)
+    if (pin_I2C0_SCL != PIN_UNDEFINED)
     {
         systemPrintf("I2C-0: SCL: %d, SDA: %d\r\n", pin_I2C0_SCL, pin_I2C0_SDA);
         i2cBusEnumerate(i2c_0, 0);
     }
-    if (present.i2c1 && (pin_I2C1_SCL >= 0))
+    if (present.i2c1 && (pin_I2C1_SCL != PIN_UNDEFINED))
         systemPrintf("I2C-1: SCL: %d, SDA: %d\r\n", pin_I2C1_SCL, pin_I2C1_SDA);
-        i2cBusEnumerate(i2c_1, 1);
+    i2cBusEnumerate(i2c_1, 1);
 }
