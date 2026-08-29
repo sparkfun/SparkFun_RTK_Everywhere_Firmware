@@ -1052,6 +1052,19 @@ bool isCharging()
         return false;
     }
 
+#ifdef COMPILE_BQ40Z50
+    // Some platforms (Facet FP, Torch X2) only have the BQ40Z50 fuel gauge and no separate charger IC
+    // to query. Fall back to the fuel gauge's requested charging current: the BQ40Z50 reports 
+    // getAverageTimeToFullMin of 65535 when not charging.
+    else if (present.fuelgauge_bq40z50 == true && present.charger_mp2762a == false &&
+             online.batteryFuelGauge == true)
+    {
+        if (bq40z50Battery->getAverageTimeToFullMin() == 65535)
+            return false
+        return true;
+    }
+#endif // COMPILE_BQ40Z50
+
     return false;
 }
 
