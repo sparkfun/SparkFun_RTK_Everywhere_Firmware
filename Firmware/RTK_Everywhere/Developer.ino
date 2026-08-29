@@ -378,13 +378,13 @@ void tiltUpdate() {}
 
 #endif  // COMPILE_IM19_IMU
 
-#if !defined(COMPILE_IM19_IMU) && !defined(COMPILE_WIFI)
+#if !defined(COMPILE_WIFI)
 
 bool im19FirmwareUpdate() {return false;}
 bool im19PumpStreamToDevice() {return false;}
 bool im19StreamRange(const char *url, uint32_t startByte, uint32_t endByte) {return false;}
 
-#endif // COMPILE_IM19_IMU / COMPILE_WIFI
+#endif // COMPILE_WIFI
 
 //----------------------------------------
 // MFi authentication coprocessor
