@@ -1749,8 +1749,8 @@ void GNSS_MOSAIC::menuMessages()
         systemPrintln("3) Set Base RTCM Messages");
 
         systemPrintln("10) Reset to Defaults");
-        systemPrintln("11) Reset to PPP Logging (NMEAx7 / RTCMx4 - 30 second decimation)");
-        systemPrintln("12) Reset to High-rate PPP Logging (NMEAx7 / RTCMx4 - 1Hz)");
+        systemPrintln("11) Reset to PPP Logging (NMEAx5 / RTCMx5 - 30 second decimation)");
+        systemPrintln("12) Reset to High-rate PPP Logging (NMEAx5 / RTCMx5 - 1Hz)");
 
         systemPrintln("x) Exit");
 
