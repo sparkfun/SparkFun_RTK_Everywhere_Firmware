@@ -1060,7 +1060,7 @@ bool isCharging()
              online.batteryFuelGauge == true)
     {
         if (bq40z50Battery->getAverageTimeToFullMin() == 65535)
-            return false
+            return false;
         return true;
     }
 #endif // COMPILE_BQ40Z50

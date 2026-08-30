@@ -412,6 +412,7 @@ void menuUserProfiles()
             {
                 Settings sourceSettings;
                 char sourceProfileName[sizeof(settings.profileName)];
+                char copiedProfileBase[sizeof(settings.profileName)];
                 char copiedProfileName[sizeof(settings.profileName)];
                 uint8_t sourceProfileNumber = profileNumber;
 
@@ -419,14 +420,49 @@ void menuUserProfiles()
                 strncpy(sourceProfileName, profileNames[sourceProfileNumber], sizeof(sourceProfileName));
                 sourceProfileName[sizeof(sourceProfileName) - 1] = '\0';
 
-                bool copyNameInUse = false;
+                strncpy(copiedProfileBase, sourceProfileName, sizeof(copiedProfileBase));
+                copiedProfileBase[sizeof(copiedProfileBase) - 1] = '\0';
+
                 int copyNumber = 1;
+                char *suffix = strstr(copiedProfileBase, "-Copy");
+                if (suffix != nullptr)
+                {
+                    bool validSuffix = true;
+                    int parsedNumber = 0;
+                    char *numberStart = suffix + 5;
+
+                    if (*numberStart == '\0')
+                    {
+                        copyNumber = 2;
+                    }
+                    else
+                    {
+                        for (char *ptr = numberStart; *ptr != '\0'; ptr++)
+                        {
+                            if (*ptr < '0' || *ptr > '9')
+                            {
+                                validSuffix = false;
+                                break;
+                            }
+                            parsedNumber *= 10;
+                            parsedNumber += *ptr - '0';
+                        }
+
+                        if (validSuffix)
+                            copyNumber = parsedNumber + 1;
+                    }
+
+                    if (validSuffix)
+                        *suffix = '\0';
+                }
+
+                bool copyNameInUse = false;
                 do
                 {
                     if (copyNumber == 1)
-                        snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy", sourceProfileName);
+                        snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy", copiedProfileBase);
                     else
-                        snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy%d", sourceProfileName,
+                        snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy%d", copiedProfileBase,
                                  copyNumber);
 
                     copyNameInUse = false;

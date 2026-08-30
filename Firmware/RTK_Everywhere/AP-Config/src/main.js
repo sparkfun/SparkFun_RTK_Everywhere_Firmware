@@ -977,7 +977,7 @@ function parseIncoming(msg) {
 
         // Don't erase 'Loading. Please wait...' until we have received all settings and updated the page.
         ge("profileChangeMessage").innerHTML = '';
-        ge("resetProfileMsg").innerHTML = '';
+        ge("profileActionMsg").innerHTML = '';
     }
 }
 
@@ -2106,8 +2106,27 @@ function forgetPairedRadios() {
 }
 
 function btnResetProfile() {
-    ge("resetProfileMsg").innerHTML = "Resetting profile.";
+    if (confirm("Reset selected profile to factory defaults?") == false)
+        return;
+
+    ge("profileActionMsg").innerHTML = "Resetting profile...";
     websocket.send("resetProfile,1,");
+}
+
+function btnCopyProfile() {
+    if (confirm("Copy selected profile to the next empty profile slot?") == false)
+        return;
+
+    ge("profileActionMsg").innerHTML = "Copying profile...";
+    websocket.send("copyProfile,1,");
+}
+
+function btnDeleteProfile() {
+    if (confirm("Delete selected profile? This will remove its saved settings and switch to profile 1.") == false)
+        return;
+
+    ge("profileActionMsg").innerHTML = "Deleting profile...";
+    websocket.send("deleteProfile,1,");
 }
 
 document.addEventListener("DOMContentLoaded", (event) => {

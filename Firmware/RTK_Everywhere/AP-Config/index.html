@@ -210,7 +210,12 @@
 
                     <div class="form-group row">
                         <label class="box-margin20 col-sm-3 col-4 col-form-label">Profile
-                            Name:</label>
+                            Name:
+                            <span class="tt" data-bs-placement="right"
+                                title="Edit the name for the currently selected profile.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
                         <div class="col-sm-8 col-7">
                             <input type="text" class="form-control" id="profileNameSelected">
                             <p id="profileNameSelectedError" class="inlineError"></p>
@@ -220,14 +225,39 @@
 
                     <div class="form-group row">
                         <div style="margin-bottom:5px;">
+                            <button type="button" id="btnCopyProfile" class="btn btn-primary box-margin20 col-sm-3"
+                                onClick="btnCopyProfile()">Copy</button>
+                            <span class="tt" data-bs-placement="right"
+                                title="Copy the current profile into the next empty profile slot and append -Copy to the name.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <div style="margin-bottom:5px;">
+                            <button type="button" id="btnDeleteProfile" class="btn btn-primary box-margin20 col-sm-3"
+                                onClick="btnDeleteProfile()">Delete</button>
+                            <span class="tt" data-bs-placement="right"
+                                title="Delete the currently selected profile and its saved files. The device then returns to profile 1.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <div style="margin-bottom:5px;">
                             <button type="button" id="btnResetProfile" class="btn btn-primary box-margin20 col-sm-3"
-                                onClick="btnResetProfile()">Reset Profile</button>
+                                onClick="btnResetProfile()">Reset</button>
                             <span class="tt" data-bs-placement="right"
                                 title="Reset selected profile to factory defaults.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </div>
-                        <p id="resetProfileMsg" class="inlineSuccess"></p>
+                    </div>
+
+                    <div class="form-group row">
+                        <p id="profileActionMsg" class="inlineSuccess"></p>
                     </div>
 
                 </div>
