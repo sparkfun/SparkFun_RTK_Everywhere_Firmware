@@ -701,11 +701,19 @@
                             <div style="margin-bottom:5px;">
                                 <button type="button" id="nmeaDefaults" class="btn btn-primary"
                                     onClick="resetToSurveyingDefaults()">Reset to Defaults</button>
+                                <span class="tt" data-bs-placement="right"
+                                    title="Set messages to standard rover applications.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
                                 <p id="nmeaDefaultsSuccess" class="inlineSuccess"></p>
                             </div>
                             <div style="margin-bottom:5px;">
                                 <button type="button" id="loggingDefaults" class="btn btn-primary"
                                     onClick="resetToLoggingDefaults()">Reset to PPP Logging</button>
+                                <span class="tt" data-bs-placement="right"
+                                    title="Set messages for logging raw signals to resolve the antenna's location when submitting data to CSRS or OPUS .">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
                                 <p id="loggingDefaultsSuccess" class="inlineSuccess"></p>
                             </div>
                             <br>
@@ -1431,10 +1439,18 @@
                             <div style="margin-bottom:5px;">
                                 <button type="button" class="btn btn-primary" onClick="resetToRTCMDefaults()">Reset to
                                     Defaults</button>
+                                <span class="tt" data-bs-placement="right"
+                                    title="Set messages to standard base applications.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
                             </div>
                             <div style="margin-bottom:5px;">
                                 <button type="button" class="btn btn-primary" onClick="resetToRTCMLowBandwidth()">Reset
                                     to Low Bandwidth Link</button>
+                                <span class="tt" data-bs-placement="right"
+                                    title="Reduce the transmission rate of base correction messages to mitigate overwhelming long distance radios.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
                             </div>
 
                             <div id="messageListBase">
