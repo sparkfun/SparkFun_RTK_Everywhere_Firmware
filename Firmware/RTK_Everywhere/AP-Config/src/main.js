@@ -614,6 +614,9 @@ function parseIncoming(msg) {
         }
 
         else if (id.includes("profileNumber")) {
+            if (currentProfileNumber != val)
+                invalidateMessageRateMenus();
+
             currentProfileNumber = val;
             $("input[name=profileRadio][value=" + currentProfileNumber + "]").prop('checked', true);
         }
@@ -1481,6 +1484,10 @@ function changeProfile() {
     }
     else {
         ge("profileChangeMessage").innerHTML = 'Loading. Please wait...';
+
+        // Force both message menus to rebuild after profile switch.
+        // Otherwise the expanded lists can show stale rates from the previous profile.
+        invalidateMessageRateMenus();
 
         currentProfileNumber = document.querySelector('input[name=profileRadio]:checked').value;
 
@@ -3369,4 +3376,18 @@ function getDecimalPlacesStep(theVal) {
     }
 
     return (theStep);
+}
+
+function invalidateMessageRateMenus() {
+    obtainedMessageList = false;
+    obtainedMessageListBase = false;
+    lastMessageType = "";
+    lastMessageTypeBase = "";
+    messageText = "";
+    savedMessageNames.length = 0;
+    savedMessageValues.length = 0;
+    savedCheckboxNames.length = 0;
+    savedCheckboxValues.length = 0;
+    ge("messageList").innerHTML = "";
+    ge("messageListBase").innerHTML = "";
 }
