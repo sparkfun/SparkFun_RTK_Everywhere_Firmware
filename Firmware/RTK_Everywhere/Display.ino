@@ -2596,6 +2596,30 @@ void paintProfile(uint8_t profileUnit)
     ESP.restart(); // Something bad happened. Restart...
 }
 
+// Build the profile label shown in setup and mark profiles with '-' and active with '>'.
+void printProfileName(const setupButton *button, char *displayName, size_t displayNameLength)
+{
+    if ((button == nullptr) || (displayName == nullptr) || (displayNameLength == 0))
+        return;
+
+    displayName[0] = '\0';
+
+    if (button->newState == STATE_PROFILE)
+    {
+        int profile = getProfileNumberFromUnit(button->newProfile);
+
+        if ((profile >= 0) && (profile == profileNumber))
+            snprintf(displayName, displayNameLength, ">%s", button->name); // Prefix active profile with marker
+        else
+            snprintf(displayName, displayNameLength, "-%s", button->name); // Prefix profile with marker
+    }
+    else
+    {
+        strncpy(displayName, button->name, displayNameLength - 1);
+        displayName[displayNameLength - 1] = '\0';
+    }
+}
+
 // Show different menu 'buttons'.
 // The first button is always highlighted, ready for selection. The user needs to double tap it to select it
 void paintDisplaySetup()
@@ -2615,16 +2639,28 @@ void paintDisplaySetup()
         {
             if (printedButtons < maxButtons) // Do we have room to display it?
             {
-                if (it->newState == STATE_PROFILE)
+                int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
+                char buttonName[nameWidth] = {0};
+                printProfileName(&(*it), buttonName, sizeof(buttonName));
+                if ((*it).newState == STATE_PROFILE)
                 {
-                    int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
-                    char miniProfileName[nameWidth] = {0};
-                    snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", it->newProfile,
-                             it->name); // Prefix with index #
-                    printTextCenter(miniProfileName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                    uint8_t yPos = 12 * printedButtons;
+                    printTextAt(buttonName, 1, yPos, QW_FONT_8X16, 1);
+
+                    if (printedButtons == 0)
+                    {
+                        int textPixelWidth = strlen(buttonName) * (7 + 1);
+                        int xBoxWidth = textPixelWidth + 9;
+                        if (xBoxWidth > oled->getWidth())
+                            xBoxWidth = oled->getWidth();
+
+                        oled->rectangleFill(0, yPos, xBoxWidth, 12, 1); // Match printTextCenter 8x16 highlight height
+                    }
                 }
                 else
-                    printTextCenter(it->name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                {
+                    printTextCenter(buttonName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                }
                 printedButtons++;
             }
         }
@@ -2642,7 +2678,28 @@ void paintDisplaySetup()
         {
             if (printedButtons < maxButtons) // Do we have room to display it?
             {
-                printTextCenter(it->name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
+                char buttonName[nameWidth] = {0};
+                printProfileName(&(*it), buttonName, sizeof(buttonName));
+                if ((*it).newState == STATE_PROFILE)
+                {
+                    uint8_t yPos = 12 * printedButtons;
+                    printTextAt(buttonName, 1, yPos, QW_FONT_8X16, 1);
+
+                    if (printedButtons == 0)
+                    {
+                        int textPixelWidth = strlen(buttonName) * (7 + 1);
+                        int xBoxWidth = textPixelWidth + 9;
+                        if (xBoxWidth > oled->getWidth())
+                            xBoxWidth = oled->getWidth();
+
+                        oled->rectangleFill(0, yPos, xBoxWidth, 12, 1); // Match printTextCenter 8x16 highlight height
+                    }
+                }
+                else
+                {
+                    printTextCenter(buttonName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                }
                 printedButtons++;
             }
 

@@ -6,6 +6,25 @@ char otaOutcome[21] = {0}; // Modified by otaUpdate(), used to respond to espNew
 int systemWriteCounts =
     0; // Modified by systemWrite(), used to calculate the number of items in the LIST command for CLI
 
+// On Facet FP, ensure detectedGnssReceiver matches attached hardware before
+// building Web Config CSV output that depends on platform filtering.
+void normalizeDetectedGnssReceiverForFacetFp()
+{
+    if (productVariant != RTK_FACET_FP)
+        return;
+
+    if (present.gnss_mosaicX5)
+        settings.detectedGnssReceiver = GNSS_RECEIVER_MOSAIC_X5;
+    else if (present.gnss_lg290p)
+        settings.detectedGnssReceiver = GNSS_RECEIVER_LG290P;
+    else if (present.gnss_zedx20p)
+        settings.detectedGnssReceiver = GNSS_RECEIVER_X20P;
+    else if (present.gnss_zedf9p)
+        settings.detectedGnssReceiver = GNSS_RECEIVER_F9P;
+    else if (present.gnss_um980)
+        settings.detectedGnssReceiver = GNSS_RECEIVER_UM980;
+}
+
 void menuCommands()
 {
     char cmdBuffer[200];
@@ -1268,7 +1287,14 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     {
         char *settingsCsvList;
 
+        // Preserve the detected receiver across reset so platform-filtered settings
+        // remain valid (e.g. all mosaic constellation controls in Web Config).
+        gnssReceiverType_e detectedReceiver = settings.detectedGnssReceiver;
+
         settingsToDefaults(); // Overwrite our current settings with defaults
+
+        settings.detectedGnssReceiver = detectedReceiver;
+        normalizeDetectedGnssReceiverForFacetFp();
 
         recordSystemSettings(); // Overwrite profile file and NVM with these settings
 
@@ -1293,6 +1319,158 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             webServerSendString(settingsCsvList);
             rtkFree(settingsCsvList, "Command CSV settings list");
         }
+        knownSetting = true;
+    }
+    else if (strcmp(settingName, "copyProfile") == 0)
+    {
+        char *settingsCsvList;
+
+        int8_t destinationProfile = -1;
+        for (int offset = 1; offset < MAX_PROFILE_COUNT; offset++)
+        {
+            int8_t testProfile = (profileNumber + offset) % MAX_PROFILE_COUNT;
+            if ((activeProfiles & (1 << testProfile)) == 0)
+            {
+                destinationProfile = testProfile;
+                break;
+            }
+        }
+
+        if (destinationProfile >= 0)
+        {
+            Settings sourceSettings;
+            char sourceProfileName[sizeof(settings.profileName)];
+            char copiedProfileBase[sizeof(settings.profileName)];
+            char copiedProfileName[sizeof(settings.profileName)];
+            uint8_t sourceProfileNumber = profileNumber;
+
+            memcpy(&sourceSettings, &settings, sizeof(sourceSettings));
+            strncpy(sourceProfileName, profileNames[sourceProfileNumber], sizeof(sourceProfileName));
+            sourceProfileName[sizeof(sourceProfileName) - 1] = '\0';
+
+            strncpy(copiedProfileBase, sourceProfileName, sizeof(copiedProfileBase));
+            copiedProfileBase[sizeof(copiedProfileBase) - 1] = '\0';
+
+            int copyNumber = 1;
+            char *suffix = strstr(copiedProfileBase, "-Copy");
+            if (suffix != nullptr)
+            {
+                bool validSuffix = true;
+                int parsedNumber = 0;
+                char *numberStart = suffix + 5;
+
+                if (*numberStart == '\0')
+                {
+                    copyNumber = 2;
+                }
+                else
+                {
+                    for (char *ptr = numberStart; *ptr != '\0'; ptr++)
+                    {
+                        if (*ptr < '0' || *ptr > '9')
+                        {
+                            validSuffix = false;
+                            break;
+                        }
+                        parsedNumber *= 10;
+                        parsedNumber += *ptr - '0';
+                    }
+
+                    if (validSuffix)
+                        copyNumber = parsedNumber + 1;
+                }
+
+                if (validSuffix)
+                    *suffix = '\0';
+            }
+
+            bool copyNameInUse = false;
+            do
+            {
+                if (copyNumber == 1)
+                    snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy", copiedProfileBase);
+                else
+                    snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy%d", copiedProfileBase,
+                             copyNumber);
+
+                copyNameInUse = false;
+                for (int x = 0; x < MAX_PROFILE_COUNT; x++)
+                {
+                    if ((activeProfiles & (1 << x)) && (strcmp(profileNames[x], copiedProfileName) == 0))
+                    {
+                        copyNameInUse = true;
+                        break;
+                    }
+                }
+                copyNumber++;
+            } while (copyNameInUse && (copyNumber < 100));
+
+            changeProfileNumber(destinationProfile); // Saves source first, then switches to destination
+
+            memcpy(&settings, &sourceSettings, sizeof(settings));
+            strncpy(settings.profileName, copiedProfileName, sizeof(settings.profileName));
+            settings.profileName[sizeof(settings.profileName) - 1] = '\0';
+
+            recordSystemSettings();
+            setProfileName(profileNumber);
+
+            changeProfileNumber(sourceProfileNumber, false);
+
+            activeProfiles = loadProfileNames();
+        }
+
+        // Send updated settings and profile names to browser.
+        settingsCsvList = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Command CSV settings list");
+        if (settingsCsvList)
+        {
+            normalizeDetectedGnssReceiverForFacetFp();
+            createSettingsString(settingsCsvList);
+            webServerSendString(settingsCsvList);
+            rtkFree(settingsCsvList, "Command CSV settings list");
+        }
+
+        knownSetting = true;
+    }
+    else if (strcmp(settingName, "deleteProfile") == 0)
+    {
+        char *settingsCsvList;
+
+        // Remove profile from LittleFS
+        if (LittleFS.exists(settingsFileName))
+            LittleFS.remove(settingsFileName);
+        if (LittleFS.exists(stationCoordinateECEFFileName))
+            LittleFS.remove(stationCoordinateECEFFileName);
+        if (LittleFS.exists(stationCoordinateGeodeticFileName))
+            LittleFS.remove(stationCoordinateGeodeticFileName);
+
+        // Remove profile from SD if available
+        if (online.microSD == true)
+        {
+            if (sd->exists(settingsFileName))
+                sd->remove(settingsFileName);
+            if (sd->exists(stationCoordinateECEFFileName))
+                sd->remove(stationCoordinateECEFFileName);
+            if (sd->exists(stationCoordinateGeodeticFileName))
+                sd->remove(stationCoordinateGeodeticFileName);
+        }
+
+        // We need to load these settings from file so that we can
+        // record a profile name change correctly
+        changeProfileNumber(0, false);
+
+        // Get bitmask of active profiles
+        activeProfiles = loadProfileNames();
+
+        // Send updated settings and profile names to browser.
+        settingsCsvList = (char *)rtkMalloc(AP_CONFIG_SETTING_SIZE, "Command CSV settings list");
+        if (settingsCsvList)
+        {
+            normalizeDetectedGnssReceiverForFacetFp();
+            createSettingsString(settingsCsvList);
+            webServerSendString(settingsCsvList);
+            rtkFree(settingsCsvList, "Command CSV settings list");
+        }
+
         knownSetting = true;
     }
 
@@ -2623,6 +2801,8 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             "baseTypeFixed",
             "baseTypeSurveyIn",
             "checkNewFirmware",
+            "copyProfile",
+            "deleteProfile",
             "enableFactoryDefaults",
             "enableFirmwareUpdate",
             "enableForgetRadios",

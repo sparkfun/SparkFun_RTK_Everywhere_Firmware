@@ -67,6 +67,10 @@ void bluetoothUpdate()
         {
             systemPrintln("BT client connected");
             bluetoothState = BT_CONNECTED;
+
+            // Provide audible feedback when a Bluetooth connection is established
+            beepMultiple(2, 100, 50);
+
             // LED is controlled by tickerBluetoothLedUpdate()
 
             forceMenuExit = false; // Reset the exiting of config menus and/or command modes

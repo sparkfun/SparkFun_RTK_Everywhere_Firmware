@@ -614,6 +614,9 @@ function parseIncoming(msg) {
         }
 
         else if (id.includes("profileNumber")) {
+            if (currentProfileNumber != val)
+                invalidateMessageRateMenus();
+
             currentProfileNumber = val;
             $("input[name=profileRadio][value=" + currentProfileNumber + "]").prop('checked', true);
         }
@@ -977,7 +980,7 @@ function parseIncoming(msg) {
 
         // Don't erase 'Loading. Please wait...' until we have received all settings and updated the page.
         ge("profileChangeMessage").innerHTML = '';
-        ge("resetProfileMsg").innerHTML = '';
+        ge("profileActionMsg").innerHTML = '';
     }
 }
 
@@ -1482,6 +1485,10 @@ function changeProfile() {
     else {
         ge("profileChangeMessage").innerHTML = 'Loading. Please wait...';
 
+        // Force both message menus to rebuild after profile switch.
+        // Otherwise the expanded lists can show stale rates from the previous profile.
+        invalidateMessageRateMenus();
+
         currentProfileNumber = document.querySelector('input[name=profileRadio]:checked').value;
 
         clearError('saveBtn');
@@ -1516,6 +1523,9 @@ function changeProfile() {
 }
 
 function saveConfig() {
+    clearSuccess('nmeaDefaults');
+    clearSuccess('loggingDefaults');
+
     validateFields();
 
     if (errorCount == 1) {
@@ -1822,6 +1832,8 @@ function zeroBaseMessages() {
 }
 
 function resetToSurveyingDefaults() {
+    clearSuccess('loggingDefaults');
+
     zeroMessages();
     if ((platformPrefix == "EVK") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS.substring(0, 3) == "ZED"))) {
         ge("ubxMessageRate_NMEA_GGA").value = 1;
@@ -1857,8 +1869,12 @@ function resetToSurveyingDefaults() {
         ge("messageRateNMEA_GLL").value = 1;
         ge("messageRateNMEA_GST").value = 1; //Supported on >= v4
     }
+
+    showSuccess('nmeaDefaults', "Default messages applied");
 }
 function resetToLoggingDefaults() {
+    clearSuccess('nmeaDefaults');
+
     zeroMessages();
     if ((platformPrefix == "EVK") || ((platformPrefix.substring(0, 2) == "FP") && (facetFPGNSS.substring(0, 3) == "ZED"))) {
         ge("ubxMessageRate_NMEA_GGA").value = 1;
@@ -1920,7 +1936,17 @@ function resetToLoggingDefaults() {
         ge("messageEnabledRTCMRover_RTCM1020").checked = true;
         ge("messageEnabledRTCMRover_RTCM1042").checked = true;
         ge("messageEnabledRTCMRover_RTCM1046").checked = true;
+        ge("messageEnabledRTCMRover_MSM4").checked = true;
+
+        // Match option 12 of the serial menu: MSM4 at 1Hz, RTCM1019/1020/1042/1046 every 5s
+        ge("messageIntervalRTCMRover_RTCM1019").value = 5.0;
+        ge("messageIntervalRTCMRover_RTCM1020").value = 5.0;
+        ge("messageIntervalRTCMRover_RTCM1042").value = 5.0;
+        ge("messageIntervalRTCMRover_RTCM1046").value = 5.0;
+        ge("messageIntervalRTCMRover_MSM4").value = 1.0;
     }
+
+    showSuccess('loggingDefaults', "PPP logging applied");
 }
 
 function resetToRTCMDefaults() {
@@ -2087,8 +2113,27 @@ function forgetPairedRadios() {
 }
 
 function btnResetProfile() {
-    ge("resetProfileMsg").innerHTML = "Resetting profile.";
+    if (confirm("Reset selected profile to factory defaults?") == false)
+        return;
+
+    ge("profileActionMsg").innerHTML = "Resetting profile...";
     websocket.send("resetProfile,1,");
+}
+
+function btnCopyProfile() {
+    if (confirm("Copy selected profile to the next empty profile slot?") == false)
+        return;
+
+    ge("profileActionMsg").innerHTML = "Copying profile...";
+    websocket.send("copyProfile,1,");
+}
+
+function btnDeleteProfile() {
+    if (confirm("Delete selected profile? This will remove its saved settings and switch to profile 1.") == false)
+        return;
+
+    ge("profileActionMsg").innerHTML = "Deleting profile...";
+    websocket.send("deleteProfile,1,");
 }
 
 document.addEventListener("DOMContentLoaded", (event) => {
@@ -3331,4 +3376,18 @@ function getDecimalPlacesStep(theVal) {
     }
 
     return (theStep);
+}
+
+function invalidateMessageRateMenus() {
+    obtainedMessageList = false;
+    obtainedMessageListBase = false;
+    lastMessageType = "";
+    lastMessageTypeBase = "";
+    messageText = "";
+    savedMessageNames.length = 0;
+    savedMessageValues.length = 0;
+    savedCheckboxNames.length = 0;
+    savedCheckboxValues.length = 0;
+    ge("messageList").innerHTML = "";
+    ge("messageListBase").innerHTML = "";
 }

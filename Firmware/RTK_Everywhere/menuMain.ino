@@ -229,24 +229,25 @@ void menuUserProfiles()
             systemPrintln();
         }
 
-        systemPrintf("%d) Edit profile name: %s\r\n", MAX_PROFILE_COUNT + 1, profileNames[profileNumber]);
+        systemPrintf("c) Copy current profile to next empty slot\r\n");
 
-        systemPrintf("%d) Set profile '%s' to factory defaults\r\n", MAX_PROFILE_COUNT + 2,
-                     profileNames[profileNumber]);
+        systemPrintf("d) Delete profile '%s'\r\n", profileNames[profileNumber]);
 
-        systemPrintf("%d) Delete profile '%s'\r\n", MAX_PROFILE_COUNT + 3, profileNames[profileNumber]);
+        systemPrintf("n) Edit profile name: %s\r\n", profileNames[profileNumber]);
 
-        systemPrintf("%d) Print profile\r\n", MAX_PROFILE_COUNT + 4);
+        systemPrintf("p) Print profile\r\n");
 
-        systemPrintln("x) Exit");
+        systemPrintf("r) Set profile '%s' to factory defaults\r\n", profileNames[profileNumber]);
 
-        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+        systemPrintf("x) Exit\r\n");
+
+        byte incoming = getUserInputCharacterNumber();
 
         if (incoming >= 1 && incoming <= MAX_PROFILE_COUNT)
         {
             changeProfileNumber(incoming - 1); // Align inputs to array
         }
-        else if (incoming == MAX_PROFILE_COUNT + 1)
+        else if (incoming == 'n')
         {
             systemPrint("Enter new profile name: ");
             getUserInputString(settings.profileName, sizeof(settings.profileName));
@@ -254,7 +255,7 @@ void menuUserProfiles()
                                     // again
             setProfileName(profileNumber);
         }
-        else if (incoming == MAX_PROFILE_COUNT + 2)
+        else if (incoming == 'r')
         {
             systemPrintf("\r\nReset profile '%s' to factory defaults. Press 'y' to confirm:",
                          profileNames[profileNumber]);
@@ -273,7 +274,7 @@ void menuUserProfiles()
             else
                 systemPrintln("Reset aborted");
         }
-        else if (incoming == MAX_PROFILE_COUNT + 3)
+        else if (incoming == 'd')
         {
             systemPrintf("\r\nDelete profile '%s'. Press 'y' to confirm:", profileNames[profileNumber]);
             byte bContinue = getUserInputCharacterNumber();
@@ -375,7 +376,7 @@ void menuUserProfiles()
             else
                 systemPrintln("Delete aborted");
         }
-        else if (incoming == MAX_PROFILE_COUNT + 4)
+        else if (incoming == 'p')
         {
             // Print profile
             systemPrintf("Select the profile to be printed (1-%d): ", MAX_PROFILE_COUNT);
@@ -390,10 +391,115 @@ void menuUserProfiles()
                 printSystemSettingsFromFileLFS(printFileName);
             }
         }
+        else if (incoming == 'c')
+        {
+            int8_t destinationProfile = -1;
+            for (int offset = 1; offset < MAX_PROFILE_COUNT; offset++)
+            {
+                int8_t testProfile = (profileNumber + offset) % MAX_PROFILE_COUNT;
+                if ((activeProfiles & (1 << testProfile)) == 0)
+                {
+                    destinationProfile = testProfile;
+                    break;
+                }
+            }
 
-        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            if (destinationProfile < 0)
+            {
+                systemPrintln("No empty profile slots available");
+            }
+            else
+            {
+                Settings sourceSettings;
+                char sourceProfileName[sizeof(settings.profileName)];
+                char copiedProfileBase[sizeof(settings.profileName)];
+                char copiedProfileName[sizeof(settings.profileName)];
+                uint8_t sourceProfileNumber = profileNumber;
+
+                memcpy(&sourceSettings, &settings, sizeof(sourceSettings));
+                strncpy(sourceProfileName, profileNames[sourceProfileNumber], sizeof(sourceProfileName));
+                sourceProfileName[sizeof(sourceProfileName) - 1] = '\0';
+
+                strncpy(copiedProfileBase, sourceProfileName, sizeof(copiedProfileBase));
+                copiedProfileBase[sizeof(copiedProfileBase) - 1] = '\0';
+
+                int copyNumber = 1;
+                char *suffix = strstr(copiedProfileBase, "-Copy");
+                if (suffix != nullptr)
+                {
+                    bool validSuffix = true;
+                    int parsedNumber = 0;
+                    char *numberStart = suffix + 5;
+
+                    if (*numberStart == '\0')
+                    {
+                        copyNumber = 2;
+                    }
+                    else
+                    {
+                        for (char *ptr = numberStart; *ptr != '\0'; ptr++)
+                        {
+                            if (*ptr < '0' || *ptr > '9')
+                            {
+                                validSuffix = false;
+                                break;
+                            }
+                            parsedNumber *= 10;
+                            parsedNumber += *ptr - '0';
+                        }
+
+                        if (validSuffix)
+                            copyNumber = parsedNumber + 1;
+                    }
+
+                    if (validSuffix)
+                        *suffix = '\0';
+                }
+
+                bool copyNameInUse = false;
+                do
+                {
+                    if (copyNumber == 1)
+                        snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy", copiedProfileBase);
+                    else
+                        snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy%d", copiedProfileBase,
+                                 copyNumber);
+
+                    copyNameInUse = false;
+                    for (int x = 0; x < MAX_PROFILE_COUNT; x++)
+                    {
+                        if ((activeProfiles & (1 << x)) && (strcmp(profileNames[x], copiedProfileName) == 0))
+                        {
+                            copyNameInUse = true;
+                            break;
+                        }
+                    }
+                    copyNumber++;
+                } while (copyNameInUse && (copyNumber < 100));
+
+                changeProfileNumber(destinationProfile); // Saves source first, then switches to destination
+
+                memcpy(&settings, &sourceSettings, sizeof(settings));
+                strncpy(settings.profileName, copiedProfileName, sizeof(settings.profileName));
+                settings.profileName[sizeof(settings.profileName) - 1] = '\0';
+
+                recordSystemSettings();
+                setProfileName(profileNumber);
+
+                changeProfileNumber(sourceProfileNumber, false);
+
+                activeProfiles = loadProfileNames();
+
+                systemPrintf("Copied profile '%s' to slot %d as '%s'\r\n", sourceProfileName,
+                             destinationProfile + 1, copiedProfileName);
+            }
+        }
+
+        else if (incoming == 'x')
             break;
-        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
             break;
         else
             printUnknown(incoming);
