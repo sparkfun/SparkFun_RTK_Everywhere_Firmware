@@ -248,7 +248,7 @@ upload_facet_fp:	$(RTK_BIN_PATH)
 	python3 $(ESPTOOL_PATH)esptool.py \
         --chip   esp32 \
         --port   $(TERMINAL_PORT_FACET_FP) \
-        --baud   460800 \
+        --baud   921600 \
         --before   default_reset \
         --after   hard_reset \
         write_flash \
