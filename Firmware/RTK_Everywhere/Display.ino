@@ -2596,6 +2596,34 @@ void paintProfile(uint8_t profileUnit)
     ESP.restart(); // Something bad happened. Restart...
 }
 
+// Build the profile label shown in setup and mark the active profile with '*'.
+void printProfileName(const setupButton *button, char *displayName, size_t displayNameLength)
+{
+    if ((button == nullptr) || (displayName == nullptr) || (displayNameLength == 0))
+        return;
+
+    displayName[0] = '\0';
+
+    if (button->newState == STATE_PROFILE)
+    {
+        int profile = getProfileNumberFromUnit(button->newProfile);
+
+        snprintf(displayName, displayNameLength, "%d_%s", button->newProfile, button->name); // Prefix with unit #
+
+        if ((profile >= 0) && (profile == profileNumber))
+        {
+            size_t textLength = strlen(displayName);
+            if (textLength > 0)
+                displayName[textLength - 1] = '*'; // Overwrite final displayed character with active marker
+        }
+    }
+    else
+    {
+        strncpy(displayName, button->name, displayNameLength - 1);
+        displayName[displayNameLength - 1] = '\0';
+    }
+}
+
 // Show different menu 'buttons'.
 // The first button is always highlighted, ready for selection. The user needs to double tap it to select it
 void paintDisplaySetup()
@@ -2615,16 +2643,10 @@ void paintDisplaySetup()
         {
             if (printedButtons < maxButtons) // Do we have room to display it?
             {
-                if (it->newState == STATE_PROFILE)
-                {
-                    int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
-                    char miniProfileName[nameWidth] = {0};
-                    snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", it->newProfile,
-                             it->name); // Prefix with index #
-                    printTextCenter(miniProfileName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
-                }
-                else
-                    printTextCenter(it->name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
+                char buttonName[nameWidth] = {0};
+                printProfileName(&(*it), buttonName, sizeof(buttonName));
+                printTextCenter(buttonName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
                 printedButtons++;
             }
         }
@@ -2642,7 +2664,10 @@ void paintDisplaySetup()
         {
             if (printedButtons < maxButtons) // Do we have room to display it?
             {
-                printTextCenter(it->name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
+                char buttonName[nameWidth] = {0};
+                printProfileName(&(*it), buttonName, sizeof(buttonName));
+                printTextCenter(buttonName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
                 printedButtons++;
             }
 
