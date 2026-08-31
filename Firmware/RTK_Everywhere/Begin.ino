@@ -499,7 +499,7 @@ void beginBoard()
 
         present.psram_2mb = true;
         present.gnss_lg290p = true;
-        present.needsExternalPpl = true;      // Uses the PointPerfect Library
+        present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.gnss_to_uart = true;
         present.gnssUpdatePort = "CH342 Channel B";
 
@@ -751,7 +751,7 @@ void beginBuffers()
     // Walk the list of buffers
     for (int index = 0; index < dfuBufferInfoCount; index++)
     {
-        uint8_t * address;
+        uint8_t *address;
         size_t length;
 
         // Determine if this buffer will get used
@@ -765,10 +765,9 @@ void beginBuffers()
         if (length < settings.psramMallocLevel)
         {
             // No, allocation comes from RAM
-            systemPrintf("WARNING: Delaying allocation of %s from RAM\r\n",
-                         dfuBufferInfo[index]._description);
-            systemPrintf("%s: %d bytes < %d bytes for PSRAM allocation\r\n",
-                         dfuBufferInfo[index]._description, length, settings.psramMallocLevel);
+            systemPrintf("WARNING: Delaying allocation of %s from RAM\r\n", dfuBufferInfo[index]._description);
+            systemPrintf("%s: %d bytes < %d bytes for PSRAM allocation\r\n", dfuBufferInfo[index]._description, length,
+                         settings.psramMallocLevel);
             continue;
         }
 
@@ -777,8 +776,8 @@ void beginBuffers()
         dfuBufferInfo[index]._bufferData->_address = address;
         if (address == nullptr)
         {
-            systemPrintf("WARNING: PSRAM low, delay allocation for %s, %d bytes\r\n",
-                         dfuBufferInfo[index]._description, length);
+            systemPrintf("WARNING: PSRAM low, delay allocation for %s, %d bytes\r\n", dfuBufferInfo[index]._description,
+                         length);
             if (settings.debugMalloc == false)
                 reportHeapNow(true);
         }
@@ -798,10 +797,8 @@ void beginVersion()
 
     // The GNSS and Tilt could be unknown. Show the generic name only
     char title[50];
-    snprintf(title, sizeof(title), "%s %s%s %s",
-        getBrandAttributeFromProductVariant(productVariant)->name,
-        productVariantProperties->rtkPrefix ? "RTK " : "",
-        productVariantProperties->name, versionString);
+    snprintf(title, sizeof(title), "%s %s%s %s", getBrandAttributeFromProductVariant(productVariant)->name,
+             productVariantProperties->rtkPrefix ? "RTK " : "", productVariantProperties->name, versionString);
     for (int i = 0; i < strlen(title); i++)
         systemPrint("=");
     systemPrintln();
@@ -1078,8 +1075,8 @@ void beginGnssUart()
                     "GnssUartStart", // Just for humans
                     2000,            // Stack Size
                     nullptr,         // Task input parameter
-                    0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                    &taskHandle, // Task handle
+                    0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                    &taskHandle,                                // Task handle
                     settings.gnssUartInterruptsCore) != pdPASS) // Core where task should run, 0=core, 1=Arduino
             {
                 systemPrintln("ERROR: Failed to create GnssUartStart task");
@@ -1112,8 +1109,8 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
     }
     else if (productVariant == RTK_FACET_MOSAIC)
     {
-            // Start the hardware at the dataPortBaud rate. This is similarly set in GNSS_MOSAIC::begin().
-            platformGnssCommunicationRate = settings.dataPortBaud;
+        // Start the hardware at the dataPortBaud rate. This is similarly set in GNSS_MOSAIC::begin().
+        platformGnssCommunicationRate = settings.dataPortBaud;
     }
     else if (productVariant == RTK_FACET_FP)
     {
@@ -1127,8 +1124,8 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
             // Mosaic defaults to 115200, but mosaicIsPresentOnFacetFP() increases COM1 to 460800bps
             platformGnssCommunicationRate = 115200 * 4;
         }
-        else if ((settings.detectedGnssReceiver == GNSS_RECEIVER_F9P)
-                 || (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P))
+        else if ((settings.detectedGnssReceiver == GNSS_RECEIVER_F9P) ||
+                 (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P))
         {
             // ZED defaults to 38400. settings.dataPortBaud defaults to 230400
             // Keep the baud rate at settings.dataPortBaud for now
@@ -1612,7 +1609,7 @@ void beginIdleTasks()
                         taskName, // Just for humans
                         2000,     // Stack Size
                         nullptr,  // Task input parameter
-                        0,        // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                        0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
                         &idleTaskHandle[index], // Task handle
                         index) != pdPASS)       // Core where task should run, 0=core, 1=Arduino
                     systemPrintf("ERROR: Failed to create %s task\r\n", taskName);
@@ -1634,16 +1631,16 @@ void testI2cDevices()
         while (millis() < i2cPowerUpDelay)
             ;
 
-    //if (settings.printTaskStartStop) // Settings have not yet been loaded
-    // systemPrintf("Task pinI2CDetectTask will be run on core %d%s\r\n",
-    //     settings.i2cInterruptsCore, settings.i2cInterruptsCore == 1 ? " (Arduino)" : "");
+    // if (settings.printTaskStartStop) // Settings have not yet been loaded
+    //  systemPrintf("Task pinI2CDetectTask will be run on core %d%s\r\n",
+    //      settings.i2cInterruptsCore, settings.i2cInterruptsCore == 1 ? " (Arduino)" : "");
 
     if (task.i2cDetectTaskRunning == false)
     {
         if (xTaskCreatePinnedToCore(
                 pinI2CDetectTask,
-                "I2CDetect",  // Just for humans
-                2000,        // Stack Size
+                "I2CDetect", // Just for humans
+                3000,        // Stack Size
                 nullptr,     // Task input parameter
                 0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
                 &taskHandle, // Task handle
@@ -1670,7 +1667,7 @@ void pinI2CDetectTask(void *pvParameters)
     task.i2cDetectTaskRunning = true;
 
     // Start notification
-    //if (settings.printTaskStartStop) // Settings have not yet been loaded
+    // if (settings.printTaskStartStop) // Settings have not yet been loaded
     // systemPrintln("Task pinI2CDetectTask started");
 
     // Check if unique ICs are on the Torch I2C bus
@@ -1712,7 +1709,7 @@ void pinI2CDetectTask(void *pvParameters)
     }
 
     // Stop notification
-    //if (settings.printTaskStartStop) // Settings have not yet been loaded
+    // if (settings.printTaskStartStop) // Settings have not yet been loaded
     // systemPrintln("Task pinI2CDetectTask stopped");
 
     task.i2cDetectTaskRunning = false;
