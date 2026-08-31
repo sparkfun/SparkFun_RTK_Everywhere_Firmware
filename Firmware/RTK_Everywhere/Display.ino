@@ -2596,7 +2596,7 @@ void paintProfile(uint8_t profileUnit)
     ESP.restart(); // Something bad happened. Restart...
 }
 
-// Build the profile label shown in setup and mark the active profile with '*'.
+// Build the profile label shown in setup and mark profiles with '-' and active with '>'.
 void printProfileName(const setupButton *button, char *displayName, size_t displayNameLength)
 {
     if ((button == nullptr) || (displayName == nullptr) || (displayNameLength == 0))
@@ -2608,14 +2608,10 @@ void printProfileName(const setupButton *button, char *displayName, size_t displ
     {
         int profile = getProfileNumberFromUnit(button->newProfile);
 
-        snprintf(displayName, displayNameLength, "%d_%s", button->newProfile, button->name); // Prefix with unit #
-
         if ((profile >= 0) && (profile == profileNumber))
-        {
-            size_t textLength = strlen(displayName);
-            if (textLength > 0)
-                displayName[textLength - 1] = '*'; // Overwrite final displayed character with active marker
-        }
+            snprintf(displayName, displayNameLength, ">%s", button->name); // Prefix active profile with marker
+        else
+            snprintf(displayName, displayNameLength, "-%s", button->name); // Prefix profile with marker
     }
     else
     {
@@ -2646,7 +2642,25 @@ void paintDisplaySetup()
                 int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
                 char buttonName[nameWidth] = {0};
                 printProfileName(&(*it), buttonName, sizeof(buttonName));
-                printTextCenter(buttonName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                if ((*it).newState == STATE_PROFILE)
+                {
+                    uint8_t yPos = 12 * printedButtons;
+                    printTextAt(buttonName, 1, yPos, QW_FONT_8X16, 1);
+
+                    if (printedButtons == 0)
+                    {
+                        int textPixelWidth = strlen(buttonName) * (7 + 1);
+                        int xBoxWidth = textPixelWidth + 9;
+                        if (xBoxWidth > oled->getWidth())
+                            xBoxWidth = oled->getWidth();
+
+                        oled->rectangleFill(0, yPos, xBoxWidth, 12, 1); // Match printTextCenter 8x16 highlight height
+                    }
+                }
+                else
+                {
+                    printTextCenter(buttonName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                }
                 printedButtons++;
             }
         }
@@ -2667,7 +2681,25 @@ void paintDisplaySetup()
                 int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
                 char buttonName[nameWidth] = {0};
                 printProfileName(&(*it), buttonName, sizeof(buttonName));
-                printTextCenter(buttonName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                if ((*it).newState == STATE_PROFILE)
+                {
+                    uint8_t yPos = 12 * printedButtons;
+                    printTextAt(buttonName, 1, yPos, QW_FONT_8X16, 1);
+
+                    if (printedButtons == 0)
+                    {
+                        int textPixelWidth = strlen(buttonName) * (7 + 1);
+                        int xBoxWidth = textPixelWidth + 9;
+                        if (xBoxWidth > oled->getWidth())
+                            xBoxWidth = oled->getWidth();
+
+                        oled->rectangleFill(0, yPos, xBoxWidth, 12, 1); // Match printTextCenter 8x16 highlight height
+                    }
+                }
+                else
+                {
+                    printTextCenter(buttonName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                }
                 printedButtons++;
             }
 
