@@ -23,6 +23,13 @@ static uint32_t i2cPowerUpDelay;
 // Hardware initialization functions
 //----------------------------------------
 
+// Compute the upper and lower threshold values
+float computeThreshold(float r1, float r2, float tolerance)
+{
+    return MAX_ADC_VOLTAGE * (r2 * (1.0 + (tolerance / 100.0))) /
+        ((r1 * (1.0 + (-tolerance / 100.0))) + (r2 * (1.0 + (tolerance / 100.0))));
+}
+
 // Determine if the measured value matches the product ID value
 // idWithAdc applies resistor tolerance using worst-case tolerances:
 // Upper threshold: R1 down by TOLERANCE, R2 up by TOLERANCE
@@ -40,10 +47,8 @@ bool idWithAdc(uint16_t mvMeasured, float r1, float r2, float tolerance)
 
     // Return true if the mvMeasured value is within the tolerance range
     // of the mvProduct value
-    upperThreshold = ceil(MAX_ADC_VOLTAGE * (r2 * (1.0 + (tolerance / 100.0))) /
-                          ((r1 * (1.0 - (tolerance / 100.0))) + (r2 * (1.0 + (tolerance / 100.0)))));
-    lowerThreshold = floor(MAX_ADC_VOLTAGE * (r2 * (1.0 - (tolerance / 100.0))) /
-                           ((r1 * (1.0 + (tolerance / 100.0))) + (r2 * (1.0 - (tolerance / 100.0)))));
+    upperThreshold = ceil(computeThreshold(r1, r2, tolerance));
+    lowerThreshold = floor(computeThreshold(r1, r2, -tolerance));
 
     bool result = (upperThreshold > mvMeasured) && (mvMeasured > lowerThreshold);
     if (result && ENABLE_DEVELOPER)
@@ -51,6 +56,16 @@ bool idWithAdc(uint16_t mvMeasured, float r1, float r2, float tolerance)
                      lowerThreshold, mvMeasured, upperThreshold);
 
     return result;
+}
+
+// Read the voltage on the device ID pin to determine the product
+uint16_t readBoardIdValue()
+{
+    // Use ADC to check the resistor divider
+    int pin_deviceID = 35;
+    uint16_t idValue = analogReadMilliVolts(pin_deviceID);
+    idValue = analogReadMilliVolts(pin_deviceID); // Read twice - just in case
+    return idValue;
 }
 
 // Use a pair of resistors on pin 35 to ID the board type
@@ -82,9 +97,7 @@ void identifyBoard()
     if (productVariant == RTK_UNKNOWN)
     {
         // Use ADC to check the resistor divider
-        int pin_deviceID = 35;
-        uint16_t idValue = analogReadMilliVolts(pin_deviceID);
-        idValue = analogReadMilliVolts(pin_deviceID); // Read twice - just in case
+        uint16_t idValue = readBoardIdValue();
         char adcId[50];
         snprintf(adcId, sizeof(adcId), "Board ADC ID (mV): %d", idValue);
         for (int i = 0; i < strlen(adcId); i++)
@@ -95,27 +108,17 @@ void identifyBoard()
             systemPrint("=");
         systemPrintln();
 
-        // Order the following ID checks, by millivolt values high to low (Torch reads low)
-
-        // EVK: 1/10  -->  2888mV < 3000mV < 3084mV (17.5% tolerance)
-        if (idWithAdc(idValue, 1, 10, 17.5))
-            productVariant = RTK_EVK;
-
-        // Facet mosaic: 1/4.7  -->  2618mV < 2721mV < 2811mV (10% tolerance)
-        else if (idWithAdc(idValue, 1, 4.7, 10))
-            productVariant = RTK_FACET_MOSAIC;
-
-        // Facet FP: 10.0/20.0  -->  2071mV < 2200mV < 2322mV (8.5% tolerance)
-        else if (idWithAdc(idValue, 10.0, 20.0, 8.5))
-            productVariant = RTK_FACET_FP;
-
-        // Postcard: 3.3/10  -->  2371mV < 2481mV < 2582mV (8.5% tolerance)
-        else if (idWithAdc(idValue, 3.3, 10, 8.5))
-            productVariant = RTK_POSTCARD;
-
-        // Torch X2: 8.2/3.3  -->  836mV < 947mV < 1067mV (8.5% tolerance)
-        else if (idWithAdc(idValue, 8.2, 3.3, 8.5))
-            productVariant = RTK_TORCH_X2;
+        // Walk the list of products
+        for (int i = 0; i < productPropertiesEntries; i++)
+        {
+            const productProperties * prop = &productPropertiesTable[i];
+            if ((prop->tolerancePercentage != 0.)
+                && (idWithAdc(idValue, prop->r1, prop->r2, prop->tolerancePercentage)))
+            {
+                productVariant = prop->productVariant;
+                break;
+            }
+        }
     }
 
     if (ENABLE_DEVELOPER)
@@ -2030,5 +2033,112 @@ void tpISR()
                 }
             }
         }
+    }
+}
+
+// Display the product table, resistors voltages
+void displayProductResistorTable()
+{
+    int lowerThreshold[RTK_UNKNOWN];
+    int expectedValue[RTK_UNKNOWN];
+    int upperThreshold[RTK_UNKNOWN];
+    int sortIndex[RTK_UNKNOWN];
+
+    // Populate the tables
+    for (int i = 0; i < RTK_UNKNOWN; i++)
+    {
+        sortIndex[i] = i;
+        const productProperties * prop = getProductPropertiesFromVariant((ProductVariant)i);
+
+        // A value of zero for r2 indicates no resistor network present
+        if (prop->r2)
+        {
+            upperThreshold[i] =  ceil(computeThreshold(prop->r1, prop->r2,  prop->tolerancePercentage));
+            expectedValue[i]  =       computeThreshold(prop->r1, prop->r2, 0);
+            lowerThreshold[i] = floor(computeThreshold(prop->r1, prop->r2, -prop->tolerancePercentage));
+        }
+        else
+        {
+            upperThreshold[i] = 0;
+            expectedValue[i]  = 0;
+            lowerThreshold[i] = 0;
+        }
+    }
+
+    // Perform a bubble on the values to order the values high to low
+    for (int i = 0; i < RTK_UNKNOWN - 1; i++)
+    {
+        const productProperties * prodI = getProductPropertiesFromVariant((ProductVariant)sortIndex[i]);
+        int vI = (prodI->r2 == 0) ? 0 : expectedValue[sortIndex[i]];
+        for (int j = i + 1; j < RTK_UNKNOWN; j++)
+        {
+            const productProperties * prodJ = getProductPropertiesFromVariant((ProductVariant)sortIndex[j]);
+            int vJ = (prodJ->r2 == 0) ? 0 : expectedValue[sortIndex[j]];
+            if (vI < vJ)
+            {
+                // Swap the two index values
+                int temp = sortIndex[i];
+                sortIndex[i] = sortIndex[j];
+                sortIndex[j] = temp;
+                prodI = prodJ;
+                vI = vJ;
+            }
+        }
+    }
+
+    // Display the table header
+    systemPrintln();
+    systemPrintln("                   R1 K Ohms           R2 K Ohms");
+    systemPrintf( "  %d.%03d Volts -----/\\/\\/\\/\\/-----+-----/\\/\\/\\/\\/----- Ground\r\n",
+                  MAX_ADC_VOLTAGE / 1000, MAX_ADC_VOLTAGE % 1000);
+    systemPrintln("                                 |");
+    systemPrintf("                             ADC input: %d mVolts\r\n",
+                 readBoardIdValue());
+    systemPrintln("                                 |");
+    systemPrintln("                                 V");
+    systemPrintln("  K Ohms                    Millivolts              Max");
+    systemPrintln(" R1    R2   Tolerance  High  Expected   Low Delta  uAmps  Product");
+    systemPrintln("----  ----  ---------  --------------------------  -----  ---------------");
+
+    // Walk the list of products
+    for (int i = 0; i < RTK_UNKNOWN; i++)
+    {
+        int j = sortIndex[i];
+        const productProperties * prop = getProductPropertiesFromVariant((ProductVariant)j);
+
+        // Get the product name
+        char productName[64];
+        const char * brand = getBrandAttributeFromProductVariant((ProductVariant)j)->name;
+        const char * product = prop->name;
+        strcpy(productName, brand);
+        strcat(productName, " ");
+        if (prop->rtkPrefix)
+            strcat(productName, "RTK ");
+        strcat(productName, product);
+
+        // Compute the maximum current flow
+        float totalResistance = (prop->r1 + prop->r2) * 1000.;
+        float tolerance = prop->tolerancePercentage / 100.;
+        float minResistance = (totalResistance * (1. - tolerance));
+        float microVolts = MAX_ADC_VOLTAGE * 1000.;
+        int uAmps = (int)(ceil(microVolts / minResistance));
+
+        // Display the product values
+        if (prop->r2 != 0)
+        {
+            systemPrintf("%4.1f  ", prop->r1);
+            systemPrintf("%4.1f  ", prop->r2);
+            systemPrintf(" %4.1f%%     ", prop->tolerancePercentage);
+            systemPrintf("%4d    ", upperThreshold[j]);
+            systemPrintf("%4d    ", expectedValue[j]);
+            systemPrintf("%4d  ", lowerThreshold[j]);
+            systemPrintf("%4d ", upperThreshold[j] - lowerThreshold[j]);
+            systemPrintf("%6d  ", uAmps);
+            if (prop->productVariant == productVariant)
+                systemPrint("* ");
+            systemPrintf("%s\r\n", productName);
+        }
+        else
+            systemPrintf("Using I2C instead                                         %s\r\n", productName);
     }
 }
