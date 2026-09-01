@@ -3403,6 +3403,8 @@ void paintDisplaySetup()
     // For the 8X16 font, only the 'top' 12 rows are used
     uint8_t yinc = present.display_type == DISPLAY_184x88 ? 20 : 12;
 
+    int charWidth = present.display_type == DISPLAY_184x88 ? 10 : 8;
+
     for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
     {
         if (thisIsButton >=
@@ -3410,27 +3412,28 @@ void paintDisplaySetup()
         {
             if (printedButtons < maxButtons) // Do we have room to display it?
             {
-                int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
+                int nameWidth = present.display_type == DISPLAY_128x64 ? 17 :
+                                present.display_type == DISPLAY_184x88 ? 18 : 9;
                 char buttonName[nameWidth] = {0};
                 printProfileName(&(*it), buttonName, sizeof(buttonName));
                 if ((*it).newState == STATE_PROFILE)
                 {
-                    uint8_t yPos = 12 * printedButtons;
-                    printTextAt(buttonName, 1, yPos, QW_FONT_8X16, 1);
+                    uint8_t yPos = yinc * printedButtons;
+                    printTextAt(buttonName, 1, yPos, QW_FONT_8X16, QW_EP_FONT_10X20, 1);
 
                     if (printedButtons == 0)
                     {
-                        int textPixelWidth = strlen(buttonName) * (7 + 1);
-                        int xBoxWidth = textPixelWidth + 9;
-                        if (xBoxWidth > oled->getWidth())
-                            xBoxWidth = oled->getWidth();
+                        int textPixelWidth = strlen(buttonName) * charWidth;
+                        int xBoxWidth = textPixelWidth + charWidth + 1;
+                        if (xBoxWidth > theDisplay->getWidth())
+                            xBoxWidth = theDisplay->getWidth();
 
-                        oled->rectangleFill(0, yPos, xBoxWidth, 12, 1); // Match printTextCenter 8x16 highlight height
+                        theDisplay->rectangleFill(0, yPos, xBoxWidth, yinc, 1); // Match printTextCenter 8x16 highlight height
                     }
                 }
                 else
                 {
-                    printTextCenter(buttonName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                    printTextCenter(buttonName, yinc * printedButtons, QW_FONT_8X16, QW_EP_FONT_10X20, 1, printedButtons == 0);
                 }
                 printedButtons++;
             }
@@ -3449,27 +3452,28 @@ void paintDisplaySetup()
         {
             if (printedButtons < maxButtons) // Do we have room to display it?
             {
-                int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
+                int nameWidth = present.display_type == DISPLAY_128x64 ? 17 :
+                                present.display_type == DISPLAY_184x88 ? 18 : 9;
                 char buttonName[nameWidth] = {0};
                 printProfileName(&(*it), buttonName, sizeof(buttonName));
                 if ((*it).newState == STATE_PROFILE)
                 {
-                    uint8_t yPos = 12 * printedButtons;
-                    printTextAt(buttonName, 1, yPos, QW_FONT_8X16, 1);
+                    uint8_t yPos = yinc * printedButtons;
+                    printTextAt(buttonName, 1, yPos, QW_FONT_8X16, QW_EP_FONT_10X20, 1);
 
                     if (printedButtons == 0)
                     {
-                        int textPixelWidth = strlen(buttonName) * (7 + 1);
-                        int xBoxWidth = textPixelWidth + 9;
-                        if (xBoxWidth > oled->getWidth())
-                            xBoxWidth = oled->getWidth();
+                        int textPixelWidth = strlen(buttonName) * charWidth;
+                        int xBoxWidth = textPixelWidth + charWidth + 1;
+                        if (xBoxWidth > theDisplay->getWidth())
+                            xBoxWidth = theDisplay->getWidth();
 
-                        oled->rectangleFill(0, yPos, xBoxWidth, 12, 1); // Match printTextCenter 8x16 highlight height
+                        theDisplay->rectangleFill(0, yPos, xBoxWidth, yinc, 1); // Match printTextCenter 8x16 highlight height
                     }
                 }
                 else
                 {
-                    printTextCenter(buttonName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                    printTextCenter(buttonName, yinc * printedButtons, QW_FONT_8X16, QW_EP_FONT_10X20, 1, printedButtons == 0);
                 }
                 printedButtons++;
             }
