@@ -189,6 +189,7 @@ RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
     { BRAND_SPARKFUN, "SparkFun", logoSparkFun_Width, logoSparkFun_Height, logoSparkFun },
     { BRAND_SPARKPNT, "SparkPNT", logoSparkPNT_Width, logoSparkPNT_Height, logoSparkPNT },
 };
+const int RTKBrandAttributesEntries = sizeof(RTKBrandAttributes) / sizeof(RTKBrandAttributes[0]);
 
 // Product Variant - Do NOT reorder and do NOT remove unused values!!!
 // The label on the product lists the device ID which consists of the
