@@ -100,27 +100,17 @@ void identifyBoard()
             systemPrint("=");
         systemPrintln();
 
-        // Order the following ID checks, by millivolt values high to low (Torch reads low)
-
-        // EVK: 1/10  -->  2888mV < 3000mV < 3084mV (17.5% tolerance)
-        if (idWithAdc(idValue, 1, 10, 17.5))
-            productVariant = RTK_EVK;
-
-        // Facet mosaic: 1/4.7  -->  2618mV < 2721mV < 2811mV (10% tolerance)
-        else if (idWithAdc(idValue, 1, 4.7, 10))
-            productVariant = RTK_FACET_MOSAIC;
-
-        // Facet FP: 10.0/20.0  -->  2071mV < 2200mV < 2322mV (8.5% tolerance)
-        else if (idWithAdc(idValue, 10.0, 20.0, 8.5))
-            productVariant = RTK_FACET_FP;
-
-        // Postcard: 3.3/10  -->  2371mV < 2481mV < 2582mV (8.5% tolerance)
-        else if (idWithAdc(idValue, 3.3, 10, 8.5))
-            productVariant = RTK_POSTCARD;
-
-        // Torch X2: 8.2/3.3  -->  836mV < 947mV < 1067mV (8.5% tolerance)
-        else if (idWithAdc(idValue, 8.2, 3.3, 8.5))
-            productVariant = RTK_TORCH_X2;
+        // Walk the list of products
+        for (int i = 0; i < productPropertiesEntries; i++)
+        {
+            const productProperties * prop = &productPropertiesTable[i];
+            if ((prop->tolerancePercentage != 0.)
+                && (idWithAdc(idValue, prop->r1, prop->r2, prop->tolerancePercentage)))
+            {
+                productVariant = prop->productVariant;
+                break;
+            }
+        }
     }
 
     if (ENABLE_DEVELOPER)
