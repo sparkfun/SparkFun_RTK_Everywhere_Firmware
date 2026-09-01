@@ -525,7 +525,7 @@ void webServerFileDelete(httpd_req_t *req, const char *fileName)
         // Delete the file if it exists
         if (sd->exists(fileName))
         {
-            sd->remove(fileName);
+            removeFileSD(fileName, true);
             statusMessage = HTTPD_200;
             response = &responseSuccessful;
         }

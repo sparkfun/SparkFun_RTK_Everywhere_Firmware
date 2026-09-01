@@ -546,7 +546,8 @@ void microSDUpdateFirmware(const char *firmwareFileName)
                 // Remove forced firmware file to prevent endless loading
                 firmwareFile.close();
 
-                sd->remove(firmwareFileName);
+                if (removeFileSD(firmwareFileName, true) == false)
+                    systemPrintln("WARNING: Failed to remove forced firmware file from SD");
                 gnss->factoryReset();
             }
 
