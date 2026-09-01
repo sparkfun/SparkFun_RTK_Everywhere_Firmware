@@ -210,6 +210,8 @@ bool csvOpenCsvFile(const char * url,
 
 #ifndef COMPILE_OTA_AUTO
 
+bool otaDebugVerbose = false;
+
 void firmwareMenu() {systemPrintln("**OTA Auto not compiled**");}
 void otaAutoUpdate() {}
 bool otaIsChipSupported(const char * subsystem, const char * chip) {return false;}
@@ -376,16 +378,13 @@ void tiltUpdate() {}
 
 #endif  // COMPILE_IM19_IMU
 
-#if !defined(COMPILE_TILT) || !defined(COMPILE_WIFI)
+#if !defined(COMPILE_WIFI)
 
-bool im19FirmwareUpdate(const OTA_TARGET * target,
-                        const OTA_SUBSYSTEM_INFO * subsystemInfo,
-                        uint8_t * buffer,
-                        size_t packetBytes) {return false;}
+bool im19FirmwareUpdate() {return false;}
 bool im19PumpStreamToDevice() {return false;}
 bool im19StreamRange(const char *url, uint32_t startByte, uint32_t endByte) {return false;}
 
-#endif // COMPILE_TILT / COMPILE_WIFI
+#endif // COMPILE_WIFI
 
 //----------------------------------------
 // MFi authentication coprocessor

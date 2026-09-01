@@ -1974,7 +1974,15 @@ void loadProfileNumber()
         recordProfileNumber(0);  // Record profile
     }
 
-    systemPrintf("Using profile #%d\r\n", profileNumber);
+    char selectedProfileFileName[60];
+    char selectedProfileName[sizeof(settings.profileName)] = {0};
+
+    getProfileFileName(profileNumber, selectedProfileFileName, sizeof(selectedProfileFileName));
+    if (getProfileName(selectedProfileFileName, selectedProfileName, sizeof(selectedProfileName)) &&
+        (strlen(selectedProfileName) > 0))
+        systemPrintf("Using profile #%d ('%s')\r\n", profileNumber, selectedProfileName);
+    else
+        systemPrintf("Using profile #%d\r\n", profileNumber);
 }
 
 //----------------------------------------
