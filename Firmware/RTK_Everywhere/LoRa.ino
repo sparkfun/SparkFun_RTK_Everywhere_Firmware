@@ -1558,6 +1558,7 @@ uint16_t loraRead()
     return 0;
 }
 
+#ifdef  COMPILE_FIRMWARE_UPDATE
 // The following functions are for the STM32 firmware update process.
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1900,4 +1901,5 @@ bool loraGetVersion(int &major, int &minor, int &patch, int &revision, int &rele
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of LoRa/STM32 firmware update functions.
 
-#endif // COMPILE_LORA
+#endif  // COMPILE_FIRMWARE_UPDATE
+#endif  // COMPILE_LORA

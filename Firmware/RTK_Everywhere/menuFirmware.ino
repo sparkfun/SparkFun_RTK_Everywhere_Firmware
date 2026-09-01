@@ -22,7 +22,6 @@ bool firmwareCheckForRcBuild()
 //----------------------------------------
 // Update firmware if bin files found
 //----------------------------------------
-#ifdef COMPILE_OTA_AUTO
 void firmwareMenu()
 {
     bool developerOptions;
@@ -80,8 +79,6 @@ void firmwareMenu()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
-#endif // COMPILE_OTA_AUTO
-
 #endif // COMPILE_MENU_FIRMWARE
 
 //----------------------------------------
@@ -327,6 +324,7 @@ int firmwareVersionMapMonthName(char *mmm)
     return -1;
 }
 
+#ifdef COMPILE_FIRMWARE_UPDATE
 //----------------------------------------
 // Firmware update code
 //----------------------------------------
@@ -570,8 +568,6 @@ void microSDUpdateFirmware(const char *firmwareFileName)
     systemPrintln("Firmware update failed. Please try again.");
 }
 
-#ifdef COMPILE_OTA_AUTO
-
 //----------------------------------------
 //----------------------------------------
 void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
@@ -811,4 +807,4 @@ bool otaSecurelyConnectGitHub(WiFiClientSecure &client)
     return true;
 }
 
-#endif // COMPILE_OTA_AUTO
+#endif // COMPILE_FIRMWARE_UPDATE

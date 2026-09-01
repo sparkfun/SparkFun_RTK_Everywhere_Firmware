@@ -4,6 +4,8 @@ Device_Update_ESP32.ino
   Support routines to program the ESP32 firmware application area
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+#ifdef  COMPILE_FIRMWARE_UPDATE
+
 //----------------------------------------
 // Determine if the ESP32 supports OTA
 //----------------------------------------
@@ -102,3 +104,5 @@ ssize_t dfuEsp32Write(DEVICE_FIRMWARE_CTX * ctx,
 {
     return Update.write((uint8_t *)buffer, bytesToWrite);
 }
+
+#endif  // COMPILE_FIRMWARE_UPDATE

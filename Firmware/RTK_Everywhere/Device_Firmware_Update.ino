@@ -4,9 +4,7 @@ Device_Firmware_Update.ino
   Generic support routines to program firmware devices
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-#ifdef  COMPILE_MENU_FIRMWARE
-
-#ifdef  COMPILE_NETWORK
+#ifdef  COMPILE_FIRMWARE_UPDATE
 
 //----------------------------------------
 // Constants
@@ -1866,6 +1864,254 @@ void deviceFirmwareWrite(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
                                      : DFUS_READ_FIRMWARE_DATA);
 }
 
-#endif  // COMPILE_NETWORK
+//----------------------------------------
+// Initialize the allocate and forget PSRAM buffers
+//----------------------------------------
+void beginBuffers()
+{
+    // Display the memory use before buffer allocation
+    if (settings.debugMalloc)
+        reportHeapNow(true);
 
-#endif  // COMPILE_MENU_FIRMWARE
+    // Only allocate these buffers from PSRAM
+    if ((settings.enablePsram == false) || (ESP.getPsramSize() == 0))
+    {
+        systemPrintf("WARNING: PSRAM not available, delaying buffer allocation!\r\n");
+        systemPrintf("settings.enablePsram: %s\r\n", settings.enablePsram ? "true" : "false");
+        if (settings.debugMalloc == false)
+            reportHeapNow(true);
+        return;
+    }
+
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        uint8_t * address;
+        size_t length;
+
+        // Determine if this buffer will get used
+        if (dfuBufferInfo[index]._present && (*dfuBufferInfo[index]._present == false))
+            // Never used
+            continue;
+
+        // Determine if this buffer will be in PSRAM
+        length = dfuBufferInfo[index]._sizeInBytes;
+        dfuBufferInfo[index]._bufferData->_length = length;
+        if (length < settings.psramMallocLevel)
+        {
+            // No, allocation comes from RAM
+            systemPrintf("WARNING: Delaying allocation of %s from RAM\r\n",
+                         dfuBufferInfo[index]._description);
+            systemPrintf("%s: %d bytes < %d bytes for PSRAM allocation\r\n",
+                         dfuBufferInfo[index]._description, length, settings.psramMallocLevel);
+            continue;
+        }
+
+        // Allocate the buffer
+        address = (uint8_t *)rtkMalloc(length, dfuBufferInfo[index]._description);
+        dfuBufferInfo[index]._bufferData->_address = address;
+        if (address == nullptr)
+        {
+            systemPrintf("WARNING: PSRAM low, delay allocation for %s, %d bytes\r\n",
+                         dfuBufferInfo[index]._description, length);
+            if (settings.debugMalloc == false)
+                reportHeapNow(true);
+        }
+    }
+
+    // Display the memory use after buffer allocation
+    if (settings.debugMalloc)
+        reportHeapNow(true);
+}
+
+//----------------------------------------
+// Dynamically allocate a buffer
+//----------------------------------------
+bool bufferDynamicallyAllocate(DFU_BUFFER_DATA *bufferData)
+{
+    const char *description;
+    bool dynamicAllocation;
+    size_t length;
+
+    // Determine if the buffer needs to be dynamically allocated
+    dynamicAllocation = (bufferData->_address == nullptr);
+    if (dynamicAllocation)
+    {
+        // Attempt to allocate the buffer
+        description = bufferGetDescription(bufferData);
+        length = bufferGetLength(bufferData);
+        bufferData->_address = (uint8_t *)rtkMalloc(length, description);
+        if (bufferData->_address == nullptr)
+            systemPrintf("ERROR: Failed to allocate the '%s, %d bytes' buffer!\r\n",
+                         description, length);
+        else
+            bufferData->_length = length;
+    }
+    return dynamicAllocation;
+}
+
+//----------------------------------------
+// Expand an existing buffer
+//----------------------------------------
+bool bufferExpand(int bufferIndex)
+{
+    // Locate the buffer data
+    DFU_BUFFER_DATA *bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+    uint8_t *newBuffer;
+    size_t newLength;
+
+    // Determine the new buffer size
+    newLength = bufferData->_length + 2048;
+
+    // Allocate the new buffer
+    newBuffer = (uint8_t *)rtkMalloc(newLength, dfuBufferInfo[bufferIndex]._description);
+    if (newBuffer == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the new buffer of %d bytes!\r\n", newLength);
+        return false;
+    }
+
+    // Copy the existing file names into the new buffer
+    memcpy(newBuffer, bufferData->_address, bufferData->_offset);
+
+    // Free the old buffer
+    free((void *)bufferData->_address);
+
+    // Switch to using the new buffer
+    bufferData->_address = newBuffer;
+    bufferData->_length = newLength;
+
+    // Zero terminate any strings in the new buffer
+    memset(&newBuffer[bufferData->_offset], 0, bufferData->_length - bufferData->_offset);
+    return true;
+}
+
+//----------------------------------------
+// Free a dynamically allocated buffer
+//----------------------------------------
+void bufferFree(DFU_BUFFER_DATA *bufferData)
+{
+    const char *description;
+
+    // Free the buffer
+    if (bufferData->_address)
+    {
+        description = bufferGetDescription(bufferData);
+        rtkFree(bufferData->_address, description);
+        bufferData->_address = nullptr;
+    }
+}
+
+//----------------------------------------
+// Get the buffer description
+//----------------------------------------
+const char *bufferGetDescription(DFU_BUFFER_DATA *bufferData)
+{
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        if (bufferData == dfuBufferInfo[index]._bufferData)
+            return dfuBufferInfo[index]._description;
+    }
+
+    // Buffer not found
+    return nullptr;
+}
+
+//----------------------------------------
+// Get the buffer index
+//----------------------------------------
+int bufferGetIndex(DFU_BUFFER_DATA *bufferData)
+{
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        if (bufferData == dfuBufferInfo[index]._bufferData)
+            return index;
+    }
+
+    // Buffer not found
+    return -1;
+}
+
+//----------------------------------------
+// Get the buffer length
+//----------------------------------------
+size_t bufferGetLength(DFU_BUFFER_DATA *bufferData)
+{
+    // Walk the list of buffers
+    for (int index = 0; index < dfuBufferInfoCount; index++)
+    {
+        if (bufferData == dfuBufferInfo[index]._bufferData)
+            return dfuBufferInfo[index]._sizeInBytes;
+    }
+
+    // Buffer not found
+    return 0;
+}
+
+//----------------------------------------
+// Allocate the name and sort arrays, return true if successful
+//----------------------------------------
+bool bufferNameSortAllocate(int bufferIndex, int fileCount)
+{
+    DFU_BUFFER_DATA *bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+    char *fileName;
+    size_t length;
+
+    // Allocate the sortArray
+    length = sizeof(*bufferData->_sortArray) * fileCount;
+    bufferData->_sortArray = (int *)rtkMalloc(length, "Sort Array");
+    if (bufferData->_sortArray == nullptr)
+        systemPrintf("ERROR: Failed to allocate sortArray, %d bytes!\r\n", length);
+    else
+    {
+        // Allocate the nameArray
+        length = sizeof(*bufferData->_nameArray) * fileCount;
+        bufferData->_nameArray = (char **)rtkMalloc(length, "Name Array");
+        if (bufferData->_nameArray == nullptr)
+        {
+            bufferNameSortFree(bufferIndex);
+            systemPrintf("ERROR: Failed to allocate nameArray, %d bytes!\r\n", length);
+        }
+        else
+        {
+            // Initialize the sortArray
+            for (int index = 0; index < fileCount; index++)
+                bufferData->_sortArray[index] = index;
+
+            // Initialize the nameArray
+            fileName = (char *)bufferData->_address;
+            for (int index = 0; index < fileCount; index++)
+            {
+                bufferData->_nameArray[index] = fileName;
+                fileName += strlen(fileName) + 1;
+            }
+        }
+    }
+    return (bufferData->_nameArray != nullptr);
+}
+
+//----------------------------------------
+// Free the arrays
+//----------------------------------------
+void bufferNameSortFree(int bufferIndex)
+{
+    DFU_BUFFER_DATA *bufferData = dfuBufferInfo[bufferIndex]._bufferData;
+
+    // Free nameArray
+    if (bufferData->_nameArray != nullptr)
+    {
+        free(bufferData->_nameArray);
+        bufferData->_nameArray = nullptr;
+    }
+
+    // Free sortArray
+    if (bufferData->_sortArray != nullptr)
+    {
+        free(bufferData->_sortArray);
+        bufferData->_sortArray = nullptr;
+    }
+}
+
+#endif  // COMPILE_FIRMWARE_UPDATE

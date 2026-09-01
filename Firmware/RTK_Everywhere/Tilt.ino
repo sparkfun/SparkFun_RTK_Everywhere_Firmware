@@ -1357,6 +1357,8 @@ static void im19ResetImu()
     }
 }
 
+#ifdef  COMPILE_FIRMWARE_UPDATE
+
 // Puts the IM19 into its bootloader and gets ready to receive frames for a file of
 // 'fileSize' bytes. Mallocs nothing - the frame map is a fixed, small static buffer.
 bool im19UpdateFirmwareBegin(uint32_t fileSize)
@@ -1607,7 +1609,6 @@ static bool im19StreamMissingRanges(const char *url)
 //      only those byte ranges (im19StreamMissingRanges) and ask again - up to a few
 //      attempts - rather than re-streaming the whole binary.
 //----------------------------------------
-#if defined(COMPILE_WIFI) && defined(COMPILE_IM19_IMU)
 bool im19FirmwareUpdate(const OTA_TARGET * target,
                         const OTA_SUBSYSTEM_INFO * subsystemInfo,
                         uint8_t * buffer,
@@ -1734,9 +1735,9 @@ bool im19FirmwareUpdate(const OTA_TARGET * target,
     systemPrintln(otaEqualSigns);
     return false;
 }
-#endif // COMPILE_WIFI && COMPILE_IM19_IMU
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of IM19 firmware update functions.
 
-#endif // COMPILE_IM19_IMU
+#endif  // COMPILE_FIRMWARE_UPDATE
+#endif  // COMPILE_IM19_IMU

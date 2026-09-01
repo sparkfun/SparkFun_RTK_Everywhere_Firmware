@@ -4,7 +4,7 @@ OTA.ino
   Over-The-Air (OTA) firmware update support
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-#ifdef COMPILE_OTA_AUTO
+#ifdef COMPILE_FIRMWARE_UPDATE
 
 //----------------------------------------
 // Constants
@@ -1443,4 +1443,4 @@ extern const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[] =
 const int otaSubsystemInfoTableEntries = sizeof(otaSubsystemInfoTable)
                                        / sizeof(otaSubsystemInfoTable[0]);
 
-#endif // COMPILE_OTA_AUTO
+#endif // COMPILE_FIRMWARE_UPDATE

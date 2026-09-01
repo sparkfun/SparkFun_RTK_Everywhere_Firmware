@@ -3749,6 +3749,13 @@ const char *lg290pGetNavModeNameFromModel(const uint8_t dynamicModel)
     return unknown;
 }
 
+void lg290pPrintNavModes()
+{
+    for (int i = 0; i < MAX_LG290P_NAV_MODES; i++)
+        systemPrintf("%d) %s\r\n", i + 1, lg290pNavModes[i].name);
+}
+
+#ifdef  COMPILE_FIRMWARE_UPDATE
 //----------------------------------------
 // Reboot the module into bootloader mode, negotiate sync, query bootloader version,
 // send firmware metadata, and erase flash.
@@ -3837,7 +3844,6 @@ bool lg290pFirmwareUpdateEnd()
 //----------------------------------------
 // Update the LG290P firmware
 //----------------------------------------
-#if defined(COMPILE_WIFI) && defined(COMPILE_LG290P)
 bool lg290pStreamFirmware(NetworkClient *stream, size_t fileBytes, uint32_t expectedCrc, uint8_t *buffer,
                           size_t packetBytes)
 {
@@ -3917,12 +3923,5 @@ bool lg290pStreamFirmware(NetworkClient *stream, size_t fileBytes, uint32_t expe
     systemPrintln(otaEqualSigns);
     return (fileBytes == 0);
 }
-#endif // COMPILE_WIFI
-
-void lg290pPrintNavModes()
-{
-    for (int i = 0; i < MAX_LG290P_NAV_MODES; i++)
-        systemPrintf("%d) %s\r\n", i + 1, lg290pNavModes[i].name);
-}
-
+#endif  // COMPILE_FIRMWARE_UPDATE
 #endif // COMPILE_LG290P

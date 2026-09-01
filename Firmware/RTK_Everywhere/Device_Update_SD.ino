@@ -4,6 +4,8 @@ Device_Update_SD.ino
   Support routines to use the microSD card for input or output
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+#ifdef  COMPILE_FIRMWARE_UPDATE
+
 //----------------------------------------
 // Close the SD file
 //----------------------------------------
@@ -166,3 +168,5 @@ ssize_t dfuSdWrite(DEVICE_FIRMWARE_CTX * ctx,
 {
     return ctx->_sdFile.write(buffer, bytesToWrite);
 }
+
+#endif  // COMPILE_FIRMWARE_UPDATE

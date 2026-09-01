@@ -3838,6 +3838,18 @@ bool x20pPrintVersion(HardwareSerial &ser)
     return true;
 }
 
+// Verify assumptions
+void zedVerifyTables()
+{
+    if (X20P_RX_PAYLOAD_MAX < (UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES))
+    {
+        systemPrintf("Increase X20P_RX_PAYLOAD_MAX from %d to >= %d\r\n",
+                     X20P_RX_PAYLOAD_MAX, UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES);
+        reportFatalError("Set X20P_RX_PAYLOAD_MAX >= (UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES)");
+    }
+}
+
+#ifdef  COMPILE_FIRMWARE_UPDATE
 // ==================================================================
 //  PUBLIC API
 // ==================================================================
@@ -4290,7 +4302,6 @@ bool x20pFirmwareUpdateEnd()
  *
  * Returns true upon successful firmware update and false upon failure.
  */
-#if defined(COMPILE_WIFI)
 bool x20pStreamFirmware(NetworkClient * stream,
                         size_t fileBytes,
                         uint32_t expectedCrc,
@@ -4421,20 +4432,8 @@ void x20pDisplayVersion()
     x20pPrintVersion(*serialGNSS);
 }
 
-#endif // COMPILE_WIFI
-
-// Verify assumptions
-void zedVerifyTables()
-{
-    if (X20P_RX_PAYLOAD_MAX < (UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES))
-    {
-        systemPrintf("Increase X20P_RX_PAYLOAD_MAX from %d to >= %d\r\n",
-                     X20P_RX_PAYLOAD_MAX, UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES);
-        reportFatalError("Set X20P_RX_PAYLOAD_MAX >= (UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES)");
-    }
-}
-
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of X20P firmware update functions.
 
-#endif // COMPILE_ZED
+#endif  // COMPILE_FIRMWARE_UPDATE
+#endif  // COMPILE_ZED

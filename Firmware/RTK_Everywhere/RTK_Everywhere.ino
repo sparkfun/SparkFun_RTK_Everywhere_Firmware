@@ -117,7 +117,6 @@ RTK_Everywhere.ino
 #define COMPILE_MQTT_CLIENT  // Comment out to remove MQTT Client functionality
 #define COMPILE_NTRIP_CLIENT // Comment out to remove NTRIP client functionality
 #define COMPILE_NTRIP_SERVER // Comment out to remove NTRIP server functionality
-#define COMPILE_OTA_AUTO     // Comment out to disable automatic over-the-air firmware update
 #define COMPILE_TCP_CLIENT   // Comment out to remove TCP client functionality
 #define COMPILE_TCP_SERVER   // Comment out to remove TCP server functionality
 #define COMPILE_UDP_SERVER   // Comment out to remove UDP server functionality
@@ -142,6 +141,10 @@ RTK_Everywhere.ino
 #define COMPILE_MENU_USER_PROFILES // Comment out to remove user profile menu functionality
 #define COMPILE_MENU_WIFI          // Comment out to remove WiFi menu functionality
 #endif                             // COMPILE_SERIAL_MENUS
+
+#if defined(COMPILE_MENU_FIRMWARE) && defined(COMPILE_NETWORK)
+#define COMPILE_FIRMWARE_UPDATE // Comment out to disable firmware update
+#endif
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
 #ifndef ENABLE_DEVELOPER
