@@ -1435,24 +1435,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     {
         char *settingsCsvList;
 
-        // Remove profile from LittleFS
-        if (LittleFS.exists(settingsFileName))
-            LittleFS.remove(settingsFileName);
-        if (LittleFS.exists(stationCoordinateECEFFileName))
-            LittleFS.remove(stationCoordinateECEFFileName);
-        if (LittleFS.exists(stationCoordinateGeodeticFileName))
-            LittleFS.remove(stationCoordinateGeodeticFileName);
-
-        // Remove profile from SD if available
-        if (online.microSD == true)
-        {
-            if (sd->exists(settingsFileName))
-                sd->remove(settingsFileName);
-            if (sd->exists(stationCoordinateECEFFileName))
-                sd->remove(stationCoordinateECEFFileName);
-            if (sd->exists(stationCoordinateGeodeticFileName))
-                sd->remove(stationCoordinateGeodeticFileName);
-        }
+        deleteProfileFiles(profileNumber, false); // We don't yet have the SD semaphore
 
         // We need to load these settings from file so that we can
         // record a profile name change correctly
