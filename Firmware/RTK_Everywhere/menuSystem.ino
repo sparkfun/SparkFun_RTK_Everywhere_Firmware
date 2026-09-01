@@ -695,6 +695,8 @@ void menuDebugHardware()
 
         systemPrintln("e) Erase LittleFS");
 
+        systemPrintln("p) Display product resistor table");
+
         systemPrintln("r) Force system reset");
 
         systemPrintln("x) Exit");
@@ -894,6 +896,9 @@ void menuDebugHardware()
             LittleFS.format();
             ESP.restart();
         }
+
+        else if (incoming == 'p')
+            displayProductResistorTable();
 
         // Menu exit control
         else if (incoming == 'r')
