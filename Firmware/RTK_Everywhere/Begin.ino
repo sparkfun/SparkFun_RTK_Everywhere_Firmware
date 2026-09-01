@@ -58,6 +58,16 @@ bool idWithAdc(uint16_t mvMeasured, float r1, float r2, float tolerance)
     return result;
 }
 
+// Read the voltage on the device ID pin to determine the product
+uint16_t readBoardIdValue()
+{
+    // Use ADC to check the resistor divider
+    int pin_deviceID = 35;
+    uint16_t idValue = analogReadMilliVolts(pin_deviceID);
+    idValue = analogReadMilliVolts(pin_deviceID); // Read twice - just in case
+    return idValue;
+}
+
 // Use a pair of resistors on pin 35 to ID the board type
 // If the ID resistors are not available then use a variety of other methods
 // (I2C, GPIO test, etc) to ID the board.
@@ -87,9 +97,7 @@ void identifyBoard()
     if (productVariant == RTK_UNKNOWN)
     {
         // Use ADC to check the resistor divider
-        int pin_deviceID = 35;
-        uint16_t idValue = analogReadMilliVolts(pin_deviceID);
-        idValue = analogReadMilliVolts(pin_deviceID); // Read twice - just in case
+        uint16_t idValue = readBoardIdValue();
         char adcId[50];
         snprintf(adcId, sizeof(adcId), "Board ADC ID (mV): %d", idValue);
         for (int i = 0; i < strlen(adcId); i++)
