@@ -744,6 +744,13 @@ void checkArrayDefaults()
 // Verify table sizes match enum definitions
 void verifyTables()
 {
+    // Verify the brand table
+    if (RTKBrandAttributesEntries != BRAND_NUM)
+        reportFatalError("Fix RTKBrandAttributes to match RTKBrands_e");
+    for (int index = 0; index < BRAND_NUM; index++)
+        if (RTKBrandAttributes[index].brand != index)
+            reportFatalError("RTKBrandAttributes entries are out of order");
+
     // Verify the product properties table
     if (productPropertiesEntries != productVariantCount)
         reportFatalError("Fix productPropertiesTable to match ProductVariant");
