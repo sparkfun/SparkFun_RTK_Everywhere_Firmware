@@ -1499,7 +1499,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
              (strcmp(&settingName[8], "Name") == 0))
     {
         int profileNumber = settingName[7] - '0';
-        if (profileNumber >= 0 && profileNumber <= MAX_PROFILE_COUNT)
+        if (profileNumber >= 0 && profileNumber < MAX_PROFILE_COUNT)
         {
             strncpy(profileNames[profileNumber], settingValueStr, sizeof(profileNames[0]));
             knownSetting = true;
@@ -2721,7 +2721,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         (strcmp(&settingName[8], "Name") == 0))
     {
         int profileNumber = settingName[7] - '0';
-        if (profileNumber >= 0 && profileNumber <= MAX_PROFILE_COUNT)
+        if (profileNumber >= 0 && profileNumber < MAX_PROFILE_COUNT)
         {
             writeToString(settingValueStr, profileNames[profileNumber]);
             knownSetting = true;
