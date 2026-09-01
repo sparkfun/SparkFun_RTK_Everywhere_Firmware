@@ -751,6 +751,13 @@ void verifyTables()
         if (RTKBrandAttributes[index].brand != index)
             reportFatalError("RTKBrandAttributes entries are out of order");
 
+    // Verify the product housing table
+    if (productHousingEntries != (RTK_HOUSING_MAX_NONE + 1))
+        reportFatalError("Fix productHousingPropertiesTable to match ProductVariantHousing");
+    for (int index = 0; index <= RTK_HOUSING_MAX_NONE; index++)
+        if (productHousingPropertiesTable[index].housing != index)
+            reportFatalError("productHousingPropertiesTable entries are out of order");
+
     // Verify the product properties table
     if (productPropertiesEntries != productVariantCount)
         reportFatalError("Fix productPropertiesTable to match ProductVariant");
