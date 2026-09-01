@@ -777,7 +777,25 @@ void verifyTables()
 
     // Verify the product properties table
     if (productPropertiesEntries != productVariantCount)
-        reportFatalError("Fix productPropertiesTable to match ProductVariant");
+        reportFatalError("Fix productPropertiesTable to match ProductVariant enum");
+    for (int index = 0; index < productVariantCount; index++)
+    {
+        const productProperties * product = &productPropertiesTable[index];
+        if ((product->productVariant < 0) || (product->productVariant > RTK_UNKNOWN))
+            reportFatalError("Remove bad productVariant values from productPropertiesTable");
+        uint32_t bitMask = 1 << product->productVariant;
+        if ((productBitMap & bitMask) == 0)
+            reportFatalError("productPropertiesTable contains entry not listed in allVariants list");
+        if ((product->brand < 0) || (product->brand >= BRAND_NUM))
+            reportFatalError("Fix productPropertiesTable brand entries < BRAND_NUM");
+        if ((product->housing < 0) || (product->housing > RTK_HOUSING_MAX_NONE))
+            reportFatalError("Fix productPropertiesTable housing entries <= RTK_HOUSING_MAX_NONE");
+    }
+
+    // Verify that RTK_UNKNOWN is the last entry in the productPropertiesTable
+    const productProperties * product = &productPropertiesTable[productVariantCount - 1];
+    if (product->productVariant != RTK_UNKNOWN)
+        reportFatalError("Last entry in productPropertiesTable MUST be RTK_UNKNOWN");
 
     // Verify the measurement scales
     if (measurementScaleEntries != MEASUREMENT_UNITS_MAX)
