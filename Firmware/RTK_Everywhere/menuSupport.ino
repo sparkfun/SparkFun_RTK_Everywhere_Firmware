@@ -886,10 +886,33 @@ bool removeFile(const char *fileName)
 // Remove a given filename from SD
 bool removeFileSD(const char *fileName)
 {
+    return removeFileSD(fileName, false);
+}
+
+// Remove a given filename from SD
+// If alreadyHasSemaphore is true, caller is responsible for SD semaphore ownership.
+bool removeFileSD(const char *fileName, bool alreadyHasSemaphore)
+{
     bool removed = false;
 
     bool gotSemaphore = false;
     bool wasSdCardOnline;
+
+    // Use existing semaphore ownership if the caller already has the lock.
+    if (alreadyHasSemaphore)
+    {
+        if (online.microSD == true)
+        {
+            if (sd->exists(fileName))
+            {
+                if(settings.debugSettings == true)
+                    systemPrintf("Removing from SD: %s", fileName);
+                sd->remove(fileName);
+                removed = true;
+            }
+        }
+        return removed;
+    }
 
     // Try to gain access the SD card
     wasSdCardOnline = online.microSD;
