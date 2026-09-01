@@ -23,6 +23,13 @@ static uint32_t i2cPowerUpDelay;
 // Hardware initialization functions
 //----------------------------------------
 
+// Compute the upper and lower threshold values
+float computeThreshold(float r1, float r2, float tolerance)
+{
+    return MAX_ADC_VOLTAGE * (r2 * (1.0 + (tolerance / 100.0))) /
+        ((r1 * (1.0 + (-tolerance / 100.0))) + (r2 * (1.0 + (tolerance / 100.0))));
+}
+
 // Determine if the measured value matches the product ID value
 // idWithAdc applies resistor tolerance using worst-case tolerances:
 // Upper threshold: R1 down by TOLERANCE, R2 up by TOLERANCE
@@ -40,10 +47,8 @@ bool idWithAdc(uint16_t mvMeasured, float r1, float r2, float tolerance)
 
     // Return true if the mvMeasured value is within the tolerance range
     // of the mvProduct value
-    upperThreshold = ceil(MAX_ADC_VOLTAGE * (r2 * (1.0 + (tolerance / 100.0))) /
-                          ((r1 * (1.0 - (tolerance / 100.0))) + (r2 * (1.0 + (tolerance / 100.0)))));
-    lowerThreshold = floor(MAX_ADC_VOLTAGE * (r2 * (1.0 - (tolerance / 100.0))) /
-                           ((r1 * (1.0 + (tolerance / 100.0))) + (r2 * (1.0 - (tolerance / 100.0)))));
+    upperThreshold = ceil(computeThreshold(r1, r2, tolerance));
+    lowerThreshold = floor(computeThreshold(r1, r2, -tolerance));
 
     bool result = (upperThreshold > mvMeasured) && (mvMeasured > lowerThreshold);
     if (result && ENABLE_DEVELOPER)
