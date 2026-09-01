@@ -1342,12 +1342,9 @@ const productProperties *getProductPropertiesFromVariant(ProductVariant variant)
 
 RTKBrandAttribute *getBrandAttributeFromBrand(RTKBrands_e brand)
 {
-    for (int i = 0; i < (int)RTKBrands_e::BRAND_NUM; i++)
-    {
-        if (RTKBrandAttributes[i].brand == brand)
-            return &RTKBrandAttributes[i];
-    }
-    return getBrandAttributeFromBrand(DEFAULT_BRAND);
+    if (brand >= BRAND_NUM)
+        brand = DEFAULT_BRAND;
+    return &RTKBrandAttributes[brand];
 }
 
 RTKBrandAttribute *getBrandAttributeFromProductVariant(ProductVariant variant)
@@ -1359,12 +1356,7 @@ RTKBrandAttribute *getBrandAttributeFromProductVariant(ProductVariant variant)
 const productHousingProperties *getProductHousingPropertiesFromVariant(ProductVariant variant)
 {
     const productProperties *properties = getProductPropertiesFromVariant(variant);
-    for (int i = 0; i < productHousingEntries; i++)
-    {
-        if (productHousingPropertiesTable[i].housing == properties->housing)
-            return &productHousingPropertiesTable[i];
-    }
-    return getProductHousingPropertiesFromVariant(RTK_UNKNOWN);
+    return &productHousingPropertiesTable[properties->housing];
 }
 
 // Used to report delay until next WiFi/NTRIP/etc connection attempt
