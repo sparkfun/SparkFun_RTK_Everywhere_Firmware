@@ -1338,85 +1338,98 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         if (destinationProfile >= 0)
         {
-            Settings sourceSettings;
-            char sourceProfileName[sizeof(settings.profileName)];
-            char copiedProfileBase[sizeof(settings.profileName)];
-            char copiedProfileName[sizeof(settings.profileName)];
-            uint8_t sourceProfileNumber = profileNumber;
-
-            memcpy(&sourceSettings, &settings, sizeof(sourceSettings));
-            strncpy(sourceProfileName, profileNames[sourceProfileNumber], sizeof(sourceProfileName));
-            sourceProfileName[sizeof(sourceProfileName) - 1] = '\0';
-
-            strncpy(copiedProfileBase, sourceProfileName, sizeof(copiedProfileBase));
-            copiedProfileBase[sizeof(copiedProfileBase) - 1] = '\0';
-
-            int copyNumber = 1;
-            char *suffix = strstr(copiedProfileBase, "-Copy");
-            if (suffix != nullptr)
+            // Settings is a large struct (message rate tables, NTRIP/WiFi arrays, etc).
+            // Pull it from PSRAM (falls back to RAM) rather than this task's stack.
+            struct Settings *sourceSettings =
+                (struct Settings *)rtkMalloc(sizeof(*sourceSettings), "copyProfile sourceSettings");
+            if (sourceSettings == nullptr)
             {
-                bool validSuffix = true;
-                int parsedNumber = 0;
-                char *numberStart = suffix + 5;
+                systemPrintln("ERROR: Failed to allocate sourceSettings, copy aborted");
+                reportHeapNow(true);
+            }
+            else
+            {
+                char sourceProfileName[sizeof(settings.profileName)];
+                char copiedProfileBase[sizeof(settings.profileName)];
+                char copiedProfileName[sizeof(settings.profileName)];
+                uint8_t sourceProfileNumber = profileNumber;
 
-                if (*numberStart == '\0')
+                memcpy(sourceSettings, &settings, sizeof(*sourceSettings));
+                strncpy(sourceProfileName, profileNames[sourceProfileNumber], sizeof(sourceProfileName));
+                sourceProfileName[sizeof(sourceProfileName) - 1] = '\0';
+
+                strncpy(copiedProfileBase, sourceProfileName, sizeof(copiedProfileBase));
+                copiedProfileBase[sizeof(copiedProfileBase) - 1] = '\0';
+
+                int copyNumber = 1;
+                char *suffix = strstr(copiedProfileBase, "-Copy");
+                if (suffix != nullptr)
                 {
-                    copyNumber = 2;
-                }
-                else
-                {
-                    for (char *ptr = numberStart; *ptr != '\0'; ptr++)
+                    bool validSuffix = true;
+                    int parsedNumber = 0;
+                    char *numberStart = suffix + 5;
+
+                    if (*numberStart == '\0')
                     {
-                        if (*ptr < '0' || *ptr > '9')
+                        copyNumber = 2;
+                    }
+                    else
+                    {
+                        for (char *ptr = numberStart; *ptr != '\0'; ptr++)
                         {
-                            validSuffix = false;
-                            break;
+                            if (*ptr < '0' || *ptr > '9')
+                            {
+                                validSuffix = false;
+                                break;
+                            }
+                            parsedNumber *= 10;
+                            parsedNumber += *ptr - '0';
                         }
-                        parsedNumber *= 10;
-                        parsedNumber += *ptr - '0';
+
+                        if (validSuffix)
+                            copyNumber = parsedNumber + 1;
                     }
 
                     if (validSuffix)
-                        copyNumber = parsedNumber + 1;
+                        *suffix = '\0';
                 }
 
-                if (validSuffix)
-                    *suffix = '\0';
-            }
-
-            bool copyNameInUse = false;
-            do
-            {
-                if (copyNumber == 1)
-                    snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy", copiedProfileBase);
-                else
-                    snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy%d", copiedProfileBase,
-                             copyNumber);
-
-                copyNameInUse = false;
-                for (int x = 0; x < MAX_PROFILE_COUNT; x++)
+                bool copyNameInUse = false;
+                do
                 {
-                    if ((activeProfiles & (1 << x)) && (strcmp(profileNames[x], copiedProfileName) == 0))
+                    if (copyNumber == 1)
+                        snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy", copiedProfileBase);
+                    else
+                        snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy%d", copiedProfileBase,
+                                 copyNumber);
+
+                    copyNameInUse = false;
+                    for (int x = 0; x < MAX_PROFILE_COUNT; x++)
                     {
-                        copyNameInUse = true;
-                        break;
+                        if ((activeProfiles & (1 << x)) && (strcmp(profileNames[x], copiedProfileName) == 0))
+                        {
+                            copyNameInUse = true;
+                            break;
+                        }
                     }
-                }
-                copyNumber++;
-            } while (copyNameInUse && (copyNumber < 100));
+                    copyNumber++;
+                } while (copyNameInUse && (copyNumber < 100));
 
-            changeProfileNumber(destinationProfile); // Saves source first, then switches to destination
+                changeProfileNumber(destinationProfile); // Saves source first, then switches to destination
 
-            memcpy(&settings, &sourceSettings, sizeof(settings));
-            strncpy(settings.profileName, copiedProfileName, sizeof(settings.profileName));
-            settings.profileName[sizeof(settings.profileName) - 1] = '\0';
+                memcpy(&settings, sourceSettings, sizeof(settings));
+                strncpy(settings.profileName, copiedProfileName, sizeof(settings.profileName));
+                settings.profileName[sizeof(settings.profileName) - 1] = '\0';
 
-            recordSystemSettings();
-            setProfileName(profileNumber);
+                recordSystemSettings();
+                setProfileName(profileNumber);
 
-            changeProfileNumber(sourceProfileNumber, false);
+                changeProfileNumber(sourceProfileNumber, false);
 
-            activeProfiles = loadProfileNames();
+                activeProfiles = loadProfileNames();
+
+                rtkFree(sourceSettings, "copyProfile sourceSettings");
+            }
         }
 
         // Send updated settings and profile names to browser.

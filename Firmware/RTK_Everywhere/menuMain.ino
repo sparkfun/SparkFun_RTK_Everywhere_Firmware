@@ -326,13 +326,23 @@ void menuUserProfiles()
             }
             else
             {
-                Settings sourceSettings;
+                // Settings is a large struct (message rate tables, NTRIP/WiFi arrays, etc).
+                // Pull it from PSRAM (falls back to RAM) rather than loopTask's stack.
+                struct Settings *sourceSettings =
+                    (struct Settings *)rtkMalloc(sizeof(*sourceSettings), "menuUserProfiles sourceSettings");
+                if (sourceSettings == nullptr)
+                {
+                    systemPrintln("ERROR: Failed to allocate sourceSettings, copy aborted");
+                    reportHeapNow(true);
+                    continue;
+                }
+
                 char sourceProfileName[sizeof(settings.profileName)];
                 char copiedProfileBase[sizeof(settings.profileName)];
                 char copiedProfileName[sizeof(settings.profileName)];
                 uint8_t sourceProfileNumber = profileNumber;
 
-                memcpy(&sourceSettings, &settings, sizeof(sourceSettings));
+                memcpy(sourceSettings, &settings, sizeof(*sourceSettings));
                 strncpy(sourceProfileName, profileNames[sourceProfileNumber], sizeof(sourceProfileName));
                 sourceProfileName[sizeof(sourceProfileName) - 1] = '\0';
 
@@ -395,7 +405,7 @@ void menuUserProfiles()
 
                 changeProfileNumber(destinationProfile); // Saves source first, then switches to destination
 
-                memcpy(&settings, &sourceSettings, sizeof(settings));
+                memcpy(&settings, sourceSettings, sizeof(settings));
                 strncpy(settings.profileName, copiedProfileName, sizeof(settings.profileName));
                 settings.profileName[sizeof(settings.profileName) - 1] = '\0';
 
@@ -408,6 +418,8 @@ void menuUserProfiles()
 
                 systemPrintf("Copied profile '%s' to slot %d as '%s'\r\n", sourceProfileName,
                              destinationProfile + 1, copiedProfileName);
+
+                rtkFree(sourceSettings, "menuUserProfiles sourceSettings");
             }
         }
 
