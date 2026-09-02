@@ -744,9 +744,58 @@ void checkArrayDefaults()
 // Verify table sizes match enum definitions
 void verifyTables()
 {
+    // Verify the brand table
+    if (RTKBrandAttributesEntries != BRAND_NUM)
+        reportFatalError("Fix RTKBrandAttributes to match RTKBrands_e");
+    for (int index = 0; index < BRAND_NUM; index++)
+        if (RTKBrandAttributes[index].brand != index)
+            reportFatalError("RTKBrandAttributes entries are out of order");
+
+    // Verify the product housing table
+    if (productHousingEntries != (RTK_HOUSING_MAX_NONE + 1))
+        reportFatalError("Fix productHousingPropertiesTable to match ProductVariantHousing");
+    for (int index = 0; index <= RTK_HOUSING_MAX_NONE; index++)
+        if (productHousingPropertiesTable[index].housing != index)
+            reportFatalError("productHousingPropertiesTable entries are out of order");
+
+    // Verify the allVariants list
+    uint32_t productBitMap = 0;
+    for (int index = 0; index < productVariantCount; index++)
+    {
+        if ((allVariants[index] < 0) || (allVariants[index] > RTK_UNKNOWN))
+            reportFatalError("Remove bad values from allVariants list");
+        uint32_t bitMask = 1 << allVariants[index];
+        if (productBitMap & bitMask)
+            reportFatalError("Remove duplicate entries from allVariants list");
+        productBitMap |= bitMask;
+    }
+
+    // Verify that RTK_UNKNOWN is in the allVariants list
+    uint32_t bitMask = 1 << RTK_UNKNOWN;
+    if ((productBitMap & bitMask) == 0)
+        reportFatalError("RTK_UNKNOWN missing from allVariants list");
+
     // Verify the product properties table
     if (productPropertiesEntries != productVariantCount)
-        reportFatalError("Fix productPropertiesTable to match ProductVariant");
+        reportFatalError("Fix productPropertiesTable to match ProductVariant enum");
+    for (int index = 0; index < productVariantCount; index++)
+    {
+        const productProperties * product = &productPropertiesTable[index];
+        if ((product->productVariant < 0) || (product->productVariant > RTK_UNKNOWN))
+            reportFatalError("Remove bad productVariant values from productPropertiesTable");
+        uint32_t bitMask = 1 << product->productVariant;
+        if ((productBitMap & bitMask) == 0)
+            reportFatalError("productPropertiesTable contains entry not listed in allVariants list");
+        if ((product->brand < 0) || (product->brand >= BRAND_NUM))
+            reportFatalError("Fix productPropertiesTable brand entries < BRAND_NUM");
+        if ((product->housing < 0) || (product->housing > RTK_HOUSING_MAX_NONE))
+            reportFatalError("Fix productPropertiesTable housing entries <= RTK_HOUSING_MAX_NONE");
+    }
+
+    // Verify that RTK_UNKNOWN is the last entry in the productPropertiesTable
+    const productProperties * product = &productPropertiesTable[productVariantCount - 1];
+    if (product->productVariant != RTK_UNKNOWN)
+        reportFatalError("Last entry in productPropertiesTable MUST be RTK_UNKNOWN");
 
     // Verify the measurement scales
     if (measurementScaleEntries != MEASUREMENT_UNITS_MAX)
@@ -1293,12 +1342,9 @@ const productProperties *getProductPropertiesFromVariant(ProductVariant variant)
 
 RTKBrandAttribute *getBrandAttributeFromBrand(RTKBrands_e brand)
 {
-    for (int i = 0; i < (int)RTKBrands_e::BRAND_NUM; i++)
-    {
-        if (RTKBrandAttributes[i].brand == brand)
-            return &RTKBrandAttributes[i];
-    }
-    return getBrandAttributeFromBrand(DEFAULT_BRAND);
+    if (brand >= BRAND_NUM)
+        brand = DEFAULT_BRAND;
+    return &RTKBrandAttributes[brand];
 }
 
 RTKBrandAttribute *getBrandAttributeFromProductVariant(ProductVariant variant)
@@ -1310,12 +1356,7 @@ RTKBrandAttribute *getBrandAttributeFromProductVariant(ProductVariant variant)
 const productHousingProperties *getProductHousingPropertiesFromVariant(ProductVariant variant)
 {
     const productProperties *properties = getProductPropertiesFromVariant(variant);
-    for (int i = 0; i < productHousingEntries; i++)
-    {
-        if (productHousingPropertiesTable[i].housing == properties->housing)
-            return &productHousingPropertiesTable[i];
-    }
-    return getProductHousingPropertiesFromVariant(RTK_UNKNOWN);
+    return &productHousingPropertiesTable[properties->housing];
 }
 
 // Used to report delay until next WiFi/NTRIP/etc connection attempt

@@ -2039,16 +2039,17 @@ void tpISR()
 // Display the product table, resistors voltages
 void displayProductResistorTable()
 {
-    int lowerThreshold[RTK_UNKNOWN];
-    int expectedValue[RTK_UNKNOWN];
-    int upperThreshold[RTK_UNKNOWN];
-    int sortIndex[RTK_UNKNOWN];
+    int productCount = productPropertiesEntries - 1;
+    int lowerThreshold[productCount];
+    int expectedValue[productCount];
+    int upperThreshold[productCount];
+    int sortIndex[productCount];
 
     // Populate the tables
-    for (int i = 0; i < RTK_UNKNOWN; i++)
+    for (int i = 0; i < productCount; i++)
     {
         sortIndex[i] = i;
-        const productProperties * prop = getProductPropertiesFromVariant((ProductVariant)i);
+        const productProperties * prop = &productPropertiesTable[i];
 
         // A value of zero for r2 indicates no resistor network present
         if (prop->r2)
@@ -2066,13 +2067,13 @@ void displayProductResistorTable()
     }
 
     // Perform a bubble on the values to order the values high to low
-    for (int i = 0; i < RTK_UNKNOWN - 1; i++)
+    for (int i = 0; i < productCount - 1; i++)
     {
-        const productProperties * prodI = getProductPropertiesFromVariant((ProductVariant)sortIndex[i]);
+        const productProperties * prodI = &productPropertiesTable[sortIndex[i]];
         int vI = (prodI->r2 == 0) ? 0 : expectedValue[sortIndex[i]];
-        for (int j = i + 1; j < RTK_UNKNOWN; j++)
+        for (int j = i + 1; j < productCount; j++)
         {
-            const productProperties * prodJ = getProductPropertiesFromVariant((ProductVariant)sortIndex[j]);
+            const productProperties * prodJ = &productPropertiesTable[sortIndex[j]];
             int vJ = (prodJ->r2 == 0) ? 0 : expectedValue[sortIndex[j]];
             if (vI < vJ)
             {
@@ -2088,27 +2089,27 @@ void displayProductResistorTable()
 
     // Display the table header
     systemPrintln();
-    systemPrintln("                   R1 K Ohms           R2 K Ohms");
-    systemPrintf( "  %d.%03d Volts -----/\\/\\/\\/\\/-----+-----/\\/\\/\\/\\/----- Ground\r\n",
+    systemPrintln("                 R1 K Ohms           R2 K Ohms");
+    systemPrintf( "%d.%03d Volts -----/\\/\\/\\/\\/----+----/\\/\\/\\/\\/----- Ground\r\n",
                   MAX_ADC_VOLTAGE / 1000, MAX_ADC_VOLTAGE % 1000);
-    systemPrintln("                                 |");
-    systemPrintf("                             ADC input: %d mVolts\r\n",
+    systemPrintln("                              |");
+    systemPrintf("                     ADC input: %d mVolts\r\n",
                  readBoardIdValue());
-    systemPrintln("                                 |");
-    systemPrintln("                                 V");
-    systemPrintln("  K Ohms                    Millivolts              Max");
-    systemPrintln(" R1    R2   Tolerance  High  Expected   Low Delta  uAmps  Product");
-    systemPrintln("----  ----  ---------  --------------------------  -----  ---------------");
+    systemPrintln("                              |");
+    systemPrintln("                              V");
+    systemPrintln("  K Ohms                 Millivolts             Max");
+    systemPrintln(" R1    R2  Tolerance High Expected  Low Delta  uAmps  Product");
+    systemPrintln("----  ---- --------- ------------------------  -----  ------------------------");
 
     // Walk the list of products
-    for (int i = 0; i < RTK_UNKNOWN; i++)
+    for (int i = 0; i < productCount; i++)
     {
         int j = sortIndex[i];
-        const productProperties * prop = getProductPropertiesFromVariant((ProductVariant)j);
+        const productProperties * prop = &productPropertiesTable[j];
 
         // Get the product name
         char productName[64];
-        const char * brand = getBrandAttributeFromProductVariant((ProductVariant)j)->name;
+        const char * brand = getBrandAttributeFromBrand(prop->brand)->name;
         const char * product = prop->name;
         strcpy(productName, brand);
         strcat(productName, " ");
@@ -2124,21 +2125,20 @@ void displayProductResistorTable()
         int uAmps = (int)(ceil(microVolts / minResistance));
 
         // Display the product values
-        if (prop->r2 != 0)
+        if (prop->r2 == 0)
+            systemPrint("Using I2C instead                                    ");
+        else
         {
             systemPrintf("%4.1f  ", prop->r1);
             systemPrintf("%4.1f  ", prop->r2);
-            systemPrintf(" %4.1f%%     ", prop->tolerancePercentage);
-            systemPrintf("%4d    ", upperThreshold[j]);
-            systemPrintf("%4d    ", expectedValue[j]);
+            systemPrintf(" %4.1f%%   ", prop->tolerancePercentage);
+            systemPrintf("%4d   ", upperThreshold[j]);
+            systemPrintf("%4d   ", expectedValue[j]);
             systemPrintf("%4d  ", lowerThreshold[j]);
             systemPrintf("%4d ", upperThreshold[j] - lowerThreshold[j]);
-            systemPrintf("%6d  ", uAmps);
-            if (prop->productVariant == productVariant)
-                systemPrint("* ");
-            systemPrintf("%s\r\n", productName);
+            systemPrintf("%6d ", uAmps);
         }
-        else
-            systemPrintf("Using I2C instead                                         %s\r\n", productName);
+        systemPrintf("%c", (prop->productVariant == productVariant) ? '*' : ' ');
+        systemPrintf("%02d:%s\r\n", prop->productVariant, productName);
     }
 }

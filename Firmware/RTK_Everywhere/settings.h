@@ -164,7 +164,7 @@ typedef enum {
     BRAND_NUM
 } RTKBrands_e;
 
-const RTKBrands_e DEFAULT_BRAND = BRAND_SPARKPNT;
+#define DEFAULT_BRAND           BRAND_SPARKPNT
 
 typedef struct
 {
@@ -189,8 +189,13 @@ RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
     { BRAND_SPARKFUN, "SparkFun", logoSparkFun_Width, logoSparkFun_Height, logoSparkFun },
     { BRAND_SPARKPNT, "SparkPNT", logoSparkPNT_Width, logoSparkPNT_Height, logoSparkPNT },
 };
+const int RTKBrandAttributesEntries = sizeof(RTKBrandAttributes) / sizeof(RTKBrandAttributes[0]);
 
-// Product Variant used as part of device ID and whitelists. Do not reorder.
+// Product Variant - Do NOT reorder and do NOT remove unused values!!!
+// The label on the product lists the device ID which consists of the
+// Bluetooth address followed by two digits of the ProductVariant below.
+// This same ID value is used for the whitelists.  Skipped values represent
+// unreleased or new products.
 typedef enum
 {
     RTK_ALL = -1,
@@ -207,7 +212,8 @@ typedef enum
 } ProductVariant;
 ProductVariant productVariant = RTK_UNKNOWN;
 
-// Must match the contents of ProductVariant
+// allVariants - Do NOT remove, MUST match the contents of ProductVariant
+// without the RTK_ALL value!!!
 static const ProductVariant allVariants[] = { RTK_EVK, RTK_FACET_MOSAIC, RTK_TORCH, RTK_POSTCARD, RTK_FACET_FP, RTK_TORCH_X2, RTK_UNKNOWN};
 #define productVariantCount (sizeof(allVariants) / sizeof(allVariants[0]))
 
@@ -296,9 +302,9 @@ const productProperties productPropertiesTable[] =
     //==============    ==    ==    =====   =====           =======                 ====            =========== ==========              =================   ======  ==============      ==================          ====================
     { RTK_EVK,          1,    10,   17.5,   BRAND_SPARKFUN, RTK_HOUSING_EVK,        "EVK",          "EVK",      "SFE_EVK",              "EVK",              true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_evk_registration" },
     { RTK_FACET_MOSAIC, 1,    4.7,  10,     BRAND_SPARKPNT, RTK_HOUSING_FACET,      "Facet X5",     "Facet X5", "SFE_Facet_mosaic",     "Facet mosaicX5",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_mosaic_registration" },
-    { RTK_FACET_FP,     10,   20,   8.5,    BRAND_SPARKPNT, RTK_HOUSING_FP,         "FP",           "FP",       "SFE_FP",               "FP",               false,  "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_fp_registration" },
-    { RTK_POSTCARD,     3.3,  10,   8.5,    BRAND_SPARKFUN, RTK_HOUSING_POSTCARD,   "Postcard",     "Postcard", "SFE_Postcard",         "Postcard",         true,   "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_postcard_registration" },
     { RTK_TORCH,        0,    0,    0,      BRAND_SPARKPNT, RTK_HOUSING_TORCH,      "Torch",        "Torch",    "SFE_Torch",            "Torch",            true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_torch_registration" },
+    { RTK_POSTCARD,     3.3,  10,   8.5,    BRAND_SPARKFUN, RTK_HOUSING_POSTCARD,   "Postcard",     "Postcard", "SFE_Postcard",         "Postcard",         true,   "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_postcard_registration" },
+    { RTK_FACET_FP,     10,   20,   8.5,    BRAND_SPARKPNT, RTK_HOUSING_FP,         "FP",           "FP",       "SFE_FP",               "FP",               false,  "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_fp_registration" },
     { RTK_TORCH_X2,     8.2,  3.3,  8.5,    BRAND_SPARKPNT, RTK_HOUSING_TX2,        "TX2",          "TX2",      "SFE_TX2",              "TX2",              false,  "3407c7ca3d6b4984", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/tx2_registration" },
     { RTK_UNKNOWN,      0,    0,    0,      DEFAULT_BRAND,  RTK_HOUSING_MAX_NONE,   "Unknown",      "Unknown",  "SFE_Unknown",          "Unknown",          true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
 };
