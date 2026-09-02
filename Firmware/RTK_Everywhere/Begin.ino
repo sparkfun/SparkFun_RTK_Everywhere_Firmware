@@ -2039,16 +2039,17 @@ void tpISR()
 // Display the product table, resistors voltages
 void displayProductResistorTable()
 {
-    int lowerThreshold[RTK_UNKNOWN];
-    int expectedValue[RTK_UNKNOWN];
-    int upperThreshold[RTK_UNKNOWN];
-    int sortIndex[RTK_UNKNOWN];
+    int productCount = productPropertiesEntries - 1;
+    int lowerThreshold[productCount];
+    int expectedValue[productCount];
+    int upperThreshold[productCount];
+    int sortIndex[productCount];
 
     // Populate the tables
-    for (int i = 0; i < RTK_UNKNOWN; i++)
+    for (int i = 0; i < productCount; i++)
     {
         sortIndex[i] = i;
-        const productProperties * prop = getProductPropertiesFromVariant((ProductVariant)i);
+        const productProperties * prop = &productPropertiesTable[i];
 
         // A value of zero for r2 indicates no resistor network present
         if (prop->r2)
@@ -2066,13 +2067,13 @@ void displayProductResistorTable()
     }
 
     // Perform a bubble on the values to order the values high to low
-    for (int i = 0; i < RTK_UNKNOWN - 1; i++)
+    for (int i = 0; i < productCount - 1; i++)
     {
-        const productProperties * prodI = getProductPropertiesFromVariant((ProductVariant)sortIndex[i]);
+        const productProperties * prodI = &productPropertiesTable[sortIndex[i]];
         int vI = (prodI->r2 == 0) ? 0 : expectedValue[sortIndex[i]];
-        for (int j = i + 1; j < RTK_UNKNOWN; j++)
+        for (int j = i + 1; j < productCount; j++)
         {
-            const productProperties * prodJ = getProductPropertiesFromVariant((ProductVariant)sortIndex[j]);
+            const productProperties * prodJ = &productPropertiesTable[sortIndex[j]];
             int vJ = (prodJ->r2 == 0) ? 0 : expectedValue[sortIndex[j]];
             if (vI < vJ)
             {
@@ -2101,14 +2102,14 @@ void displayProductResistorTable()
     systemPrintln("----  ----  ---------  --------------------------  -----  ---------------");
 
     // Walk the list of products
-    for (int i = 0; i < RTK_UNKNOWN; i++)
+    for (int i = 0; i < productCount; i++)
     {
         int j = sortIndex[i];
-        const productProperties * prop = getProductPropertiesFromVariant((ProductVariant)j);
+        const productProperties * prop = &productPropertiesTable[j];
 
         // Get the product name
         char productName[64];
-        const char * brand = getBrandAttributeFromProductVariant((ProductVariant)j)->name;
+        const char * brand = getBrandAttributeFromBrand(prop->brand)->name;
         const char * product = prop->name;
         strcpy(productName, brand);
         strcat(productName, " ");
