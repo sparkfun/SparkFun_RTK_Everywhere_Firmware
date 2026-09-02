@@ -655,7 +655,7 @@ void displayUpdate()
         static unsigned long lastDisplayUpdate = 0;
         unsigned long displayUpdateInterval = 500; // Update display at 2Hz
         if (present.display_type == DISPLAY_184x88)
-            displayUpdateInterval = 1000; // Only update e-paper once per second
+            displayUpdateInterval = 2000; // Update e-paper every 2 seconds to extend the display lifetime
         if (((millis() - lastDisplayUpdate) > displayUpdateInterval) || (forceDisplayUpdate == true))
         {
             lastDisplayUpdate = millis();
