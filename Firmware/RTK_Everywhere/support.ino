@@ -770,6 +770,11 @@ void verifyTables()
         productBitMap |= bitMask;
     }
 
+    // Verify that RTK_UNKNOWN is in the allVariants list
+    uint32_t bitMask = 1 << RTK_UNKNOWN;
+    if ((productBitMap & bitMask) == 0)
+        reportFatalError("RTK_UNKNOWN missing from allVariants list");
+
     // Verify the product properties table
     if (productPropertiesEntries != productVariantCount)
         reportFatalError("Fix productPropertiesTable to match ProductVariant");
