@@ -190,7 +190,11 @@ RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
     { BRAND_SPARKPNT, "SparkPNT", logoSparkPNT_Width, logoSparkPNT_Height, logoSparkPNT },
 };
 
-// Product Variant used as part of device ID and whitelists. Do not reorder.
+// Product Variant - Do NOT reorder and do NOT remove unused values!!!
+// The label on the product lists the device ID which consists of the
+// Bluetooth address followed by two digits of the ProductVariant below.
+// This same ID value is used for the whitelists.  Skipped values represent
+// unreleased or new products.
 typedef enum
 {
     RTK_ALL = -1,
@@ -207,7 +211,8 @@ typedef enum
 } ProductVariant;
 ProductVariant productVariant = RTK_UNKNOWN;
 
-// Must match the contents of ProductVariant
+// allVariants - Do NOT remove, MUST match the contents of ProductVariant
+// without the RTK_ALL value!!!
 static const ProductVariant allVariants[] = { RTK_EVK, RTK_FACET_MOSAIC, RTK_TORCH, RTK_POSTCARD, RTK_FACET_FP, RTK_TORCH_X2, RTK_UNKNOWN};
 #define productVariantCount (sizeof(allVariants) / sizeof(allVariants[0]))
 
