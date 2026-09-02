@@ -15,6 +15,69 @@ void changeProfileNumber(byte newProfileNumber, bool recordSettings)
 
     // We need to load these settings from file so that we can record a profile name change correctly
     loadSettingsUsingTempSetting(true);
+
+    // Missing/empty profiles begin with struct defaults. Validate arrays such as correction priorities
+    // before background tasks consume them.
+    checkArrayDefaults();
+}
+
+// Remove a profile's settings and coordinate files from LittleFS and SD.
+// If alreadyHasSemaphore is true, SD access uses the existing lock.
+// Returns true if deletion completed or SD was offline. Returns false if SD semaphore could not be obtained.
+bool deleteProfileFiles(uint8_t profileToDelete, bool alreadyHasSemaphore)
+{
+    char profileSettingsFileName[60];
+    char profileStationCoordinateECEFFileName[60];
+    char profileStationCoordinateGeodeticFileName[60];
+
+    if (!getProfileFileName(profileToDelete, profileSettingsFileName, sizeof(profileSettingsFileName)))
+        return false;
+
+    snprintf(profileStationCoordinateECEFFileName, sizeof(profileStationCoordinateECEFFileName),
+             "/StationCoordinates-ECEF_%d.csv", profileToDelete);
+    snprintf(profileStationCoordinateGeodeticFileName, sizeof(profileStationCoordinateGeodeticFileName),
+             "/StationCoordinates-Geodetic_%d.csv", profileToDelete);
+
+    // Remove profile files from LittleFS.
+    if (LittleFS.exists(profileSettingsFileName))
+        LittleFS.remove(profileSettingsFileName);
+    if (LittleFS.exists(profileStationCoordinateECEFFileName))
+        LittleFS.remove(profileStationCoordinateECEFFileName);
+    if (LittleFS.exists(profileStationCoordinateGeodeticFileName))
+        LittleFS.remove(profileStationCoordinateGeodeticFileName);
+
+    // Remove profile files from SD with semaphore protection.
+    if (online.microSD)
+    {
+        if (alreadyHasSemaphore || xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+        {
+            if (!alreadyHasSemaphore)
+                markSemaphore(FUNCTION_RECORDSETTINGS);
+
+            if (sd->exists(profileSettingsFileName))
+                sd->remove(profileSettingsFileName);
+            if (sd->exists(profileStationCoordinateECEFFileName))
+                sd->remove(profileStationCoordinateECEFFileName);
+            if (sd->exists(profileStationCoordinateGeodeticFileName))
+                sd->remove(profileStationCoordinateGeodeticFileName);
+
+            if (!alreadyHasSemaphore)
+                xSemaphoreGive(sdCardSemaphore);
+        }
+        else
+        {
+            if (settings.debugSettings)
+            {
+                char semaphoreHolder[50];
+                getSemaphoreFunction(semaphoreHolder);
+                systemPrintf("sdCardSemaphore failed to yield, held by %s, menuSupport.ino line %d\r\n",
+                             semaphoreHolder, __LINE__);
+            }
+            return false;
+        }
+    }
+
+    return true;
 }
 
 // Check various setting arrays (message rates, etc) to see if they need to be reset to defaults
@@ -357,36 +420,10 @@ void factoryReset(bool alreadyHasSemaphore)
     // Attempt to write to file system. This avoids collisions with file writing from other functions like
     // recordSystemSettingsToFile() and gnssSerialReadTask() if (settings.enableSD && online.microSD)
     // Don't check settings.enableSD - it could be corrupt
-    if (online.microSD)
-    {
-        if (alreadyHasSemaphore == true || xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
-        {
-            // Remove this specific settings file. Don't remove the other profiles.
-            sd->remove(settingsFileName);
-
-            sd->remove(stationCoordinateECEFFileName); // Remove station files
-            sd->remove(stationCoordinateGeodeticFileName);
-
-            xSemaphoreGive(sdCardSemaphore);
-
-            systemPrintln("Settings files deleted...");
-        } // End sdCardSemaphore
-        else
-        {
-            char semaphoreHolder[50];
-            getSemaphoreFunction(semaphoreHolder);
-
-            // An error occurs when a settings file is on the microSD card and it is not
-            // deleted, as such the settings on the microSD card will be loaded when the
-            // RTK reboots, resulting in failure to achieve the factory reset condition
-            systemPrintf("sdCardSemaphore failed to yield, held by %s, menuMain.ino line %d\r\n", semaphoreHolder,
-                         __LINE__);
-        }
-    }
+    if (deleteProfileFiles(profileNumber, alreadyHasSemaphore))
+        systemPrintln("Settings files deleted...");
     else
-    {
-        systemPrintln("microSD not online. Unable to delete settings files...");
-    }
+        systemPrintln("Unable to delete settings files on SD card...");
 
     tiltSensorFactoryReset();
 
@@ -886,10 +923,33 @@ bool removeFile(const char *fileName)
 // Remove a given filename from SD
 bool removeFileSD(const char *fileName)
 {
+    return removeFileSD(fileName, false);
+}
+
+// Remove a given filename from SD
+// If alreadyHasSemaphore is true, caller is responsible for SD semaphore ownership.
+bool removeFileSD(const char *fileName, bool alreadyHasSemaphore)
+{
     bool removed = false;
 
     bool gotSemaphore = false;
     bool wasSdCardOnline;
+
+    // Use existing semaphore ownership if the caller already has the lock.
+    if (alreadyHasSemaphore)
+    {
+        if (online.microSD == true)
+        {
+            if (sd->exists(fileName))
+            {
+                if(settings.debugSettings == true)
+                    systemPrintf("Removing from SD: %s", fileName);
+                sd->remove(fileName);
+                removed = true;
+            }
+        }
+        return removed;
+    }
 
     // Try to gain access the SD card
     wasSdCardOnline = online.microSD;
@@ -908,7 +968,8 @@ bool removeFileSD(const char *fileName)
 
             if (sd->exists(fileName))
             {
-                log_d("Removing from SD: %s", fileName);
+                if(settings.debugSettings == true)
+                    systemPrintf("Removing from SD: %s", fileName);
                 sd->remove(fileName);
                 removed = true;
             }

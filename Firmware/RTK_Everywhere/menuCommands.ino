@@ -770,85 +770,73 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         {
         default:
             break;
-        case _bool:
-        {
+        case _bool: {
             bool *ptr = (bool *)var;
             *ptr = (bool)settingValue;
             knownSetting = true;
         }
         break;
-        case _int:
-        {
+        case _int: {
             int *ptr = (int *)var;
             *ptr = (int)settingValue;
             knownSetting = true;
         }
         break;
-        case _float:
-        {
+        case _float: {
             float *ptr = (float *)var;
             *ptr = (float)settingValue;
             knownSetting = true;
         }
         break;
-        case _double:
-        {
+        case _double: {
             double *ptr = (double *)var;
             *ptr = settingValue;
             knownSetting = true;
         }
         break;
-        case _uint8_t:
-        {
+        case _uint8_t: {
             uint8_t *ptr = (uint8_t *)var;
             *ptr = (uint8_t)settingValue;
             knownSetting = true;
         }
         break;
-        case _uint16_t:
-        {
+        case _uint16_t: {
             uint16_t *ptr = (uint16_t *)var;
             *ptr = (uint16_t)settingValue;
             knownSetting = true;
         }
         break;
-        case _uint32_t:
-        {
+        case _uint32_t: {
             uint32_t *ptr = (uint32_t *)var;
             *ptr = (uint32_t)settingValue;
             knownSetting = true;
         }
         break;
-        case _uint64_t:
-        {
+        case _uint64_t: {
             uint64_t *ptr = (uint64_t *)var;
             *ptr = (uint64_t)settingValue;
             knownSetting = true;
         }
         break;
-        case _int8_t:
-        {
+        case _int8_t: {
             int8_t *ptr = (int8_t *)var;
             *ptr = (int8_t)settingValue;
             knownSetting = true;
         }
         break;
-        case _int16_t:
-        {
+        case _int16_t: {
             int16_t *ptr = (int16_t *)var;
             *ptr = (int16_t)settingValue;
             knownSetting = true;
         }
         break;
-        case tMuxConn:
-        {
+        case tMuxConn: {
             muxConnectionType_e *ptr = (muxConnectionType_e *)var;
             *ptr = (muxConnectionType_e)settingValue;
             knownSetting = true;
         }
         break;
-        case tSysState:
-        {
+        case tSysState: {
             SystemState *ptr = (SystemState *)var;
             knownSetting = true;
 
@@ -862,36 +850,31 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                 settings.lastState = STATE_BASE_CASTER_NOT_STARTED;
         }
         break;
-        case tPulseEdg:
-        {
+        case tPulseEdg: {
             pulseEdgeType_e *ptr = (pulseEdgeType_e *)var;
             *ptr = (pulseEdgeType_e)settingValue;
             knownSetting = true;
         }
         break;
-        case tBtRadio:
-        {
+        case tBtRadio: {
             BluetoothRadioType_e *ptr = (BluetoothRadioType_e *)var;
             *ptr = (BluetoothRadioType_e)settingValue;
             knownSetting = true;
         }
         break;
-        case tPerDisp:
-        {
+        case tPerDisp: {
             PeriodicDisplay_t *ptr = (PeriodicDisplay_t *)var;
             *ptr = (PeriodicDisplay_t)settingValue;
             knownSetting = true;
         }
         break;
-        case tCoordInp:
-        {
+        case tCoordInp: {
             CoordinateInputType *ptr = (CoordinateInputType *)var;
             *ptr = (CoordinateInputType)settingValue;
             knownSetting = true;
         }
         break;
-        case tCharArry:
-        {
+        case tCharArry: {
             char *ptr = (char *)var;
             strncpy(ptr, settingValueStr, qualifier);
             // strncpy pads with zeros. No need to add them here for ntpReferenceId
@@ -900,8 +883,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             settingIsString = true;
         }
         break;
-        case _IPString:
-        {
+        case _IPString: {
             String tempString = String(settingValueStr);
             IPAddress *ptr = (IPAddress *)var;
             ptr->fromString(tempString);
@@ -909,8 +891,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             settingIsString = true;
         }
         break;
-        case tEspNowPr:
-        {
+        case tEspNowPr: {
             int suffixNum;
             if (sscanf(suffix, "%d", &suffixNum) == 1)
             {
@@ -926,8 +907,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
-        case tWiFiNet:
-        {
+        case tWiFiNet: {
             int network;
 
             if (strstr(suffix, "SSID") != nullptr)
@@ -952,8 +932,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
-        case tNSCEn:
-        {
+        case tNSCEn: {
             int server;
             if (sscanf(suffix, "%d", &server) == 1)
             {
@@ -962,8 +941,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
-        case tNSCHost:
-        {
+        case tNSCHost: {
             int server;
             if (sscanf(suffix, "%d", &server) == 1)
             {
@@ -974,8 +952,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
-        case tNSCPort:
-        {
+        case tNSCPort: {
             int server;
             if (sscanf(suffix, "%d", &server) == 1)
             {
@@ -984,8 +961,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
-        case tNSCUser:
-        {
+        case tNSCUser: {
             int server;
             if (sscanf(suffix, "%d", &server) == 1)
             {
@@ -996,8 +972,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
-        case tNSCUsrPw:
-        {
+        case tNSCUsrPw: {
             int server;
             if (sscanf(suffix, "%d", &server) == 1)
             {
@@ -1008,8 +983,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
-        case tNSMtPt:
-        {
+        case tNSMtPt: {
             int server;
             if (sscanf(suffix, "%d", &server) == 1)
             {
@@ -1020,8 +994,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
-        case tNSMtPtPw:
-        {
+        case tNSMtPtPw: {
             int server;
             if (sscanf(suffix, "%d", &server) == 1)
             {
@@ -1033,8 +1006,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         }
         break;
 
-        case tCorrSPri:
-        {
+        case tCorrSPri: {
             for (int x = 0; x < qualifier; x++)
             {
                 if ((suffix[0] == correctionGetName(x)[0]) && (strcmp(suffix, correctionGetName(x)) == 0))
@@ -1046,8 +1018,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
-        case tRegCorTp:
-        {
+        case tRegCorTp: {
             int region;
             if (sscanf(suffix, "%d", &region) == 1)
             {
@@ -1059,8 +1030,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         break;
 
 #ifdef COMPILE_MOSAICX5
-        case tMosaicSINmea:
-        {
+        case tMosaicSINmea: {
             int stream;
             if (sscanf(suffix, "%d", &stream) == 1)
             {
@@ -1089,8 +1059,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         break;
 #endif // COMPILE_MOSAICX5
 
-        case tGnssReceiver:
-        {
+        case tGnssReceiver: {
             gnssReceiverType_e *ptr = (gnssReceiverType_e *)var;
             *ptr = (gnssReceiverType_e)settingValue;
             knownSetting = true;
@@ -1338,85 +1307,98 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         if (destinationProfile >= 0)
         {
-            Settings sourceSettings;
-            char sourceProfileName[sizeof(settings.profileName)];
-            char copiedProfileBase[sizeof(settings.profileName)];
-            char copiedProfileName[sizeof(settings.profileName)];
-            uint8_t sourceProfileNumber = profileNumber;
-
-            memcpy(&sourceSettings, &settings, sizeof(sourceSettings));
-            strncpy(sourceProfileName, profileNames[sourceProfileNumber], sizeof(sourceProfileName));
-            sourceProfileName[sizeof(sourceProfileName) - 1] = '\0';
-
-            strncpy(copiedProfileBase, sourceProfileName, sizeof(copiedProfileBase));
-            copiedProfileBase[sizeof(copiedProfileBase) - 1] = '\0';
-
-            int copyNumber = 1;
-            char *suffix = strstr(copiedProfileBase, "-Copy");
-            if (suffix != nullptr)
+            // Settings is a large struct (message rate tables, NTRIP/WiFi arrays, etc).
+            // Pull it from PSRAM (falls back to RAM) rather than this task's stack.
+            struct Settings *sourceSettings =
+                (struct Settings *)rtkMalloc(sizeof(*sourceSettings), "copyProfile sourceSettings");
+            if (sourceSettings == nullptr)
             {
-                bool validSuffix = true;
-                int parsedNumber = 0;
-                char *numberStart = suffix + 5;
+                systemPrintln("ERROR: Failed to allocate sourceSettings, copy aborted");
+                reportHeapNow(true);
+            }
+            else
+            {
+                char sourceProfileName[sizeof(settings.profileName)];
+                char copiedProfileBase[sizeof(settings.profileName)];
+                char copiedProfileName[sizeof(settings.profileName)];
+                uint8_t sourceProfileNumber = profileNumber;
 
-                if (*numberStart == '\0')
+                memcpy(sourceSettings, &settings, sizeof(*sourceSettings));
+                strncpy(sourceProfileName, profileNames[sourceProfileNumber], sizeof(sourceProfileName));
+                sourceProfileName[sizeof(sourceProfileName) - 1] = '\0';
+
+                strncpy(copiedProfileBase, sourceProfileName, sizeof(copiedProfileBase));
+                copiedProfileBase[sizeof(copiedProfileBase) - 1] = '\0';
+
+                int copyNumber = 1;
+                char *suffix = strstr(copiedProfileBase, "-Copy");
+                if (suffix != nullptr)
                 {
-                    copyNumber = 2;
-                }
-                else
-                {
-                    for (char *ptr = numberStart; *ptr != '\0'; ptr++)
+                    bool validSuffix = true;
+                    int parsedNumber = 0;
+                    char *numberStart = suffix + 5;
+
+                    if (*numberStart == '\0')
                     {
-                        if (*ptr < '0' || *ptr > '9')
+                        copyNumber = 2;
+                    }
+                    else
+                    {
+                        for (char *ptr = numberStart; *ptr != '\0'; ptr++)
                         {
-                            validSuffix = false;
-                            break;
+                            if (*ptr < '0' || *ptr > '9')
+                            {
+                                validSuffix = false;
+                                break;
+                            }
+                            parsedNumber *= 10;
+                            parsedNumber += *ptr - '0';
                         }
-                        parsedNumber *= 10;
-                        parsedNumber += *ptr - '0';
+
+                        if (validSuffix)
+                            copyNumber = parsedNumber + 1;
                     }
 
                     if (validSuffix)
-                        copyNumber = parsedNumber + 1;
+                        *suffix = '\0';
                 }
 
-                if (validSuffix)
-                    *suffix = '\0';
-            }
-
-            bool copyNameInUse = false;
-            do
-            {
-                if (copyNumber == 1)
-                    snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy", copiedProfileBase);
-                else
-                    snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy%d", copiedProfileBase,
-                             copyNumber);
-
-                copyNameInUse = false;
-                for (int x = 0; x < MAX_PROFILE_COUNT; x++)
+                bool copyNameInUse = false;
+                do
                 {
-                    if ((activeProfiles & (1 << x)) && (strcmp(profileNames[x], copiedProfileName) == 0))
+                    if (copyNumber == 1)
+                        snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy", copiedProfileBase);
+                    else
+                        snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy%d", copiedProfileBase,
+                                 copyNumber);
+
+                    copyNameInUse = false;
+                    for (int x = 0; x < MAX_PROFILE_COUNT; x++)
                     {
-                        copyNameInUse = true;
-                        break;
+                        if ((activeProfiles & (1 << x)) && (strcmp(profileNames[x], copiedProfileName) == 0))
+                        {
+                            copyNameInUse = true;
+                            break;
+                        }
                     }
-                }
-                copyNumber++;
-            } while (copyNameInUse && (copyNumber < 100));
+                    copyNumber++;
+                } while (copyNameInUse && (copyNumber < 100));
 
-            changeProfileNumber(destinationProfile); // Saves source first, then switches to destination
+                changeProfileNumber(destinationProfile); // Saves source first, then switches to destination
 
-            memcpy(&settings, &sourceSettings, sizeof(settings));
-            strncpy(settings.profileName, copiedProfileName, sizeof(settings.profileName));
-            settings.profileName[sizeof(settings.profileName) - 1] = '\0';
+                memcpy(&settings, sourceSettings, sizeof(settings));
+                strncpy(settings.profileName, copiedProfileName, sizeof(settings.profileName));
+                settings.profileName[sizeof(settings.profileName) - 1] = '\0';
 
-            recordSystemSettings();
-            setProfileName(profileNumber);
+                recordSystemSettings();
+                setProfileName(profileNumber);
 
-            changeProfileNumber(sourceProfileNumber, false);
+                changeProfileNumber(sourceProfileNumber, false);
 
-            activeProfiles = loadProfileNames();
+                activeProfiles = loadProfileNames();
+
+                rtkFree(sourceSettings, "copyProfile sourceSettings");
+            }
         }
 
         // Send updated settings and profile names to browser.
@@ -1435,24 +1417,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     {
         char *settingsCsvList;
 
-        // Remove profile from LittleFS
-        if (LittleFS.exists(settingsFileName))
-            LittleFS.remove(settingsFileName);
-        if (LittleFS.exists(stationCoordinateECEFFileName))
-            LittleFS.remove(stationCoordinateECEFFileName);
-        if (LittleFS.exists(stationCoordinateGeodeticFileName))
-            LittleFS.remove(stationCoordinateGeodeticFileName);
-
-        // Remove profile from SD if available
-        if (online.microSD == true)
-        {
-            if (sd->exists(settingsFileName))
-                sd->remove(settingsFileName);
-            if (sd->exists(stationCoordinateECEFFileName))
-                sd->remove(stationCoordinateECEFFileName);
-            if (sd->exists(stationCoordinateGeodeticFileName))
-                sd->remove(stationCoordinateGeodeticFileName);
-        }
+        deleteProfileFiles(profileNumber, false); // We don't yet have the SD semaphore
 
         // We need to load these settings from file so that we can
         // record a profile name change correctly
@@ -1499,7 +1464,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
              (strcmp(&settingName[8], "Name") == 0))
     {
         int profileNumber = settingName[7] - '0';
-        if (profileNumber >= 0 && profileNumber <= MAX_PROFILE_COUNT)
+        if (profileNumber >= 0 && profileNumber < MAX_PROFILE_COUNT)
         {
             strncpy(profileNames[profileNumber], settingValueStr, sizeof(profileNames[0]));
             knownSetting = true;
@@ -1596,15 +1561,9 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     if (knownSetting == false)
     {
         const char *table[] = {
-            "batteryLevelPercent",
-            "batteryVoltage",
-            "batteryChargingPercentPerHour",
-            "bluetoothId",
-            "deviceId",
-            "deviceName",
-            "gnssModuleInfo",
-            "list",
-            "espFirmwareVersion",
+            "batteryLevelPercent",   "batteryVoltage", "batteryChargingPercentPerHour",
+            "bluetoothId",           "deviceId",       "deviceName",
+            "gnssModuleInfo",        "list",           "espFirmwareVersion",
             "espNewFirmwareVersion",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
@@ -1738,110 +1697,92 @@ void createSettingsString(char *newSettings)
             {
             default:
                 break;
-            case _bool:
-            {
+            case _bool: {
                 bool *ptr = (bool *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, *ptr);
             }
             break;
-            case _int:
-            {
+            case _int: {
                 int *ptr = (int *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, *ptr);
             }
             break;
-            case _float:
-            {
+            case _float: {
                 float *ptr = (float *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (double)*ptr, rtkSettingsEntries[i].qualifier);
             }
             break;
-            case _double:
-            {
+            case _double: {
                 double *ptr = (double *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, *ptr, rtkSettingsEntries[i].qualifier);
             }
             break;
-            case _uint8_t:
-            {
+            case _uint8_t: {
                 uint8_t *ptr = (uint8_t *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case _uint16_t:
-            {
+            case _uint16_t: {
                 uint16_t *ptr = (uint16_t *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case _uint32_t:
-            {
+            case _uint32_t: {
                 uint32_t *ptr = (uint32_t *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, *ptr);
             }
             break;
-            case _uint64_t:
-            {
+            case _uint64_t: {
                 uint64_t *ptr = (uint64_t *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, *ptr);
             }
             break;
-            case _int8_t:
-            {
+            case _int8_t: {
                 int8_t *ptr = (int8_t *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case _int16_t:
-            {
+            case _int16_t: {
                 int16_t *ptr = (int16_t *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case tMuxConn:
-            {
+            case tMuxConn: {
                 muxConnectionType_e *ptr = (muxConnectionType_e *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case tSysState:
-            {
+            case tSysState: {
                 SystemState *ptr = (SystemState *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case tPulseEdg:
-            {
+            case tPulseEdg: {
                 pulseEdgeType_e *ptr = (pulseEdgeType_e *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case tBtRadio:
-            {
+            case tBtRadio: {
                 BluetoothRadioType_e *ptr = (BluetoothRadioType_e *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case tPerDisp:
-            {
+            case tPerDisp: {
                 PeriodicDisplay_t *ptr = (PeriodicDisplay_t *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, *ptr);
             }
             break;
-            case tCoordInp:
-            {
+            case tCoordInp: {
                 CoordinateInputType *ptr = (CoordinateInputType *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case tCharArry:
-            {
+            case tCharArry: {
                 char *ptr = (char *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, ptr);
             }
             break;
-            case _IPString:
-            {
+            case _IPString: {
                 IPAddress *ptr = (IPAddress *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (char *)ptr->toString().c_str());
             }
@@ -1855,8 +1796,7 @@ void createSettingsString(char *newSettings)
                 break; // Nothing to do here. Let each GNSS add its settings
             case tCnRtRtR:
                 break; // Nothing to do here. Let each GNSS add its settings
-            case tEspNowPr:
-            {
+            case tEspNowPr: {
                 // Record ESP-NOW peer MAC addresses
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -1869,8 +1809,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case tWiFiNet:
-            {
+            case tWiFiNet: {
                 // Record WiFi credential table
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -1885,8 +1824,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case tNSCEn:
-            {
+            case tNSCEn: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
@@ -1896,8 +1834,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case tNSCHost:
-            {
+            case tNSCHost: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
@@ -1907,8 +1844,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case tNSCPort:
-            {
+            case tNSCPort: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
@@ -1918,8 +1854,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case tNSCUser:
-            {
+            case tNSCUser: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
@@ -1929,8 +1864,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case tNSCUsrPw:
-            {
+            case tNSCUsrPw: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
@@ -1940,8 +1874,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case tNSMtPt:
-            {
+            case tNSMtPt: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
@@ -1951,8 +1884,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case tNSMtPtPw:
-            {
+            case tNSMtPtPw: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
@@ -1962,8 +1894,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case tCorrSPri:
-            {
+            case tCorrSPri: {
                 // Record corrections priorities
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -1974,8 +1905,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case tRegCorTp:
-            {
+            case tRegCorTp: {
                 for (int r = 0; r < rtkSettingsEntries[i].qualifier; r++)
                 {
                     char tempString[50];
@@ -1985,8 +1915,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case tGnssReceiver:
-            {
+            case tGnssReceiver: {
                 gnssReceiverType_e *ptr = (gnssReceiverType_e *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
@@ -2251,7 +2180,8 @@ void createSettingsString(char *newSettings)
         }
     }
 
-    stringRecord(newSettings, "lastSetting", "1"); // Add a lastSetting entry so that the Web Config page knows when we are doing a full page update
+    stringRecord(newSettings, "lastSetting",
+                 "1"); // Add a lastSetting entry so that the Web Config page knows when we are doing a full page update
 
     strcat(newSettings, "\0");
     systemPrintf("newSettings len: %d\r\n", strlen(newSettings));
@@ -2419,128 +2349,110 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             {
             default:
                 break;
-            case _bool:
-            {
+            case _bool: {
                 bool *ptr = (bool *)var;
                 writeToString(settingValueStr, *ptr);
                 knownSetting = true;
             }
             break;
-            case _int:
-            {
+            case _int: {
                 int *ptr = (int *)var;
                 writeToString(settingValueStr, *ptr);
                 knownSetting = true;
             }
             break;
-            case _float:
-            {
+            case _float: {
                 float *ptr = (float *)var;
                 writeToString(settingValueStr, (double)*ptr, qualifier);
                 knownSetting = true;
             }
             break;
-            case _double:
-            {
+            case _double: {
                 double *ptr = (double *)var;
                 writeToString(settingValueStr, *ptr, qualifier);
                 knownSetting = true;
             }
             break;
-            case _uint8_t:
-            {
+            case _uint8_t: {
                 uint8_t *ptr = (uint8_t *)var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
             }
             break;
-            case _uint16_t:
-            {
+            case _uint16_t: {
                 uint16_t *ptr = (uint16_t *)var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
             }
             break;
-            case _uint32_t:
-            {
+            case _uint32_t: {
                 uint32_t *ptr = (uint32_t *)var;
                 writeToString(settingValueStr, *ptr);
                 knownSetting = true;
             }
             break;
-            case _uint64_t:
-            {
+            case _uint64_t: {
                 uint64_t *ptr = (uint64_t *)var;
                 writeToString(settingValueStr, *ptr);
                 knownSetting = true;
             }
             break;
-            case _int8_t:
-            {
+            case _int8_t: {
                 int8_t *ptr = (int8_t *)var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
             }
             break;
-            case _int16_t:
-            {
+            case _int16_t: {
                 int16_t *ptr = (int16_t *)var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
             }
             break;
-            case tMuxConn:
-            {
+            case tMuxConn: {
                 muxConnectionType_e *ptr = (muxConnectionType_e *)var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
             }
             break;
-            case tSysState:
-            {
+            case tSysState: {
                 SystemState *ptr = (SystemState *)var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
             }
             break;
-            case tPulseEdg:
-            {
+            case tPulseEdg: {
                 pulseEdgeType_e *ptr = (pulseEdgeType_e *)var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
             }
             break;
-            case tBtRadio:
-            {
+            case tBtRadio: {
                 BluetoothRadioType_e *ptr = (BluetoothRadioType_e *)var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
             }
             break;
-            case tPerDisp:
-            {
+            case tPerDisp: {
                 PeriodicDisplay_t *ptr = (PeriodicDisplay_t *)var;
                 writeToString(settingValueStr, *ptr);
                 knownSetting = true;
             }
             break;
-            case tCoordInp:
-            {
+            case tCoordInp: {
                 CoordinateInputType *ptr = (CoordinateInputType *)var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
             }
             break;
-            case tCharArry:
-            {
+            case tCharArry: {
                 char *ptr = (char *)var;
                 writeToString(settingValueStr, ptr);
                 knownSetting = true;
                 settingIsString = true;
             }
             break;
-            case _IPString:
-            {
+            case _IPString: {
                 IPAddress *ptr = (IPAddress *)var;
                 writeToString(settingValueStr, (char *)ptr->toString().c_str());
                 knownSetting = true;
@@ -2557,8 +2469,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             case tCnRtRtR:
                 break; // Nothing to do here. Let each GNSS add its settings
 
-            case tEspNowPr:
-            {
+            case tEspNowPr: {
                 int suffixNum;
                 if (sscanf(suffix, "%d", &suffixNum) == 1)
                 {
@@ -2573,8 +2484,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
                 }
             }
             break;
-            case tWiFiNet:
-            {
+            case tWiFiNet: {
                 int network;
 
                 if (strstr(suffix, "SSID") != nullptr)
@@ -2597,8 +2507,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
                 }
             }
             break;
-            case tNSCEn:
-            {
+            case tNSCEn: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -2607,8 +2516,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
                 }
             }
             break;
-            case tNSCHost:
-            {
+            case tNSCHost: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -2618,8 +2526,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
                 }
             }
             break;
-            case tNSCPort:
-            {
+            case tNSCPort: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -2628,8 +2535,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
                 }
             }
             break;
-            case tNSCUser:
-            {
+            case tNSCUser: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -2639,8 +2545,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
                 }
             }
             break;
-            case tNSCUsrPw:
-            {
+            case tNSCUsrPw: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -2650,8 +2555,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
                 }
             }
             break;
-            case tNSMtPt:
-            {
+            case tNSMtPt: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -2661,8 +2565,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
                 }
             }
             break;
-            case tNSMtPtPw:
-            {
+            case tNSMtPtPw: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -2672,8 +2575,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
                 }
             }
             break;
-            case tCorrSPri:
-            {
+            case tCorrSPri: {
                 for (int x = 0; x < qualifier; x++)
                 {
                     if ((suffix[0] == correctionGetName(x)[0]) && (strcmp(suffix, correctionGetName(x)) == 0))
@@ -2685,8 +2587,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
                 }
             }
             break;
-            case tRegCorTp:
-            {
+            case tRegCorTp: {
                 int region;
                 if (sscanf(suffix, "%d", &region) == 1)
                 {
@@ -2696,8 +2597,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
                 }
             }
             break;
-            case tGnssReceiver:
-            {
+            case tGnssReceiver: {
                 gnssReceiverType_e *ptr = (gnssReceiverType_e *)var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
@@ -2721,7 +2621,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         (strcmp(&settingName[8], "Name") == 0))
     {
         int profileNumber = settingName[7] - '0';
-        if (profileNumber >= 0 && profileNumber <= MAX_PROFILE_COUNT)
+        if (profileNumber >= 0 && profileNumber < MAX_PROFILE_COUNT)
         {
             writeToString(settingValueStr, profileNames[profileNumber]);
             knownSetting = true;
@@ -2867,111 +2767,93 @@ void commandList(bool inCommands, int i)
         {
         default:
             break;
-        case _bool:
-        {
+        case _bool: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "bool", settingValue);
         }
         break;
-        case _int:
-        {
+        case _int: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int", settingValue);
         }
         break;
-        case _float:
-        {
+        case _float: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "float", settingValue);
         }
         break;
-        case _double:
-        {
+        case _double: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "double", settingValue);
         }
         break;
-        case _uint8_t:
-        {
+        case _uint8_t: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint8_t", settingValue);
         }
         break;
-        case _uint16_t:
-        {
+        case _uint16_t: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint16_t", settingValue);
         }
         break;
-        case _uint32_t:
-        {
+        case _uint32_t: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint32_t", settingValue);
         }
         break;
-        case _uint64_t:
-        {
+        case _uint64_t: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint64_t", settingValue);
         }
         break;
-        case _int8_t:
-        {
+        case _int8_t: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int8_t", settingValue);
         }
         break;
-        case _int16_t:
-        {
+        case _int16_t: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int16_t", settingValue);
         }
         break;
-        case tMuxConn:
-        {
+        case tMuxConn: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "muxConnectionType_e", settingValue);
         }
         break;
-        case tSysState:
-        {
+        case tSysState: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "SystemState", settingValue);
         }
         break;
-        case tPulseEdg:
-        {
+        case tPulseEdg: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "pulseEdgeType_e", settingValue);
         }
         break;
-        case tBtRadio:
-        {
+        case tBtRadio: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "BluetoothRadioType_e", settingValue);
         }
         break;
-        case tPerDisp:
-        {
+        case tPerDisp: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "PeriodicDisplay_t", settingValue);
         }
         break;
-        case tCoordInp:
-        {
+        case tCoordInp: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "CoordinateInputType", settingValue);
         }
         break;
-        case tCharArry:
-        {
+        case tCharArry: {
             snprintf(settingType, sizeof(settingType), "char[%d]", rtkSettingsEntries[i].qualifier);
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, settingType, settingValue);
         }
         break;
-        case _IPString:
-        {
+        case _IPString: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "IPAddress", settingValue);
         }
@@ -2986,8 +2868,7 @@ void commandList(bool inCommands, int i)
         case tCnRtRtR:
             break; // Nothing to do here. Let each GNSS add its commands
 
-        case tEspNowPr:
-        {
+        case tEspNowPr: {
             // Record ESP-NOW peer MAC addresses
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
@@ -2999,8 +2880,7 @@ void commandList(bool inCommands, int i)
             }
         }
         break;
-        case tWiFiNet:
-        {
+        case tWiFiNet: {
             // Record WiFi credential table
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
@@ -3018,8 +2898,7 @@ void commandList(bool inCommands, int i)
             }
         }
         break;
-        case tNSCEn:
-        {
+        case tNSCEn: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
                 snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
@@ -3029,8 +2908,7 @@ void commandList(bool inCommands, int i)
             }
         }
         break;
-        case tNSCHost:
-        {
+        case tNSCHost: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
                 snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterHost[x]));
@@ -3041,8 +2919,7 @@ void commandList(bool inCommands, int i)
             }
         }
         break;
-        case tNSCPort:
-        {
+        case tNSCPort: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
                 snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
@@ -3052,8 +2929,7 @@ void commandList(bool inCommands, int i)
             }
         }
         break;
-        case tNSCUser:
-        {
+        case tNSCUser: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
                 snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterUser[x]));
@@ -3064,8 +2940,7 @@ void commandList(bool inCommands, int i)
             }
         }
         break;
-        case tNSCUsrPw:
-        {
+        case tNSCUsrPw: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
                 snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterUserPW[x]));
@@ -3076,8 +2951,7 @@ void commandList(bool inCommands, int i)
             }
         }
         break;
-        case tNSMtPt:
-        {
+        case tNSMtPt: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
                 snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_MountPoint[x]));
@@ -3088,8 +2962,7 @@ void commandList(bool inCommands, int i)
             }
         }
         break;
-        case tNSMtPtPw:
-        {
+        case tNSMtPtPw: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
                 snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_MountPointPW[x]));
@@ -3101,8 +2974,7 @@ void commandList(bool inCommands, int i)
         }
         break;
 
-        case tCorrSPri:
-        {
+        case tCorrSPri: {
             // Record corrections priorities
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
@@ -3113,8 +2985,7 @@ void commandList(bool inCommands, int i)
             }
         }
         break;
-        case tRegCorTp:
-        {
+        case tRegCorTp: {
             for (int r = 0; r < rtkSettingsEntries[i].qualifier; r++)
             {
                 snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.regionalCorrectionTopics[0]));
@@ -3126,8 +2997,7 @@ void commandList(bool inCommands, int i)
         }
         break;
 
-        case tGnssReceiver:
-        {
+        case tGnssReceiver: {
             getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
             commandSendExecuteListResponse(rtkSettingsEntries[i].name, "gnssReceiverType_e", settingValue);
         }
@@ -3197,8 +3067,8 @@ const char *commandGetName(int stringIndex, int rtkIndex)
     else if (rtkIndex == COMMAND_DEVICE_ID)
         return "deviceId";
 
-    systemPrintf("commandGetName Error: Uncaught command type, stringIndex: %d, rtkIndex: %d\r\n",
-                 stringIndex, rtkIndex);
+    systemPrintf("commandGetName Error: Uncaught command type, stringIndex: %d, rtkIndex: %d\r\n", stringIndex,
+                 rtkIndex);
     return "unknown";
 }
 

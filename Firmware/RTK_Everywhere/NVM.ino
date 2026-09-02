@@ -471,12 +471,7 @@ bool recordSystemSettingsToFileSD(char *fileName)
 
             gotSemaphore = true;
 
-            if (sd->exists(fileName))
-            {
-                if (settings.debugSettings)
-                    systemPrintf("Removing from SD:%s\r\n", fileName);
-                sd->remove(fileName);
-            }
+            removeFileSD(fileName, true);
 
             SdFile settingsFile; // FAT32
             if (settingsFile.open(fileName, O_CREAT | O_APPEND | O_WRITE) == false)

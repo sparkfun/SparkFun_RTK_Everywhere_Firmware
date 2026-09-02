@@ -280,91 +280,7 @@ void menuUserProfiles()
             byte bContinue = getUserInputCharacterNumber();
             if (bContinue == 'y')
             {
-                // Remove profile from LittleFS
-                if (LittleFS.exists(settingsFileName))
-                {
-                    if (LittleFS.remove(settingsFileName))
-                    {
-                        if (settings.debugSettings)
-                            systemPrintf("Deleted LFS file %s\r\n", settingsFileName);
-                    }
-                    else
-                    {
-                        if (settings.debugSettings)
-                            systemPrintf("Failed to deleted LFS file %s\r\n", settingsFileName);
-                    }
-                }
-                if (LittleFS.exists(stationCoordinateECEFFileName))
-                {
-                    if (LittleFS.remove(stationCoordinateECEFFileName))
-                    {
-                        if (settings.debugSettings)
-                            systemPrintf("Deleted LFS file %s\r\n", stationCoordinateECEFFileName);
-                    }
-                    else
-                    {
-                        if (settings.debugSettings)
-                            systemPrintf("Failed to deleted LFS file %s\r\n", stationCoordinateECEFFileName);
-                    }
-                }
-                if (LittleFS.exists(stationCoordinateGeodeticFileName))
-                {
-                    if (LittleFS.remove(stationCoordinateGeodeticFileName))
-                    {
-                        if (settings.debugSettings)
-                            systemPrintf("Deleted LFS file %s\r\n", stationCoordinateGeodeticFileName);
-                    }
-                    else
-                    {
-                        if (settings.debugSettings)
-                            systemPrintf("Failed to deleted LFS file %s\r\n", stationCoordinateGeodeticFileName);
-                    }
-                }
-
-                // Remove profile from SD if available
-                if (online.microSD == true)
-                {
-                    if (sd->exists(settingsFileName))
-                    {
-                        if (sd->remove(settingsFileName))
-                        {
-                            if (settings.debugSettings)
-                                systemPrintf("Deleted SD card file %s\r\n", settingsFileName);
-                        }
-                        else
-                        {
-                            if (settings.debugSettings)
-                                systemPrintf("Failed to deleted SD card file %s\r\n", settingsFileName);
-                        }
-                    }
-                    if (sd->exists(stationCoordinateECEFFileName))
-                    {
-                        if (sd->remove(stationCoordinateECEFFileName))
-                        {
-                            if (settings.debugSettings)
-                                systemPrintf("Deleted SD card file %s\r\n", stationCoordinateECEFFileName);
-                        }
-                        else
-                        {
-                            if (settings.debugSettings)
-                                systemPrintf("Failed to deleted SD card file %s\r\n", stationCoordinateECEFFileName);
-                        }
-                    }
-                    if (sd->exists(stationCoordinateGeodeticFileName))
-                    {
-                        if (sd->remove(stationCoordinateGeodeticFileName))
-                        {
-                            if (settings.debugSettings)
-                                systemPrintf("Deleted SD card file %s\r\n", stationCoordinateGeodeticFileName);
-                        }
-                        else
-                        {
-                            if (settings.debugSettings)
-                                systemPrintf("Failed to deleted SD card file %s\r\n",
-                                             stationCoordinateGeodeticFileName);
-                        }
-                    }
-                }
+                deleteProfileFiles(profileNumber, false); // We do not have the semaphore yet
 
                 // We need to load these settings from file so that we can
                 // record a profile name change correctly
@@ -410,13 +326,23 @@ void menuUserProfiles()
             }
             else
             {
-                Settings sourceSettings;
+                // Settings is a large struct (message rate tables, NTRIP/WiFi arrays, etc).
+                // Pull it from PSRAM (falls back to RAM) rather than loopTask's stack.
+                struct Settings *sourceSettings =
+                    (struct Settings *)rtkMalloc(sizeof(*sourceSettings), "menuUserProfiles sourceSettings");
+                if (sourceSettings == nullptr)
+                {
+                    systemPrintln("ERROR: Failed to allocate sourceSettings, copy aborted");
+                    reportHeapNow(true);
+                    continue;
+                }
+
                 char sourceProfileName[sizeof(settings.profileName)];
                 char copiedProfileBase[sizeof(settings.profileName)];
                 char copiedProfileName[sizeof(settings.profileName)];
                 uint8_t sourceProfileNumber = profileNumber;
 
-                memcpy(&sourceSettings, &settings, sizeof(sourceSettings));
+                memcpy(sourceSettings, &settings, sizeof(*sourceSettings));
                 strncpy(sourceProfileName, profileNames[sourceProfileNumber], sizeof(sourceProfileName));
                 sourceProfileName[sizeof(sourceProfileName) - 1] = '\0';
 
@@ -479,7 +405,7 @@ void menuUserProfiles()
 
                 changeProfileNumber(destinationProfile); // Saves source first, then switches to destination
 
-                memcpy(&settings, &sourceSettings, sizeof(settings));
+                memcpy(&settings, sourceSettings, sizeof(settings));
                 strncpy(settings.profileName, copiedProfileName, sizeof(settings.profileName));
                 settings.profileName[sizeof(settings.profileName) - 1] = '\0';
 
@@ -492,6 +418,8 @@ void menuUserProfiles()
 
                 systemPrintf("Copied profile '%s' to slot %d as '%s'\r\n", sourceProfileName,
                              destinationProfile + 1, copiedProfileName);
+
+                rtkFree(sourceSettings, "menuUserProfiles sourceSettings");
             }
         }
 

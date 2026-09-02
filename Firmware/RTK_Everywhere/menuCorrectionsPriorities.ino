@@ -119,8 +119,8 @@ void correctionPriorityUpdateSource(CORRECTION_ID_T id, CORRECTION_ID_T priority
     // Validate the id value
     if (priority >= CORR_NUM)
     {
-        systemPrintf("ERROR: correctionPriorityUpdateSource invalid priority value %d, valid range (0 - %d)!\r\n", id,
-                     CORR_NUM - 1);
+        systemPrintf("ERROR: correctionPriorityUpdateSource invalid priority value %d, valid range (0 - %d)!\r\n",
+                     priority, CORR_NUM - 1);
         return;
     }
 
@@ -594,8 +594,8 @@ bool correctionPriorityValidation()
     CORRECTION_MASK_T bitMask;
     bool fixPriorityList;
     int id;
-    CORRECTION_MASK_T priorityMask;
-    CORRECTION_MASK_T validMask;
+    CORRECTION_MASK_T priorityMask = 0;
+    CORRECTION_MASK_T validMask = 0;
 
     // Walk the list of correction priorites
     fixPriorityList = false;

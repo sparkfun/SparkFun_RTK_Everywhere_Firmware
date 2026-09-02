@@ -430,7 +430,9 @@ bool GNSS_MOSAIC::checkPPPRates()
         return true;
 
     // Determine which state we are in
-    return (getActiveRtcmMessageCount() == (inRoverMode() ? 0 : 3));
+    // Rover: PPP logging enables RTCM1019/1020/1042/1046/MSM4 (see menuMessages() options 11/12)
+    // Base: PPP logging relies on the base station's RTCM1019/1020/1046 messages
+    return (getActiveRtcmMessageCount() == (inRoverMode() ? 5 : 3));
 }
 
 // Enable / disable RINEX logging
@@ -1088,7 +1090,7 @@ uint8_t GNSS_MOSAIC::getLoggingType()
     LoggingType logType = LOGGING_CUSTOM;
 
     int messageCount = getActiveMessageCount();
-    if (messageCount == 5 || messageCount == 8) // Default NMEA 5. Default Base RTCM 3
+    if (messageCount == 5 || messageCount == 8 || messageCount == 10) // NMEA 5. Base RTCM 3. Rover PPP RTCM 5.
     {
         if (checkNMEARates())
         {
