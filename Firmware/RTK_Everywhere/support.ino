@@ -758,6 +758,18 @@ void verifyTables()
         if (productHousingPropertiesTable[index].housing != index)
             reportFatalError("productHousingPropertiesTable entries are out of order");
 
+    // Verify the allVariants list
+    uint32_t productBitMap = 0;
+    for (int index = 0; index < productVariantCount; index++)
+    {
+        if ((allVariants[index] < 0) || (allVariants[index] > RTK_UNKNOWN))
+            reportFatalError("Remove bad values from allVariants list");
+        uint32_t bitMask = 1 << allVariants[index];
+        if (productBitMap & bitMask)
+            reportFatalError("Remove duplicate entries from allVariants list");
+        productBitMap |= bitMask;
+    }
+
     // Verify the product properties table
     if (productPropertiesEntries != productVariantCount)
         reportFatalError("Fix productPropertiesTable to match ProductVariant");
