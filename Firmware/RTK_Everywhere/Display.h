@@ -132,7 +132,7 @@ class HYBRID_DISPLAY
     void displayRegular(void); // Record that regular displayUpdate info is being displayed, then call display
 
   protected:
-    void display(bool partial = false);
+    void display(bool partial = false, bool dirtyOnly = true);
 };
 
 HYBRID_DISPLAY *theDisplay = nullptr;

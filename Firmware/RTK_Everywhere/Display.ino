@@ -158,7 +158,7 @@ bool HYBRID_DISPLAY::reset(bool clearDisplay)
         return retVal;
     }
 }
-void HYBRID_DISPLAY::display(bool partial)
+void HYBRID_DISPLAY::display(bool partial, bool dirtyOnly)
 {
     if (_isOLED)
         _oled->display();
@@ -171,28 +171,28 @@ void HYBRID_DISPLAY::display(bool partial)
             while (_epaper->isBusy() && ((millis() - startTime) < 3000))
                 delay(10);
         }
-        _epaper->display(partial);
+        _epaper->display(partial, dirtyOnly);
         theDisplay->_inDeepSleep = false;
     }
 }
 void HYBRID_DISPLAY::displayNothing(void)
 {
     if (_displayContent == NOTHING)
-        display(true); // Partial update if already displaying nothing
+        display(true); // Partial update if already displaying nothing, dirty pixels only
     else
     {
         _displayContent = NOTHING;
-        display(); // Full update on first call
+        display(false, false); // Full update on first call, send all pixels
     }
 }
 void HYBRID_DISPLAY::displaySplash(void)
 {
     if (_displayContent == SPLASH)
-        display(true); // Partial update if already displaying splash
+        display(true); // Partial update if already displaying splash, dirty pixels only
     else
     {
         _displayContent = SPLASH;
-        display(); // Full update on first call
+        display(false, false); // Full update on first call, send all pixels
     }
 }
 void HYBRID_DISPLAY::displayMessage(void)
@@ -205,16 +205,16 @@ void HYBRID_DISPLAY::displayMessage(void)
     {
         if ((millis() - previousFullUpdate) > fullUpdateEvery_ms)
         {
-            display(); // Time for a full update
+            display(); // Time for a full update, dirty pixels only
             previousFullUpdate = millis();
         }
         else
-            display(true); // Partial update
+            display(true); // Partial update, dirty pixels only
     }
     else
     {
         _displayContent = MESSAGE;
-        display(); // Full update on first call
+        display(false, false); // Full update on first call, send all pixels
         previousFullUpdate = millis();
     }
 }
@@ -226,16 +226,16 @@ void HYBRID_DISPLAY::displayRegular(void)
     {
         if ((millis() - previousFullUpdate) > fullUpdateEvery_ms)
         {
-            display(); // Time for a full update
+            display(); // Time for a full update, dirty pixels only
             previousFullUpdate = millis();
         }
         else
-            display(true); // Partial update
+            display(true); // Partial update, dirty pixels only
     }
     else
     {
         _displayContent = REGULAR;
-        display(); // Full update on first call
+        display(false, false); // Full update on first call, send all pixels
         previousFullUpdate = millis();
     }
     // displayUpdate will put e-paper into deepSleep when needed
@@ -406,7 +406,26 @@ bool HYBRID_DISPLAY::isBusy(void)
     if (_isOLED)
         return false;
     else
-        return _epaper->isBusy();
+    {
+        // If already in deep sleep, return true now
+        // Don't tie up the I2C bus by checking busy
+        if (theDisplay->_inDeepSleep)
+            return true;
+
+        // Use yet another timer so we only check isBusy every 50ms (avoid pounding the bus)
+        static unsigned long lastBusyCheck = 0;
+        const unsigned long checkBusyEvery_ms = 50;
+        if ((millis() - lastBusyCheck) > checkBusyEvery_ms)
+        {
+            lastBusyCheck = millis();
+
+            // This will return true while the e-paper is busy or in deep sleep
+            return _epaper->isBusy();
+        }
+        
+        // If we don't perform the isBusy check, return true to avoid calling deepSleep early
+        return true;
+    }
 }
 void HYBRID_DISPLAY::deepSleep(bool mode2)
 {
@@ -935,6 +954,10 @@ void displayUpdate()
         {
             // It is not yet time to update the display
             // Check busy and put the display into deepSleep if needed
+            // OLED isBusy will always return false
+            // OLED deepSleep does nothing
+            // e-paper isBusy will return true when the SSD168x is busy or is in deep sleep
+            // e-paper isBusy includes a timer to prevent it pounding the I2C bus
             if (theDisplay->isBusy())
                 ; // Do nothing
             else
