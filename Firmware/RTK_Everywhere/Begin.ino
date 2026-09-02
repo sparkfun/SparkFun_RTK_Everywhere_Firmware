@@ -2125,7 +2125,9 @@ void displayProductResistorTable()
         int uAmps = (int)(ceil(microVolts / minResistance));
 
         // Display the product values
-        if (prop->r2 != 0)
+        if (prop->r2 == 0)
+            systemPrint("Using I2C instead                                         ");
+        else
         {
             systemPrintf("%4.1f  ", prop->r1);
             systemPrintf("%4.1f  ", prop->r2);
@@ -2135,11 +2137,9 @@ void displayProductResistorTable()
             systemPrintf("%4d  ", lowerThreshold[j]);
             systemPrintf("%4d ", upperThreshold[j] - lowerThreshold[j]);
             systemPrintf("%6d  ", uAmps);
-            if (prop->productVariant == productVariant)
-                systemPrint("* ");
-            systemPrintf("%s\r\n", productName);
         }
-        else
-            systemPrintf("Using I2C instead                                         %s\r\n", productName);
+        if (prop->productVariant == productVariant)
+            systemPrint("* ");
+        systemPrintf("%02d:%s\r\n", prop->productVariant, productName);
     }
 }
