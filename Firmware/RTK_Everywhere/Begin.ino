@@ -2089,17 +2089,17 @@ void displayProductResistorTable()
 
     // Display the table header
     systemPrintln();
-    systemPrintln("                   R1 K Ohms           R2 K Ohms");
-    systemPrintf( "  %d.%03d Volts -----/\\/\\/\\/\\/-----+-----/\\/\\/\\/\\/----- Ground\r\n",
+    systemPrintln("                 R1 K Ohms           R2 K Ohms");
+    systemPrintf( "%d.%03d Volts -----/\\/\\/\\/\\/----+----/\\/\\/\\/\\/----- Ground\r\n",
                   MAX_ADC_VOLTAGE / 1000, MAX_ADC_VOLTAGE % 1000);
-    systemPrintln("                                 |");
-    systemPrintf("                             ADC input: %d mVolts\r\n",
+    systemPrintln("                              |");
+    systemPrintf("                     ADC input: %d mVolts\r\n",
                  readBoardIdValue());
-    systemPrintln("                                 |");
-    systemPrintln("                                 V");
-    systemPrintln("  K Ohms                    Millivolts              Max");
-    systemPrintln(" R1    R2   Tolerance  High  Expected   Low Delta  uAmps  Product");
-    systemPrintln("----  ----  ---------  --------------------------  -----  ---------------");
+    systemPrintln("                              |");
+    systemPrintln("                              V");
+    systemPrintln("  K Ohms                 Millivolts             Max");
+    systemPrintln(" R1    R2  Tolerance High Expected  Low Delta  uAmps  Product");
+    systemPrintln("----  ---- --------- ------------------------  -----  ------------------------");
 
     // Walk the list of products
     for (int i = 0; i < productCount; i++)
@@ -2126,20 +2126,19 @@ void displayProductResistorTable()
 
         // Display the product values
         if (prop->r2 == 0)
-            systemPrint("Using I2C instead                                         ");
+            systemPrint("Using I2C instead                                    ");
         else
         {
             systemPrintf("%4.1f  ", prop->r1);
             systemPrintf("%4.1f  ", prop->r2);
-            systemPrintf(" %4.1f%%     ", prop->tolerancePercentage);
-            systemPrintf("%4d    ", upperThreshold[j]);
-            systemPrintf("%4d    ", expectedValue[j]);
+            systemPrintf(" %4.1f%%   ", prop->tolerancePercentage);
+            systemPrintf("%4d   ", upperThreshold[j]);
+            systemPrintf("%4d   ", expectedValue[j]);
             systemPrintf("%4d  ", lowerThreshold[j]);
             systemPrintf("%4d ", upperThreshold[j] - lowerThreshold[j]);
-            systemPrintf("%6d  ", uAmps);
+            systemPrintf("%6d ", uAmps);
         }
-        if (prop->productVariant == productVariant)
-            systemPrint("* ");
+        systemPrintf("%c", (prop->productVariant == productVariant) ? '*' : ' ');
         systemPrintf("%02d:%s\r\n", prop->productVariant, productName);
     }
 }
