@@ -1299,8 +1299,9 @@ typedef struct
 #define COMMAND_BLUETOOTH_ID               (COMMAND_BATTERY_CHARGING_PERCENT - 1)// -16 - 1 = -17
 #define COMMAND_DEVICE_NAME                (COMMAND_BLUETOOTH_ID - 1)           // -17 - 1 = -18
 #define COMMAND_DEVICE_ID                  (COMMAND_DEVICE_NAME - 1)            // -18 - 1 = -19
-#define COMMAND_UNKNOWN                    (COMMAND_DEVICE_ID - 1)              // -19 - 1 = -20
-#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN))                 // -20
+#define COMMAND_TILT_STATE                 (COMMAND_DEVICE_ID - 1)              // -19 - 1 = -20
+#define COMMAND_UNKNOWN                    (COMMAND_TILT_STATE - 1)              // -20 - 1 = -21
+#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN))                 // -21
 
 // Exit types for processCommand
 typedef enum

@@ -88,6 +88,14 @@ The checksum in each response is calculated by the receiver. This query is inten
 
 For direct serial testing, enter `changed` to list the changed settings without NMEA command framing.
 
+## Getting Tilt State
+
+To get the current tilt sensor state, send:
+
+	$SPGET,tiltState*FF<CR><LF>
+
+The receiver returns the numeric `TiltState` enum value. The response does not include the IM19 navigation-status bitfield.
+
 Send:
 
 	$SPGET,ntripClientCasterUserPW*35

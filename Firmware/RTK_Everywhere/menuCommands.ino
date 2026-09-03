@@ -1736,7 +1736,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             "batteryLevelPercent",   "batteryVoltage", "batteryChargingPercentPerHour",
             "bluetoothId",           "deviceId",       "deviceName",
             "gnssModuleInfo",        "list",           "espFirmwareVersion",
-            "espNewFirmwareVersion",
+            "espNewFirmwareVersion", "tiltState",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
@@ -2864,6 +2864,11 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         writeToString(settingValueStr, batteryChargingPercentPerHour, 0);
         knownSetting = true;
     }
+    else if (strcmp(settingName, "tiltState") == 0)
+    {
+        writeToString(settingValueStr, (int)tiltState);
+        knownSetting = true;
+    }
 
     // Unused variables - read to avoid errors
     // TODO: check this! Is this really what we want?
@@ -3238,6 +3243,10 @@ const char *commandGetName(int stringIndex, int rtkIndex)
     // Display the device ID
     else if (rtkIndex == COMMAND_DEVICE_ID)
         return "deviceId";
+
+    // Display the tilt sensor state
+    else if (rtkIndex == COMMAND_TILT_STATE)
+        return "tiltState";
 
     systemPrintf("commandGetName Error: Uncaught command type, stringIndex: %d, rtkIndex: %d\r\n", stringIndex,
                  rtkIndex);
@@ -3646,6 +3655,14 @@ void printAvailableSettings()
             char settingType[100];
             snprintf(settingType, sizeof(settingType), "char[%d]", strlen(printDeviceId()));
             commandSendExecuteListResponse("deviceId", settingType, printDeviceId());
+        }
+
+        // Display the tilt sensor state
+        else if (commandIndex[i] == COMMAND_TILT_STATE)
+        {
+            char tiltStateString[4];
+            snprintf(tiltStateString, sizeof(tiltStateString), "%d", (int)tiltState);
+            commandSendExecuteListResponse("tiltState", "TiltState", tiltStateString);
         }
     }
 }
