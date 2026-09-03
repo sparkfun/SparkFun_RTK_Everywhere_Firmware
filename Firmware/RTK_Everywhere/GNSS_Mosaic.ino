@@ -661,6 +661,9 @@ bool GNSS_MOSAIC::configureOnce()
     response &= sendWithResponse("snt,+GPSL5\n\r", "SignalTracking", 1000, 200);
     response &= sendWithResponse("snu,+GPSL5,+GPSL5\n\r", "SignalUsage", 1000, 200);
 
+    // Increase NMEA lat + lon precision : 3 NrExtraDigits = 8 decimal places
+    response &= sendWithResponse("snp,3\n\r", "NMEAPrecision");
+
     if (response == true)
     {
         online.gnss = true; // If we failed before, mark as online now

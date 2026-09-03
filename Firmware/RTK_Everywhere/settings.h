@@ -353,12 +353,13 @@ typedef enum
 {
     DISPLAY_64x48,
     DISPLAY_128x64,
+    DISPLAY_184x88, // Facet FP e-Paper (SSD168x via I2C-SPI bridge)
     // Add new displays above this line
     DISPLAY_MAX_NONE // This represents the maximum numbers of display and also "no display"
 } DisplayType;
 
-const uint8_t DisplayWidth[DISPLAY_MAX_NONE] = { 64, 128 }; // We could get these from the oled, but this is const
-const uint8_t DisplayHeight[DISPLAY_MAX_NONE] = { 48, 64 };
+const uint8_t DisplayWidth[DISPLAY_MAX_NONE] = { 64, 128, 184 }; // We could get these from the oled, but this is const
+const uint8_t DisplayHeight[DISPLAY_MAX_NONE] = { 48, 64, 88 };
 
 typedef enum
 {

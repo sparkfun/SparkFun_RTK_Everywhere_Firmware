@@ -40,6 +40,15 @@ void powerDown(bool displayInfo)
         delay(2000);
     }
 
+    if (present.display_type == DISPLAY_184x88)
+    {
+        theDisplay->reset(true); // Ensure epaper memory is clear
+        theDisplay->displayNothing();
+        while (theDisplay->isBusy())
+            ; // Do nothing
+        theDisplay->deepSleep();
+    }
+
     // Disable SD card use
     endSD(false, false);
 
