@@ -6,6 +6,166 @@ char otaOutcome[21] = {0}; // Modified by otaUpdate(), used to respond to espNew
 int systemWriteCounts =
     0; // Modified by systemWrite(), used to calculate the number of items in the LIST command for CLI
 
+void commandList(bool inCommands, int i);
+
+// Return the storage size for CLI settings that can be compared to defaults.
+size_t commandSettingSize(const RTK_Settings_Entry &entry)
+{
+    switch (entry.type)
+    {
+    case _bool:
+        return sizeof(bool);
+    case _int:
+        return sizeof(int);
+    case _float:
+        return sizeof(float);
+    case _double:
+        return sizeof(double);
+    case _uint8_t:
+        return sizeof(uint8_t);
+    case _uint16_t:
+        return sizeof(uint16_t);
+    case _uint32_t:
+        return sizeof(uint32_t);
+    case _uint64_t:
+        return sizeof(uint64_t);
+    case _int8_t:
+        return sizeof(int8_t);
+    case _int16_t:
+        return sizeof(int16_t);
+    case tMuxConn:
+        return sizeof(muxConnectionType_e);
+    case tSysState:
+        return sizeof(SystemState);
+    case tPulseEdg:
+        return sizeof(pulseEdgeType_e);
+    case tBtRadio:
+        return sizeof(BluetoothRadioType_e);
+    case tPerDisp:
+        return sizeof(PeriodicDisplay_t);
+    case tCoordInp:
+        return sizeof(CoordinateInputType);
+    case tCharArry:
+        return entry.qualifier;
+    case _IPString:
+        return sizeof(IPAddress);
+    case tEspNowPr:
+        return entry.qualifier * sizeof(settings.espnowPeers[0]);
+    case tWiFiNet:
+        return entry.qualifier * sizeof(WiFiNetwork);
+    case tNSCEn:
+        return entry.qualifier * sizeof(settings.ntripServer_CasterEnabled[0]);
+    case tNSCHost:
+        return entry.qualifier * sizeof(settings.ntripServer_CasterHost[0]);
+    case tNSCPort:
+        return entry.qualifier * sizeof(settings.ntripServer_CasterPort[0]);
+    case tNSCUser:
+        return entry.qualifier * sizeof(settings.ntripServer_CasterUser[0]);
+    case tNSCUsrPw:
+        return entry.qualifier * sizeof(settings.ntripServer_CasterUserPW[0]);
+    case tNSMtPt:
+        return entry.qualifier * sizeof(settings.ntripServer_MountPoint[0]);
+    case tNSMtPtPw:
+        return entry.qualifier * sizeof(settings.ntripServer_MountPointPW[0]);
+    case tCorrSPri:
+        return entry.qualifier * sizeof(settings.correctionsSourcesPriority[0]);
+    case tRegCorTp:
+        return entry.qualifier * sizeof(settings.regionalCorrectionTopics[0]);
+#ifdef COMPILE_ZED
+    case tUbxMsgRt:
+        return entry.qualifier * sizeof(settings.ubxMessageRates[0]);
+    case tUbxConst:
+        return entry.qualifier * sizeof(settings.ubxConstellationsEnabled[0]);
+    case tUbMsgRtb:
+        return entry.qualifier * sizeof(settings.ubxMessageRatesBase[0]);
+#endif // COMPILE_ZED
+#ifdef COMPILE_UM980
+    case tUmMRNmea:
+        return entry.qualifier * sizeof(settings.um980MessageRatesNMEA[0]);
+    case tUmMRRvRT:
+        return entry.qualifier * sizeof(settings.um980MessageRatesRTCMRover[0]);
+    case tUmMRBaRT:
+        return entry.qualifier * sizeof(settings.um980MessageRatesRTCMBase[0]);
+    case tUmConst:
+        return entry.qualifier * sizeof(settings.um980Constellations[0]);
+#endif // COMPILE_UM980
+#ifdef COMPILE_MOSAIC
+    case tMosaicConst:
+        return entry.qualifier * sizeof(settings.mosaicConstellations[0]);
+    case tMosaicMSNmea:
+        return entry.qualifier * sizeof(settings.mosaicMessageStreamNMEA[0]);
+    case tMosaicSINmea:
+        return entry.qualifier * sizeof(settings.mosaicStreamIntervalsNMEA[0]);
+    case tMosaicMIRvRT:
+        return entry.qualifier * sizeof(settings.mosaicMessageIntervalsRTCMv3Rover[0]);
+    case tMosaicMIBaRT:
+        return entry.qualifier * sizeof(settings.mosaicMessageIntervalsRTCMv3Base[0]);
+    case tMosaicMERvRT:
+        return entry.qualifier * sizeof(settings.mosaicMessageEnabledRTCMv3Rover[0]);
+    case tMosaicMEBaRT:
+        return entry.qualifier * sizeof(settings.mosaicMessageEnabledRTCMv3Base[0]);
+#endif // COMPILE_MOSAIC
+#ifdef COMPILE_LG290P
+    case tLgMRNmea:
+        return entry.qualifier * sizeof(settings.lg290pMessageRatesNMEA[0]);
+    case tLgMRRvRT:
+        return entry.qualifier * sizeof(settings.lg290pMessageRatesRTCMRover[0]);
+    case tLgMRBaRT:
+        return entry.qualifier * sizeof(settings.lg290pMessageRatesRTCMBase[0]);
+    case tLgMRPqtm:
+        return entry.qualifier * sizeof(settings.lg290pMessageRatesPQTM[0]);
+    case tLgConst:
+        return entry.qualifier * sizeof(settings.lg290pConstellations[0]);
+#endif // COMPILE_LG290P
+    case tGnssReceiver:
+        return sizeof(gnssReceiverType_e);
+    default:
+        return 0;
+    }
+}
+
+// List CLI settings which differ from their default values, followed by the count.
+void commandSendChangedSettings()
+{
+    // Keep the large default settings snapshot off the task stack.
+    Settings *defaultSettings = (Settings *)rtkMalloc(sizeof(*defaultSettings), "CLI default settings");
+    if (defaultSettings == nullptr)
+    {
+        commandSendErrorResponse((char *)"SPGET", (char *)"changedSettings", (char *)"Insufficient memory");
+        return;
+    }
+
+    getDefaultSettings(defaultSettings);
+    int changedSettingCount = 0;
+
+    for (int i = 0; i < numRtkSettingsEntries; i++)
+    {
+        const RTK_Settings_Entry &entry = rtkSettingsEntries[i];
+        size_t settingSize = commandSettingSize(entry);
+        if (!entry.inCommands || !settingAvailableOnPlatform(i) || entry.var == nullptr || settingSize == 0)
+            continue;
+
+        // Settings-table variables point into settings; use the same offset in the default snapshot.
+        ptrdiff_t offset = (uint8_t *)entry.var - (uint8_t *)&settings;
+        if (offset < 0 || (size_t)offset + settingSize > sizeof(settings))
+            continue;
+
+        const uint8_t *defaultValue = (const uint8_t *)defaultSettings + offset;
+        if (memcmp(entry.var, defaultValue, settingSize) != 0)
+        {
+            // Grouped settings are expanded by commandList into their individual CLI records.
+            commandList(true, i);
+            changedSettingCount++;
+        }
+    }
+
+    rtkFree(defaultSettings, "CLI default settings");
+
+    char countBuffer[12];
+    snprintf(countBuffer, sizeof(countBuffer), "%d", changedSettingCount);
+    commandSendValueOkResponse("SPGET", "changedSettings", countBuffer);
+}
+
 // On Facet FP, ensure detectedGnssReceiver matches attached hardware before
 // building Web Config CSV output that depends on platform filtering.
 void normalizeDetectedGnssReceiverForFacetFp()
@@ -76,6 +236,12 @@ t_cliResult processCommand(char *cmdBuffer)
     else if (strcmp(cmdBuffer, "list") == 0)
     {
         printAvailableSettings();
+        return (CLI_LIST); // Stay in command mode
+    }
+    else if (strcmp(cmdBuffer, "changed") == 0)
+    {
+        // Direct shortcut for listing changed settings without NMEA command framing.
+        commandSendChangedSettings();
         return (CLI_LIST); // Stay in command mode
     }
     // Allow serial input to skip the validation step. Used for testing.
@@ -191,6 +357,12 @@ t_cliResult processCommand(char *cmdBuffer)
         else
         {
             auto field = tokens[1];
+
+            if (strcmp(field, "changedSettings") == 0)
+            {
+                commandSendChangedSettings();
+                return (CLI_OK);
+            }
 
             SettingValueResponse response = getSettingValue(false, field, valueBuffer);
 

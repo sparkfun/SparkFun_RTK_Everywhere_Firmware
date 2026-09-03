@@ -74,6 +74,20 @@ If there was an error in getting the setting value, such as the setting name bei
 
 If a setting is a string, the setting will be surrounded in quotes. Any internal quotes will be escaped.
 
+## Getting Changed Settings
+
+To retrieve only CLI settings that differ from their factory defaults, send:
+
+	$SPGET,changedSettings*36<CR><LF>
+
+The receiver sends one `$SPLST,[setting name],[setting type],[setting value]` response for each changed setting, followed by:
+
+	$SPGET,changedSettings,[number of changed settings],OK*FF<CR><LF>
+
+The checksum in each response is calculated by the receiver. This query is intended for clients that already know the device model and setting definitions.
+
+For direct serial testing, enter `changed` to list the changed settings without NMEA command framing.
+
 Send:
 
 	$SPGET,ntripClientCasterUserPW*35
