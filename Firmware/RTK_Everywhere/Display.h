@@ -137,4 +137,17 @@ class HYBRID_DISPLAY
 
 HYBRID_DISPLAY *theDisplay = nullptr;
 
+typedef struct {
+    DisplayType display_type;
+    const char *name;
+    uint8_t xPos;
+    uint8_t yPos;
+    QwiicFont &theFont;
+    QwiicEpFont &theEpFont;
+    uint8_t xPosOfData;
+    uint8_t yPosOfData;
+    QwiicFont &theFontOfData;
+    QwiicEpFont &theEpFontOfData;
+} paintBaseStats_t;
+
 #endif // __DISPLAY_H__

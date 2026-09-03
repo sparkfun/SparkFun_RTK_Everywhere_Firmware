@@ -2490,6 +2490,42 @@ void displayRTKAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconP
 
     prop.icon = icon->iconDisplay[present.display_type];
     prop.duty = fixed ? 0b11111111 : 0b01010101;
+
+    // On e-paper:
+    //    RTK Float: CrossHairDualProperties - no blink
+    //    RTK Fixed: CrossHairBoldProperties - no blink
+    //    PPP Converging : CrossHairPppConvergedProperties - no blink
+    //    PPP Converged : CrossHairPppConvergedBoldProperties - no blink
+    if (present.display_type == DISPLAY_184x88)
+    {
+        if (icon == &CrossHairDualProperties)
+        {
+            if (fixed)
+            {
+                prop.icon = CrossHairBoldProperties.iconDisplay[present.display_type];
+                prop.duty = 0b11111111;
+            }
+            else // Float
+            {
+                // prop.icon is already pointing at CrossHairDual
+                prop.duty = 0b11111111;
+            }
+        }
+        if (icon == &CrossHairPppConvergedProperties)
+        {
+            if (fixed) // Converged
+            {
+                prop.icon = CrossHairPppConvergedBoldProperties.iconDisplay[present.display_type];
+                prop.duty = 0b11111111;
+            }
+            else // Converging
+            {
+                // prop.icon is already pointing at CrossHairPppConvergedProperties
+                prop.duty = 0b11111111;
+            }
+        }
+    }
+
     iconList->push_back(prop);
 
     displayCoords textCoords;
@@ -2709,31 +2745,65 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
         iconList->push_back(prop);
 }
 
+const paintBaseStats_t paintBaseStats[] = {
+    { DISPLAY_64x48, "Mean:", AccuracyIconXPos64x48, AccuracyIconYPos64x48 + 5, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos64x48 + 29, AccuracyIconYPos64x48 + 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_128x64, "Mean:", AccuracyIconXPos128x64, AccuracyIconYPos128x64 + 5, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos128x64 + 29, AccuracyIconYPos128x64 + 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_184x88, "Mean:", AccuracyIconXPos184x88, AccuracyIconYPos184x88 + 2, QW_FONT_5X7, QW_EP_FONT_8X16, AccuracyIconXPos184x88 + 42, AccuracyIconYPos184x88 - 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_64x48, "Time:", SIVIconXPos64x48 - 2, SIVIconYPos64x48 + 4, QW_FONT_5X7, QW_EP_FONT_10X20, SIVIconXPos64x48 + 28, SIVIconYPos64x48 + 1, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_128x64, "Time:", SIVIconXPos128x64 - 2, SIVIconYPos128x64 + 4, QW_FONT_5X7, QW_EP_FONT_10X20, SIVIconXPos128x64 + 28, SIVIconYPos128x64 + 1, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_184x88, "Time:", SIVIconXPos184x88 - 2, SIVIconYPos184x88 + 2, QW_FONT_5X7, QW_EP_FONT_8X16, SIVIconXPos184x88 + 42, SIVIconYPos184x88 - 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_64x48, "BaseCast", AccuracyIconXPos64x48 + 4, AccuracyIconYPos64x48 - 1, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos64x48 + 29, AccuracyIconYPos64x48 + 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_128x64, "BaseCast", AccuracyIconXPos128x64 + 4, AccuracyIconYPos128x64, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos128x64 + 29, AccuracyIconYPos128x64 + 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_184x88, "BaseCast", AccuracyIconXPos184x88 + 4, AccuracyIconYPos184x88 - 2, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos184x88 + 80, AccuracyIconYPos184x88 - 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_64x48, "Casting", AccuracyIconXPos64x48 + 4, AccuracyIconYPos64x48 - 1, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos64x48 + 29, AccuracyIconYPos64x48 + 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_128x64, "Casting", AccuracyIconXPos128x64 + 4, AccuracyIconYPos128x64, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos128x64 + 29, AccuracyIconYPos128x64 + 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_184x88, "Casting", AccuracyIconXPos184x88 + 4, AccuracyIconYPos184x88 - 2, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos184x88 + 80, AccuracyIconYPos184x88 - 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_64x48, "Xmitting", AccuracyIconXPos64x48, AccuracyIconYPos64x48 - 1, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos64x48 + 29, AccuracyIconYPos64x48 + 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_128x64, "Xmitting", AccuracyIconXPos128x64, AccuracyIconYPos128x64, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos128x64 + 29, AccuracyIconYPos128x64 + 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_184x88, "Xmitting", AccuracyIconXPos184x88, AccuracyIconYPos184x88 - 2, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos184x88 + 80, AccuracyIconYPos184x88 - 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_64x48, "RTCM:", SIVIconXPos64x48 - 2, SIVIconYPos64x48 + 4, QW_FONT_5X7, QW_EP_FONT_10X20, SIVIconXPos64x48 + 28, SIVIconYPos64x48 + 1, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_128x64, "RTCM:", SIVIconXPos128x64 - 2, SIVIconYPos128x64 + 4, QW_FONT_5X7, QW_EP_FONT_10X20, SIVIconXPos128x64 + 28, SIVIconYPos128x64 + 1, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_184x88, "RTCM:", SIVIconXPos184x88, SIVIconYPos184x88 - 3, QW_FONT_5X7, QW_EP_FONT_10X20, SIVIconXPos184x88 + 50, SIVIconYPos184x88 - 3, QW_FONT_8X16, QW_EP_FONT_10X20, },
+};
+
+const size_t numPaintBaseStats = sizeof(paintBaseStats) / sizeof(paintBaseStats[0]);
+
+const paintBaseStats_t *getPaintBaseStats(const char *name)
+{
+    for (size_t i = 0; i < numPaintBaseStats; i++)
+    {
+        if ((paintBaseStats[i].display_type == present.display_type)
+             && (strcmp(name, paintBaseStats[i].name) == 0))
+             return &paintBaseStats[i];
+    }
+
+    reportFatalError("Illegal call of getPaintBaseStats");
+    return nullptr; // Code never reaches this...
+}
+
 // Survey in is running. Show 3D Mean and elapsed time.
 void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
 {
-    uint8_t xPos = CrossHairProperties.iconDisplay[present.display_type].xPos;
-    uint8_t yPos = CrossHairProperties.iconDisplay[present.display_type].yPos;
+    const paintBaseStats_t *baseStats = getPaintBaseStats("Mean:");
 
-    theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7);
-    theDisplay->setCursor(xPos, yPos + 5); // x, y
-    theDisplay->print("Mean:");
+    theDisplay->setFont(baseStats->theFont, baseStats->theEpFont);
+    theDisplay->setCursor(baseStats->xPos, baseStats->yPos); // x, y
+    theDisplay->print(baseStats->name);
 
-    theDisplay->setCursor(xPos + 29, yPos + 2); // x, y
-    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
+    theDisplay->setCursor(baseStats->xPosOfData, baseStats->yPosOfData); // x, y
+    theDisplay->setFont(baseStats->theFontOfData, baseStats->theEpFontOfData);
     if (gnss->getSurveyInMeanAccuracy() < 10.0) // Error check
         theDisplay->print(gnss->getSurveyInMeanAccuracy(), 2);
     else
         theDisplay->print(">10");
 
-    xPos = SIVIconProperties.iconDisplay[present.display_type].xPos;
-    yPos = SIVIconProperties.iconDisplay[present.display_type].yPos;
+    baseStats = getPaintBaseStats("Time:");
 
     if (gnss->supportsAntennaShortOpen() == false)
     {
-        theDisplay->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
-        theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7);
-        theDisplay->print("Time:");
+        theDisplay->setCursor(baseStats->xPos, baseStats->yPos); // x, y
+        theDisplay->setFont(baseStats->theFont, baseStats->theEpFont);
+        theDisplay->print(baseStats->name);
     }
     else
     {
@@ -2747,14 +2817,14 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
         }
         else
         {
-            theDisplay->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
-            theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7);
-            theDisplay->print("Time:");
+            theDisplay->setCursor(baseStats->xPos, baseStats->yPos); // x, y
+            theDisplay->setFont(baseStats->theFont, baseStats->theEpFont);
+            theDisplay->print(baseStats->name);
         }
     }
 
-    theDisplay->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]) + 30, yPos + 1); // x, y
-    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
+    theDisplay->setCursor(baseStats->xPosOfData, baseStats->yPosOfData); // x, y
+    theDisplay->setFont(baseStats->theFontOfData, baseStats->theEpFontOfData);
     if (gnss->getSurveyInObservationTime() < 1000) // Error check
         theDisplay->print(gnss->getSurveyInObservationTime());
     else
@@ -2781,27 +2851,31 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
     for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
         casting |= online.ntripServer[serverIndex];
 
-    uint8_t xPos = CrossHairProperties.iconDisplay[present.display_type].xPos;
-    uint8_t yPos = CrossHairProperties.iconDisplay[present.display_type].yPos;
-
-    if (present.display_type == DISPLAY_64x48)
-        yPos = yPos - 1; // Move text up by 1 pixel on 64x48. Note: this is brittle.
+    const paintBaseStats_t *baseStats;
 
     if (settings.baseCasterOverride == true)
-        printTextAt("BaseCast", xPos + 4, yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1); // text, y, font type, kerning
+    {
+        baseStats = getPaintBaseStats("BaseCast");
+        printTextAt(baseStats->name, baseStats->xPos, baseStats->yPos, baseStats->theFont, baseStats->theEpFont, 1); // text, y, font type, kerning
+    }
     else if (casting)
-        printTextAt("Casting", xPos + 4, yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1); // text, y, font type, kerning
+    {
+        baseStats = getPaintBaseStats("Casting");
+        printTextAt(baseStats->name, baseStats->xPos, baseStats->yPos, baseStats->theFont, baseStats->theEpFont, 1); // text, y, font type, kerning
+    }
     else
-        printTextAt("Xmitting", xPos, yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1); // text, y, font type, kerning
+    {
+        baseStats = getPaintBaseStats("Xmitting");
+        printTextAt(baseStats->name, baseStats->xPos, baseStats->yPos, baseStats->theFont, baseStats->theEpFont, 1); // text, y, font type, kerning
+    }
 
-    xPos = SIVIconProperties.iconDisplay[present.display_type].xPos;
-    yPos = SIVIconProperties.iconDisplay[present.display_type].yPos;
+    baseStats = getPaintBaseStats("RTCM:");
 
     if (gnss->supportsAntennaShortOpen() == false)
     {
-        theDisplay->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
-        theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7);
-        theDisplay->print("RTCM:");
+        theDisplay->setCursor(baseStats->xPos, baseStats->yPos); // x, y
+        theDisplay->setFont(baseStats->theFont, baseStats->theEpFont);
+        theDisplay->print(baseStats->name);
     }
     else
     {
@@ -2815,20 +2889,21 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
         }
         else
         {
-            theDisplay->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
-            theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7);
-            theDisplay->print("RTCM:");
+            theDisplay->setCursor(baseStats->xPos, baseStats->yPos); // x, y
+            theDisplay->setFont(baseStats->theFont, baseStats->theEpFont);
+            theDisplay->print(baseStats->name);
         }
     }
 
+    uint8_t xAdjust = (present.display_type == DISPLAY_184x88) ? 5 : 2;
     if (rtcmPacketsSent < 100)
-        theDisplay->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]) + 30,
-                        yPos + 1); // x, y - Give space for two digits
+        // x, y - Give space for two digits
+        theDisplay->setCursor(baseStats->xPosOfData + xAdjust, baseStats->yPosOfData);
     else
-        theDisplay->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]) + 28,
-                        yPos + 1); // x, y - Push towards colon to make room for log icon
+        // x, y - Push towards colon to make room for log icon
+        theDisplay->setCursor(baseStats->xPosOfData, baseStats->yPosOfData); 
 
-    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);  // Set font to type 1: 8x16
+    theDisplay->setFont(baseStats->theFontOfData, baseStats->theEpFontOfData);  // Set font
     theDisplay->print(rtcmPacketsSent); // rtcmPacketsSent is controlled in processRTCM()
 
     paintResets();
@@ -3578,6 +3653,9 @@ void printTextAt(const char *text, uint8_t xPos, uint8_t yPos, QwiicFont &fontTy
     theDisplay->setDrawMode(grROPXOR, grEpROPXOR);
 
     uint8_t fontWidth = fontType.width;
+    if (present.display_type == DISPLAY_184x88)
+        fontWidth = fontEpType.width;
+
     if (fontWidth == 8)
         fontWidth = 7; // 8x16, but widest character is only 7 pixels.
 
