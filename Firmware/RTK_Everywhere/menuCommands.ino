@@ -89,7 +89,7 @@ size_t commandSettingSize(const RTK_Settings_Entry &entry)
     case tUmConst:
         return entry.qualifier * sizeof(settings.um980Constellations[0]);
 #endif // COMPILE_UM980
-#ifdef COMPILE_MOSAIC
+#ifdef COMPILE_MOSAICX5
     case tMosaicConst:
         return entry.qualifier * sizeof(settings.mosaicConstellations[0]);
     case tMosaicMSNmea:
@@ -104,7 +104,7 @@ size_t commandSettingSize(const RTK_Settings_Entry &entry)
         return entry.qualifier * sizeof(settings.mosaicMessageEnabledRTCMv3Rover[0]);
     case tMosaicMEBaRT:
         return entry.qualifier * sizeof(settings.mosaicMessageEnabledRTCMv3Base[0]);
-#endif // COMPILE_MOSAIC
+#endif // COMPILE_MOSAICX5
 #ifdef COMPILE_LG290P
     case tLgMRNmea:
         return entry.qualifier * sizeof(settings.lg290pMessageRatesNMEA[0]);
