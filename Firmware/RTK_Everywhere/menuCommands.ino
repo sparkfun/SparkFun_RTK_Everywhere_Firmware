@@ -2926,7 +2926,7 @@ void commandList(bool inCommands, int i)
     int qualifier;
     char settingName[100];
     char settingType[100];
-    char settingValue[100];
+    char settingValue[250]; //csvUrl is 192 bytes
     RTK_Settings_Types type;
 
     // Handle the GNSS specific types
