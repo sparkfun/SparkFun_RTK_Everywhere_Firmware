@@ -150,6 +150,7 @@ void commandSendChangedSettings()
     }
 
     getDefaultSettings(defaultSettings);
+    defaultSettings->lastState = productVariantProperties->defaultSystemState;
     for (int i = 0; i < CORR_NUM; i++)
         defaultSettings->correctionsSourcesPriority[i] = i;
     checkGNSSArrayDefaults(defaultSettings, false);
