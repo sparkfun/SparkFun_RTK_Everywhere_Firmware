@@ -16,7 +16,7 @@ Display.h
   To minimise the number of full updates - with the distracting 2.2s black-white reversals:
   The main loop calls displayUpdate() frequently
   displayUpdate will update the OLED every ~0.5s changing text and icons as needed
-  displayUpdate will update e-paper every 1.0s. I.e. longer the partial update BUSY period,
+  displayUpdate will update e-paper every 2.0s. I.e. longer the partial update BUSY period,
     allowing some deepSleep between partial updates
   A full update is performed once per minute (with black-white reversals)
 
