@@ -409,14 +409,12 @@ const uint8_t CrossHair[] = {0x80, 0x80, 0xF0, 0x88, 0x84, 0x84, 0x84, 0x7F, 0x8
             '---------------'
 */
 
-const int CrossHairDual_Height = 15;
-const int CrossHairDual_Width = 15;
 const uint8_t CrossHairDual[] = {0x80, 0x80, 0xF0, 0x88, 0xE4, 0x94, 0x94, 0x7F, 0x94, 0x94,
                                  0xE4, 0x88, 0xF0, 0x80, 0x80, 0x00, 0x00, 0x07, 0x08, 0x13,
                                  0x14, 0x14, 0x7F, 0x14, 0x14, 0x13, 0x08, 0x07, 0x00, 0x00};
 
 /*
-    CrossHairP [15, 15]
+    CrossHairPppConverged [15, 15]
 
                       1
              123456789012345
@@ -438,11 +436,66 @@ const uint8_t CrossHairDual[] = {0x80, 0x80, 0xF0, 0x88, 0xE4, 0x94, 0x94, 0x7F,
         0x40|       *       |
             '---------------'
 */
-const int CrossHairPppConverged_Height = 15;
-const int CrossHairPppConverged_Width = 15;
 const uint8_t CrossHairPppConverged[] = {0x80, 0x80, 0xF0, 0x08, 0x04, 0xF4, 0x94, 0x97, 0x94, 0x94,
                                          0x64, 0x08, 0xF0, 0x80, 0x80, 0x00, 0x00, 0x07, 0x08, 0x10,
                                          0x17, 0x10, 0x70, 0x10, 0x10, 0x10, 0x08, 0x07, 0x00, 0x00};
+
+/*
+    CrossHairBold [15, 15]
+
+    Indicates RTK Fixed on e-paper displays
+
+                      1
+             123456789012345
+            .---------------.
+        0x01|       *       |
+        0x02|       *       |
+        0x04|    *******    |
+        0x08|   *********   |
+        0x10|  ***********  |
+        0x20|  ***  *  ***  |
+        0x40|  ***  *  ***  |
+        0x80|******* *******|
+        0x01|  ***  *  ***  |
+        0x02|  ***  *  ***  |
+        0x04|  ***********  |
+        0x08|   *********   |
+        0x10|    *******    |
+        0x20|       *       |
+        0x40|       *       |
+            '---------------'
+*/
+
+const uint8_t CrossHairBold[] = {0x80, 0x80, 0xF0, 0xF8, 0xFC, 0x9C, 0x9C, 0x7F, 0x9C, 0x9C,
+                                 0xFC, 0xF8, 0xF0, 0x80, 0x80, 0x00, 0x00, 0x07, 0x0F, 0x1F,
+                                 0x1C, 0x1C, 0x7F, 0x1C, 0x1C, 0x1F, 0x0F, 0x07, 0x00, 0x00};
+
+/*
+    CrossHairPppConvergedBold [15, 15]
+
+                      1
+             123456789012345
+            .---------------.
+        0x01|       *       |
+        0x02|    *******    |
+        0x04|   *********   |
+        0x08|  **       **  |
+        0x10| **  *****  ** |
+        0x20| **  *    * ** |
+        0x40| **  *    * ** |
+        0x80|***  *****  ***|
+        0x01| **  *      ** |
+        0x02| **  *      ** |
+        0x04| **  *      ** |
+        0x08|  **       **  |
+        0x10|   *********   |
+        0x20|    *******    |
+        0x40|       *       |
+            '---------------'
+*/
+const uint8_t CrossHairPppConvergedBold[] = {0x80, 0xF0, 0xF8, 0x0C, 0x06, 0xF6, 0x96, 0x97, 0x96, 0x96,
+                                             0x66, 0x0C, 0xF8, 0xF0, 0x80, 0x00, 0x07, 0x0F, 0x18, 0x30,
+                                             0x37, 0x30, 0x70, 0x30, 0x30, 0x30, 0x18, 0x0F, 0x07, 0x00};
 
 /*
     SIV_Antenna [12, 13]
@@ -2208,12 +2261,20 @@ const uint8_t AccuracyIconYPos184x88 = 34;
 const iconProperties CrossHairProperties = {{{ &CrossHair, CrossHair_Width, CrossHair_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
                                              { &CrossHair, CrossHair_Width, CrossHair_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 },
                                              { &CrossHair, CrossHair_Width, CrossHair_Height, AccuracyIconXPos184x88, AccuracyIconYPos184x88 }}};
-const iconProperties CrossHairDualProperties = {{{ &CrossHairDual, CrossHairDual_Width, CrossHairDual_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
-                                                 { &CrossHairDual, CrossHairDual_Width, CrossHairDual_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 },
-                                                 { &CrossHairDual, CrossHairDual_Width, CrossHairDual_Height, AccuracyIconXPos184x88, AccuracyIconYPos184x88 }}};
-const iconProperties CrossHairPppConvergedProperties = {{{ &CrossHairPppConverged, CrossHairPppConverged_Width, CrossHairPppConverged_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
-                                                 { &CrossHairPppConverged, CrossHairPppConverged_Width, CrossHairPppConverged_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 },
-                                                 { &CrossHairPppConverged, CrossHairPppConverged_Width, CrossHairPppConverged_Height, AccuracyIconXPos184x88, AccuracyIconYPos184x88 }}};
+const iconProperties CrossHairDualProperties = {{{ &CrossHairDual, CrossHair_Width, CrossHair_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
+                                                 { &CrossHairDual, CrossHair_Width, CrossHair_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 },
+                                                 { &CrossHairDual, CrossHair_Width, CrossHair_Height, AccuracyIconXPos184x88, AccuracyIconYPos184x88 }}};
+const iconProperties CrossHairPppConvergedProperties = {{{ &CrossHairPppConverged, CrossHair_Width, CrossHair_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
+                                                         { &CrossHairPppConverged, CrossHair_Width, CrossHair_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 },
+                                                         { &CrossHairPppConverged, CrossHair_Width, CrossHair_Height, AccuracyIconXPos184x88, AccuracyIconYPos184x88 }}};
+// 'Bold' crosshair to indicate RTK Fixed on e-paper displays
+const iconProperties CrossHairBoldProperties = {{{ &CrossHairBold, CrossHair_Width, CrossHair_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
+                                                 { &CrossHairBold, CrossHair_Width, CrossHair_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 },
+                                                 { &CrossHairBold, CrossHair_Width, CrossHair_Height, AccuracyIconXPos184x88, AccuracyIconYPos184x88 }}};
+// 'Bold' crosshair to indicate PPP Converged on e-paper displays
+const iconProperties CrossHairPppConvergedBoldProperties = {{{ &CrossHairPppConvergedBold, CrossHair_Width, CrossHair_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
+                                                             { &CrossHairPppConvergedBold, CrossHair_Width, CrossHair_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 },
+                                                             { &CrossHairPppConvergedBold, CrossHair_Width, CrossHair_Height, AccuracyIconXPos184x88, AccuracyIconYPos184x88 }}};
 
 #define CLOCK_ICON_STATES 4
 typedef struct
