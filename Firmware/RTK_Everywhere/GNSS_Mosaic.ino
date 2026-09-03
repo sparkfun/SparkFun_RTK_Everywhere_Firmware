@@ -3459,7 +3459,7 @@ bool mosaicX5waitCR(unsigned long timeout)
 // List available settings, their type in CSV, and value
 //----------------------------------------
 bool mosaicCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands, int qualifier, char *settingName,
-                       char *settingValue)
+                       size_t settingNameSize, char *settingValue)
 {
     switch (type)
     {
@@ -3470,7 +3470,10 @@ bool mosaicCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record Mosaic Constellations
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.mosaicConstellations[x], sizeof(settings.mosaicConstellations[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      mosaicSignalConstellations[x].configName);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -3482,7 +3485,10 @@ bool mosaicCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record Mosaic NMEA message streams
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.mosaicMessageStreamNMEA[x], sizeof(settings.mosaicMessageStreamNMEA[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      mosaicMessagesNMEA[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -3494,7 +3500,10 @@ bool mosaicCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record Mosaic NMEA stream intervals
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[settingsIndex].name, x);
+            if (!commandSettingChanged(&settings.mosaicStreamIntervalsNMEA[x], sizeof(settings.mosaicStreamIntervalsNMEA[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%d", rtkSettingsEntries[settingsIndex].name, x);
 
             getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "tMosaicSINmea", mosaicMsgRates[atoi(settingValue)].humanName);
@@ -3505,7 +3514,10 @@ bool mosaicCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record Mosaic Rover RTCM intervals
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.mosaicMessageIntervalsRTCMv3Rover[x], sizeof(settings.mosaicMessageIntervalsRTCMv3Rover[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      mosaicRTCMv3MsgIntervalGroups[x].name);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -3517,7 +3529,10 @@ bool mosaicCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record Mosaic Base RTCM intervals
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.mosaicMessageIntervalsRTCMv3Base[x], sizeof(settings.mosaicMessageIntervalsRTCMv3Base[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      mosaicRTCMv3MsgIntervalGroups[x].name);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -3529,7 +3544,10 @@ bool mosaicCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record Mosaic Rover RTCM enabled
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.mosaicMessageEnabledRTCMv3Rover[x], sizeof(settings.mosaicMessageEnabledRTCMv3Rover[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      mosaicMessagesRTCMv3[x].name);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -3541,7 +3559,10 @@ bool mosaicCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record Mosaic Base RTCM enabled
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.mosaicMessageEnabledRTCMv3Base[x], sizeof(settings.mosaicMessageEnabledRTCMv3Base[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      mosaicMessagesRTCMv3[x].name);
 
             getSettingValue(inCommands, settingName, settingValue);

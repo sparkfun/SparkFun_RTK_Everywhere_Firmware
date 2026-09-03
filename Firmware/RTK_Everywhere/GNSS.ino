@@ -1069,13 +1069,13 @@ void gnssRemovePassthroughFile()
 // List available settings, their type in CSV, and value
 //----------------------------------------
 bool gnssCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands, int qualifier, char *settingName,
-                     char *settingValue)
+                     size_t settingNameSize, char *settingValue)
 {
     for (int index = 0; index < GNSS_SUPPORT_ROUTINES_ENTRIES; index++)
     {
         if (gnssSupportRoutines[index]._commandList &&
             gnssSupportRoutines[index]._commandList(type, settingsIndex, inCommands, qualifier, settingName,
-                                                    settingValue))
+                                                    settingNameSize, settingValue))
             return true;
     }
     return false;

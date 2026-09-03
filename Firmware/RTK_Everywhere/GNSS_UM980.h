@@ -513,7 +513,7 @@ class GNSS_UM980 : GNSS
 
 // Forward routine declarations
 bool um980CommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands, int qualifier, char *settingName,
-                      char *settingValue);
+                      size_t settingNameSize, char *settingValue);
 void um980CommandTypeJson(JsonArray &command_types);
 bool um980CreateString(RTK_Settings_Types type, int settingsIndex, char *newSettings);
 bool um980GetSettingValue(RTK_Settings_Types type, const char *suffix, int settingsIndex, int qualifier,

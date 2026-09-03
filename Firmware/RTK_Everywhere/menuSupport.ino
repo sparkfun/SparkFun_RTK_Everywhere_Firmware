@@ -81,8 +81,9 @@ bool deleteProfileFiles(uint8_t profileToDelete, bool alreadyHasSemaphore)
 }
 
 // Check various setting arrays (message rates, etc) to see if they need to be reset to defaults
-void checkGNSSArrayDefaults()
+void checkGNSSArrayDefaults(Settings *settingsToCheck, bool recordDefaults)
 {
+    Settings &settings = *settingsToCheck;
     bool defaultsApplied = false;
 
 #ifdef COMPILE_ZED
@@ -293,27 +294,35 @@ void checkGNSSArrayDefaults()
         {
             if (productVariant == RTK_POSTCARD)
             {
-                defaultsApplied = true;
-                if(lg290pFirmwareVersionInt >= 201)
-                    // Firmware v2.01 supports PQTMRTCMIS. It is safe to enable Ext Radio by default
-                    settings.enableExtCorrRadio = true;
-                else
-                    // User has to enable UART3 (JST) manually for the same reason as LG290P on FP
-                    settings.enableExtCorrRadio = false;
+                // Firmware version is read during gnss->begin(). Leave this unresolved until then.
+                if (lg290pFirmwareVersionInt != 0)
+                {
+                    defaultsApplied = true;
+                    if(lg290pFirmwareVersionInt >= 201)
+                        // Firmware v2.01 supports PQTMRTCMIS. It is safe to enable Ext Radio by default
+                        settings.enableExtCorrRadio = true;
+                    else
+                        // User has to enable UART3 (JST) manually for the same reason as LG290P on FP
+                        settings.enableExtCorrRadio = false;
+                }
             }
             else if (productVariant == RTK_FACET_FP)
             {
-                defaultsApplied = true;
-                if(lg290pFirmwareVersionInt >= 201)
-                    // Firmware v2.01 supports PQTMRTCMIS. It is safe to enable Ext Radio by default
-                    settings.enableExtCorrRadio = true;
-                else
-                    // With LG290P firmware < v2.01 on Facet FP:
-                    // We do not know if ext radio / LoRa corrections are arriving
-                    // because we don't have access to the UART2 byte counts. We have to assume
-                    // that corrections are arriving. See GNSS_LG290P::isExternalCorrectionActive()
-                    // We must set settings.enableExtCorrRadio to false to prevent this.
-                    settings.enableExtCorrRadio = false;
+                // Firmware version is read during gnss->begin(). Leave this unresolved until then.
+                if (lg290pFirmwareVersionInt != 0)
+                {
+                    defaultsApplied = true;
+                    if(lg290pFirmwareVersionInt >= 201)
+                        // Firmware v2.01 supports PQTMRTCMIS. It is safe to enable Ext Radio by default
+                        settings.enableExtCorrRadio = true;
+                    else
+                        // With LG290P firmware < v2.01 on Facet FP:
+                        // We do not know if ext radio / LoRa corrections are arriving
+                        // because we don't have access to the UART2 byte counts. We have to assume
+                        // that corrections are arriving. See GNSS_LG290P::isExternalCorrectionActive()
+                        // We must set settings.enableExtCorrRadio to false to prevent this.
+                        settings.enableExtCorrRadio = false;
+                }
             }
             else if (productVariant == RTK_TORCH_X2)
             {
@@ -406,8 +415,13 @@ void checkGNSSArrayDefaults()
         }
     }
 
-    if (defaultsApplied == true)
+    if (defaultsApplied == true && recordDefaults)
         recordSystemSettings();
+}
+
+void checkGNSSArrayDefaults()
+{
+    checkGNSSArrayDefaults(&settings, true);
 }
 
 // Erase all settings. Upon restart, unit will use defaults

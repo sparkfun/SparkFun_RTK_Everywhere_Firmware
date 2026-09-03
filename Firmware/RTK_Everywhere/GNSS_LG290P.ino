@@ -3204,7 +3204,7 @@ bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)
 // List available settings, their type in CSV, and value
 //----------------------------------------
 bool lg290pCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands, int qualifier, char *settingName,
-                       char *settingValue)
+                       size_t settingNameSize, char *settingValue)
 {
     switch (type)
     {
@@ -3215,7 +3215,10 @@ bool lg290pCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record LG290P NMEA rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.lg290pMessageRatesNMEA[x], sizeof(settings.lg290pMessageRatesNMEA[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      lgMessagesNMEA[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -3227,7 +3230,10 @@ bool lg290pCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record LG290P Rover RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.lg290pMessageRatesRTCMRover[x], sizeof(settings.lg290pMessageRatesRTCMRover[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      lgMessagesRTCM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -3239,7 +3245,10 @@ bool lg290pCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record LG290P Base RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.lg290pMessageRatesRTCMBase[x], sizeof(settings.lg290pMessageRatesRTCMBase[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      lgMessagesRTCM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -3251,7 +3260,10 @@ bool lg290pCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record LG290P PQTM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.lg290pMessageRatesPQTM[x], sizeof(settings.lg290pMessageRatesPQTM[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      lgMessagesPQTM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -3263,7 +3275,10 @@ bool lg290pCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record LG290P Constellations
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.lg290pConstellations[x], sizeof(settings.lg290pConstellations[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      lg290pConstellationNames[x]);
 
             getSettingValue(inCommands, settingName, settingValue);

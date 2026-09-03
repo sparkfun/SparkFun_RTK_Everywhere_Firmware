@@ -80,7 +80,9 @@ To retrieve only CLI settings that differ from their factory defaults, send:
 
 	$SPGET,changedSettings*36<CR><LF>
 
-The receiver sends one `$SPLST,[setting name],[setting type],[setting value]` response for each changed setting, followed by:
+The receiver first sends device metadata (`deviceName`, `bluetoothId`, `deviceId`, `profileNumber`,
+`espFirmwareVersion`, and `gnssModuleInfo`; `tiltState` is included on tilt-capable platforms). It then sends one
+`$SPLST,[setting name],[setting type],[setting value]` response for each changed setting, followed by:
 
 	$SPGET,changedSettings,[number of changed settings],OK*FF<CR><LF>
 

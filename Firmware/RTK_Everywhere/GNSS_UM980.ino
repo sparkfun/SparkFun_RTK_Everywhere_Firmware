@@ -2300,7 +2300,7 @@ bool GNSS_UM980::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgR
 // List available settings, their type in CSV, and value
 //----------------------------------------
 bool um980CommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands, int qualifier, char *settingName,
-                      char *settingValue)
+                      size_t settingNameSize, char *settingValue)
 {
     switch (type)
     {
@@ -2311,7 +2311,10 @@ bool um980CommandList(RTK_Settings_Types type, int settingsIndex, bool inCommand
         // Record UM980 NMEA rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.um980MessageRatesNMEA[x], sizeof(settings.um980MessageRatesNMEA[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      umMessagesNMEA[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -2323,7 +2326,10 @@ bool um980CommandList(RTK_Settings_Types type, int settingsIndex, bool inCommand
         // Record UM980 Rover RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.um980MessageRatesRTCMRover[x], sizeof(settings.um980MessageRatesRTCMRover[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      umMessagesRTCM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -2335,7 +2341,10 @@ bool um980CommandList(RTK_Settings_Types type, int settingsIndex, bool inCommand
         // Record UM980 Base RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.um980MessageRatesRTCMBase[x], sizeof(settings.um980MessageRatesRTCMBase[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      umMessagesRTCM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -2347,7 +2356,10 @@ bool um980CommandList(RTK_Settings_Types type, int settingsIndex, bool inCommand
         // Record UM980 Constellations
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.um980Constellations[x], sizeof(settings.um980Constellations[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      um980ConstellationCommands[x].textName);
 
             getSettingValue(inCommands, settingName, settingValue);

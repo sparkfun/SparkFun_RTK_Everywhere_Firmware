@@ -1192,6 +1192,7 @@ bool mosaicCommandList(RTK_Settings_Types type,
                        bool inCommands,
                        int qualifier,
                        char *settingName,
+                       size_t settingNameSize,
                        char *settingValue);
 void mosaicCommandTypeJson(JsonArray &command_types);
 bool mosaicCreateString(RTK_Settings_Types type,

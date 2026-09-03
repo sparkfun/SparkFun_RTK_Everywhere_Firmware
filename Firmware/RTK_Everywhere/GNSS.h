@@ -458,9 +458,12 @@ typedef bool (*GNSS_PRESENT)();
 // Create the GNSS class instance
 typedef void (*GNSS_NEW_CLASS)();
 
+bool commandSettingChanged(const void *settingValue, size_t settingSize);
+void commandSendExecuteListResponse(const char *settingName, const char *settingType, const char *settingValue);
+
 // List available settings, their type in CSV, and value
 typedef bool (*GNSS_COMMAND_LIST)(RTK_Settings_Types type, int settingsIndex, bool inCommands, int qualifier,
-                                  char *settingName, char *settingValue);
+                                  char *settingName, size_t settingNameSize, char *settingValue);
 
 // Add types to a JSON array
 typedef void (*GNSS_COMMAND_TYPE_JSON)(JsonArray &command_types);

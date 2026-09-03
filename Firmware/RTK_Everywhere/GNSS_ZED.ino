@@ -3165,7 +3165,7 @@ void inputMessageRate(uint8_t &localMessageRate, uint8_t messageNumber)
 // List available settings, their type in CSV, and value
 //----------------------------------------
 bool zedCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands, int qualifier, char *settingName,
-                    char *settingValue)
+                    size_t settingNameSize, char *settingValue)
 {
     switch (type)
     {
@@ -3176,7 +3176,10 @@ bool zedCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands,
         // Record constellation settings
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.ubxConstellationsEnabled[x], sizeof(settings.ubxConstellationsEnabled[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      ubxConstellations[x].textName);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -3188,7 +3191,10 @@ bool zedCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands,
         // Record message settings
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.ubxMessageRates[x], sizeof(settings.ubxMessageRates[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      ubxMessages[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -3203,7 +3209,10 @@ bool zedCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands,
 
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.ubxMessageRatesBase[x], sizeof(settings.ubxMessageRatesBase[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      ubxMessages[firstRTCMRecord + x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);

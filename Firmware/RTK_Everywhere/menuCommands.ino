@@ -5,8 +5,22 @@ menuCommands.ino
 char otaOutcome[21] = {0}; // Modified by otaUpdate(), used to respond to espNewFirmwareVersion commands
 int systemWriteCounts =
     0; // Modified by systemWrite(), used to calculate the number of items in the LIST command for CLI
+bool reportingChangedSettings = false;
+int changedSettingsReportCount = 0;
+const Settings *changedSettingsDefaults = nullptr;
 
-void commandList(bool inCommands, int i);
+// Return true when a setting value should be included in a changed-settings report.
+bool commandSettingChanged(const void *settingValue, size_t settingSize)
+{
+    if (!reportingChangedSettings)
+        return true;
+
+    ptrdiff_t offset = (const uint8_t *)settingValue - (const uint8_t *)&settings;
+    if (offset < 0 || (size_t)offset + settingSize > sizeof(settings))
+        return false;
+
+    return memcmp(settingValue, (const uint8_t *)changedSettingsDefaults + offset, settingSize) != 0;
+}
 
 // Return the storage size for CLI settings that can be compared to defaults.
 size_t commandSettingSize(const RTK_Settings_Entry &entry)
@@ -136,7 +150,40 @@ void commandSendChangedSettings()
     }
 
     getDefaultSettings(defaultSettings);
-    int changedSettingCount = 0;
+    for (int i = 0; i < CORR_NUM; i++)
+        defaultSettings->correctionsSourcesPriority[i] = i;
+    checkGNSSArrayDefaults(defaultSettings, false);
+    changedSettingsReportCount = 0;
+    changedSettingsDefaults = defaultSettings;
+    reportingChangedSettings = true;
+
+    // Include device metadata the app needs to interpret the following settings.
+    char settingType[100];
+    char settingValue[12];
+
+    snprintf(settingType, sizeof(settingType), "char[%d]", strlen(platformPrefix));
+    commandSendExecuteListResponse("deviceName", settingType, platformPrefix);
+
+    snprintf(settingType, sizeof(settingType), "char[%d]", strlen(serialNumber));
+    commandSendExecuteListResponse("bluetoothId", settingType, serialNumber);
+
+    snprintf(settingType, sizeof(settingType), "char[%d]", strlen(printDeviceId()));
+    commandSendExecuteListResponse("deviceId", settingType, printDeviceId());
+
+    snprintf(settingValue, sizeof(settingValue), "%d", profileNumber);
+    commandSendExecuteListResponse("profileNumber", "uint8_t", settingValue);
+
+    snprintf(settingType, sizeof(settingType), "char[%d]", strlen(printEspFirmwareVersion()));
+    commandSendExecuteListResponse("espFirmwareVersion", settingType, printEspFirmwareVersion());
+
+    snprintf(settingType, sizeof(settingType), "char[%d]", strlen(printGnssModuleInfo()));
+    commandSendExecuteListResponse("gnssModuleInfo", settingType, printGnssModuleInfo());
+
+    if (variantHousingProperties->tiltPossible)
+    {
+        snprintf(settingValue, sizeof(settingValue), "%d", (int)tiltState);
+        commandSendExecuteListResponse("tiltState", "TiltState", settingValue);
+    }
 
     for (int i = 0; i < numRtkSettingsEntries; i++)
     {
@@ -153,16 +200,16 @@ void commandSendChangedSettings()
         const uint8_t *defaultValue = (const uint8_t *)defaultSettings + offset;
         if (memcmp(entry.var, defaultValue, settingSize) != 0)
         {
-            // Grouped settings are expanded by commandList into their individual CLI records.
             commandList(true, i);
-            changedSettingCount++;
         }
     }
 
+    reportingChangedSettings = false;
+    changedSettingsDefaults = nullptr;
     rtkFree(defaultSettings, "CLI default settings");
 
     char countBuffer[12];
-    snprintf(countBuffer, sizeof(countBuffer), "%d", changedSettingCount);
+    snprintf(countBuffer, sizeof(countBuffer), "%d", changedSettingsReportCount);
     commandSendValueOkResponse("SPGET", "changedSettings", countBuffer);
 }
 
@@ -620,6 +667,9 @@ void commandSendStringResponse(char *command, char *settingName, char *valueBuff
 // Ex: observationPositionAccuracy,float,0.5 =
 void commandSendExecuteListResponse(const char *settingName, const char *settingType, const char *settingValue)
 {
+    if (reportingChangedSettings)
+        changedSettingsReportCount++;
+
     // Create string between $ and * for checksum calculation
     char innerBuffer[200];
 
@@ -2937,7 +2987,7 @@ void commandList(bool inCommands, int i)
     // Handle the GNSS specific types
     qualifier = rtkSettingsEntries[i].qualifier;
     type = rtkSettingsEntries[i].type;
-    if (gnssCommandList(type, i, inCommands, qualifier, settingName, settingValue) == false)
+    if (gnssCommandList(type, i, inCommands, qualifier, settingName, sizeof(settingName), settingValue) == false)
     {
         // Handle the generic types
         switch (type)
@@ -3049,6 +3099,9 @@ void commandList(bool inCommands, int i)
             // Record ESP-NOW peer MAC addresses
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
+                if (!commandSettingChanged(settings.espnowPeers[x], sizeof(settings.espnowPeers[x])))
+                    continue;
+
                 snprintf(settingType, sizeof(settingType), "uint8_t[%d]", sizeof(settings.espnowPeers[0]));
                 snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
@@ -3061,23 +3114,30 @@ void commandList(bool inCommands, int i)
             // Record WiFi credential table
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.wifiNetworks[0].password));
-                snprintf(settingName, sizeof(settingName), "%s%dPassword", rtkSettingsEntries[i].name, x);
+                if (commandSettingChanged(settings.wifiNetworks[x].password, sizeof(settings.wifiNetworks[x].password)))
+                {
+                    snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.wifiNetworks[0].password));
+                    snprintf(settingName, sizeof(settingName), "%s%dPassword", rtkSettingsEntries[i].name, x);
+                    getSettingValue(inCommands, settingName, settingValue);
+                    commandSendExecuteListResponse(settingName, settingType, settingValue);
+                }
 
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, settingType, settingValue);
-
-                snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.wifiNetworks[0].ssid));
-                snprintf(settingName, sizeof(settingName), "%s%dSSID", rtkSettingsEntries[i].name, x);
-
-                getSettingValue(inCommands, settingName, settingValue);
-                commandSendExecuteListResponse(settingName, settingType, settingValue);
+                if (commandSettingChanged(settings.wifiNetworks[x].ssid, sizeof(settings.wifiNetworks[x].ssid)))
+                {
+                    snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.wifiNetworks[0].ssid));
+                    snprintf(settingName, sizeof(settingName), "%s%dSSID", rtkSettingsEntries[i].name, x);
+                    getSettingValue(inCommands, settingName, settingValue);
+                    commandSendExecuteListResponse(settingName, settingType, settingValue);
+                }
             }
         }
         break;
         case tNSCEn: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
+                if (!commandSettingChanged(&settings.ntripServer_CasterEnabled[x], sizeof(settings.ntripServer_CasterEnabled[x])))
+                    continue;
+
                 snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
                 getSettingValue(inCommands, settingName, settingValue);
@@ -3088,6 +3148,9 @@ void commandList(bool inCommands, int i)
         case tNSCHost: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
+                if (!commandSettingChanged(settings.ntripServer_CasterHost[x], sizeof(settings.ntripServer_CasterHost[x])))
+                    continue;
+
                 snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterHost[x]));
                 snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
@@ -3099,6 +3162,9 @@ void commandList(bool inCommands, int i)
         case tNSCPort: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
+                if (!commandSettingChanged(&settings.ntripServer_CasterPort[x], sizeof(settings.ntripServer_CasterPort[x])))
+                    continue;
+
                 snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
                 getSettingValue(inCommands, settingName, settingValue);
@@ -3109,6 +3175,9 @@ void commandList(bool inCommands, int i)
         case tNSCUser: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
+                if (!commandSettingChanged(settings.ntripServer_CasterUser[x], sizeof(settings.ntripServer_CasterUser[x])))
+                    continue;
+
                 snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterUser[x]));
                 snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
@@ -3120,6 +3189,9 @@ void commandList(bool inCommands, int i)
         case tNSCUsrPw: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
+                if (!commandSettingChanged(settings.ntripServer_CasterUserPW[x], sizeof(settings.ntripServer_CasterUserPW[x])))
+                    continue;
+
                 snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterUserPW[x]));
                 snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
@@ -3131,6 +3203,9 @@ void commandList(bool inCommands, int i)
         case tNSMtPt: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
+                if (!commandSettingChanged(settings.ntripServer_MountPoint[x], sizeof(settings.ntripServer_MountPoint[x])))
+                    continue;
+
                 snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_MountPoint[x]));
                 snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
@@ -3142,6 +3217,9 @@ void commandList(bool inCommands, int i)
         case tNSMtPtPw: {
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
+                if (!commandSettingChanged(settings.ntripServer_MountPointPW[x], sizeof(settings.ntripServer_MountPointPW[x])))
+                    continue;
+
                 snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_MountPointPW[x]));
                 snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
@@ -3155,6 +3233,9 @@ void commandList(bool inCommands, int i)
             // Record corrections priorities
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
+                if (!commandSettingChanged(&settings.correctionsSourcesPriority[x], sizeof(settings.correctionsSourcesPriority[x])))
+                    continue;
+
                 snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, correctionGetName(x));
 
                 getSettingValue(inCommands, settingName, settingValue);
@@ -3165,6 +3246,9 @@ void commandList(bool inCommands, int i)
         case tRegCorTp: {
             for (int r = 0; r < rtkSettingsEntries[i].qualifier; r++)
             {
+                if (!commandSettingChanged(settings.regionalCorrectionTopics[r], sizeof(settings.regionalCorrectionTopics[r])))
+                    continue;
+
                 snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.regionalCorrectionTopics[0]));
                 snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, r);
 

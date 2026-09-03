@@ -1458,6 +1458,10 @@ void setup()
     DMW_b("gnss->begin");
     gnss->begin(); // Requires settings - with array defaults
 
+    // Repeat default resolution after the receiver reports its firmware capabilities.
+    DMW_b("checkGNSSArrayDefaultsAfterBegin");
+    checkGNSSArrayDefaults();
+
     // Has the user switched the GNSS board in the Facet FP?
     if ((online.gnss == false) && (ranDetect == false) && (productVariant == RTK_FACET_FP))
     {
