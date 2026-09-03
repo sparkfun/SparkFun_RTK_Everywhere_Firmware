@@ -27,7 +27,7 @@ static uint32_t i2cPowerUpDelay;
 float computeThreshold(float r1, float r2, float tolerance)
 {
     return MAX_ADC_VOLTAGE * (r2 * (1.0 + (tolerance / 100.0))) /
-        ((r1 * (1.0 + (-tolerance / 100.0))) + (r2 * (1.0 + (tolerance / 100.0))));
+           ((r1 * (1.0 + (-tolerance / 100.0))) + (r2 * (1.0 + (tolerance / 100.0))));
 }
 
 // Determine if the measured value matches the product ID value
@@ -111,9 +111,9 @@ void identifyBoard()
         // Walk the list of products
         for (int i = 0; i < productPropertiesEntries; i++)
         {
-            const productProperties * prop = &productPropertiesTable[i];
-            if ((prop->tolerancePercentage != 0.)
-                && (idWithAdc(idValue, prop->r1, prop->r2, prop->tolerancePercentage)))
+            const productProperties *prop = &productPropertiesTable[i];
+            if ((prop->tolerancePercentage != 0.) &&
+                (idWithAdc(idValue, prop->r1, prop->r2, prop->tolerancePercentage)))
             {
                 productVariant = prop->productVariant;
                 break;
@@ -2048,19 +2048,19 @@ void displayProductResistorTable()
     for (int i = 0; i < RTK_UNKNOWN; i++)
     {
         sortIndex[i] = i;
-        const productProperties * prop = getProductPropertiesFromVariant((ProductVariant)i);
+        const productProperties *prop = getProductPropertiesFromVariant((ProductVariant)i);
 
         // A value of zero for r2 indicates no resistor network present
         if (prop->r2)
         {
-            upperThreshold[i] =  ceil(computeThreshold(prop->r1, prop->r2,  prop->tolerancePercentage));
-            expectedValue[i]  =       computeThreshold(prop->r1, prop->r2, 0);
+            upperThreshold[i] = ceil(computeThreshold(prop->r1, prop->r2, prop->tolerancePercentage));
+            expectedValue[i] = computeThreshold(prop->r1, prop->r2, 0);
             lowerThreshold[i] = floor(computeThreshold(prop->r1, prop->r2, -prop->tolerancePercentage));
         }
         else
         {
             upperThreshold[i] = 0;
-            expectedValue[i]  = 0;
+            expectedValue[i] = 0;
             lowerThreshold[i] = 0;
         }
     }
@@ -2068,11 +2068,11 @@ void displayProductResistorTable()
     // Perform a bubble on the values to order the values high to low
     for (int i = 0; i < RTK_UNKNOWN - 1; i++)
     {
-        const productProperties * prodI = getProductPropertiesFromVariant((ProductVariant)sortIndex[i]);
+        const productProperties *prodI = getProductPropertiesFromVariant((ProductVariant)sortIndex[i]);
         int vI = (prodI->r2 == 0) ? 0 : expectedValue[sortIndex[i]];
         for (int j = i + 1; j < RTK_UNKNOWN; j++)
         {
-            const productProperties * prodJ = getProductPropertiesFromVariant((ProductVariant)sortIndex[j]);
+            const productProperties *prodJ = getProductPropertiesFromVariant((ProductVariant)sortIndex[j]);
             int vJ = (prodJ->r2 == 0) ? 0 : expectedValue[sortIndex[j]];
             if (vI < vJ)
             {
@@ -2089,11 +2089,10 @@ void displayProductResistorTable()
     // Display the table header
     systemPrintln();
     systemPrintln("                   R1 K Ohms           R2 K Ohms");
-    systemPrintf( "  %d.%03d Volts -----/\\/\\/\\/\\/-----+-----/\\/\\/\\/\\/----- Ground\r\n",
-                  MAX_ADC_VOLTAGE / 1000, MAX_ADC_VOLTAGE % 1000);
+    systemPrintf("  %d.%03d Volts -----/\\/\\/\\/\\/-----+-----/\\/\\/\\/\\/----- Ground\r\n", MAX_ADC_VOLTAGE / 1000,
+                 MAX_ADC_VOLTAGE % 1000);
     systemPrintln("                                 |");
-    systemPrintf("                             ADC input: %d mVolts\r\n",
-                 readBoardIdValue());
+    systemPrintf("                             ADC input: %d mVolts\r\n", readBoardIdValue());
     systemPrintln("                                 |");
     systemPrintln("                                 V");
     systemPrintln("  K Ohms                    Millivolts              Max");
@@ -2104,12 +2103,12 @@ void displayProductResistorTable()
     for (int i = 0; i < RTK_UNKNOWN; i++)
     {
         int j = sortIndex[i];
-        const productProperties * prop = getProductPropertiesFromVariant((ProductVariant)j);
+        const productProperties *prop = getProductPropertiesFromVariant((ProductVariant)j);
 
         // Get the product name
         char productName[64];
-        const char * brand = getBrandAttributeFromProductVariant((ProductVariant)j)->name;
-        const char * product = prop->name;
+        const char *brand = getBrandAttributeFromProductVariant((ProductVariant)j)->name;
+        const char *product = prop->name;
         strcpy(productName, brand);
         strcat(productName, " ");
         if (prop->rtkPrefix)
