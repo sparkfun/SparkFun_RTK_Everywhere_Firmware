@@ -1725,23 +1725,88 @@ void pinI2CDetectTask(void *pvParameters)
 }
 
 //----------------------------------------
+// Allocate the I2C controller objects
+//----------------------------------------
+void allocateI2C()
+{
+    if (i2c_0 == nullptr) // i2c_0 could have been instantiated by identifyBoard
+        i2c_0 = new TwoWire(0);
+    if (i2c_0 == nullptr)
+        reportFatalError("ERROR: Failed to allocate i2c_0 object!");
+
+    if (present.i2c1 == true)
+    {
+        if (i2c_1 == nullptr)
+            i2c_1 = new TwoWire(1);
+        if (i2c_1 == nullptr)
+            reportFatalError("ERROR: Failed to allocate i2c_1 object!");
+    }
+}
+
+//----------------------------------------
 // Initialize the I2C controllers
 //----------------------------------------
-void beginI2C()
+bool beginI2C()
+{
+    bool success;
+
+    do
+    {
+        success = true;
+        if (online.i2c == true)
+            break;
+        success = false;
+
+        // Allocate the I2C objects
+        allocateI2C();
+
+        // Complete the power-up delay for a power-controlled I2C bus
+        if (i2cPowerUpDelay)
+            while (millis() < i2cPowerUpDelay)
+                ;
+
+        // Initialize I2C bus 1
+        if (present.i2c1)
+        {
+            int bus1speed = 100;
+            if (present.i2c1BusSpeed_400 == true)
+                bus1speed = 400;
+
+            if (pin_I2C1_SDA == PIN_UNDEFINED || pin_I2C1_SCL == PIN_UNDEFINED)
+                reportFatalError("Illegal I2C1 pin assignment.");
+            if (i2cBusInitialization(i2c_1, 1, pin_I2C1_SDA, pin_I2C1_SCL, bus1speed) == false)
+                break;
+        }
+
+        // Initialize I2C bus 0
+        int bus0speed = 100;
+        if (present.i2c0BusSpeed_400 == true)
+            bus0speed = 400;
+
+        if (pin_I2C0_SDA == PIN_UNDEFINED || pin_I2C0_SCL == PIN_UNDEFINED)
+            reportFatalError("Illegal I2C0 pin assignment.");
+        if (i2cBusInitialization(i2c_0, 0, pin_I2C0_SDA, pin_I2C0_SCL, bus0speed) == false)
+            break;
+
+        // Update the I2C status
+        online.i2c = true;
+        success = true;
+    } while (0);
+    return success;
+}
+
+//----------------------------------------
+// Initialize the I2C task
+//----------------------------------------
+void beginI2CTask()
 {
     if (online.i2c == true)
         return;
 
     TaskHandle_t taskHandle;
 
-    if (i2c_0 == nullptr) // i2c_0 could have been instantiated by identifyBoard
-        i2c_0 = new TwoWire(0);
-
-    if (present.i2c1 == true)
-    {
-        if (i2c_1 == nullptr)
-            i2c_1 = new TwoWire(1);
-    }
+    // Allocate the I2C objects
+    allocateI2C();
 
     if ((present.display_i2c0 == true) && (present.display_i2c1 == true))
         reportFatalError("Displays on both i2c_0 and i2c_1");
@@ -1766,11 +1831,6 @@ void beginI2C()
         // Display splash screen for at least 1 second
         minSplashFor = 1000;
     }
-
-    // Complete the power-up delay for a power-controlled I2C bus
-    if (i2cPowerUpDelay)
-        while (millis() < i2cPowerUpDelay)
-            ;
 
     if (task.i2cPinnedTaskRunning == false)
     {
@@ -1809,29 +1869,7 @@ void pinI2CTask(void *pvParameters)
     if (settings.printTaskStartStop)
         systemPrintln("Task pinI2CTask started");
 
-    if (pin_I2C0_SDA == PIN_UNDEFINED || pin_I2C0_SCL == PIN_UNDEFINED)
-        reportFatalError("Illegal I2C0 pin assignment.");
-
-    int bus0speed = 100;
-    if (present.i2c0BusSpeed_400 == true)
-        bus0speed = 400;
-
-    // Initialize I2C bus 0
-    if (i2cBusInitialization(i2c_0, 0, pin_I2C0_SDA, pin_I2C0_SCL, bus0speed))
-        // Update the I2C status
-        online.i2c = true;
-
-    // Initialize I2C bus 1
-    if (present.i2c1)
-    {
-        int bus1speed = 100;
-        if (present.i2c1BusSpeed_400 == true)
-            bus1speed = 400;
-
-        if (pin_I2C1_SDA == PIN_UNDEFINED || pin_I2C1_SCL == PIN_UNDEFINED)
-            reportFatalError("Illegal I2C1 pin assignment.");
-        i2cBusInitialization(i2c_1, 1, pin_I2C1_SDA, pin_I2C1_SCL, bus1speed);
-    }
+    beginI2C();
 
     // Stop notification
     if (settings.printTaskStartStop)

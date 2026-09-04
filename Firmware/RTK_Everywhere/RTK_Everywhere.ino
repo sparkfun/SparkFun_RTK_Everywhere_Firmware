@@ -1254,8 +1254,8 @@ void setup()
     DMW_b("peripheralsOn");
     peripheralsOn(); // Enable power for the display, SD, etc
 
-    DMW_b("beginI2C");
-    beginI2C(); // Requires settings and peripheral power (if applicable).
+    DMW_b("beginI2CTask");
+    beginI2CTask(); // Requires settings and peripheral power (if applicable).
 
     DMW_b("beginGpioExpanderSwitches");
     beginGpioExpanderSwitches(); // Start the GPIO expander for switch control
