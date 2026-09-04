@@ -1177,54 +1177,6 @@ void reportHeap()
 }
 
 //----------------------------------------
-// Determine MUX pins for this platform and set MUX to ADC/DAC to avoid I2C bus failure
-// See issue #474: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
-//----------------------------------------
-void beginMux()
-{
-    if (present.portDataMux == false)
-        return;
-
-    setMuxport(MUX_ADC_DAC); // Set mux to user's choice: NMEA, I2C, PPS, or DAC
-}
-
-//----------------------------------------
-// Set the port of the 1:4 dual channel analog mux
-// This allows NMEA, I2C, PPS/Event, and ADC/DAC to be routed through data port via software select
-//----------------------------------------
-void setMuxport(int channelNumber)
-{
-    if (present.portDataMux == false)
-        return;
-
-    if (channelNumber > 3)
-        return; // Error check
-
-    if (pin_muxA == PIN_UNDEFINED || pin_muxB == PIN_UNDEFINED)
-        reportFatalError("Illegal MUX pin assignment.");
-
-    switch (channelNumber)
-    {
-    case 0:
-        digitalWrite(pin_muxA, LOW);
-        digitalWrite(pin_muxB, LOW);
-        break;
-    case 1:
-        digitalWrite(pin_muxA, HIGH);
-        digitalWrite(pin_muxB, LOW);
-        break;
-    case 2:
-        digitalWrite(pin_muxA, LOW);
-        digitalWrite(pin_muxB, HIGH);
-        break;
-    case 3:
-        digitalWrite(pin_muxA, HIGH);
-        digitalWrite(pin_muxB, HIGH);
-        break;
-    }
-}
-
-//----------------------------------------
 // Create $GNTXT, type message complete with CRC
 // https://www.nmea.org/Assets/20160520%20txt%20amendment.pdf
 // Used for recording system events (boot reason, event triggers, etc) inside the log
@@ -1831,6 +1783,103 @@ void getMacAddresses(uint8_t *macAddress, const char *name, esp_mac_type_t type,
     if (debug)
         systemPrintf("%02X:%02X:%02X:%02X:%02X:%02X - %s\r\n", macAddress[0], macAddress[1], macAddress[2],
                      macAddress[3], macAddress[4], macAddress[5], name);
+}
+
+//======================= Mux Support =======================
+
+//----------------------------------------
+// Determine MUX pins for this platform and set MUX to ADC/DAC to avoid I2C bus failure
+// See issue #474: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
+//----------------------------------------
+void beginMux()
+{
+    if (present.portDataMux == false)
+        return;
+
+    setMuxport(MUX_ADC_DAC); // Set mux to user's choice: NMEA, I2C, PPS, or DAC
+}
+
+//----------------------------------------
+// Set the port of the 1:4 dual channel analog mux
+// This allows NMEA, I2C, PPS/Event, and ADC/DAC to be routed through data port via software select
+//----------------------------------------
+void setMuxport(int channelNumber)
+{
+    if (present.portDataMux == false)
+        return;
+
+    if (channelNumber > 3)
+        return; // Error check
+
+    if (pin_muxA == PIN_UNDEFINED || pin_muxB == PIN_UNDEFINED)
+        reportFatalError("Illegal MUX pin assignment.");
+
+    switch (channelNumber)
+    {
+    case 0:
+        digitalWrite(pin_muxA, LOW);
+        digitalWrite(pin_muxB, LOW);
+        break;
+    case 1:
+        digitalWrite(pin_muxA, HIGH);
+        digitalWrite(pin_muxB, LOW);
+        break;
+    case 2:
+        digitalWrite(pin_muxA, LOW);
+        digitalWrite(pin_muxB, HIGH);
+        break;
+    case 3:
+        digitalWrite(pin_muxA, HIGH);
+        digitalWrite(pin_muxB, HIGH);
+        break;
+    }
+}
+
+void muxSelectUm980()
+{
+    // On a possible Facet FP UM980 variant, UM980 UART1 will be hardwired to ESP32 UART0. No muxes to change
+    if (productVariant == RTK_TORCH)
+        digitalWrite(pin_muxA,
+                     LOW); // Control U18: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2.
+}
+
+void muxSelectUsb()
+{
+    if (productVariant == RTK_TORCH)
+    {
+        pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
+        digitalWrite(pin_muxA,
+                     LOW); // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
+        digitalWrite(pin_muxB, LOW); // Control U18: Connect ESP UART0 to CH340 Serial
+
+        usbSerialIsSelected = true; // Let other print operations know we are connected to the CH34x
+    }
+}
+
+// Connect ESP32 to LoRa for regular transmissions on Torch
+// On Facet, startLoRaConfigureCommunicationOnFacet() is called separately
+void muxSelectLoRaCommunication()
+{
+    if (productVariant == RTK_TORCH)
+    {
+        pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
+        digitalWrite(pin_muxA,
+                     LOW); // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
+        digitalWrite(pin_muxB, HIGH); // Control U18: Connect ESP UART0 to U11
+
+        usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
+    }
+}
+
+// Connect ESP32 to LoRa for configuration and bootloading
+// This is only called by loraBeginFirmwareUpdate()
+void muxSelectLoRaConfigure()
+{
+    if (productVariant == RTK_TORCH)
+        digitalWrite(pin_muxA,
+                     HIGH); // Control U12: Connect ESP UART1 to LoRa UART0. Control U11: Connect U18-B1 to UM980 UART1
+    else if (productVariant == RTK_FACET_FP)
+        startLoRaConfigureCommunicationOnFacet();
 }
 
 //======================= GPIO Support =======================
@@ -2551,4 +2600,30 @@ void systemDisplayConfiguration()
     if (present.i2c1 && (pin_I2C1_SCL != PIN_UNDEFINED))
         systemPrintf("I2C-1: SCL: %d, SDA: %d\r\n", pin_I2C1_SCL, pin_I2C1_SDA);
     i2cBusEnumerate(i2c_1, 1);
+}
+
+//======================= LoRa Support =======================
+
+void endLoRaConfigureCommunicationOnFacet()
+{
+    if (productVariant == RTK_FACET_FP)
+    {
+        // On Facet FP only:
+        // We are done talking to LoRa, so it is time to
+        // connect ESP32 UART2 -> SW3 -> GNSS UART3 (IM19 UART1 for Tilt)
+        // The OTA traffic goes direct from GNSS UART2 <-> LoRa UART0
+        gpioExpanderSelectImu();
+    }
+}
+
+void startLoRaConfigureCommunicationOnFacet()
+{
+    if (productVariant == RTK_FACET_FP)
+    {
+        // On Facet FP only:
+        // Connect ESP to LoRa for sending config commands or for firmware update
+        // Connect ESP32 UART2 -> SW3 -> LoRa UART2
+        // The OTA traffic goes direct from GNSS UART2 <-> LoRa UART0
+        gpioExpanderSelectLoraConfigure();
+    }
 }
