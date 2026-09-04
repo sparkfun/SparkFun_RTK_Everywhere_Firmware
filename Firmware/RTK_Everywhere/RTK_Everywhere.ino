@@ -897,7 +897,6 @@ uint32_t lastBaseLEDupdate; // Controls the blinking of the Base LED
 
 uint32_t lastFileReport = 0;  // When logging, print file record stats every few seconds
 long lastStackReport;         // Controls the report rate of stack highwater mark within a task
-uint32_t lastHeapReport;      // Report heap every 1s if option enabled
 uint32_t lastTaskHeapReport;  // Report task heap every 1s if option enabled
 uint32_t lastCasterLEDupdate; // Controls the cycling of position LEDs during casting
 uint32_t lastRTCAttempt;      // Wait 1000ms between checking GNSS for current date/time

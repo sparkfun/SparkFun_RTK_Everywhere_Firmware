@@ -12,6 +12,8 @@ static uint32_t firmwareUpdateBytesToProcess;
 static uint32_t firmwareUpdateBytesProcessed;
 static uint8_t firmwareUpdateLastPercent;
 
+static uint32_t lastHeapReport;      // Report heap every 1s if option enabled
+
 //====================== Firmware Update Support ======================
 
 //----------------------------------------
