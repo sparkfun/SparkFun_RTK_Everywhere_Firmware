@@ -263,7 +263,7 @@ void beginBoard()
         settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps.
 
         pinMode(pin_loraRadio_power, OUTPUT);
-        loraPowerOff(); // Keep LoRa powered down for now
+        gpioLoraPowerOff(); // Keep LoRa powered down for now
 
         pinMode(pin_loraRadio_boot, OUTPUT);
         digitalWrite(pin_loraRadio_boot, LOW); // Exit bootloader, run program
@@ -730,7 +730,7 @@ void beginBoard()
 
         // LoRa not mounted in X2, but power down to be sure
         pinMode(pin_loraRadio_power, OUTPUT);
-        loraPowerOff(); // Keep LoRa powered down for now
+        gpioLoraPowerOff(); // Keep LoRa powered down for now
     }
 }
 

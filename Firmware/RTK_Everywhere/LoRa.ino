@@ -103,7 +103,7 @@ void updateLora()
     if (settings.enableLora == false && (loraState >= LORA_IDLE && loraState < LORA_STATE_MAX))
     {
         loraHangup();   // On Facet FP, select external radio and restore baud rate
-        loraPowerOff(); // Leave serial inteface in place
+        gpioLoraPowerOff(); // Leave serial inteface in place
         loraState = LORA_DISABLED;
     }
 
@@ -122,8 +122,8 @@ void updateLora()
                          // mode.
             if (settings.enableLora == false)
             {
-                loraHangup();   // On Facet FP, select external radio and restore baud rate
-                loraPowerOff(); // Power off system. Leave serial inteface in place
+                loraHangup();       // On Facet FP, select external radio and restore baud rate
+                gpioLoraPowerOff(); // Power off system. Leave serial inteface in place
                 loraState = LORA_DISABLED;
             }
             else
@@ -134,7 +134,7 @@ void updateLora()
     case (LORA_DISABLED):
         if (settings.enableLora == true)
         {
-            loraPowerOn();
+            gpioLoraPowerOn();
             loraState = LORA_IDLE;
         }
         break;
@@ -402,7 +402,7 @@ void beginLora()
             systemPrintln("Begin LoRa");
 
         loraDisableBootloader(); // Disables BOOT pin
-        loraPowerOn();           // Power STM32/radio
+        gpioLoraPowerOn();       // Power STM32/radio
 
         delay(50); // Give LoRa radio time to power stabilize
 
@@ -425,7 +425,7 @@ void loraStop()
         if (settings.debugLora == true)
             systemPrintln("Stopping LoRa");
 
-        loraPowerOff(); // Power down STM32/radio
+        gpioLoraPowerOff(); // Power down STM32/radio
     }
 }
 
@@ -553,22 +553,6 @@ void loraReset()
     }
 }
 
-void loraPowerOn()
-{
-    if (productVariant == RTK_TORCH)
-        digitalWrite(pin_loraRadio_power, HIGH); // Power STM32/radio
-    else if (productVariant == RTK_FACET_FP)
-        gpioExpanderLoraEnable();
-}
-
-void loraPowerOff()
-{
-    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
-        digitalWrite(pin_loraRadio_power, LOW); // Power off STM32/radio
-    else if (productVariant == RTK_FACET_FP)
-        gpioExpanderLoraDisable();
-}
-
 bool loraIsOn()
 {
     if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
@@ -641,7 +625,7 @@ void loraBeginFirmwareUpdate()
 
     systemFlush(); // Complete prints
 
-    loraPowerOn();
+    gpioLoraPowerOn();
     delay(500); // Allow power to stabilize
 
     // Change Serial speed of UART0
@@ -1172,7 +1156,7 @@ void loraRxDirectConnectTorch()
 
     serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX); // Keep this at 115200
 
-    loraPowerOn(); // Power STM32/radio
+    gpioLoraPowerOn(); // Power STM32/radio
 
     delay(500); // Give LoRa radio time to power stabilize
 
@@ -1222,7 +1206,7 @@ void loraRxDirectConnectFacetFP()
     if (SerialForLoRa == nullptr)
         return;
 
-    loraPowerOn(); // Power STM32/radio
+    gpioLoraPowerOn(); // Power STM32/radio
 
     delay(500); // Give LoRa radio time to power stabilize
 
@@ -1326,7 +1310,7 @@ void loraTxDirectConnectTorch()
 
     serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX); // Keep this at 115200
 
-    loraPowerOn(); // Power STM32/radio
+    gpioLoraPowerOn(); // Power STM32/radio
 
     delay(500); // Give LoRa radio time to power stabilize
 
@@ -1394,7 +1378,7 @@ void loraTxDirectConnectFacetFP()
     if (SerialForLoRa == nullptr)
         return;
 
-    loraPowerOn(); // Power STM32/radio
+    gpioLoraPowerOn(); // Power STM32/radio
 
     delay(500); // Give LoRa radio time to power stabilize
 
@@ -1717,7 +1701,7 @@ bool stm32UpdateFirmwareBegin()
         gpioExpanderSelectLoraConfigure();
     }
 
-    loraPowerOn(); // Regardless of previous state, turn on the STM32
+    gpioLoraPowerOn(); // Regardless of previous state, turn on the STM32
 
     loraEnterBootloader(); // Push boot pin high and reset STM32
 

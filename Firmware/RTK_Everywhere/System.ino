@@ -1880,6 +1880,28 @@ void gpioGnssReset()
 }
 
 //----------------------------------------
+// Power on the LoRa radio
+//----------------------------------------
+void gpioLoraPowerOn()
+{
+    if (productVariant == RTK_TORCH)
+        digitalWrite(pin_loraRadio_power, HIGH); // Power STM32/radio
+    else if (productVariant == RTK_FACET_FP)
+        gpioExpanderLoraEnable();
+}
+
+//----------------------------------------
+// Power off the LoRa radio
+//----------------------------------------
+void gpioLoraPowerOff()
+{
+    if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
+        digitalWrite(pin_loraRadio_power, LOW); // Power off STM32/radio
+    else if (productVariant == RTK_FACET_FP)
+        gpioExpanderLoraDisable();
+}
+
+//----------------------------------------
 // Drive GPIO pin high to bring GNSS out of reset
 //----------------------------------------
 void gpioExpanderGnssBoot()
