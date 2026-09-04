@@ -3057,22 +3057,10 @@ void paintMACAddress2digit(uint8_t xPos, uint8_t yPos)
 
 void displayBaseStart(uint16_t displayTime)
 {
-    if (online.display == true)
-    {
-        theDisplay->erase();
-
-        uint8_t fontHeight = 15; // Assume fontsize 1
-        uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight + 1;
-
-        if (settings.baseCasterOverride == true)
-            printTextCenter("BaseCast", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        else
-            printTextCenter("Base", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        theDisplay->displayMessage();
-
-        delay(displayTime);
-    }
+    if (settings.baseCasterOverride == true)
+        displayMessage("BaseCast\n ", displayTime); // Two lines, empty 2nd line
+    else
+        displayMessage("Base\n ", displayTime); // Two lines, empty 2nd line
 }
 
 void displayBaseSuccess(uint16_t displayTime)
@@ -3156,77 +3144,22 @@ void displayUpdateZEDF9R(uint16_t displayTime)
 
 void displayRoverStart(uint16_t displayTime)
 {
-    if (online.display == true)
-    {
-        theDisplay->erase();
-
-        uint8_t fontHeight = 15;
-        uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
-
-        printTextCenter("Rover", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);
-
-        theDisplay->displayMessage();
-
-        delay(displayTime);
-    }
+    displayMessage("Rover\n ", displayTime); // Two lines, empty 2nd line
 }
 
 void displayNoRingBuffer(uint16_t displayTime)
 {
-    if (online.display == true)
-    {
-        theDisplay->erase();
-
-        uint8_t fontHeight = 8;
-        uint8_t yPos = theDisplay->getHeight() / 3 - fontHeight;
-
-        printTextCenter("Fix GNSS", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Handler", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Buffer Sz", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-        theDisplay->displayMessage();
-
-        delay(displayTime);
-    }
+    displayMessage("Fix GNSS\nHandler\nBuffer Sz", displayTime);
 }
 
 void displayRoverSuccess(uint16_t displayTime)
 {
-    if (online.display == true)
-    {
-        theDisplay->erase();
-
-        uint8_t fontHeight = 15;
-        uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
-
-        printTextCenter("Rover", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);                // text, y, font type, kerning, inverted
-        printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        theDisplay->displayMessage();
-
-        delay(displayTime);
-    }
+    displayMessage("Rover Started", displayTime);
 }
 
 void displayRoverFail(uint16_t displayTime)
 {
-    if (online.display == true)
-    {
-        theDisplay->erase();
-
-        uint8_t fontHeight = 15;
-        uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
-
-        printTextCenter("Rover", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);               // text, y, font type, kerning, inverted
-        printTextCenter("Failed", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        theDisplay->displayMessage();
-
-        delay(displayTime);
-    }
+    displayMessage("Rover Failed", displayTime);
 }
 
 // When user enters serial config menu the display will freeze so show splash while config happens
@@ -3249,57 +3182,18 @@ void displaySystemReset()
 
 void displaySurveyStart(uint16_t displayTime)
 {
-    if (online.display == true)
-    {
-        theDisplay->erase();
-
-        uint8_t fontHeight = 15;
-        uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
-
-        printTextCenter("Survey", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);
-
-        theDisplay->displayMessage();
-
-        delay(displayTime);
-    }
+    displayMessage("Survey\n ", displayTime); // Two lines, empty 2nd line
 }
 
 void displaySurveyStarted(uint16_t displayTime)
 {
-    if (online.display == true)
-    {
-        theDisplay->erase();
-
-        uint8_t fontHeight = 15;
-        uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
-
-        printTextCenter("Survey", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);               // text, y, font type, kerning, inverted
-        printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        theDisplay->displayMessage();
-
-        delay(displayTime);
-    }
+    displayMessage("Survey Started", displayTime);
 }
 
 // If the SD card is detected but is not formatted correctly, display warning
 void displaySDFail(uint16_t displayTime)
 {
-    if (online.display == true)
-    {
-        theDisplay->erase();
-
-        uint8_t fontHeight = 15;
-        uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
-
-        printTextCenter("Format", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);               // text, y, font type, kerning, inverted
-        printTextCenter("SD Card", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        theDisplay->displayMessage();
-
-        delay(displayTime);
-    }
+    displayMessage("Format\nSD Card", displayTime);
 }
 
 // Display the full WiFi icon
@@ -3362,26 +3256,10 @@ void displayForcedFirmwareUpdate()
 
 void displayFirmwareUpdateProgress(int percentComplete)
 {
-    // Update the display if connected
-    if (online.display == true)
-    {
-        theDisplay->erase(); // Clear the display's internal buffer
+    char temp[50];
+    snprintf(temp, sizeof(temp), "Firmware\nUpdate\n%d%%", percentComplete);
 
-        int yPos = 3;
-        int fontHeight = 8;
-
-        printTextCenter("Firmware", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-        yPos = yPos + fontHeight + 1;
-        printTextCenter("Update", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-        yPos = yPos + fontHeight + 3;
-        char temp[50];
-        snprintf(temp, sizeof(temp), "%d%%", percentComplete);
-        printTextCenter(temp, yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        theDisplay->displayMessage(); // Push internal buffer to display
-    }
+    displayMessage(temp, 100); // Push internal buffer to display
 }
 
 void displayEventMarked(uint16_t displayTime)
@@ -3667,40 +3545,161 @@ void printTextAt(const char *text, uint8_t xPos, uint8_t yPos, QwiicFont &fontTy
     }
 }
 
-// Given a message (one or two words) display centered
+// Given a message, display centered
+// Updated to do all the things:
+//   The font size is automatically maximised according to the display_type
+//   If the text contains spaces (only), split words onto separate lines
+//   If the text contains \n, \n moves to the next line. Spaces within a line are retained
 void displayMessage(const char *message, uint16_t displayTime)
 {
     if (online.display == true)
     {
-        char temp[21];
-        uint8_t fontHeight = 15; // Assume fontsize 1
+        const uint8_t kerning = 1;
 
-        // Count words based on spaces
-        uint8_t wordCount = 0;
-        strncpy(temp, message, sizeof(temp) - 1); // strtok modifies the message so make copy
+        // First, figure out which display we have
+        uint8_t xPixels = theDisplay->getWidth();
+        uint8_t yPixels = theDisplay->getHeight();
+
+        // strtok_r needs char[] and will blow away our separators
+        size_t messageLength = strlen(message);
+        char messageCopy[messageLength + 1];
+        strcpy(messageCopy, message);
+
+        // Next, check if the text contains '\n'
+        uint8_t numLF = 0;
         char *preservedPointer;
-        char *token = strtok_r(temp, " ", &preservedPointer);
+        char *token = strtok_r(messageCopy, "\n", &preservedPointer);
         while (token != nullptr)
         {
-            wordCount++;
-            token = strtok_r(nullptr, " ", &preservedPointer);
+            numLF++;
+            token = strtok_r(nullptr, "\n", &preservedPointer);
         }
 
-        uint8_t yPos = (theDisplay->getHeight() / 2) - (fontHeight / 2);
-        if (wordCount == 2)
-            yPos -= (fontHeight / 2);
+        //systemPrintf("displayMessage numLF %d: %s\r\n", numLF, message);
+
+        uint8_t numLines = 1; // numLines is at least one
+        if (numLF > 1)
+        {
+            numLines += numLF - 1; // numLF is one more than the number of line feeds
+        }
+        else
+        {
+            // Text does not contain \n, so count lines based on spaces
+            token = strtok_r(messageCopy, " ", &preservedPointer);
+            while (token != nullptr)
+            {
+                numLines++;
+                token = strtok_r(nullptr, " ", &preservedPointer);
+            }
+
+            numLines--;
+        }
+
+        if (numLines == 0) // Sanity check
+        {
+            systemPrintf("displayMessage numLines is zero: %s\r\n", message);
+            return;
+        }
+
+        //systemPrintf("displayMessage numLines %d: %s\r\n", numLines, message);
+
+        // Calculate the longest line length
+        // strtok_r blew away our separators, replacing them with null
+        size_t longestLine = 0;
+        token = messageCopy;
+        for (size_t i = 0; i < numLines; i++)
+        {
+            if (strlen(token) > longestLine)
+                longestLine = strlen(token);
+            token += strlen(token) + 1; // Skip the null
+        }
+
+        if (longestLine == 0) // Sanity check
+        {
+            systemPrintf("displayMessage longestLine is zero: %s\r\n", message);
+            return;
+        }
+
+        //systemPrintf("displayMessage longestLine %d: %s\r\n", longestLine, message);
+
+        // Using longestLine and numLines, calculate what font size we can use
+        const int numQwiicFonts = 2;
+        QwiicFont *qwiicFonts[numQwiicFonts] = { &QW_FONT_5X7, &QW_FONT_8X16 };
+        uint8_t qwiicFontLineSpacing[numQwiicFonts] = { 8, 16 };
+        QwiicFont *chosenQwiicFont = nullptr;
+        const int numQwiicEpFonts = 3;
+        QwiicEpFont *qwiicEpFonts[numQwiicEpFonts] = { &QW_EP_FONT_5X7, &QW_EP_FONT_8X16, &QW_EP_FONT_10X20};
+        uint8_t qwiicEpFontLineSpacing[numQwiicEpFonts] = { 8, 16, 20 };
+        QwiicEpFont *chosenQwiicEpFont = nullptr;
+        uint8_t chosenLineSpacing = 0;
+
+        if (present.display_type == DISPLAY_184x88)
+        {
+            // Step through e-paper fonts in reverse height order
+            for (int i = numQwiicEpFonts; i > 0; i--)
+            {
+                // Check if numLines will fit in yPixels given the line spacing
+                if (int(yPixels) >= (int(numLines) * int(qwiicEpFontLineSpacing[i - 1])))
+                {
+                    // Check if longestLine will fit in xPixels given the font width
+                    // Include the kerning
+                    if (int(xPixels) >= (int(longestLine) * (int(qwiicEpFonts[i - 1]->width) + int(kerning))))
+                    {
+                        chosenQwiicEpFont = qwiicEpFonts[i - 1];
+                        chosenLineSpacing = qwiicEpFontLineSpacing[i - 1];
+                        chosenQwiicFont = qwiicFonts[0]; // Something. Can't leave this nullptr
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Step through OLED fonts in reverse height order
+            for (int i = numQwiicFonts; i > 0; i--)
+            {
+                // Check if numLines will fit in yPixels given the line spacing
+                if ((int)yPixels >= ((int)numLines * (int)qwiicFontLineSpacing[i - 1]))
+                    // Check if longestLine will fit in xPixels given the font width
+                    // Include the kerning
+                    if ((size_t)xPixels >= (longestLine * (qwiicEpFonts[i - 1]->width + kerning)))
+                    {
+                        chosenQwiicFont = qwiicFonts[i - 1];
+                        chosenLineSpacing = qwiicFontLineSpacing[i - 1];
+                        chosenQwiicEpFont = qwiicEpFonts[0]; // Something. Can't leave this nullptr
+                        break;
+                    }
+            }
+        }
+
+        if ((chosenQwiicFont == nullptr) || (chosenQwiicEpFont == nullptr))
+        {
+            systemPrintf("displayMessage no suitable font found: %s\r\n", message);
+            return; // Sanity check
+        }
+
+        if (chosenLineSpacing == 0) // Sanity check
+        {
+            systemPrintf("displayMessage chosenLineSpacing is zero: %s\r\n", message);
+            return;
+        }
+
+        // yPos is display mid point minus half the line spacing
+        uint8_t yPos = (yPixels / 2) - (chosenLineSpacing / 2);
+        // Bump yPos up by half the line spacing for each extra line
+        for (uint8_t l = 1; l < numLines; l++)
+            yPos -= (chosenLineSpacing / 2);
 
         theDisplay->erase(); // erase only clears the library graphics buffer
 
         // drawFrame();
 
-        strncpy(temp, message, sizeof(temp) - 1);
-        token = strtok_r(temp, " ", &preservedPointer);
-        while (token != nullptr)
+        token = messageCopy;
+        for (uint8_t l = 0; l < numLines; l++)
         {
-            printTextCenter(token, yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-            token = strtok_r(nullptr, " ", &preservedPointer);
-            yPos += fontHeight;
+            printTextCenter(token, yPos, *chosenQwiicFont, *chosenQwiicEpFont, kerning, false); // text, y, font type, kerning, inverted
+            token += strlen(token) + 1; // Next line, skip the null
+            yPos += chosenLineSpacing;
         }
 
         theDisplay->displayMessage();
@@ -3816,35 +3815,7 @@ void paintKeyDaysRemaining(int daysRemaining, uint16_t displayTime)
 
 void paintKeyUpdateFail(uint16_t displayTime)
 {
-    // PP
-    // Update
-    // Failed
-    // No Network
-
-    if (online.display == true)
-    {
-        theDisplay->erase();
-
-        theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
-
-        int y = 0;
-        int fontHeight = 13;
-
-        printTextCenter("PP", y, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        y += fontHeight;
-        printTextCenter("Update", y, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        y += fontHeight;
-        printTextCenter("Failed", y, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        y += fontHeight + 1;
-        printTextCenter("No Network", y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-        theDisplay->displayMessage();
-
-        delay(displayTime);
-    }
+    displayMessage("PP\nUpdate\nFailed\nNo Network", displayTime);
 }
 
 void paintNtripWiFiFail(uint16_t displayTime, bool Client)
@@ -3854,30 +3825,10 @@ void paintNtripWiFiFail(uint16_t displayTime, bool Client)
     // Failed
     // No WiFi
 
-    if (online.display == true)
-    {
-        theDisplay->erase();
-
-        int y = 0;
-        int fontHeight = 13;
-
-        const char *string = Client ? "Client" : "Server";
-
-        printTextCenter("NTRIP", y, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        y += fontHeight;
-        printTextCenter(string, y, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        y += fontHeight;
-        printTextCenter("Failed", y, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        y += fontHeight + 1;
-        printTextCenter("No WiFi", y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-        theDisplay->displayMessage();
-
-        delay(displayTime);
-    }
+    if (Client)
+        displayMessage("NTRIP\nClient\nFailed\nNo WiFi", displayTime);
+    else
+        displayMessage("NTRIP\nServer\nFailed\nNo WiFi", displayTime);
 }
 
 void paintKeysExpired()
@@ -3921,40 +3872,14 @@ void paintKeyProvisionFail(uint16_t displayTime)
     // ID:
     // 10chars
 
-    if (online.display == true)
-    {
-        theDisplay->erase();
+    const uint8_t *rtkMacAddress = networkGetMacAddress();
+    char temp[50];
+    snprintf(temp, sizeof(temp), "Failed\nZTP ID:\n%02X%02X%02X\n%02X%02X%02X\n%02X",
+             rtkMacAddress[0], rtkMacAddress[1], rtkMacAddress[2],
+             rtkMacAddress[3], rtkMacAddress[4], rtkMacAddress[5],
+             productVariant);
 
-        theDisplay->setFont(QW_FONT_5X7, QW_EP_FONT_5X7);
-
-        int y = 0;
-        int fontHeight = 8;
-
-        printTextCenter("Failed", y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-        y += fontHeight;
-        printTextCenter("ZTP ID:", y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-        // The device ID is 14 characters long so we have to split it into three lines
-        char hardwareID[15];
-        const uint8_t *rtkMacAddress = networkGetMacAddress();
-
-        snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X", rtkMacAddress[0], rtkMacAddress[1], rtkMacAddress[2]);
-        y += fontHeight;
-        printTextCenter(hardwareID, y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-        snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X", rtkMacAddress[3], rtkMacAddress[4], rtkMacAddress[5]);
-        y += fontHeight;
-        printTextCenter(hardwareID, y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-        snprintf(hardwareID, sizeof(hardwareID), "%02X", productVariant);
-        y += fontHeight;
-        printTextCenter(hardwareID, y, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-        theDisplay->displayMessage();
-
-        delay(displayTime);
-    }
+    displayMessage(temp, displayTime); // Push internal buffer to display
 }
 
 // Show screen while ESP-NOW is pairing
@@ -3974,73 +3899,22 @@ void paintMosaicBooting()
 
 void displayNtpStart(uint16_t displayTime)
 {
-    if (online.display == true)
-    {
-        theDisplay->erase();
-
-        uint8_t fontHeight = 15;
-        uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
-
-        printTextCenter("NTP", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        theDisplay->displayMessage();
-
-        delay(displayTime);
-    }
+    displayMessage("NTP\n ", displayTime); // Two lines, empty 2nd line
 }
 
 void displayNtpStarted(uint16_t displayTime)
 {
-    if (online.display == true)
-    {
-        theDisplay->erase();
-
-        uint8_t fontHeight = 15;
-        uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
-
-        printTextCenter("NTP", yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);                  // text, y, font type, kerning, inverted
-        printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        theDisplay->displayMessage();
-
-        delay(displayTime);
-    }
+    displayMessage("NTP Started", displayTime);
 }
 
 void displayNtpNotReady(uint16_t displayTime)
 {
-    if (online.display == true)
-    {
-        theDisplay->erase();
-
-        uint8_t fontHeight = 8;
-        uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
-
-        printTextCenter("Ethernet", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);               // text, y, font type, kerning, inverted
-        printTextCenter("Not Ready", yPos + fontHeight, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-        theDisplay->displayMessage();
-
-        delay(displayTime);
-    }
+    displayMessage("Ethernet\nNot Ready", displayTime);
 }
 
 void displayNTPFail(uint16_t displayTime)
 {
-    if (online.display == true)
-    {
-        theDisplay->erase();
-
-        uint8_t fontHeight = 8;
-        uint8_t yPos = theDisplay->getHeight() / 2 - fontHeight;
-
-        printTextCenter("NTP", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);                 // text, y, font type, kerning, inverted
-        printTextCenter("Failed", yPos + fontHeight, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-        theDisplay->displayMessage();
-
-        delay(displayTime);
-    }
+    displayMessage("NTP Failed", displayTime);
 }
 
 // When user enters Web Config mode, show splash while web server starts
@@ -4142,22 +4016,13 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
         memcpy(myIP, &myIP[strlen(myIP) - displayMaxCharacters], displayMaxCharacters);
     myIP[displayMaxCharacters] = '\0';
 
-    // Display the SSID header
-    if (displaySsid)
-    {
-        printTextCenter("SSID:", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-        yPos = yPos + fontHeight + 1;
-    }
+    char temp[50];
+    snprintf(temp, sizeof(temp), "%s%s\nIP:\n%s",
+             displaySsid ? "SSID:\n" : "",
+             mySSID,
+             myIP);
 
-    // Display the SSID
-    printTextCenter(mySSID, yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
-    yPos = yPos + fontHeight + 3;
-
-    // Display the IP header
-    printTextCenter("IP:", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
-    yPos = yPos + fontHeight + 1;
-
-    printTextCenter(myIP, yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
+    displayMessage(temp, 100);
 }
 
 // Show GNSS update - button exit
@@ -4183,19 +4048,8 @@ void paintLoRaDirectTx()
 }
 void paintGenericUpdate(const char *device, const char *update)
 {
-    if (online.display)
-    {
-        theDisplay->erase(); // Clear the display's internal buffer
-        int yPos = (theDisplay->getHeight() - 38) / 2;
-        uint8_t fontHeight = 8;
-        printTextCenter(device, yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-        yPos = yPos + fontHeight + 1;
-        printTextCenter(update, yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
-        yPos = yPos + fontHeight + 3;
-        printTextCenter("Button", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, true); // text, y, font type, kerning, inverted
-        yPos = yPos + fontHeight + 1;
-        printTextCenter("To Exit", yPos, QW_FONT_5X7, QW_EP_FONT_5X7, 1, true);
-        theDisplay->displayMessage(); // Push internal buffer to display
-    }
+    char temp[50];
+    snprintf(temp, sizeof(temp), "%s\n%s\nButton\nTo Exit", device, update);
+    displayMessage(temp, 100);
 }
 
