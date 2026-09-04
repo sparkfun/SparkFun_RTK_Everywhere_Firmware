@@ -2948,6 +2948,8 @@ void bluetoothCommandTask(void *pvParameters)
 {
     int rxSpot = 0;
     char rxData[256]; // Input limit of 256 chars
+    bool passRtcmToGnss = false;
+    uint32_t rtcmTimer = 0;
 
     // Start notification
     task.bluetoothCommandTaskRunning = true;
@@ -2973,6 +2975,28 @@ void bluetoothCommandTask(void *pvParameters)
             {
                 byte incoming = bluetoothCommandRead();
                 bleCommandTrafficSeen_ms = millis();
+
+                // The app may send binary RTCM over the BLE command channel; keep it out of the CLI line parser.
+                if (incoming == 0xd3)
+                {
+                    passRtcmToGnss = true;
+                    rtcmTimer = millis();
+                    rxSpot = 0;
+                }
+
+                if (passRtcmToGnss && ((millis() - rtcmTimer) < RTCM_CORRECTION_INPUT_TIMEOUT))
+                {
+                    rtcmTimer = millis();
+                    rtcmLastPacketReceived = rtcmTimer;
+                    bluetoothIncomingRTCM = true;
+
+                    if (correctionLastSeen(CORR_BLUETOOTH))
+                        addToGnssBuffer(incoming);
+
+                    continue;
+                }
+
+                passRtcmToGnss = false;
 
                 rxData[rxSpot++] = incoming;
                 rxSpot %= sizeof(rxData); // Wrap

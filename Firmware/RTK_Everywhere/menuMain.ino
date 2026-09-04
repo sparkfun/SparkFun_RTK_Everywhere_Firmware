@@ -111,7 +111,7 @@ void menuMain()
         if (btPrintEcho || tcpServerInRemoteConfig())
             systemPrintln("b) Exit Remote Echo mode");
 
-        systemPrintln("+) Enter Command line mode");
+        systemPrintln("+) Enter Command Line Mode");
 
         systemPrintln("x) Exit");
 
