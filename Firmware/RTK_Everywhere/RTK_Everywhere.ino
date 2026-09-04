@@ -229,120 +229,7 @@ const uint16_t HTTPS_PORT = 443;                                                
 #define IDLE_TIME_DISPLAY_SECONDS 5
 #define MAX_IDLE_TIME_COUNT (IDLE_TIME_DISPLAY_SECONDS * IDLE_COUNT_PER_SECOND)
 
-#define HOURS_IN_A_DAY 24L
-#define MINUTES_IN_AN_HOUR 60L
-#define SECONDS_IN_A_MINUTE 60L
-#define MILLISECONDS_IN_A_SECOND 1000L
-#define MILLISECONDS_IN_A_MINUTE (SECONDS_IN_A_MINUTE * MILLISECONDS_IN_A_SECOND)
-#define MILLISECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * MILLISECONDS_IN_A_MINUTE)
-#define MILLISECONDS_IN_A_DAY (HOURS_IN_A_DAY * MILLISECONDS_IN_AN_HOUR)
-
-#define SECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * SECONDS_IN_A_MINUTE)
-#define SECONDS_IN_A_DAY (HOURS_IN_A_DAY * SECONDS_IN_AN_HOUR)
-
 const char *debugMessagePrefix = "# => "; // Something ~unique and easy to trigger on
-
-// Hardware connections
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// These pins are set in beginBoard()
-#define PIN_UNDEFINED -1
-int pin_debug = PIN_UNDEFINED;              // LED on EVK
-int pin_batteryStatusLED = PIN_UNDEFINED;   // LED on Torch
-int pin_baseStatusLED = PIN_UNDEFINED;      // LED on EVK
-int pin_bluetoothStatusLED = PIN_UNDEFINED; // LED on Torch
-int pin_gnssStatusLED = PIN_UNDEFINED;      // LED on Torch
-
-int pin_muxA = PIN_UNDEFINED;
-int pin_muxB = PIN_UNDEFINED;
-int pin_mux1 = PIN_UNDEFINED;
-int pin_mux2 = PIN_UNDEFINED;
-int pin_mux3 = PIN_UNDEFINED;
-int pin_mux4 = PIN_UNDEFINED;
-
-int pin_modeButton = PIN_UNDEFINED;   // Mode button on EVK, Function button on Facet FP
-int pin_powerButton = PIN_UNDEFINED;  // Power and general purpose button on Torch, Facet
-int pin_powerFastOff = PIN_UNDEFINED; // Output on Facet
-int pin_muxDAC = PIN_UNDEFINED;
-int pin_muxADC = PIN_UNDEFINED;
-int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK and Facet mosaic
-
-int pin_GnssEvent = PIN_UNDEFINED;   // Facet mosaic
-int pin_GnssOnOff = PIN_UNDEFINED;   // Facet mosaic
-int pin_chargerLED = PIN_UNDEFINED;  // Facet mosaic
-int pin_chargerLED2 = PIN_UNDEFINED; // Facet mosaic
-int pin_GnssReady = PIN_UNDEFINED;   // Facet mosaic
-
-int pin_loraRadio_reset = PIN_UNDEFINED;
-int pin_loraRadio_boot = PIN_UNDEFINED;
-int pin_loraRadio_power = PIN_UNDEFINED;
-
-int pin_Ethernet_CS = PIN_UNDEFINED;
-int pin_Ethernet_Interrupt = PIN_UNDEFINED;
-int pin_GNSS_CS = PIN_UNDEFINED;
-int pin_GNSS_TimePulse = PIN_UNDEFINED;
-int pin_GNSS_Reset = PIN_UNDEFINED;
-
-// microSD card pins
-int pin_PICO = PIN_UNDEFINED;
-int pin_POCI = PIN_UNDEFINED;
-int pin_SCK = PIN_UNDEFINED;
-int pin_microSD_CardDetect = PIN_UNDEFINED;
-int pin_microSD_CS = PIN_UNDEFINED;
-
-int pin_I2C0_SDA = PIN_UNDEFINED;
-int pin_I2C0_SCL = PIN_UNDEFINED;
-
-// On EVK, Display is on separate I2C bus
-int pin_I2C1_SDA = PIN_UNDEFINED;
-int pin_I2C1_SCL = PIN_UNDEFINED;
-
-int pin_GnssUart_RX = PIN_UNDEFINED;
-int pin_GnssUart_TX = PIN_UNDEFINED;
-
-int pin_GnssUart2_RX = PIN_UNDEFINED;
-int pin_GnssUart2_TX = PIN_UNDEFINED;
-
-int pin_Cellular_RX = PIN_UNDEFINED;
-int pin_Cellular_TX = PIN_UNDEFINED;
-int pin_Cellular_PWR_ON = PIN_UNDEFINED;
-int pin_Cellular_Network_Indicator = PIN_UNDEFINED;
-int pin_Cellular_Reset = PIN_UNDEFINED;
-int pin_Cellular_RTS = PIN_UNDEFINED;
-int pin_Cellular_CTS = PIN_UNDEFINED;
-bool cellularModemResetLow = false;
-#define CELLULAR_MODEM_FC ESP_MODEM_FLOW_CONTROL_NONE
-uint8_t laraPwrLowValue;
-uint32_t laraTimer; // Backoff timer
-
-int pin_IMU_RX = PIN_UNDEFINED;
-int pin_IMU_TX = PIN_UNDEFINED;
-int pin_GNSS_DR_Reset = PIN_UNDEFINED;
-int pin_IMU_Boot = PIN_UNDEFINED;
-
-int pin_powerAdapterDetect = PIN_UNDEFINED;
-int pin_usbSelect = PIN_UNDEFINED;
-int pin_beeper = PIN_UNDEFINED;
-
-int pin_gpioExpanderInterrupt = PIN_UNDEFINED;
-const uint8_t gpioExpander_up = 0;
-const uint8_t gpioExpander_down = 1;
-const uint8_t gpioExpander_right = 2;
-const uint8_t gpioExpander_left = 3;
-const uint8_t gpioExpander_center = 4;
-const uint8_t gpioExpander_cardDetect = 5;
-const uint8_t gpioExpander_io6 = 6;
-const uint8_t gpioExpander_io7 = 7;
-
-const uint8_t gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
-const uint8_t gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
-const uint8_t gpioExpanderSwitch_S3 = 2; // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
-const uint8_t gpioExpanderSwitch_S4 =
-    3; // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
-const uint8_t gpioExpanderSwitch_LoraEnable = 4; // LoRa_EN
-const uint8_t gpioExpanderSwitch_GNSS_Reset = 5; // RST_GNSS
-const uint8_t gpioExpanderSwitch_LoraBoot = 6;   // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
-const uint8_t gpioExpanderSwitch_S5 = 7;         // Controls U61 switch 5: connect GNSS UART1 to Port A of CH342
-const uint8_t gpioExpanderNumSwitches = 8;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -1019,7 +906,6 @@ unsigned long lastSpartnToPpl = 0;
 int commandCount;
 int16_t *commandIndex;
 
-bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved from CH34x to LoRa
 unsigned long loraLastIncomingSerial; // Last time a user sent a serial command. Used in LoRa timeouts.
 char loraFirmwareVersionStr[25] = {'\0'};
 int loraFirmwareVersionInt = 0;
