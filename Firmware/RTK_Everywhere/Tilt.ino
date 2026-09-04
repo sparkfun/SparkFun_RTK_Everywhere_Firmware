@@ -1336,9 +1336,9 @@ static void im19ResetImu()
     {
         // ESP32 UART2 is connected directly to IM19 UART1
 
-        gnssReset();
+        gpioGnssReset();
         delay(50);
-        gnssBoot();
+        gpioGnssBoot();
     }
     else if (productVariant == RTK_FACET_FP)
     {

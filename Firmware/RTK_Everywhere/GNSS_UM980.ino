@@ -2749,7 +2749,7 @@ void um980BeginFirmwareUpdate()
             {
                 if (incoming == '@')
                 {
-                    gnssReset(); // Reset UM980
+                    gpioGnssReset(); // Reset UM980
 
                     // Fast beep to indicate start of upgrade
                     beepOn();
@@ -2757,7 +2757,7 @@ void um980BeginFirmwareUpdate()
                     beepOff();
                     delay(400);
 
-                    gnssBoot(); // Exit Reset
+                    gpioGnssBoot(); // Exit Reset
 
                     // No delay here!
 

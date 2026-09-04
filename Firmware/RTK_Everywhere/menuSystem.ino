@@ -769,9 +769,9 @@ void menuDebugHardware()
                 systemPrintf("Begin firmware update from QGNSS (hit the play button) "
                              "then reset the LG290P using menu choice %d.\r\n",
                              incoming);
-                gnssReset();
+                gpioGnssReset();
                 delay(100);
-                gnssBoot();
+                gpioGnssBoot();
                 systemPrintln("LG290P reset complete.");
                 gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go
                                          // through a full (re)configuration

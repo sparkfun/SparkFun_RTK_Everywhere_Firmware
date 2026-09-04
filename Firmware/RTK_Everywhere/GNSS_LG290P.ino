@@ -3802,9 +3802,9 @@ bool lg290pFirmwareUpdateBegin(size_t fileBytes, uint32_t expectedCrc)
         return (((GNSS_LG290P *)gnss)->updateFirmwareBegin(fileBytes, expectedCrc, false)); // Use software reset
 
     // If a previous attempt failed, the device won't respond to software reset commands. Do a hardware reset.
-    gnssReset();
+    gpioGnssReset();
     delay(100);
-    gnssBoot();
+    gpioGnssBoot();
 
     // Begin update: reboot, sync, version, firmware info, erase (~30 s)
     return (((GNSS_LG290P *)gnss)->updateFirmwareBegin(fileBytes, expectedCrc, true)); // Skip software reset
@@ -3827,9 +3827,9 @@ bool lg290pFirmwareUpdateEnd()
     if (productVariant == RTK_FACET_FP)
         return (((GNSS_LG290P *)gnss)->updateFirmwareIsFinished(30));
 
-    gnssReset();
+    gpioGnssReset();
     delay(100);
-    gnssBoot();
+    gpioGnssBoot();
 
     return (((GNSS_LG290P *)gnss)->updateFirmwareIsFinished(10));
 }

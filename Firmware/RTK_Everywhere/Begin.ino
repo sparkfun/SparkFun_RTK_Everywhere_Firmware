@@ -247,7 +247,7 @@ void beginBoard()
         pinMode(pin_GNSS_TimePulse, INPUT);
 
         pinMode(pin_GNSS_DR_Reset, OUTPUT);
-        gnssBoot(); // Tell UM980 and IMU to boot
+        gpioGnssBoot(); // Tell UM980 and IMU to boot
 
         pinMode(pin_powerAdapterDetect, INPUT); // Has 10k pullup
 
@@ -553,7 +553,7 @@ void beginBoard()
         pinMode(pin_GNSS_TimePulse, INPUT);
 
         pinMode(pin_GNSS_Reset, OUTPUT);
-        gnssBoot(); // Tell LG290P to boot
+        gpioGnssBoot(); // Tell LG290P to boot
 
         // Disable the microSD card
         pinMode(pin_microSD_CS, OUTPUT);
@@ -721,7 +721,7 @@ void beginBoard()
         pinMode(pin_GNSS_TimePulse, INPUT);
 
         pinMode(pin_GNSS_DR_Reset, OUTPUT);
-        gnssBoot(); // Tell GNSS to boot
+        gpioGnssBoot(); // Tell GNSS to boot
 
         pinMode(pin_powerAdapterDetect, INPUT); // Has 10k pullup
 

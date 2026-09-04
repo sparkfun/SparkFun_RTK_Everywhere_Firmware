@@ -1781,7 +1781,7 @@ bool isCharging()
 
 #ifdef COMPILE_BQ40Z50
     // Some platforms (Facet FP, Torch X2) only have the BQ40Z50 fuel gauge and no separate charger IC
-    // to query. Fall back to the fuel gauge's requested charging current: the BQ40Z50 reports 
+    // to query. Fall back to the fuel gauge's requested charging current: the BQ40Z50 reports
     // getAverageTimeToFullMin of 65535 when not charging.
     else if (present.fuelgauge_bq40z50 == true && present.charger_mp2762a == false &&
              online.batteryFuelGauge == true)
@@ -1827,7 +1827,57 @@ void getMacAddresses(uint8_t *macAddress, const char *name, esp_mac_type_t type,
                      macAddress[3], macAddress[4], macAddress[5], name);
 }
 
-//======================= GPIO Expander Support =======================
+//======================= GPIO Support =======================
+
+//----------------------------------------
+// Based on the platform, put the GNSS receiver into run mode
+//----------------------------------------
+void gpioGnssBoot()
+{
+    if (productVariant == RTK_TORCH)
+    {
+        digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
+    }
+    else if (productVariant == RTK_TORCH_X2)
+    {
+        digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell LG290P to boot
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        gpioExpanderGnssBoot(); // Drive the GNSS reset pin high
+    }
+    else if (productVariant == RTK_POSTCARD)
+    {
+        digitalWrite(pin_GNSS_Reset, HIGH); // Tell LG290P to boot
+    }
+    else
+        systemPrintln("Uncaught gnssBoot()");
+}
+
+//----------------------------------------
+// Based on the platform, put the GNSS receiver into reset
+//----------------------------------------
+void gpioGnssReset()
+{
+    if (productVariant == RTK_TORCH)
+    {
+        digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell UM980 and DR to reset
+    }
+    else if (productVariant == RTK_TORCH_X2)
+    {
+        digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell LG290P to reset
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        gpioExpanderGnssReset(); // Drive the GNSS reset pin low
+    }
+    else if (productVariant == RTK_POSTCARD)
+    {
+        digitalWrite(pin_GNSS_Reset, LOW); // Tell LG290P to reset
+    }
+    else
+        systemPrintln("Uncaught gpioGnssReset()");
+}
 
 //----------------------------------------
 // Drive GPIO pin high to bring GNSS out of reset
