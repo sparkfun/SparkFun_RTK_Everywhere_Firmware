@@ -1902,6 +1902,24 @@ void gpioLoraPowerOff()
 }
 
 //----------------------------------------
+// Select (enable) the SD card
+//----------------------------------------
+void gpioSdSelectCard(void)
+{
+    if (pin_microSD_CS != PIN_UNDEFINED)
+        digitalWrite(pin_microSD_CS, LOW);
+}
+
+//----------------------------------------
+// Deselect (disable) the SD card
+//----------------------------------------
+void gpioSdDeselectCard(void)
+{
+    if (pin_microSD_CS != PIN_UNDEFINED)
+        digitalWrite(pin_microSD_CS, HIGH);
+}
+
+//----------------------------------------
 // Drive GPIO pin high to bring GNSS out of reset
 //----------------------------------------
 void gpioExpanderGnssBoot()

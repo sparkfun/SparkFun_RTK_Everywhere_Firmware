@@ -373,7 +373,7 @@ void beginBoard()
         // Disable the microSD card
         DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
         pinMode(pin_microSD_CS, OUTPUT);
-        sdDeselectCard();
+        gpioSdDeselectCard();
 
         DMW_if systemPrintf("pin_baseStatusLED: %d\r\n", pin_baseStatusLED);
         pinMode(pin_baseStatusLED, OUTPUT);
@@ -557,7 +557,7 @@ void beginBoard()
 
         // Disable the microSD card
         pinMode(pin_microSD_CS, OUTPUT);
-        sdDeselectCard();
+        gpioSdDeselectCard();
     }
 
     else if (productVariant == RTK_FACET_FP)
@@ -629,7 +629,7 @@ void beginBoard()
 
         // Disable the microSD card
         pinMode(pin_microSD_CS, OUTPUT);
-        sdDeselectCard();
+        gpioSdDeselectCard();
 
         // Turn on Bluetooth LED to indicate power on
         bluetoothLedOn();
@@ -957,7 +957,7 @@ void beginSD()
             if (tries == maxTries)
             {
                 systemPrintln("microSD init failed. Is card formatted? Marking card offline.");
-                sdDeselectCard();
+                gpioSdDeselectCard();
 
                 present.microSd = false; // Stop attempting to use SD
 

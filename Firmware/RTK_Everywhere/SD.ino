@@ -192,7 +192,7 @@ bool sdCardPresent(void)
         pinMode(pin_microSD_CS, OUTPUT);
 
         // Sending clocks while card power stabilizes...
-        sdDeselectCard();             // always make sure
+        gpioSdDeselectCard();         // always make sure
         for (byte i = 0; i < 30; i++) // send several clocks while card power stabilizes
             xchg(0xff);
 
@@ -251,9 +251,9 @@ byte sdSendCommand(byte command, unsigned long arg)
             return (response);
     }
 
-    sdDeselectCard();
+    gpioSdDeselectCard();
     xchg(0xFF);
-    sdSelectCard(); // enable CS
+    gpioSdSelectCard(); // enable CS
     xchg(0xFF);
 
     xchg(command | 0x40);    // command always has bit 6 set!
@@ -285,25 +285,11 @@ byte sdSendCommand(byte command, unsigned long arg)
     if ((command != SD_READ_OCR) && (command != SD_SEND_STATUS) && (command != SD_SEND_IF_COND) &&
         (command != SD_LOCK_UNLOCK))
     {
-        sdDeselectCard(); // all done
+        gpioSdDeselectCard(); // all done
         xchg(0xFF);       // close with eight more clocks
     }
 
     return (response); // let the caller sort it out
-}
-
-// Select (enable) the SD card
-void sdSelectCard(void)
-{
-    if (pin_microSD_CS != PIN_UNDEFINED)
-        digitalWrite(pin_microSD_CS, LOW);
-}
-
-// Deselect (disable) the SD card
-void sdDeselectCard(void)
-{
-    if (pin_microSD_CS != PIN_UNDEFINED)
-        digitalWrite(pin_microSD_CS, HIGH);
 }
 
 // Exchange a byte of data with the SD card via host's SPI bus
