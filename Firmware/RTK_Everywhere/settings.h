@@ -312,6 +312,9 @@ const productProperties productPropertiesTable[] =
 };
 const int productPropertiesEntries = sizeof(productPropertiesTable) / sizeof(productPropertiesTable[0]);
 
+#define productVariantProperties getProductPropertiesFromVariant(productVariant)
+#define variantHousingProperties getProductHousingPropertiesFromVariant(productVariant)
+
 // Corrections Priority
 typedef enum
 {

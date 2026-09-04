@@ -272,10 +272,8 @@ void beginSPI(bool force = false); // Header
 
 SdFat *sd;
 
-#define productVariantProperties getProductPropertiesFromVariant(productVariant)
 #define platformFilePrefix                                                                                             \
     getProductPropertiesFromVariant(productVariant)->filePrefix // Sets the prefix for logs and settings files
-#define variantHousingProperties getProductHousingPropertiesFromVariant(productVariant)
 
 SdFile *logFile;                  // File that all GNSS messages sentences are written to
 unsigned long lastUBXLogSyncTime; // Used to record to SD every half second
