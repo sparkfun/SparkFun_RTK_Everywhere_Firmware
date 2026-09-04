@@ -236,10 +236,7 @@ const char *debugMessagePrefix = "# => "; // Something ~unique and easy to trigg
 // I2C for GNSS, battery gauge, display
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include "icons.h"
-#include <Wire.h> //Built-in
 #include <vector> //Needed for icons etc.
-TwoWire *i2c_0 = nullptr;
-TwoWire *i2c_1 = nullptr;
 TwoWire *i2cDisplay = nullptr;
 TwoWire *i2cAuthCoPro = nullptr;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -681,11 +678,6 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
 
 int imuFirmwareVersionInt;
 char imuFirmwareVersionStr[32];    // Ex: IM19_H2_B2.2_A11.4.1
-
-HardwareSerial *uart2Serial;   // Shared serial port between LoRa and Tilt
-
-#define SerialForLoRa           uart2Serial
-#define SerialForTilt           uart2Serial
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

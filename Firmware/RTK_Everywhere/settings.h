@@ -74,12 +74,14 @@ typedef enum {
 // sd->begin will crash second time around with ~v2.2.3
 #include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman.
 
+// Peripherals
 #include "GNSS.h"
 #include "GNSS_None.h"
 #include "GNSS_ZED.h" //Structs of ZED messages, needed for settings.h
 #include "GNSS_UM980.h" //Structs of UM980 messages, needed for settings.h
 #include "GNSS_Mosaic.h" //Structs of mosaic messages, needed for settings.h
 #include "GNSS_LG290P.h" //Structs of LG90P messages, needed for settings.h
+
 #include <vector>
 
 // System can enter a variety of states
@@ -2630,6 +2632,25 @@ const uint8_t gpioExpanderSwitch_S5 = 7;         // Controls U61 switch 5: conne
 const uint8_t gpioExpanderNumSwitches = 8;
 
 bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved from CH34x to LoRa
+
+//----------------------------------------
+// Peripherals
+//----------------------------------------
+
+#include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
+#include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU
+#include <SparkFun_LG290P_GNSS.h> //http://librarymanager/All#SparkFun_LG290P
+#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS
+#include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
+#include <Wire.h>
+
+TwoWire * i2c_0;
+TwoWire * i2c_1;
+
+HardwareSerial *uart2Serial; // Shared serial port between LoRa and Tilt
+
+#define SerialForLoRa uart2Serial
+#define SerialForTilt uart2Serial
 
 //----------------------------------------
 // Time measurement
