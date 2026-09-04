@@ -85,44 +85,6 @@ void powerDown(bool displayInfo)
     }
 }
 
-// Interrupt that is called when INT pin goes low
-void IRAM_ATTR gpioExpanderISR()
-{
-    gpioChanged = true;
-}
-
-// Start the I2C expander if possible
-bool beginGpioExpanderButtons(uint8_t padAddress)
-{
-    // Initialize the PCA95xx with its default I2C address
-    if (io.begin(padAddress, *i2c_0) == true)
-    {
-        io.pinMode(gpioExpander_up, INPUT);
-        io.pinMode(gpioExpander_down, INPUT);
-        io.pinMode(gpioExpander_left, INPUT);
-        io.pinMode(gpioExpander_right, INPUT);
-        io.pinMode(gpioExpander_center, INPUT);
-        io.pinMode(gpioExpander_cardDetect, INPUT);
-
-        // Set the unused pins to OUTPUT so they can't generate an interrupt
-        io.pinMode(gpioExpander_io6, OUTPUT);
-        io.pinMode(gpioExpander_io7, OUTPUT);
-
-        // The PCA95XX INT pin is open drain. It pulls low when the inputs change
-        // We need to interrupt on the FALLING edge only
-        // If we interrupt on CHANGE, we could get another interrupt when INT is cleared
-        // sdCardPresent will clear the INT too (but not the gpioChanged flag)
-        pinMode(pin_gpioExpanderInterrupt, INPUT_PULLUP);
-        attachInterrupt(pin_gpioExpanderInterrupt, gpioExpanderISR, FALLING);
-
-        systemPrintln("Directional pad online");
-
-        online.gpioExpanderButtons = true;
-        return (true);
-    }
-    return (false);
-}
-
 // Update the status of the button library
 // Or read the GPIO expander and update the button state arrays
 void buttonRead()
@@ -135,12 +97,10 @@ void buttonRead()
         functionBtn->read();
 
     // Check directional pad once interrupt has occurred
-    if (online.gpioExpanderButtons == true && gpioChanged == true)
+    if (gpioExpanderGpioWasChanged())
     {
-        gpioChanged = false;
-
         // Get all the pins in one read
-        uint8_t currentState = io.getInputRegister() & 0b00011111; // Mask the five buttons. Ignore SD detect
+        uint8_t currentState = gpioExpanderGetInput() & 0b00011111; // Mask the five buttons. Ignore SD detect
 
         if (currentState != gpioExpander_previousState)
         {

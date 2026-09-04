@@ -828,9 +828,6 @@ unsigned long pplKeyExpirationMs = 0; // Milliseconds until the current PPL key 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
 
-SFE_PCA95XX io(PCA95XX_PCA9554); // Create a PCA9554, default address 0x20
-
-volatile bool gpioChanged = false; // Set by gpioExpanderISR
 uint8_t gpioExpander_previousState =
     0b00011111; // Buttons start high, card detect starts low. Ignore unconnected GPIO6/7.
 unsigned long gpioExpander_holdStart[8] = {0};
@@ -841,8 +838,6 @@ uint8_t gpioExpander_lastReleased = 255;
 #define GPIO_EXPANDER_BUTTON_RELEASED 1
 #define GPIO_EXPANDER_CARD_INSERTED 1
 #define GPIO_EXPANDER_CARD_REMOVED 0
-
-SFE_PCA95XX *gpioExpanderSwitches = nullptr;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

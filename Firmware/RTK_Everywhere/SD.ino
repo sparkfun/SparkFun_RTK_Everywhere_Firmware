@@ -126,7 +126,7 @@ bool sdCardPresent(void)
 
                 lastExpanderCheck = millis();
 
-                if (io.digitalRead(gpioExpander_cardDetect) == GPIO_EXPANDER_CARD_INSERTED)
+                if (gpioExpanderSdCardDetect() == GPIO_EXPANDER_CARD_INSERTED)
                 {
                     lastPresenceResult = true;
                     return (true); // Card detect high = SD in place
@@ -137,7 +137,7 @@ bool sdCardPresent(void)
                 {
                     delay(25); // Debounce
 
-                    if (io.digitalRead(gpioExpander_cardDetect) == GPIO_EXPANDER_CARD_INSERTED)
+                    if (gpioExpanderSdCardDetect() == GPIO_EXPANDER_CARD_INSERTED)
                     {
                         lastPresenceResult = true;
                         return (true); // Card detect high = SD in place

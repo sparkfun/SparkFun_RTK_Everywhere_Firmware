@@ -2,6 +2,10 @@
 System.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+SFE_PCA95XX io(PCA95XX_PCA9534); // Create a PCA9534
+SFE_PCA95XX *gpioExpanderSwitches = nullptr;
+volatile bool gpioChanged = false; // Set by gpioExpanderISR
+
 // Global variables used by firmwareUpdateProgressCallback, called by all
 // firmware update procedures
 static uint32_t firmwareUpdateBytesToProcess;
@@ -2301,6 +2305,77 @@ void gpioExpanderDisplay()
             break;
         }
     }
+}
+
+//======================= I/O Expander Support =======================
+
+//----------------------------------------
+// Interrupt that is called when INT pin goes low
+//----------------------------------------
+void IRAM_ATTR gpioExpanderISR()
+{
+    gpioChanged = true;
+}
+
+//----------------------------------------
+// Start the I2C expander if possible
+//----------------------------------------
+bool beginGpioExpanderButtons(uint8_t padAddress)
+{
+    // Initialize the PCA95xx with its default I2C address
+    if (io.begin(padAddress, *i2c_0) == true)
+    {
+        io.pinMode(gpioExpander_up, INPUT);
+        io.pinMode(gpioExpander_down, INPUT);
+        io.pinMode(gpioExpander_left, INPUT);
+        io.pinMode(gpioExpander_right, INPUT);
+        io.pinMode(gpioExpander_center, INPUT);
+        io.pinMode(gpioExpander_cardDetect, INPUT);
+
+        // Set the unused pins to OUTPUT so they can't generate an interrupt
+        io.pinMode(gpioExpander_io6, OUTPUT);
+        io.pinMode(gpioExpander_io7, OUTPUT);
+
+        // The PCA95XX INT pin is open drain. It pulls low when the inputs change
+        // We need to interrupt on the FALLING edge only
+        // If we interrupt on CHANGE, we could get another interrupt when INT is cleared
+        // sdCardPresent will clear the INT too (but not the gpioChanged flag)
+        pinMode(pin_gpioExpanderInterrupt, INPUT_PULLUP);
+        attachInterrupt(pin_gpioExpanderInterrupt, gpioExpanderISR, FALLING);
+
+        systemPrintln("Directional pad online");
+
+        online.gpioExpanderButtons = true;
+        return (true);
+    }
+    return (false);
+}
+
+//----------------------------------------
+// Read the input register
+//----------------------------------------
+uint8_t gpioExpanderGetInput()
+{
+    return io.getInputRegister();
+}
+
+//----------------------------------------
+// Determine if GPIO expander value changed
+//----------------------------------------
+bool gpioExpanderGpioWasChanged()
+{
+    bool changed = (online.gpioExpanderButtons == true) && (gpioChanged == true);
+    if (changed)
+        gpioChanged = false;
+    return changed;
+}
+
+//----------------------------------------
+// Determine if an SD card is inserted
+//----------------------------------------
+uint8_t gpioExpanderSdCardDetect()
+{
+    return io.digitalRead(gpioExpander_cardDetect);
 }
 
 //----------------------------------------
