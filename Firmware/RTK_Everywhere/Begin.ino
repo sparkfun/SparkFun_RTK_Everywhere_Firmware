@@ -1995,6 +1995,33 @@ bool i2cBusInitialization(TwoWire *i2cBus, int i2cBusNumber, int sda, int scl, i
 }
 
 //----------------------------------------
+// Read an I2C device register and check for an expected value
+//----------------------------------------
+bool i2cIsDeviceRegisterPresent(TwoWire *i2cBus, uint8_t deviceAddress, uint8_t registerAddress, uint8_t expectedValue)
+{
+    int maxRetries = 3;
+
+    while (maxRetries > 0)
+    {
+        maxRetries--;
+        delay(1);
+
+        i2cBus->beginTransmission(deviceAddress);
+        i2cBus->write(registerAddress);
+        if (i2cBus->endTransmission() != 0)
+            continue;
+
+        i2cBus->requestFrom(deviceAddress, (uint8_t)1);
+        if (i2cBus->available())
+        {
+            return (i2cBus->read() == expectedValue);
+        }
+    }
+
+    return false;
+}
+
+//----------------------------------------
 // Start task to determine SD card size
 //----------------------------------------
 void beginSDSizeCheckTask()
