@@ -9,7 +9,6 @@ OTA.h
 #define __OTA_H__
 
 typedef uint8_t OTA_SUBSYSTEM_MASK;
-bool otaDebugVerbose; // Enable verbose debug output
 
 #ifdef COMPILE_FIRMWARE_UPDATE
 
@@ -56,10 +55,6 @@ enum OTA_FIRMWARE_UPDATE_REQUEST
 #define OTA_DEVICE_GNSS         (1 << OTA_SUBSYSTEM_GNSS)
 #define OTA_DEVICE_LORA         (1 << OTA_SUBSYSTEM_LORA)
 #define OTA_DEVICE_IMU          (1 << OTA_SUBSYSTEM_IMU)
-
-#define OTA_DATA_TIMEOUT        (15 * MILLISECONDS_IN_A_SECOND)
-
-const char * otaEqualSigns = "==================================================";
 
 //----------------------------------------
 // Globals

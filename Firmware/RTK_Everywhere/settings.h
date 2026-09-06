@@ -2671,4 +2671,24 @@ enum Im19UpdateResult
     IM19_UPDATE_RETRY, // IM19 reports lost frames - caller should re-request only those byte ranges and call again
 };
 
+//----------------------------------------
+// Over-The-Air (OTA) Updates
+//----------------------------------------
+
+#define OTA_DATA_TIMEOUT        (15 * MILLISECONDS_IN_A_SECOND)
+
+const char * otaEqualSigns = "==================================================";
+
+// Constants to parse GitHub directory listings
+const char * otaRawHead = "/raw/refs/heads/main";
+const char * otaTree = "},\"tree";
+const char * otaFileTree = ":{\"fileTree\":{\"";
+const char * otaItems = "\":{\"items\":[";
+const char * otaListEnd = "]";
+const char * otaName = "\"name\":\"";
+const char * otaNameEnd = "\"";
+
+bool otaDebugVerbose;
+uint32_t otaFileBytes;
+
 #endif // __SETTINGS_H__
