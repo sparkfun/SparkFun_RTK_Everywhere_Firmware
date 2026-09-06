@@ -750,13 +750,6 @@ enum
 typedef uint8_t NETCONSUMER_t;
 typedef uint16_t NETCONSUMER_MASK_t;
 
-enum Im19UpdateResult
-{
-    IM19_UPDATE_FAILED = 0,
-    IM19_UPDATE_SUCCESS,
-    IM19_UPDATE_RETRY, // lost frames (or no response) - caller should re-stream the source and call again
-};
-
 enum PP_NickName
 {
     PP_NICKNAME_DISABLED = 0,
@@ -2666,5 +2659,16 @@ HardwareSerial *uart2Serial; // Shared serial port between LoRa and Tilt
 
 #define SECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * SECONDS_IN_A_MINUTE)
 #define SECONDS_IN_A_DAY (HOURS_IN_A_DAY * SECONDS_IN_AN_HOUR)
+
+//----------------------------------------
+// IM19 IMU
+//----------------------------------------
+
+enum Im19UpdateResult
+{
+    IM19_UPDATE_FAILED = 0,
+    IM19_UPDATE_SUCCESS,
+    IM19_UPDATE_RETRY, // IM19 reports lost frames - caller should re-request only those byte ranges and call again
+};
 
 #endif // __SETTINGS_H__
