@@ -105,7 +105,7 @@ $(RTK_BIN_PATH):	$(SKETCH).ino   *.ino   *.h   makefile
 		--warnings default \
 		--build-property build.partitions=$(PARTITION_CSV_FILE) \
 		--build-property upload.maximum_size=6291456 \
-		--build-property "compiler.cpp.extra_flags=-MMD -c \"-DPOINTPERFECT_TOKEN=$(POINTPERFECT_TOKEN)\" \"-DFIRMWARE_VERSION_MAJOR=$(FIRMWARE_VERSION_MAJOR)\" \"-DFIRMWARE_VERSION_MINOR=$(FIRMWARE_VERSION_MINOR)\" \"-DENABLE_DEVELOPER=$(ENABLE_DEVELOPER)\"" \
+		--build-property "compiler.cpp.extra_flags=-MMD -c" \
 		--export-binaries
 
 RTK:	$(RTK_BIN_PATH)
@@ -221,6 +221,15 @@ terminal_torch:
 .PHONY:	terminal_tx2
 
 terminal_tx2:	terminal_torch
+
+########
+# Handle crashes
+##########
+
+.PHONY: crash
+
+crash:
+	~/SparkFun/rc/RTK/Firmware/Tools/Read_Map_File   build/e*/*.ino.map
 
 ########
 # Clean the build directory

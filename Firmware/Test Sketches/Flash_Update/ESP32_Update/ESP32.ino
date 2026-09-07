@@ -1,115 +1,267 @@
+uint8_t rxBuffer[16384];
+
+//----------------------------------------
 // Update the ESP32 firmware
-bool espStreamFirmware(char *relativeFirmwareFileLocation)
+//----------------------------------------
+bool esp32StreamFirmware(NetworkClient * stream,
+                         size_t fileBytes,
+                         uint8_t * buffer,
+                         size_t packetBytes)
 {
-    if (relativeFirmwareFileLocation == nullptr)
+    bool success;
+
+    do
     {
-        systemPrintln("Firmware file location is null.");
-        return false;
-    }
+        success = false;
 
-    systemPrintln("Starting ESP32 firmware update...");
-
-    WiFiClientSecure client;
-    if (!otaSecurelyConnectGitHub(client))
-    {
-        systemPrintln("Failed to securely connect to GitHub.");
-        return false;
-    }
-
-    HTTPClient http;
-    if (!http.begin(client, otaGetGithubFileLocation(relativeFirmwareFileLocation)))
-    {
-        systemPrintln("Unable to begin HTTP request.");
-        return false;
-    }
-
-    int httpCode = http.GET();
-    if (httpCode != HTTP_CODE_OK)
-    {
-        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
-        http.end();
-        return false;
-    }
-
-    int contentLength = http.getSize();
-    if (contentLength > 0)
-        firmwareUpdateBytesToProcess = (uint32_t)contentLength;
-
-    WiFiClient *stream = http.getStreamPtr();
-
-    if (Update.begin(contentLength) == false)
-    {
-        systemPrintln("Not enough space to begin OTA");
-        http.end();
-        return false;
-    }
-
-    // Stream the firmware in chunks (rather than Update.writeStream(*stream) in one shot)
-    // so we can report progress via firmwareUpdateProgressCallback() along the way.
-    firmwareUpdateBytesProcessed = 0;
-
-    uint8_t buffer[512];
-    int bytesWritten = 0;
-    unsigned long lastDataTime = millis();
-    const unsigned long dataTimeoutMs = 15000;
-
-    while (http.connected() && (bytesWritten < contentLength))
-    {
-        size_t availableBytes = stream->available();
-        if (availableBytes == 0)
+        // Display the parameters
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
         {
-            if ((millis() - lastDataTime) > dataTimeoutMs)
+            systemPrintf("fileBytes: %d\r\n", fileBytes);
+            systemPrintf("packetBytes: %d\r\n", packetBytes);
+        }
+
+        systemPrintln("Starting ESP32 firmware update...");
+
+        // Enter the bootloader and erase flash before opening the GitHub connection.
+        if (Update.begin(fileBytes) == false)
+        {
+            systemPrintln("ERROR: Failed to enter bootloader mode.");
+            break;
+        }
+        systemPrintln("ESP32 is in bootloader mode.");
+
+        // Initialize the progress bar
+        firmwareUpdateProgressReset(fileBytes);
+
+        // Loop until all data has been transferred or another error occurs.
+        // HTTPS conections remain open even after the data has been transferred
+        // and HTTP connections close after data has been transferred but some
+        // may still be available.  Only test the network connection when no
+        // data is available.
+        unsigned long lastDataTime = millis();
+        size_t validData = 0;
+        while (fileBytes > 0)
+        {
+            // Wait until some data is available
+            size_t availableBytes = stream->available();
+            if (availableBytes == 0)
             {
-                systemPrintln("OTA update timed out waiting for data");
-                http.end();
-                return false;
+                // Verify network connection
+                if (stream->connected() == false)
+                {
+                    systemPrintln("ERROR: lost connection to network server");
+                    break;
+                }
+
+                // Check for network timeout
+                if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+                {
+                    systemPrintf("ERROR: Timed out waiting for data\r\n");
+                    break;
+                }
+                yield();
+                continue;
             }
-            delay(1);
-            continue;
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("availableBytes: %d\r\n", availableBytes);
+
+            // Read the received data
+            size_t bytesToRead = min(availableBytes, packetBytes - validData);
+            int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("bytesRead: %d\r\n", bytesRead);
+            if (bytesRead <= 0)
+            {
+                systemPrintln("ERROR: Failed reading data from network");
+                break;
+            }
+            validData += bytesRead;
+
+            // Fill the packet
+            if ((validData < packetBytes) && (validData != fileBytes))
+                continue;
+
+            // Update this portion of the firmware
+            if (Update.write(buffer, validData) != (size_t)validData)
+            {
+                systemPrintln("ERROR: Failed during write");
+                break;
+            }
+
+            // Display the progress
+            firmwareUpdateProgressCallback("ESP32", validData);
+
+            // Account for this data
+            fileBytes -= validData;
+            lastDataTime = millis();
+            validData = 0;
         }
+        if (fileBytes)
+            break;
 
-        size_t bytesToRead = (availableBytes > sizeof(buffer)) ? sizeof(buffer) : availableBytes;
-        int bytesRead = stream->readBytes(buffer, bytesToRead);
-        if (bytesRead <= 0)
-            continue;
-
-        if (Update.write(buffer, bytesRead) != (size_t)bytesRead)
+        // Complete the flash update transaction
+        if (Update.end() == false)
         {
-            systemPrintln("OTA update failed during write");
-            http.end();
-            return false;
+            systemPrintf("ERROR: Update.end failed. Error #: %s\r\n",
+                         String(Update.getError()).c_str());
+            break;
         }
 
-        bytesWritten += bytesRead;
-        lastDataTime = millis();
+        if (Update.isFinished() == false)
+        {
+            systemPrintln("ERROR: Update not finished? Something went wrong!");
+            break;
+        }
 
-        firmwareUpdateProgressCallback((uint16_t)bytesRead);
-    }
+        systemPrintln("Update successfully completed.");
+        success = true;
+    } while (0);
 
-    if (bytesWritten != contentLength)
+    if (fileBytes && settings.debugFirmwareUpdate)
+        systemPrintf("fileBytes: %d\r\n", fileBytes);
+    return success;
+}
+
+//----------------------------------------
+// Update the ESP32 firmware
+// Owns the full update sequence: enters bootloader mode, streams the image
+// over WiFi, then verifies/reboots - callers only need to call this one
+// function and do not need to know about Begin()/End().
+//----------------------------------------
+bool esp32FirmwareUpdate(const char * url)
+{
+    const char * cert;
+    NetworkClientSecure client;
+    const char * errorMsg;
+    size_t fileBytes;
+    HTTPClient http;
+    String ipAddressString;
+    const char * ipAddress;
+    char msgBuffer[128];
+    const char * server;
+    String serverString;
+    NetworkClient * stream;
+
+    do
     {
-        systemPrintln("OTA update failed during writeStream");
-        http.end();
-        return false;
-    }
+        errorMsg = nullptr;
 
-    if (Update.end() == false)
-    {
-        systemPrintln("Error Occurred. Error #: " + String(Update.getError()));
-        http.end();
-        return false;
-    }
+        // Verify that a URL was specified
+        if(settings.debugFirmwareUpdate)
+            systemPrintf("URL: %s\r\n", url ? url : "[nullptr]");
+        if ((url == nullptr) || (strlen(url) == 0))
+        {
+            errorMsg = "ERROR: No URL was specified!";
+            break;
+        }
 
-    systemPrintln("OTA done!");
-    if (Update.isFinished() == false)
-    {
-        systemPrintln("Update not finished? Something went wrong!");
-        http.end();
-        return false;
-    }
-    
-    systemPrintln("Update successfully completed.");
+        // Locate the server for this URL
+        serverString = getServerFromUrl(url);
+        if (serverString.length() == 0)
+        {
+            errorMsg = "ERROR: Failed to find server name in URL string";
+            break;
+        }
+        server = serverString.c_str();
 
+        // Translate the server name into an IP address
+        ipAddressString = getServerIpAddress(server);
+        if (ipAddressString.length() == 0)
+        {
+            errorMsg = "Failed to get the IP address for the server\r\n";
+            break;
+        }
+        ipAddress = ipAddressString.c_str();
+
+        // Determine if the certificate is known for this server
+        cert = getCertFromUrl(url);
+        if(settings.debugFirmwareUpdate)
+            systemPrintf("Certificate: %s\r\n", cert ? "available" : "none");
+
+        // Use an encrypted and verified connection when possible
+        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        if (cert)
+        {
+            // Verify the server using the certificate
+            if (!securelyConnectToServer(url, client, cert))
+            {
+                //                           1         2         3         4         5         6         7         8         9
+                //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+                sprintf(msgBuffer, "ERROR: Failed to securely connect to %s (%s)", server, ipAddress);
+                errorMsg = msgBuffer;
+                break;
+            }
+
+            // Request the URL from the web server
+            if (!http.begin(client, url))
+            {
+                errorMsg = "ERROR: unable to begin HTTPS request.";
+                break;
+            }
+        }
+
+        // Request the URL from the web server
+        else if (!http.begin(url))
+        {
+            errorMsg = "ERROR: Unable to begin HTTP request.";
+            break;
+        }
+
+        // Get the web server's response
+        int httpCode = http.GET();
+        if (httpCode != HTTP_CODE_OK)
+        {
+            //                           1         2         3         4         5         6         7         8         9
+            //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+            sprintf(msgBuffer, "ERROR: Update failed HTTP GET request, code: %d", httpCode);
+            errorMsg = msgBuffer;
+            break;
+        }
+
+        // Get the file size
+        fileBytes = http.getSize();
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("File size: %d (0x%08x) bytes\r\n", fileBytes, fileBytes);
+        if (fileBytes <= 0)
+        {
+            errorMsg = "ERROR: Web server did not report a file size.";
+            break;
+        }
+
+        // Get the connection to the file data
+        stream = http.getStreamPtr();
+
+        // Start the firmware update
+        if (!esp32StreamFirmware(stream, fileBytes, rxBuffer, sizeof(rxBuffer)))
+        {
+            errorMsg = "ESP32 did not respond to the bootloader entry command.";
+            break;
+        }
+    } while (0);
+
+    // Display the firmware update status
+    bool success = (errorMsg == nullptr);
+    systemPrintln(otaEqualSigns);
+    if (success)
+        systemPrintln("ESP32 firmware update completed successfully");
+    else
+        systemPrintf("%s\r\n", errorMsg);
+    systemPrintln(otaEqualSigns);
+
+    // Release the resources
     http.end();
-    return true;
+    return success;
+}
+
+//----------------------------------------
+// Perform the flash update using an array
+//----------------------------------------
+bool esp32ArrayFlashUpdate()
+{
+    dataArray.init(0);
+    return esp32StreamFirmware((NetworkClient *)&dataArray,
+                                dataArray.available(),
+                                rxBuffer,
+                                sizeof(rxBuffer));
 }
