@@ -1526,7 +1526,7 @@ void loop()
     DMW_l("printReports");
     printReports(); // Periodically print GNSS coordinates and accuracy if enabled
 
-    DMW_l("otaAutoUpdate");
+    DMW_l("otaUpdate");
     otaUpdate(); // Initiate firmware version checks, scheduled automatic updates, or requested firmware over-the-air
                  // updates
 
