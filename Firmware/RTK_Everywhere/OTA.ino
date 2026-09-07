@@ -1100,7 +1100,7 @@ void otaStateFirmwareUpdate()
                 success &= subsystemInfo->_firmwareUpdate(target,
                                                           subsystemInfo,
                                                           otaFirmwareBuffer,
-                                                          OTA_BUFFER_BYTES);
+                                                          subsystemInfo->_packetBytes);
                 // Display the performance
                 if (success)
                     otaDisplayPerformance(subsystemIndex,
