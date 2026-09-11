@@ -1205,7 +1205,8 @@ struct Settings
         {"", ""},
         {"", ""},
     };
-    uint32_t wifiConnectTimeoutMs = 10000; // Wait this long for a WiFiMulti connection
+    // Must cover a full AP scan, association, DHCP and network priority arbitration
+    uint32_t wifiConnectTimeoutMs = 30000;
 
     bool outputTipAltitude = false; // If enabled, subtract the pole length and APC from the GNSS receiver's reported altitude
 
