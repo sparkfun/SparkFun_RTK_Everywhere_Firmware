@@ -932,7 +932,8 @@ public:
     // Send commands out the UART to see if a mosaic module is present
     bool isPresent();
     bool isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response, const char *console,
-                           int retryLimit = 20, bool attemptSoftReset = true);
+                           int retryLimit = 20, bool attemptSoftReset = true, unsigned long commandTimeout = 1000,
+                           unsigned long consoleTimeout = 100);
     bool mosaicIsPresentOnFacetFP();
 
     // Some functions merely need to know if we have an RTK Float.

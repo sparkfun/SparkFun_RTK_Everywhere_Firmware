@@ -3147,7 +3147,9 @@ bool GNSS_MOSAIC::isPresent()
         // boots (documented as ~10 seconds typical, but can run longer) instead of soft-resetting
         // it. A soft reset issued mid-boot restarts the boot process, turning a merely slow boot
         // into a guaranteed failure.
-        return isPresentOnSerial(serial2GNSS, "sdio,COM4,CMD,SBF\n\r", "DataInOut", "COM4>", 25, false);
+        // COM4 stays silent until much later in the boot than the FP series' COM1, so this
+        // platform needs longer per-attempt timeouts
+        return isPresentOnSerial(serial2GNSS, "sdio,COM4,CMD,SBF\n\r", "DataInOut", "COM4>", 25, false, 2000, 500);
     }
     else if (productVariant == RTK_FACET_FP)
     {
@@ -3164,50 +3166,36 @@ bool GNSS_MOSAIC::isPresent()
 
 // Return true if the receiver is detected
 bool GNSS_MOSAIC::isPresentOnSerial(HardwareSerial *serialPort, const char *command, const char *response,
-                                    const char *console, int retryLimit, bool attemptSoftReset)
+                                    const char *console, int retryLimit, bool attemptSoftReset,
+                                    unsigned long commandTimeout, unsigned long consoleTimeout)
 {
     // Mosaic could still be starting up, so allow many retries
-    int retries = 0;
-
-    while (!sendWithResponse(serialPort, command, response))
+    for (int retries = 0; retries <= retryLimit; retries++)
     {
-        if (retries == retryLimit)
-            break;
-        retries++;
-        sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console, 100); // Send escape sequence
+        if (sendWithResponse(serialPort, command, response, commandTimeout))
+            return (true);
+        sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console, consoleTimeout); // Send escape sequence
     }
 
-    if (retries == retryLimit)
+    if (!attemptSoftReset)
     {
-        if (!attemptSoftReset)
-        {
-            systemPrintln("Could not communicate with mosaic-X5 at selected baud rate");
-            return (false);
-        }
-
-        systemPrintln("Could not communicate with mosaic-X5 at selected baud rate. Attempting a soft reset...");
-
-        sendWithResponse(serialPort, "erst,soft,none\n\r", "ResetReceiver", 100);
-
-        retries = 0;
-
-        while (!sendWithResponse(serialPort, command, response))
-        {
-            if (retries == retryLimit)
-                break;
-            retries++;
-            sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console, 1000); // Send escape sequence
-        }
-
-        if (retries == retryLimit)
-        {
-            systemPrintln("Could not communicate with mosaic-X5 at selected baud rate");
-            return (false);
-        }
+        systemPrintln("Could not communicate with mosaic-X5 at selected baud rate");
+        return (false);
     }
 
-    // Module responded correctly!
-    return (true);
+    systemPrintln("Could not communicate with mosaic-X5 at selected baud rate. Attempting a soft reset...");
+
+    sendWithResponse(serialPort, "erst,soft,none\n\r", "ResetReceiver", 100);
+
+    for (int retries = 0; retries <= retryLimit; retries++)
+    {
+        if (sendWithResponse(serialPort, command, response, commandTimeout))
+            return (true);
+        sendWithResponse(serialPort, "SSSSSSSSSSSSSSSSSSSS\n\r", console, 1000); // Send escape sequence
+    }
+
+    systemPrintln("Could not communicate with mosaic-X5 at selected baud rate");
+    return (false);
 }
 
 //==========================================================================
