@@ -2835,9 +2835,13 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         {
             // The long range protocol changes the beacon's basic rate set in a way that
             // makes the soft AP invisible to phones, so only request it for ESP-NOW when
-            // the soft AP is not also online
+            // the soft AP is not also online. Also skip it when the station already has a
+            // live connection to a remote AP (e.g. ESP-NOW starting after Web Config's WiFi
+            // station is already online): changing the STA protocol bitmap while associated
+            // forces the radio to disassociate/reconnect, dropping the station's IP address.
             bool apOnline = (starting | (_started & ~stopping)) & WIFI_AP_ONLINE;
-            bool lrEnable = ((starting & WIFI_EN_SET_PROTOCOLS) && !apOnline) ? true : false;
+            bool lrEnable =
+                ((starting & WIFI_EN_SET_PROTOCOLS) && !apOnline && !stationOnline()) ? true : false;
             if (!setWiFiProtocols(WIFI_IF_STA, true, lrEnable))
                 break;
             _started = _started | (starting & (WIFI_EN_SET_PROTOCOLS | WIFI_STA_SET_PROTOCOLS));
