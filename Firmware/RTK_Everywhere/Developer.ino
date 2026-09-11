@@ -216,6 +216,7 @@ bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
                          byte incoming) {return false;}
 void otaUpdate() {}
 void otaUpdateStop() {}
+void otaRequestTypesLoad() {}
 void otaVerifyTables() {}
 
 #endif  // COMPILE_FIRMWARE_UPDATE

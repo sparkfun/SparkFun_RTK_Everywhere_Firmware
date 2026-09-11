@@ -24,11 +24,9 @@ bool firmwareCheckForRcBuild()
 //----------------------------------------
 void firmwareMenu()
 {
-    bool developerOptions;
     OTA_SUBSYSTEM_MASK subsystemMask;
 
     otaDebugVerbose = false;
-    developerOptions = false;
     subsystemMask = otaGetProductSubsystemSupport();
     while (1)
     {
@@ -44,7 +42,7 @@ void firmwareMenu()
         // Note: Use otaMenuDisplay to get a new ESP32 image when the parsing
         // fails in deviceFirmwareUpdate due to server website changes!
         // Letters: a c d e i q u C D E F G I L O P S V 1... for files
-        otaMenuDisplay(subsystemMask, &developerOptions, currentVersion);
+        otaMenuDisplay(subsystemMask, &settings.otaDeveloperOptions, currentVersion);
 
         for (int x = 0; x < binCount; x++)
             systemPrintf("%d) Load SD file: %s\r\n", x + 1, binFileNames[x]);
@@ -63,7 +61,7 @@ void firmwareMenu()
         // Note: Use otaMenuProcessInput to get a new ESP32 image when the
         // parsing fails in deviceFirmwareUpdate due to server website
         // changes!
-        else if (otaMenuProcessInput(subsystemMask, &developerOptions, incoming))
+        else if (otaMenuProcessInput(subsystemMask, &settings.otaDeveloperOptions, incoming))
         {
         }
 

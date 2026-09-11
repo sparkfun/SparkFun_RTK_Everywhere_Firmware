@@ -1279,6 +1279,9 @@ void setup()
     DMW_b("loadSettings");
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
 
+    DMW_b("otaRequestTypesLoad");
+    otaRequestTypesLoad(); // Apply the saved Firmware Update menu developer selections
+
     DMW_b("gnssDetectReceiverType");
     bool ranDetect = gnssDetectReceiverType(); // If we don't know the receiver from the platform, auto-detect it. Uses settings.
 

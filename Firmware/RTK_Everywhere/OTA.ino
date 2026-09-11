@@ -70,11 +70,13 @@ void otaCleanup(bool keepTargets)
 {
     OTA_TARGET * target;
 
+    // The targets hold their own copy of the URL, file size and CRC, so the
+    // CSV file data is never needed again
+    csvCleanup(&otaCsvFileData);
+
     // Keep the targets for configuration (web, serial, ...)
     if (keepTargets == false)
     {
-        csvCleanup(&otaCsvFileData);
-
         // Release the targets
         otaUpdatesFound = 0;
         for (int subsysstemIndex = 0; subsysstemIndex < OTA_SUBSYSTEM_MAX; subsysstemIndex++)
@@ -88,6 +90,9 @@ void otaCleanup(bool keepTargets)
                 target->_url = nullptr;
             }
         }
+
+        // Restore the developer selections saved in NVM
+        otaRequestTypesLoad();
     }
 
     // Release the firmware buffer
@@ -257,6 +262,42 @@ void otaDisplayTargets()
 
     if (displayed)
         systemPrintln("=================================================");
+}
+
+//----------------------------------------
+// Tell the serial user the result of the firmware version check
+//----------------------------------------
+void otaReportVersionCheck()
+{
+    OTA_SUBSYSTEM_MASK mask;
+    OTA_SUBSYSTEM_MASK productSubsystems;
+    OTA_TARGET * target;
+
+    productSubsystems = otaGetProductSubsystemSupport();
+    systemPrintln(otaEqualSigns);
+    for (int subsystem = 0; subsystem < OTA_SUBSYSTEM_MAX; subsystem++)
+    {
+        mask = otaGetSubsystemMaskFromSubsystem(subsystem);
+        if ((productSubsystems & mask) == 0)
+            continue;
+
+        target = &otaTarget[subsystem];
+        systemPrintf("%s: %d.%d.%d.%d%s", otaSubsystem[subsystem],
+                     target->_localVersion[0], target->_localVersion[1],
+                     target->_localVersion[2], target->_localVersion[3],
+                     target->_localVersion[4] ? " (debug build)" : "");
+
+        if (otaUpdatesFound & mask)
+            systemPrintf(" - update available: %d.%d.%d.%d%s\r\n",
+                         target->_remoteVersion[0], target->_remoteVersion[1],
+                         target->_remoteVersion[2], target->_remoteVersion[3],
+                         target->_remoteVersion[4] ? " (debug build)" : "");
+        else
+            systemPrintln(" - firmware is current");
+    }
+    if (otaUpdatesFound)
+        systemPrintln("Select 'u' in the Firmware Update menu to install the new firmware");
+    systemPrintln(otaEqualSigns);
 }
 
 //----------------------------------------
@@ -432,6 +473,7 @@ OTA_SUBSYSTEM_MASK otaGetRequiredUpdates(const char * fileData,
     const char * productSubsystem;
     int releaseCandidate;
     int revision;
+    bool skipUpdate;
     const char * subsystem;
     OTA_TARGET * target;
     OTA_SUBSYSTEM_MASK updatesFound;
@@ -444,6 +486,14 @@ OTA_SUBSYSTEM_MASK otaGetRequiredUpdates(const char * fileData,
         productSubsystem = otaSubsystem[subsystemIndex];
         target = &otaTarget[subsystemIndex];
         subsystem = otaSubsystem[subsystemIndex];
+        skipUpdate = false;
+
+        // Discard the URL from any previous check
+        if (target->_url)
+        {
+            rtkFree(target->_url, "Target URL");
+            target->_url = nullptr;
+        }
 
         // Set the default version number (0.0.0.0)
         memset(target->_localVersion, 0, sizeof(target->_localVersion));
@@ -586,10 +636,10 @@ OTA_SUBSYSTEM_MASK otaGetRequiredUpdates(const char * fileData,
                 // Product release firmware always matches the first entry
                 if (target->_requestType == OTA_REQUEST_PRODUCT_RELEASE)
                 {
-                    // This is the first entry
-                    if (versionDelta == 0)
-                        // Skip the update if the versions match
-                        target->_requestType = OTA_REQUEST_SKIP_UPDATE;
+                    // This is the first entry. Skip the update when the versions
+                    // match, but leave the request type alone so that a later
+                    // check still looks for newer firmware.
+                    skipUpdate = (versionDelta == 0);
                     break;
                 }
 
@@ -606,7 +656,7 @@ OTA_SUBSYSTEM_MASK otaGetRequiredUpdates(const char * fileData,
                     || (target->_requestType == OTA_REQUEST_USE_RC))
                     && (versionDelta >= 0))
                 {
-                    target->_requestType = OTA_REQUEST_SKIP_UPDATE;
+                    skipUpdate = true;
                 }
                 break;
             }
@@ -618,7 +668,7 @@ OTA_SUBSYSTEM_MASK otaGetRequiredUpdates(const char * fileData,
         // Save the firmware update URL if found
         if (lineIndex < lineCount)
         {
-            if (target->_requestType != OTA_REQUEST_SKIP_UPDATE)
+            if (skipUpdate == false)
             {
                 // Save the URL for the update
                 otaGetUrl(target, subsystemInfo, csvGetField(fileData,
@@ -794,6 +844,10 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
     // Display the targets
     otaDisplayTargets();
 
+    // Display the results of the last firmware version check
+    if (otaUpdatesFound)
+        otaReportVersionCheck();
+
     // Automatic firmware updates
     systemPrintf("a) Automatic firmware updates: %s\r\n", settings.enableAutoFirmwareUpdate ? "Enabled" : "Disabled");
 
@@ -811,7 +865,7 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
 
     if (developerOptions)
     {
-        systemPrintf("F) Force updates to all subssystems\r\n");
+        systemPrintf("F) Force updates to all subsystems\r\n");
         if (platformDevices & OTA_DEVICE_GNSS)
             systemPrintf("G) GNSS: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_GNSS));
     }
@@ -844,6 +898,40 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
 }
 
 //----------------------------------------
+// Locate the NVM setting holding the developer selected request type
+//----------------------------------------
+uint8_t * otaGetRequestTypeSetting(uint8_t subsystem)
+{
+    switch (subsystem)
+    {
+    case OTA_SUBSYSTEM_ESP32:
+        return &settings.otaRequestEsp32;
+    case OTA_SUBSYSTEM_GNSS:
+        return &settings.otaRequestGnss;
+    case OTA_SUBSYSTEM_LORA:
+        return &settings.otaRequestLora;
+    case OTA_SUBSYSTEM_IMU:
+        return &settings.otaRequestImu;
+    }
+    return nullptr;
+}
+
+//----------------------------------------
+// Apply the saved request types to the targets
+//----------------------------------------
+void otaRequestTypesLoad()
+{
+    uint8_t * setting;
+
+    for (int subsystemIndex = 0; subsystemIndex < OTA_SUBSYSTEM_MAX; subsystemIndex++)
+    {
+        setting = otaGetRequestTypeSetting(subsystemIndex);
+        if (setting && (*setting < OTA_REQUEST_MAX))
+            otaTarget[subsystemIndex]._requestType = *setting;
+    }
+}
+
+//----------------------------------------
 // Set the next subsystem request type
 //----------------------------------------
 void otaMenuNextSubsystemRequestType(uint8_t subsystemIndex)
@@ -860,6 +948,11 @@ void otaMenuNextSubsystemRequestType(uint8_t subsystemIndex)
     // Wrap the value as necessary
     if (target->_requestType >= OTA_REQUEST_MAX)
         target->_requestType = 0;
+
+    // Remember the developer selection across reboots
+    uint8_t * setting = otaGetRequestTypeSetting(subsystemIndex);
+    if (setting)
+        *setting = target->_requestType;
 }
 
 //----------------------------------------
@@ -1025,6 +1118,7 @@ void otaStateFirmwareUpdate()
     const OTA_SUBSYSTEM_INFO * subsystemInfo;
     const OTA_TARGET * target;
     bool success;
+    int updatesPerformed;
 
     do
     {
@@ -1050,6 +1144,7 @@ void otaStateFirmwareUpdate()
             rtkTaskList(&Serial);
 
         success = true;
+        updatesPerformed = 0;
         productSubsystems = otaGetProductSubsystemSupport();
         for (subsystemIndex = OTA_SUBSYSTEM_MAX - 1; subsystemIndex >= 0; subsystemIndex--)
         {
@@ -1083,7 +1178,11 @@ void otaStateFirmwareUpdate()
             // Skip this update
             if ((target->_requestType == OTA_REQUEST_SKIP_UPDATE)
                 || (target->_url == nullptr))
+            {
+                systemPrintf("%s: nothing to update (%s)\r\n", otaSubsystem[subsystemIndex],
+                             (target->_requestType == OTA_REQUEST_SKIP_UPDATE) ? "skip requested" : "no URL");
                 continue;
+            }
 
             // Verify that at firmware update is supported for this subsystem
             if ((subsystemInfo->_firmwareUpdate == nullptr)
@@ -1095,6 +1194,7 @@ void otaStateFirmwareUpdate()
             }
 
             // Perform the update for the current target
+            updatesPerformed += 1;
             if (subsystemInfo->_firmwareUpdate == nullptr)
             {
                 if (settings.debugFirmwareUpdate && otaDebugVerbose)
@@ -1121,8 +1221,19 @@ void otaStateFirmwareUpdate()
             }
         }
 
-        // Update finished
-        otaSetState(OTA_STATE_REBOOT);
+        // Only reboot when firmware was actually written
+        if (updatesPerformed == 0)
+        {
+            systemPrintln("No firmware was updated, not rebooting");
+            otaUpdateStop(false);
+        }
+        else if (success)
+            otaSetState(OTA_STATE_REBOOT);
+        else
+        {
+            systemPrintln("Firmware update failed, not rebooting");
+            otaUpdateStop(false);
+        }
     } while (0);
 }
 
@@ -1186,6 +1297,8 @@ void otaStateGetSystemsToUpdate()
             webServerSendString("newSubsystemFirmware,CURRENT,"); // Report systems are up to date
             commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware", (char *)"CURRENT");
 
+            otaReportVersionCheck();
+
             otaRequestFirmwareVersionCheck = false;
             otaUpdateStop(true);
             break;
@@ -1208,6 +1321,8 @@ void otaStateGetSystemsToUpdate()
                      otaSystemsToUpdate);
             webServerSendString(systemsToUpdate); // Report systems that have new firmware available
             commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware", otaSystemsToUpdate);
+
+            otaReportVersionCheck();
 
             otaRequestFirmwareVersionCheck = false;
             otaUpdateStop(true);
@@ -1287,12 +1402,15 @@ void otaUpdate()
 
     // Check if we need a scheduled check
     connected = networkConsumerIsConnected(NETCONSUMER_OTA_CLIENT);
-    if ((!connected) && (otaState >= OTA_STATE_GET_SYSTEMS_TO_UPDATE))
+
+    // networkConsumerIsConnected returns false once each time the default network
+    // interface changes, so go back to waiting rather than failing the update
+    if ((!connected)
+        && ((otaState == OTA_STATE_GET_SYSTEMS_TO_UPDATE)
+            || (otaState == OTA_STATE_UPDATE_FIRMWARE)))
     {
-        // Report failure to interfaces
-        webServerSendString((char *)"gettingNewFirmware,ERROR,");
-        commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"Connection Error");
-        otaUpdateStop(false);
+        otaConnectTimer = millis();
+        otaSetState(OTA_STATE_WAIT_FOR_NETWORK);
     }
 
     // Check for auto firmware update
@@ -1343,12 +1461,9 @@ void otaUpdate()
             break;
 
         case OTA_STATE_UPDATE_FIRMWARE:
+            // Advances to OTA_STATE_REBOOT only when the updates succeeded
             otaStateFirmwareUpdate();
-
-            // Fall through
-            //      |
-            //      |
-            //      V
+            break;
 
         case OTA_STATE_REBOOT:
             // Update finished
