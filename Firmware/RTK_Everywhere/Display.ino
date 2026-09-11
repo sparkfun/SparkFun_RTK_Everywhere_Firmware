@@ -1359,8 +1359,10 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             }
             else if (inBaseMode() == true)
             {
-                // Show outgoing correction broadcast icon(s), hugging the Logging icon. No room to stack on this display.
-                paintBaseBroadcastIcons(iconList, LoggingIconXPos64x48, correctionsIconXPos, 48);
+                // The RTCM label moved up under Xmitting, so the bottom row now fits two icons.
+                // x 0-27 is left for the left justified RTCM count.
+                const uint8_t broadcastIconsXPos = 28;
+                paintBaseBroadcastIcons(iconList, LoggingIconXPos64x48, broadcastIconsXPos, 48);
             }
         }
         else if (present.display_type == DISPLAY_128x64)
@@ -1563,9 +1565,8 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 break;
             }
 
-            // On 128x64: put the corrections source icon on the bottom, right of the IP address
+            // On 128x64: put the corrections source icon on the bottom, hugging the Logging icon
             static bool correctionsIconPosCalculated = false;
-            const uint8_t correctionsIconXPos = 90; // Matches IP address max width, widened to fit stacked base broadcast icons
             static uint8_t correctionsIconYPos = 64;
             // Calculate the highest (lowest!) Y position for the corrections icon
             // Do it only once...
@@ -1584,11 +1585,14 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 CORRECTION_ID_T correctionSource = correctionGetSource();
                 if (correctionSource < CORR_NUM)
                 {
+                    // Gap is measured from the icon's real pixels, not its nominal cell, so narrow
+                    // icons sit the same distance from the Logging icon as wide ones
+                    const uint8_t iconGap = 2;
                     prop.duty = 0b11111111;
                     prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
                     prop.icon.width = correctionIconAttributes[correctionSource].width;
                     prop.icon.height = correctionIconAttributes[correctionSource].height;
-                    prop.icon.xPos = correctionsIconXPos + correctionIconAttributes[correctionSource].xOffset;
+                    prop.icon.xPos = LoggingIconXPos128x64 - iconGap - correctionIconAttributes[correctionSource].width;
                     prop.icon.yPos = correctionsIconYPos + correctionIconAttributes[correctionSource].yOffset;
                     iconList->push_back(prop);
                 }
@@ -1791,9 +1795,8 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 break;
             }
 
-            // On 184x88: put the corrections source icon on the bottom, right of the IP address
+            // On 184x88: put the corrections source icon on the bottom, hugging the Logging icon
             static bool correctionsIconPosCalculated = false;
-            const uint8_t correctionsIconXPos = 155;
             static uint8_t correctionsIconYPos = 88;
             // Calculate the highest (lowest!) Y position for the corrections icon
             // Do it only once...
@@ -1812,11 +1815,14 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 CORRECTION_ID_T correctionSource = correctionGetSource();
                 if (correctionSource < CORR_NUM)
                 {
+                    // Gap is measured from the icon's real pixels, not its nominal cell, so narrow
+                    // icons sit the same distance from the Logging icon as wide ones
+                    const uint8_t iconGap = 2;
                     prop.duty = 0b11111111;
                     prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
                     prop.icon.width = correctionIconAttributes[correctionSource].width;
                     prop.icon.height = correctionIconAttributes[correctionSource].height;
-                    prop.icon.xPos = correctionsIconXPos + correctionIconAttributes[correctionSource].xOffset;
+                    prop.icon.xPos = LoggingIconXPos184x88 - iconGap - correctionIconAttributes[correctionSource].width;
                     prop.icon.yPos = correctionsIconYPos + correctionIconAttributes[correctionSource].yOffset;
                     iconList->push_back(prop);
                 }
@@ -2827,16 +2833,20 @@ const paintBaseStats_t paintBaseStats[] = {
     { DISPLAY_64x48, "Time:", SIVIconXPos64x48 - 2, SIVIconYPos64x48 - 2, QW_FONT_5X7, QW_EP_FONT_10X20, SIVIconXPos64x48 + 28, SIVIconYPos64x48 - 5, QW_FONT_8X16, QW_EP_FONT_10X20, },
     { DISPLAY_128x64, "Time:", SIVIconXPos128x64 - 2, SIVIconYPos128x64 - 2, QW_FONT_5X7, QW_EP_FONT_10X20, SIVIconXPos128x64 + 28, SIVIconYPos128x64 - 5, QW_FONT_8X16, QW_EP_FONT_10X20, },
     { DISPLAY_184x88, "Time:", SIVIconXPos184x88 - 2, SIVIconYPos184x88 - 4, QW_FONT_5X7, QW_EP_FONT_8X16, SIVIconXPos184x88 + 42, SIVIconYPos184x88 - 8, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    // 128x64 and 184x88 sit the status word on the RTCM row, one space character to its left.
+    // Kerned character pitch is 6 px on 128x64 and 11 px on the 184x88 ePaper. The 8 character
+    // words do not leave room for a full space on the 184x88, so they start hard left instead.
     { DISPLAY_64x48, "BaseCast", AccuracyIconXPos64x48 + 4, AccuracyIconYPos64x48 - 1, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos64x48 + 29, AccuracyIconYPos64x48 + 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
-    { DISPLAY_128x64, "BaseCast", AccuracyIconXPos128x64 + 4, AccuracyIconYPos128x64 - 6, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos128x64 + 29, AccuracyIconYPos128x64 - 4, QW_FONT_8X16, QW_EP_FONT_10X20, },
-    { DISPLAY_184x88, "BaseCast", AccuracyIconXPos184x88 + 4, AccuracyIconYPos184x88 - 8, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos184x88 + 80, AccuracyIconYPos184x88 - 8, QW_FONT_8X16, QW_EP_FONT_10X20, },
-    { DISPLAY_64x48, "Casting", AccuracyIconXPos64x48 + 4, AccuracyIconYPos64x48 - 1, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos64x48 + 29, AccuracyIconYPos64x48 + 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
-    { DISPLAY_128x64, "Casting", AccuracyIconXPos128x64 + 4, AccuracyIconYPos128x64 - 6, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos128x64 + 29, AccuracyIconYPos128x64 - 4, QW_FONT_8X16, QW_EP_FONT_10X20, },
-    { DISPLAY_184x88, "Casting", AccuracyIconXPos184x88 + 4, AccuracyIconYPos184x88 - 8, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos184x88 + 80, AccuracyIconYPos184x88 - 8, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_128x64, "BaseCast", SIVIconXPos128x64 - 2 - 6 - 48, SIVIconYPos128x64 - 2, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos128x64 + 29, AccuracyIconYPos128x64 - 4, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_184x88, "BaseCast", AccuracyIconXPos184x88, SIVIconYPos184x88 - 9, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos184x88 + 80, AccuracyIconYPos184x88 - 8, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_64x48, "Casting", AccuracyIconXPos64x48, AccuracyIconYPos64x48 - 1, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos64x48 + 29, AccuracyIconYPos64x48 + 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_128x64, "Casting", SIVIconXPos128x64 - 2 - 6 - 42, SIVIconYPos128x64 - 2, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos128x64 + 29, AccuracyIconYPos128x64 - 4, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_184x88, "Casting", SIVIconXPos184x88 - 11 - 77, SIVIconYPos184x88 - 9, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos184x88 + 80, AccuracyIconYPos184x88 - 8, QW_FONT_8X16, QW_EP_FONT_10X20, },
     { DISPLAY_64x48, "Xmitting", AccuracyIconXPos64x48, AccuracyIconYPos64x48 - 1, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos64x48 + 29, AccuracyIconYPos64x48 + 2, QW_FONT_8X16, QW_EP_FONT_10X20, },
-    { DISPLAY_128x64, "Xmitting", AccuracyIconXPos128x64, AccuracyIconYPos128x64 - 6, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos128x64 + 29, AccuracyIconYPos128x64 - 4, QW_FONT_8X16, QW_EP_FONT_10X20, },
-    { DISPLAY_184x88, "Xmitting", AccuracyIconXPos184x88, AccuracyIconYPos184x88 - 8, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos184x88 + 80, AccuracyIconYPos184x88 - 8, QW_FONT_8X16, QW_EP_FONT_10X20, },
-    { DISPLAY_64x48, "RTCM:", SIVIconXPos64x48 - 2, SIVIconYPos64x48 + 4, QW_FONT_5X7, QW_EP_FONT_10X20, SIVIconXPos64x48 + 28, SIVIconYPos64x48 + 1, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_128x64, "Xmitting", SIVIconXPos128x64 - 2 - 6 - 48, SIVIconYPos128x64 - 2, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos128x64 + 29, AccuracyIconYPos128x64 - 4, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_184x88, "Xmitting", AccuracyIconXPos184x88, SIVIconYPos184x88 - 9, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos184x88 + 80, AccuracyIconYPos184x88 - 8, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    // 64x48 moves the label up under Xmitting, clear of the broadcast and logging icons
+    { DISPLAY_64x48, "RTCM", AccuracyIconXPos64x48, AccuracyIconYPos64x48 + 8, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos64x48, SIVIconYPos64x48 + 1, QW_FONT_8X16, QW_EP_FONT_10X20, },
     { DISPLAY_128x64, "RTCM:", SIVIconXPos128x64 - 2, SIVIconYPos128x64 - 2, QW_FONT_5X7, QW_EP_FONT_10X20, SIVIconXPos128x64 + 28, SIVIconYPos128x64 - 5, QW_FONT_8X16, QW_EP_FONT_10X20, },
     { DISPLAY_184x88, "RTCM:", SIVIconXPos184x88, SIVIconYPos184x88 - 9, QW_FONT_5X7, QW_EP_FONT_10X20, SIVIconXPos184x88 + 50, SIVIconYPos184x88 - 9, QW_FONT_8X16, QW_EP_FONT_10X20, },
 };
@@ -2918,6 +2928,19 @@ void printTextwithKerning(const char *newText, uint8_t xPos, uint8_t yPos, uint8
     }
 }
 
+// Print the RTCM label. Only the 64x48 kerns it to fit on the row under Xmitting.
+void printRtcmLabel(const paintBaseStats_t *baseStats)
+{
+    if (present.display_type == DISPLAY_64x48)
+        printTextAt(baseStats->name, baseStats->xPos, baseStats->yPos, baseStats->theFont, baseStats->theEpFont, 1);
+    else
+    {
+        theDisplay->setCursor(baseStats->xPos, baseStats->yPos); // x, y
+        theDisplay->setFont(baseStats->theFont, baseStats->theEpFont);
+        theDisplay->print(baseStats->name);
+    }
+}
+
 // Show transmission of RTCM correction data packets to NTRIP caster
 void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
 {
@@ -2944,13 +2967,11 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
         printTextAt(baseStats->name, baseStats->xPos, baseStats->yPos, baseStats->theFont, baseStats->theEpFont, 1); // text, y, font type, kerning
     }
 
-    baseStats = getPaintBaseStats("RTCM:");
+    baseStats = getPaintBaseStats((present.display_type == DISPLAY_64x48) ? "RTCM" : "RTCM:");
 
     if (gnss->supportsAntennaShortOpen() == false)
     {
-        theDisplay->setCursor(baseStats->xPos, baseStats->yPos); // x, y
-        theDisplay->setFont(baseStats->theFont, baseStats->theEpFont);
-        theDisplay->print(baseStats->name);
+        printRtcmLabel(baseStats);
     }
     else
     {
@@ -2964,13 +2985,17 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
         }
         else
         {
-            theDisplay->setCursor(baseStats->xPos, baseStats->yPos); // x, y
-            theDisplay->setFont(baseStats->theFont, baseStats->theEpFont);
-            theDisplay->print(baseStats->name);
+            printRtcmLabel(baseStats);
         }
     }
 
-    uint8_t xAdjust = (present.display_type == DISPLAY_184x88) ? 5 : 2;
+    // 64x48 left justifies the count, the others shuffle it right of the colon
+    uint8_t xAdjust = 0;
+    if (present.display_type == DISPLAY_184x88)
+        xAdjust = 5;
+    else if (present.display_type == DISPLAY_128x64)
+        xAdjust = 2;
+
     if (rtcmPacketsSent < 100)
         // x, y - Give space for two digits
         theDisplay->setCursor(baseStats->xPosOfData + xAdjust, baseStats->yPosOfData);
