@@ -1131,8 +1131,13 @@ bool GNSS_LG290P::getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, ui
 {
     if (online.gnss)
     {
-        bool response = _lg290p->getFirmwareVersionMajor((int &)major);
-        response &= _lg290p->getFirmwareVersionMinor((int &)minor);
+        // The library writes a full int, so it cannot be handed a uint16_t or uint8_t
+        int versionMajor = 0;
+        int versionMinor = 0;
+        bool response = _lg290p->getFirmwareVersionMajor(versionMajor);
+        response &= _lg290p->getFirmwareVersionMinor(versionMinor);
+        major = versionMajor;
+        minor = versionMinor;
         patch = 0;
         revision = 0;
         return (response);
