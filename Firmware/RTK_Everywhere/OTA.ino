@@ -1254,8 +1254,8 @@ void otaStateWaitForNetwork(bool connected)
 
     else if ((millis() - otaConnectTimer) > settings.wifiConnectTimeoutMs)
     {
-        if (settings.debugFirmwareUpdate)
-            systemPrintln("Firmware update failed to connect to network");
+        systemPrintf("Firmware update failed to connect to the network within %d mS, increase wifiConnectTimeoutMs\r\n",
+                     settings.wifiConnectTimeoutMs);
 
         // If we are connected to the Web Config or BLE CLI, then we assume the user
         // is requesting the firmware update via those interfaces, thus we attempt an update
