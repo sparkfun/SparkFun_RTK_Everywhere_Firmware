@@ -7,6 +7,8 @@ Device_Update.h
 #ifndef __DEVICE_UPDATE_H__
 #define __DEVICE_UPDATE_H__
 
+#ifdef  COMPILE_FIRMWARE_UPDATE
+
 //----------------------------------------
 // Describe the volatile buffer description
 //----------------------------------------
@@ -334,4 +336,5 @@ const DEVICE_FIRMWARE_INFO deviceFirmwareInfo[] =
 };
 const int deviceFirmwareInfoCount = sizeof(deviceFirmwareInfo) / sizeof(deviceFirmwareInfo[0]);
 
+#endif  //  COMPILE_FIRMWARE_UPDATE
 #endif  // __DEVICE_UPDATE_H__

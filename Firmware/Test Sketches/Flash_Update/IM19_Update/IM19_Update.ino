@@ -73,6 +73,8 @@ const uint8_t logoSparkPNT[] = {0};
 // Test specific declarations
 //----------------------------------------
 
+Firmware_Data_Stream dataArray(firmwareData, sizeof(firmwareData));
+
 // v11.4.1
 const char * url_11_4_1 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc";
 
@@ -86,11 +88,7 @@ const char * ulrFileServer = "https://raw.githubusercontent.com/sparkfun/SparkFu
 
 const char * urlDirectory = "https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/imu/im19";
 
-#define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
-
 char imuVersion[96];
-
-Firmware_Data_Stream dataArray(im19_firmware, sizeof(im19_firmware));
 
 static uint8_t rxBuffer[256];
 
@@ -161,7 +159,9 @@ void setup()
         reportFatalError("WiFi network not found!");
 
     // Test specific setup
-    systemPrintln("IM19 bootloader tests");
+    systemPrintln("IM19 firmware update example");
+
+    // Configure the product
     if (productVariant == RTK_TORCH)
         imuReset();
     else if (productVariant == RTK_FACET_FP)
@@ -169,13 +169,12 @@ void setup()
         beginGpioExpanderSwitches();
         gpioExpanderSelectImu(); // On FP, confirm SW3 is in the correct position
     }
+    else if (present.imu_im19)
+        reportFatalError("Please add missing product configuration");
     else
-    {
-        Serial.println("Product variant does not support IM19. Freezing...");
-        while (true)
-            delay(1000);
-    }
+        reportFatalError("An IM19 is not in this product");
 
+    // Display the current firmware version
     im19GetVersionString();
 
     displayMenu();
@@ -190,7 +189,7 @@ void displayMenu()
     systemPrintln("Menu:");
 
     // Test specific menu items
-    systemPrintf("a) Update IM19 to 11.1 from array\r\n");
+    systemPrintln("a) Update IM19 to 11.1 from array");
     systemPrintln("o) Update IM19 to 6.1");
     systemPrintln("p) Update IM19 to 11.1");
     systemPrintln("u) Update IM19 to 11.4.1");
@@ -198,7 +197,7 @@ void displayMenu()
     systemPrintln("L) List all versions");
 
     // Common menu items
-    systemPrintln("r) Reset");
+    systemPrintln("r) Reboot system");
     systemPrintf("d) Debug: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
     systemPrintf("v) Verbose output: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
     systemPrint("Make selection: ");
@@ -238,7 +237,8 @@ void loop()
             // Get the URL
             systemPrint("Enter URL: ");
             urlString = systemGetStringFromUser();
-            flashUpdate(urlString.c_str());
+            if (urlString.length())
+                flashUpdate(urlString.c_str());
         }
         else if (incoming == 'L')
         {
@@ -286,11 +286,12 @@ void flashUpdate(const char * url)
 
     // Attempt to update the firmware
     dataArray.init(0);
-    if (((url != nullptr) && (im19FirmwareUpdate(url, rxBuffer, sizeof(rxBuffer)) == true))
-        || ((url == nullptr) && im19ArrayFlashUpdate((NetworkClient *)&dataArray,
-                                                      dataArray.available(),
-                                                      rxBuffer,
-                                                      sizeof(rxBuffer))))
+    if (((url != nullptr) && (im19FirmwareUpdate("IM19", url, rxBuffer, sizeof(rxBuffer)) == true))
+        || ((url == nullptr) && im19ArrayFlashUpdate("IM19",
+                                                     (NetworkClient *)&dataArray,
+                                                     dataArray.available(),
+                                                     rxBuffer,
+                                                     sizeof(rxBuffer))))
     {
         // Stop timer and print elapsed time
         uint32_t flashUpdateElapsed = millis() - flashUpdateStartTime;

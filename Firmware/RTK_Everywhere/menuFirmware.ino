@@ -22,7 +22,6 @@ bool firmwareCheckForRcBuild()
 //----------------------------------------
 // Update firmware if bin files found
 //----------------------------------------
-#ifdef COMPILE_OTA_AUTO
 void firmwareMenu()
 {
     bool developerOptions;
@@ -80,8 +79,6 @@ void firmwareMenu()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
-#endif // COMPILE_OTA_AUTO
-
 #endif // COMPILE_MENU_FIRMWARE
 
 //----------------------------------------
@@ -327,6 +324,7 @@ int firmwareVersionMapMonthName(char *mmm)
     return -1;
 }
 
+#ifdef COMPILE_FIRMWARE_UPDATE
 //----------------------------------------
 // Firmware update code
 //----------------------------------------
@@ -570,8 +568,6 @@ void microSDUpdateFirmware(const char *firmwareFileName)
     systemPrintln("Firmware update failed. Please try again.");
 }
 
-#ifdef COMPILE_OTA_AUTO
-
 //----------------------------------------
 //----------------------------------------
 void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
@@ -662,109 +658,162 @@ bool otaEsp32FirmwareUpdateEnd()
 }
 
 //----------------------------------------
-// Update the ESP32 firmware
+// Reads packetBytes from an already-open HTTP stream and feeds them to the device,
+// reporting progress as it goes.
+//
+// The generic process is:
+// 1) Call the updateFirmwareBegin function to erase the flash on the device
+// 2) Call firmwareUpdateProgressReset to initialize the progress bar and set
+//    the file size
+// 3) Loop reading firmware from the stream and writing it to the device, call
+//    firmwareUpdateProgressCallback to update the progress bar
+// 4) Call the updateFirmwareEnd function to complete the flash write operation
+// 5) Display the flash write status
 //----------------------------------------
-bool otaEsp32StreamFirmware(NetworkClient * stream,
+bool otaEsp32StreamFirmware(const char * chip,
+                            NetworkClient * stream,
                             size_t fileBytes,
                             uint32_t expectedCrc,
                             uint8_t * buffer,
                             size_t packetBytes)
 {
-    // Display the parameters
-    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+    bool success;
+
+    do
     {
-        systemPrintf("fileBytes: %d\r\n", fileBytes);
-        systemPrintf("expectedCrc: 0x%08x\r\n", expectedCrc);
-        systemPrintf("packetBytes: %d\r\n", packetBytes);
-    }
+        success = false;
 
-    systemPrintln("Starting ESP32 firmware update...");
-
-    if (Update.begin(fileBytes) == false)
-    {
-        systemPrintln(otaEqualSigns);
-        systemPrintln("ESP32 firmware update failed, not enough partition space available.");
-        systemPrintln(otaEqualSigns);
-        return false;
-    }
-
-    // Initialize the progress bar
-    firmwareUpdateProgressReset(fileBytes);
-
-    // Compute the CRC across the entire file
-    uint32_t crc = 0;
-
-    // Stream the firmware in chunks so we can report progress via
-    // firmwareUpdateProgressCallback() along the way.
-    unsigned long lastDataTime = millis();
-    size_t validData = 0;
-    if (settings.debugFirmwareUpdate)
-        systemPrintf("stream->connected(): %d\r\n", stream->connected());
-    while (stream->connected() && (fileBytes > 0))
-    {
-        // Wait until some data is available
-        size_t availableBytes = stream->available();
-        if (availableBytes == 0)
+        // Display the parameters
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
         {
-            if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+            systemPrintf("fileBytes: %d\r\n", fileBytes);
+            systemPrintf("expectedCrc: 0x%08x\r\n", expectedCrc);
+            systemPrintf("packetBytes: %d\r\n", packetBytes);
+        }
+
+        systemPrintf("Starting %s firmware update...\r\n", chip);
+
+        // Enter the bootloader and erase flash before opening the GitHub connection.
+        if (Update.begin(fileBytes) == false)
+        {
+            systemPrintf("ERROR: %s failed to enter bootloader mode.\r\n", chip);
+            break;
+        }
+        systemPrintf("%s is in bootloader mode.\r\n", chip);
+
+        // Initialize the progress bar
+        firmwareUpdateProgressReset(fileBytes);
+
+        // Compute the CRC across the entire file
+        uint32_t crc = 0;
+
+        // Loop until all data has been transferred or another error occurs.
+        // HTTPS conections remain open even after the data has been transferred
+        // and HTTP connections close after data has been transferred but some
+        // may still be available.  Only test the network connection when no
+        // data is available.
+        unsigned long lastDataTime = millis();
+        size_t validData = 0;
+        while (fileBytes > 0)
+        {
+            // Wait until some data is available
+            size_t availableBytes = stream->available();
+            if (availableBytes == 0)
             {
-                systemPrintln("ESP32 firmware update timed out waiting for data");
+                // Verify network connection
+                if (stream->connected() == false)
+                {
+                    systemPrintln("ERROR: lost connection to network server");
+                    break;
+                }
+
+                // Check for network timeout
+                if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+                {
+                    systemPrintf("ERROR: Timed out waiting for data\r\n");
+                    break;
+                }
+                yield();
+                continue;
+            }
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("availableBytes: %d\r\n", availableBytes);
+
+            // Read the received data
+            size_t bytesToRead = min(availableBytes, packetBytes - validData);
+            int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("bytesRead: %d\r\n", bytesRead);
+            if (bytesRead <= 0)
+            {
+                systemPrintln("ERROR: Failed reading data from network");
                 break;
             }
-            delay(1);
-            continue;
+            validData += bytesRead;
+
+            // Fill the packet
+            if ((validData < packetBytes) && (validData != fileBytes))
+                continue;
+
+            // Compute the CRC
+            crc = crc32Compute(crc, buffer, validData);
+
+            // Validate the computed CRC matches the expected CRC
+            if ((fileBytes == validData) && (crc != expectedCrc))
+            {
+                systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n",
+                             expectedCrc, crc);
+                systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
+                break;
+            }
+
+            // Update this portion of the firmware
+            if (Update.write(buffer, validData) != validData)
+            {
+                systemPrintln("ERROR: Failed during write");
+                break;
+            }
+
+            // Display the progress
+            firmwareUpdateProgressCallback(chip, validData);
+
+            // Account for this data
+            fileBytes -= validData;
+            lastDataTime = millis();
+            validData = 0;
         }
-        if (settings.debugFirmwareUpdate && otaDebugVerbose)
-            systemPrintf("availableBytes: %d\r\n", availableBytes);
-
-        // Read the received data
-        size_t bytesToRead = min(availableBytes, packetBytes - validData);
-        int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
-        if (settings.debugFirmwareUpdate && otaDebugVerbose)
-            systemPrintf("bytesRead: %d\r\n", bytesRead);
-        if (bytesRead <= 0)
+        if (fileBytes)
             break;
-        validData += bytesRead;
 
-        // Fill the packet
-        if ((validData < packetBytes) && (validData != fileBytes))
-            continue;
-
-        // Compute the CRC
-        crc = crc32Compute(crc, buffer, validData);
-
-        // Validate the computed CRC matches the expected CRC
-        if ((fileBytes == validData) && (crc != expectedCrc))
+        // Complete the flash update transaction
+        if (Update.end() == false)
         {
-            systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
-            systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n",
-                         expectedCrc, crc);
+            systemPrintf("ERROR: %s update.end failed. Error #: %s\r\n",
+                         chip, String(Update.getError()).c_str());
             break;
         }
 
-        // Update this portion of the firmware
-        if (Update.write(buffer, validData) != validData)
+        if (Update.isFinished() == false)
         {
-            systemPrintln("ESP32 firmware update failed during write");
+            systemPrintf("ERROR: %s update not finished? Something went wrong!\r\n", chip);
             break;
         }
 
-        // Display the progress
-        firmwareUpdateProgressCallback("X20P", validData);
+        systemPrintf("%s update successfully completed.\r\n", chip);
+        success = true;
+    } while (0);
 
-        // Account for this data
-        fileBytes -= validData;
-        lastDataTime = millis();
-        validData = 0;
-    }
+    if (fileBytes && settings.debugFirmwareUpdate)
+        systemPrintf("fileBytes: %d\r\n", fileBytes);
 
+    // Display the firmware update status
     systemPrintln(otaEqualSigns);
-    bool success = (fileBytes == 0) && otaEsp32FirmwareUpdateEnd();
     if (success)
-        systemPrintln("ESP32 firmware update successfully completed.");
+        systemPrintf("%s firmware update completed successfully\r\n", chip);
     else
-        systemPrintln("ESP32 firmware update failed.");
+        systemPrintf("%s firmware update failed!\r\n", chip);
     systemPrintln(otaEqualSigns);
+
     return success;
 }
 
@@ -811,4 +860,4 @@ bool otaSecurelyConnectGitHub(WiFiClientSecure &client)
     return true;
 }
 
-#endif // COMPILE_OTA_AUTO
+#endif // COMPILE_FIRMWARE_UPDATE

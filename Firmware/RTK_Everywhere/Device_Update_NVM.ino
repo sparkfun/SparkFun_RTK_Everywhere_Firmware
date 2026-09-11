@@ -4,6 +4,8 @@ Device_Update_NVM.ino
   Support routines to use NVM for input or output
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+#ifdef  COMPILE_FIRMWARE_UPDATE
+
 //----------------------------------------
 // Close the NVM file
 //----------------------------------------
@@ -196,3 +198,5 @@ ssize_t dfuNvmWrite(DEVICE_FIRMWARE_CTX * ctx,
 {
     return ctx->_nvmFile.write(buffer, bytesToWrite);
 }
+
+#endif  // COMPILE_FIRMWARE_UPDATE

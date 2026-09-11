@@ -117,7 +117,6 @@ RTK_Everywhere.ino
 #define COMPILE_MQTT_CLIENT  // Comment out to remove MQTT Client functionality
 #define COMPILE_NTRIP_CLIENT // Comment out to remove NTRIP client functionality
 #define COMPILE_NTRIP_SERVER // Comment out to remove NTRIP server functionality
-#define COMPILE_OTA_AUTO     // Comment out to disable automatic over-the-air firmware update
 #define COMPILE_TCP_CLIENT   // Comment out to remove TCP client functionality
 #define COMPILE_TCP_SERVER   // Comment out to remove TCP server functionality
 #define COMPILE_UDP_SERVER   // Comment out to remove UDP server functionality
@@ -142,6 +141,10 @@ RTK_Everywhere.ino
 #define COMPILE_MENU_USER_PROFILES // Comment out to remove user profile menu functionality
 #define COMPILE_MENU_WIFI          // Comment out to remove WiFi menu functionality
 #endif                             // COMPILE_SERIAL_MENUS
+
+#if defined(COMPILE_MENU_FIRMWARE) && defined(COMPILE_NETWORK)
+#define COMPILE_FIRMWARE_UPDATE // Comment out to disable firmware update
+#endif
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
 #ifndef ENABLE_DEVELOPER
@@ -226,130 +229,14 @@ const uint16_t HTTPS_PORT = 443;                                                
 #define IDLE_TIME_DISPLAY_SECONDS 5
 #define MAX_IDLE_TIME_COUNT (IDLE_TIME_DISPLAY_SECONDS * IDLE_COUNT_PER_SECOND)
 
-#define HOURS_IN_A_DAY 24L
-#define MINUTES_IN_AN_HOUR 60L
-#define SECONDS_IN_A_MINUTE 60L
-#define MILLISECONDS_IN_A_SECOND 1000L
-#define MILLISECONDS_IN_A_MINUTE (SECONDS_IN_A_MINUTE * MILLISECONDS_IN_A_SECOND)
-#define MILLISECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * MILLISECONDS_IN_A_MINUTE)
-#define MILLISECONDS_IN_A_DAY (HOURS_IN_A_DAY * MILLISECONDS_IN_AN_HOUR)
-
-#define SECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * SECONDS_IN_A_MINUTE)
-#define SECONDS_IN_A_DAY (HOURS_IN_A_DAY * SECONDS_IN_AN_HOUR)
-
 const char *debugMessagePrefix = "# => "; // Something ~unique and easy to trigger on
-
-// Hardware connections
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// These pins are set in beginBoard()
-#define PIN_UNDEFINED -1
-int pin_debug = PIN_UNDEFINED;              // LED on EVK
-int pin_batteryStatusLED = PIN_UNDEFINED;   // LED on Torch
-int pin_baseStatusLED = PIN_UNDEFINED;      // LED on EVK
-int pin_bluetoothStatusLED = PIN_UNDEFINED; // LED on Torch
-int pin_gnssStatusLED = PIN_UNDEFINED;      // LED on Torch
-
-int pin_muxA = PIN_UNDEFINED;
-int pin_muxB = PIN_UNDEFINED;
-int pin_mux1 = PIN_UNDEFINED;
-int pin_mux2 = PIN_UNDEFINED;
-int pin_mux3 = PIN_UNDEFINED;
-int pin_mux4 = PIN_UNDEFINED;
-
-int pin_modeButton = PIN_UNDEFINED;   // Mode button on EVK, Function button on Facet FP
-int pin_powerButton = PIN_UNDEFINED;  // Power and general purpose button on Torch, Facet
-int pin_powerFastOff = PIN_UNDEFINED; // Output on Facet
-int pin_muxDAC = PIN_UNDEFINED;
-int pin_muxADC = PIN_UNDEFINED;
-int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK and Facet mosaic
-
-int pin_GnssEvent = PIN_UNDEFINED;   // Facet mosaic
-int pin_GnssOnOff = PIN_UNDEFINED;   // Facet mosaic
-int pin_chargerLED = PIN_UNDEFINED;  // Facet mosaic
-int pin_chargerLED2 = PIN_UNDEFINED; // Facet mosaic
-int pin_GnssReady = PIN_UNDEFINED;   // Facet mosaic
-
-int pin_loraRadio_reset = PIN_UNDEFINED;
-int pin_loraRadio_boot = PIN_UNDEFINED;
-int pin_loraRadio_power = PIN_UNDEFINED;
-
-int pin_Ethernet_CS = PIN_UNDEFINED;
-int pin_Ethernet_Interrupt = PIN_UNDEFINED;
-int pin_GNSS_CS = PIN_UNDEFINED;
-int pin_GNSS_TimePulse = PIN_UNDEFINED;
-int pin_GNSS_Reset = PIN_UNDEFINED;
-
-// microSD card pins
-int pin_PICO = PIN_UNDEFINED;
-int pin_POCI = PIN_UNDEFINED;
-int pin_SCK = PIN_UNDEFINED;
-int pin_microSD_CardDetect = PIN_UNDEFINED;
-int pin_microSD_CS = PIN_UNDEFINED;
-
-int pin_I2C0_SDA = PIN_UNDEFINED;
-int pin_I2C0_SCL = PIN_UNDEFINED;
-
-// On EVK, Display is on separate I2C bus
-int pin_I2C1_SDA = PIN_UNDEFINED;
-int pin_I2C1_SCL = PIN_UNDEFINED;
-
-int pin_GnssUart_RX = PIN_UNDEFINED;
-int pin_GnssUart_TX = PIN_UNDEFINED;
-
-int pin_GnssUart2_RX = PIN_UNDEFINED;
-int pin_GnssUart2_TX = PIN_UNDEFINED;
-
-int pin_Cellular_RX = PIN_UNDEFINED;
-int pin_Cellular_TX = PIN_UNDEFINED;
-int pin_Cellular_PWR_ON = PIN_UNDEFINED;
-int pin_Cellular_Network_Indicator = PIN_UNDEFINED;
-int pin_Cellular_Reset = PIN_UNDEFINED;
-int pin_Cellular_RTS = PIN_UNDEFINED;
-int pin_Cellular_CTS = PIN_UNDEFINED;
-bool cellularModemResetLow = false;
-#define CELLULAR_MODEM_FC ESP_MODEM_FLOW_CONTROL_NONE
-uint8_t laraPwrLowValue;
-uint32_t laraTimer; // Backoff timer
-
-int pin_IMU_RX = PIN_UNDEFINED;
-int pin_IMU_TX = PIN_UNDEFINED;
-int pin_GNSS_DR_Reset = PIN_UNDEFINED;
-int pin_IMU_Boot = PIN_UNDEFINED;
-
-int pin_powerAdapterDetect = PIN_UNDEFINED;
-int pin_usbSelect = PIN_UNDEFINED;
-int pin_beeper = PIN_UNDEFINED;
-
-int pin_gpioExpanderInterrupt = PIN_UNDEFINED;
-const uint8_t gpioExpander_up = 0;
-const uint8_t gpioExpander_down = 1;
-const uint8_t gpioExpander_right = 2;
-const uint8_t gpioExpander_left = 3;
-const uint8_t gpioExpander_center = 4;
-const uint8_t gpioExpander_cardDetect = 5;
-const uint8_t gpioExpander_io6 = 6;
-const uint8_t gpioExpander_io7 = 7;
-
-const uint8_t gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
-const uint8_t gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
-const uint8_t gpioExpanderSwitch_S3 = 2; // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
-const uint8_t gpioExpanderSwitch_S4 =
-    3; // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
-const uint8_t gpioExpanderSwitch_LoraEnable = 4; // LoRa_EN
-const uint8_t gpioExpanderSwitch_GNSS_Reset = 5; // RST_GNSS
-const uint8_t gpioExpanderSwitch_LoraBoot = 6;   // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
-const uint8_t gpioExpanderSwitch_S5 = 7;         // Controls U61 switch 5: connect GNSS UART1 to Port A of CH342
-const uint8_t gpioExpanderNumSwitches = 8;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // I2C for GNSS, battery gauge, display
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include "icons.h"
-#include <Wire.h> //Built-in
 #include <vector> //Needed for icons etc.
-TwoWire *i2c_0 = nullptr;
-TwoWire *i2c_1 = nullptr;
 TwoWire *i2cDisplay = nullptr;
 TwoWire *i2cAuthCoPro = nullptr;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -385,10 +272,8 @@ void beginSPI(bool force = false); // Header
 
 SdFat *sd;
 
-#define productVariantProperties getProductPropertiesFromVariant(productVariant)
 #define platformFilePrefix                                                                                             \
     getProductPropertiesFromVariant(productVariant)->filePrefix // Sets the prefix for logs and settings files
-#define variantHousingProperties getProductHousingPropertiesFromVariant(productVariant)
 
 SdFile *logFile;                  // File that all GNSS messages sentences are written to
 unsigned long lastUBXLogSyncTime; // Used to record to SD every half second
@@ -612,9 +497,6 @@ volatile bool forwardGnssDataToUsbSerial;
 // entered then no changes are made and the +++ sequence must be re-entered.
 #define PLUS_PLUS_PLUS_TIMEOUT (2 * 1000) // Milliseconds
 
-HardwareSerial *serialGNSS = nullptr;  // Don't instantiate until we know what gnssPlatform we're on
-HardwareSerial *serial2GNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
-
 volatile bool inDirectConnectMode = false; // Global state to indicate if GNSS/LoRa has direct connection for update
 
 #define SERIAL_SIZE_TX 512
@@ -777,8 +659,6 @@ static NetPriority_t networkPriorityForDisplay = NETWORK_NONE; // Reduce calls t
 // IM19 Tilt Compensation
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_IM19_IMU
-#include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU
-IM19 *tiltSensor;
 unsigned long lastTiltCheck;   // Limits polling on IM19 to 1Hz
 bool tiltFailedBegin;          // Goes true if IMU fails beginTilt()
 unsigned long lastTiltBeepMs;  // Emit a beep every 10s if tilt is active
@@ -791,11 +671,6 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
 
 int imuFirmwareVersionInt;
 char imuFirmwareVersionStr[32];    // Ex: IM19_H2_B2.2_A11.4.1
-
-HardwareSerial *uart2Serial;   // Shared serial port between LoRa and Tilt
-
-#define SerialForLoRa           uart2Serial
-#define SerialForTilt           uart2Serial
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -1016,7 +891,6 @@ unsigned long lastSpartnToPpl = 0;
 int commandCount;
 int16_t *commandIndex;
 
-bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved from CH34x to LoRa
 unsigned long loraLastIncomingSerial; // Last time a user sent a serial command. Used in LoRa timeouts.
 char loraFirmwareVersionStr[25] = {'\0'};
 int loraFirmwareVersionInt = 0;
@@ -1375,8 +1249,8 @@ void setup()
     DMW_b("peripheralsOn");
     peripheralsOn(); // Enable power for the display, SD, etc
 
-    DMW_b("beginI2C");
-    beginI2C(); // Requires settings and peripheral power (if applicable).
+    DMW_b("beginI2CTask");
+    beginI2CTask(); // Requires settings and peripheral power (if applicable).
 
     DMW_b("beginGpioExpanderSwitches");
     beginGpioExpanderSwitches(); // Start the GPIO expander for switch control
@@ -1647,7 +1521,7 @@ void loop()
     DMW_l("printReports");
     printReports(); // Periodically print GNSS coordinates and accuracy if enabled
 
-    DMW_l("otaAutoUpdate");
+    DMW_l("otaUpdate");
     otaUpdate(); // Initiate firmware version checks, scheduled automatic updates, or requested firmware over-the-air
                  // updates
 

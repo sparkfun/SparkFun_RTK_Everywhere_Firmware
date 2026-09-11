@@ -5,6 +5,8 @@ CSV.ino
   Read the CSV file on the server for subsystem firmware versions and firmware locations
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+#ifdef  COMPILE_FIRMWARE_UPDATE
+
 //----------------------------------------
 // Constants
 //----------------------------------------
@@ -609,3 +611,5 @@ bool csvFileParse(uint8_t * fileData,
     } while (0);
     return validFile;
 }
+
+#endif  // COMPILE_FIRMWARE_UPDATE

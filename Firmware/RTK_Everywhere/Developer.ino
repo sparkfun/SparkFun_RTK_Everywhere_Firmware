@@ -77,6 +77,7 @@ void um980UnicoreHandler(uint8_t * buffer, int length) {}
 void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros) {
     systemPrintln("**Epoch not compiled** ZED not included so time will be invalid");
 }
+void zedVerifyTables() {}
 
 #endif // COMPILE_ZED
 
@@ -175,53 +176,49 @@ void networkUserRemove(NETCONSUMER_t consumer, const char * fileName, uint32_t l
 void networkValidateIndex(NetIndex_t index) {}
 void networkVerifyTables() {}
 
+#endif // COMPILE_NETWORK
+
 //----------------------------------------
-// Device firmware update
+// Firmware updates
 //----------------------------------------
+
+#ifndef COMPILE_FIRMWARE_UPDATE
+
+// dfu
+void beginBuffers() {}
+
+#define DEVICE_FIRMWARE_CTX     int
+#define DFU_BUFFER_DATA         int
+
 bool deviceFirmwareUpdate(uint32_t currentMsec) {return false;}
 bool deviceFirmwareUpdateBegin(bool doAll, bool debugVerbose, size_t saveDataLength) {return false;}
 void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx) {}
 void deviceFirmwareFileSort(int bufferIndex, int fileCount) {}
 void deviceFirmwareStateSet(DEVICE_FIRMWARE_CTX * ctx, int newState) {}
 
-//----------------------------------------
-// Device firmware update - network
-//----------------------------------------
 void dfuNetworkCleanup(DEVICE_FIRMWARE_CTX * ctx, DFU_BUFFER_DATA * bufferData) {}
 ssize_t dfuNetworkRead(DEVICE_FIRMWARE_CTX * ctx, uint8_t * buffer, size_t bytesToRead) {return 0;}
 
-//----------------------------------------
-// CSV file for OTA updates
-//----------------------------------------
-bool csvOpenCsvFile(const char * url,
-                    const char * cert,
-                    uint8_t ** fileData,
-                    size_t * fileBytes,
-                    int * fieldCount,
-                    int * lineCount,
-                    bool debug,
-                    bool verbose) {return false;}
+// microSD card
+void microSDMountThenUpdate(const char *firmwareFileName) {}
+void microSDScanForFirmware() {}
+void microSDUpdateFirmware(const char *firmwareFileName) {}
 
-#endif // COMPILE_NETWORK
-
-//----------------------------------------
-// Automatic Over-The-Air (OTA) firmware updates
-//----------------------------------------
-
-#ifndef COMPILE_OTA_AUTO
-
-bool otaDebugVerbose = false;
-
-void firmwareMenu() {systemPrintln("**OTA Auto not compiled**");}
+// OTA
 void otaAutoUpdate() {}
+OTA_SUBSYSTEM_MASK otaGetProductSubsystemSupport() {return 0;}
 bool otaIsChipSupported(const char * subsystem, const char * chip) {return false;}
-void otaMenuDisplay(char * currentVersion) {}
-bool otaMenuProcessInput(byte incoming) {return false;}
+void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
+                    bool * developerOptionsAddr,
+                    char *currentVersion) {}
+bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
+                         bool * developerOptionsAddr,
+                         byte incoming) {return false;}
 void otaUpdate() {}
 void otaUpdateStop() {}
 void otaVerifyTables() {}
 
-#endif  // COMPILE_OTA_AUTO
+#endif  // COMPILE_FIRMWARE_UPDATE
 
 //----------------------------------------
 // HTTP Client
@@ -368,24 +365,19 @@ bool webServerIsRunning() {return false;}
 
 #ifndef  COMPILE_IM19_IMU
 
+void imuBeginFirmwareUpdate() {}
+bool imuCheckPassthroughFile() {return false;}
+bool imuCreatePassthroughFile() {return false;}
 void menuTilt() {}
 void nmeaApplyCompensation(char *nmeaSentence, int arraySize) {}
 void tiltDetect() {systemPrintln("**Tilt Not Compiled**");}
+void tiltForceDetectionReboot() {}
 bool tiltIsCorrecting() {return(false);}
 void tiltRequestStop() {}
 void tiltSensorFactoryReset() {}
 void tiltStop() {}
 void tiltUpdate() {}
-
 #endif  // COMPILE_IM19_IMU
-
-#if !defined(COMPILE_WIFI)
-
-bool im19FirmwareUpdate() {return false;}
-bool im19PumpStreamToDevice() {return false;}
-bool im19StreamRange(const char *url, uint32_t startByte, uint32_t endByte) {return false;}
-
-#endif // COMPILE_WIFI
 
 //----------------------------------------
 // MFi authentication coprocessor

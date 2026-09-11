@@ -4,7 +4,7 @@ OTA.ino
   Over-The-Air (OTA) firmware update support
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
-#ifdef COMPILE_OTA_AUTO
+#ifdef COMPILE_FIRMWARE_UPDATE
 
 //----------------------------------------
 // Constants
@@ -279,7 +279,7 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
 
         systemPrintf("Getting %s firmware file\r\n", otaSubsystem[subsystemIndex]);
         String server = getServerFromUrl(target->_url);
-        cert = otaGetCert(target->_url);
+        cert = getCertFromUrl(target->_url);
         if (openUrl(target->_url,
                     cert,
                     server,
@@ -312,7 +312,8 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
 
         // Perform the update for the current target
         systemPrintf("Updating %s\r\n", otaSubsystem[subsystemIndex]);
-        success = subsystemInfo->_streamFirmware(stream,
+        success = subsystemInfo->_streamFirmware(otaChipName[subsystemInfo->_chip],
+                                                 stream,
                                                  target->_fileBytes,
                                                  target->_crc,
                                                  otaFirmwareBuffer,
@@ -333,20 +334,13 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
 }
 
 //----------------------------------------
-// Determine the certificate that should be used with the URL
+// Get chip name from chip ID
 //----------------------------------------
-const char * otaGetCert(const char * url)
+const char * otaGetChipNameFromChipId(uint8_t chipId)
 {
-    const char * cert;
-    const char * githubUserContent = "https://raw.githubusercontent.com/";
-
-    cert = nullptr;
-    if (url)
-    {
-        if (strncmp(url, githubUserContent, strlen(githubUserContent)) == 0)
-            cert = GITHUB_RAW_PUBLIC_CERT;
-    }
-    return cert;
+    if (chipId < otaChipNameEntries)
+        return otaChipName[chipId];
+    return "Unknown";
 }
 
 //----------------------------------------
@@ -1048,6 +1042,13 @@ void otaStateFirmwareUpdate()
 
         online.otaClient = true;
 
+        // Stop tasks that absorb serial data from the GNSS
+        tasksStopGnssUart();
+
+        // Display the remaining tasks
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            rtkTaskList(&Serial);
+
         success = true;
         productSubsystems = otaGetProductSubsystemSupport();
         for (subsystemIndex = OTA_SUBSYSTEM_MAX - 1; subsystemIndex >= 0; subsystemIndex--)
@@ -1110,7 +1111,7 @@ void otaStateFirmwareUpdate()
                 success &= subsystemInfo->_firmwareUpdate(target,
                                                           subsystemInfo,
                                                           otaFirmwareBuffer,
-                                                          OTA_BUFFER_BYTES);
+                                                          subsystemInfo->_packetBytes);
                 // Display the performance
                 if (success)
                     otaDisplayPerformance(subsystemIndex,
@@ -1141,7 +1142,7 @@ void otaStateGetSystemsToUpdate()
             systemPrintln("Creating list of subsystems to update");
 
         // Get CVS file listing the firmware for this system
-        cert = otaGetCert(settings.csvUrl);
+        cert = getCertFromUrl(settings.csvUrl);
         if (csvOpenCsvFile(settings.csvUrl,
                            cert,
                            &otaCsvFileData,
@@ -1460,4 +1461,4 @@ extern const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[] =
 const int otaSubsystemInfoTableEntries = sizeof(otaSubsystemInfoTable)
                                        / sizeof(otaSubsystemInfoTable[0]);
 
-#endif // COMPILE_OTA_AUTO
+#endif // COMPILE_FIRMWARE_UPDATE

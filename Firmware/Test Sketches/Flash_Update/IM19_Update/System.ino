@@ -770,7 +770,7 @@ void beginMux()
 }
 
 //----------------------------------------
-// Set the port of the 1:4 dual channel analog mux
+// For RTK_FACET_FP, set the port of the 1:4 dual channel analog mux
 // This allows NMEA, I2C, PPS/Event, and ADC/DAC to be routed through data port via software select
 //----------------------------------------
 void setMuxport(int channelNumber)
@@ -786,70 +786,170 @@ void setMuxport(int channelNumber)
 
     switch (channelNumber)
     {
-    case 0:
+    case MUX_GNSS_UART:         // 0
         digitalWrite(pin_muxA, LOW);
         digitalWrite(pin_muxB, LOW);
         break;
-    case 1:
+    case MUX_PPS_EVENTTRIGGER:  // 1
         digitalWrite(pin_muxA, HIGH);
         digitalWrite(pin_muxB, LOW);
         break;
-    case 2:
+    case MUX_I2C_WT:            // 2
         digitalWrite(pin_muxA, LOW);
         digitalWrite(pin_muxB, HIGH);
         break;
-    case 3:
+    case MUX_ADC_DAC:           // 3
         digitalWrite(pin_muxA, HIGH);
         digitalWrite(pin_muxB, HIGH);
         break;
     }
 }
 
+//----------------------------------------
+// Torch: Connect ESP UART 1 to UM980 UART 3
+//----------------------------------------
 void muxSelectUm980()
 {
     // On a possible Facet FP UM980 variant, UM980 UART1 will be hardwired to ESP32 UART0. No muxes to change
     if (productVariant == RTK_TORCH)
-        digitalWrite(pin_muxA,
-                     LOW); // Control U18: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2.
+        //                      MUX A
+        //                    .--(1) <--> LoRa UART 1
+        // ESP32 UART 1 <--> U12 (0) <--> UM980 UART 3
+        //
+        //                                   MUX A
+        //                      MUX B      .--(1) <--> UM980 UART 1
+        //                    .--(1) <--> U11 (0) <--> LoRa UART 2
+        // ESP32 UART 0 <--> U18 (0) <--> CH340 <--> USB serial
+        //
+        digitalWrite(pin_muxA, LOW); // ESP UART1 <--> UM980 UART3
+                                     // ESP UART0 <--> LoRa UART2
 }
 
+//----------------------------------------
+// Torch: Connect ESP UART 0 to CH340 (USB serial)
+//        Connect ESP UART 1 to UM980
+//----------------------------------------
 void muxSelectUsb()
 {
     if (productVariant == RTK_TORCH)
     {
+        //                      MUX A
+        //                    .--(1) <--> LoRa UART 1
+        // ESP32 UART 1 <--> U12 (0) <--> UM980 UART 3
+        //
+        //                                   MUX A
+        //                      MUX B      .--(1) <--> UM980 UART 1
+        //                    .--(1) <--> U11 (0) <--> LoRa UART 2
+        // ESP32 UART 0 <--> U18 (0) <--> CH340 <--> USB serial
+        //
         pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
-        digitalWrite(pin_muxA,
-                     LOW); // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
-        digitalWrite(pin_muxB, LOW); // Control U18: Connect ESP UART0 to CH340 Serial
+        digitalWrite(pin_muxA, LOW); // ESP UART1 <--> UM980 UART3
+        digitalWrite(pin_muxB, LOW); // ESP UART0 <--> CH340 <--> USB serial
 
         usbSerialIsSelected = true; // Let other print operations know we are connected to the CH34x
     }
 }
 
-// Connect ESP32 to LoRa for regular transmissions on Torch
+//----------------------------------------
+// Torch: Connect ESP UART 0 to LoRa UART 2
+//        Connect ESP UART 1 to UM980 UART 3
 // On Facet, startLoRaConfigureCommunicationOnFacet() is called separately
+//----------------------------------------
 void muxSelectLoRaCommunication()
 {
     if (productVariant == RTK_TORCH)
     {
+        //                      MUX A
+        //                    .--(1) <--> LoRa UART 1
+        // ESP32 UART 1 <--> U12 (0) <--> UM980 UART 3
+        //
+        //                                   MUX A
+        //                      MUX B      .--(1) <--> UM980 UART 1
+        //                    .--(1) <--> U11 (0) <--> LoRa UART 2
+        // ESP32 UART 0 <--> U18 (0) <--> CH340 <--> USB serial
+        //
         pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
-        digitalWrite(pin_muxA,
-                     LOW); // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
-        digitalWrite(pin_muxB, HIGH); // Control U18: Connect ESP UART0 to U11
+        digitalWrite(pin_muxA, LOW);  // ESP UART1 <--> UM980 UART3
+        digitalWrite(pin_muxB, HIGH); // ESP UART0 <--> LoRa UART2
 
         usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
     }
 }
 
-// Connect ESP32 to LoRa for configuration and bootloading
+//----------------------------------------
+// Torch: Connect ESP32 UART 1 to LoRa UART 1
+// Facet: Connect ESP32 UART 2 to LoRa UART 2
 // This is only called by loraBeginFirmwareUpdate()
+//----------------------------------------
 void muxSelectLoRaConfigure()
 {
     if (productVariant == RTK_TORCH)
-        digitalWrite(pin_muxA,
-                     HIGH); // Control U12: Connect ESP UART1 to LoRa UART0. Control U11: Connect U18-B1 to UM980 UART1
+        //                      MUX A
+        //                    .--(1) <--> LoRa UART 1
+        // ESP32 UART 1 <--> U12 (0) <--> UM980 UART 3
+        //
+        //                                   MUX A
+        //                      MUX B      .--(1) <--> UM980 UART 1
+        //                    .--(1) <--> U11 (0) <--> LoRa UART 2
+        // ESP32 UART 0 <--> U18 (0) <--> CH340 <--> USB serial
+        //
+        digitalWrite(pin_muxA, HIGH); // ESP UART1 <--> LoRa UART1
+                                      // U11 <--> UM980 UART1
+                                      // ESP UART0 <--> ???
     else if (productVariant == RTK_FACET_FP)
         startLoRaConfigureCommunicationOnFacet();
+}
+
+//----------------------------------------
+// Display the MUX configuration
+//----------------------------------------
+void muxDisplayConfiguration()
+{
+    int muxA = digitalRead(pin_muxA);
+    int muxB = digitalRead(pin_muxB);
+
+    if (productVariant == RTK_TORCH)
+    {
+        const char * uart0;
+        const char * uart1;
+
+        //                      MUX A
+        //                    .--(1) <--> LoRa UART 1
+        // ESP32 UART 1 <--> U12 (0) <--> UM980 UART 3
+        //
+        //                                   MUX A
+        //                      MUX B      .--(1) <--> UM980 UART 1
+        //                    .--(1) <--> U11 (0) <--> LoRa UART 2
+        // ESP32 UART 0 <--> U18 (0) <--> CH340 <--> USB serial
+        //
+        uart1 = muxA ? "LoRa UART 1" : "UM980 UART 3";
+        if (muxB)
+            uart0 = muxA ? "UM980 UART 1" : "LoRa UART 2";
+        else
+            uart0 = "USB serial";
+
+        // Display the UART configuration
+        systemPrintf("ESP32 UART 0: %s\r\n", uart0);
+        systemPrintf("ESP32 UART 1: %s\r\n", uart1);
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        switch ((muxB ? 2 : 0) | (muxA ? 1 : 0))
+        {
+        case MUX_GNSS_UART:         // 0
+            systemPrintln("Data Port: GNSS UART TX Out/RX In");
+            break;
+        case MUX_PPS_EVENTTRIGGER:  // 1
+            systemPrintln("Data Port: PPS OUT/Event Trigger In");
+            break;
+        case MUX_I2C_WT:            // 2
+            systemPrintln("Data Port: I2C SCL Out/SDA In");
+            break;
+        case MUX_ADC_DAC:           // 3
+            systemPrintln("Data Port: ESP32 DAC Out/ADC In");
+            break;
+        }
+    }
 }
 
 //======================= GPIO Support =======================
@@ -1511,6 +1611,9 @@ void systemDisplayConfiguration()
     // Display the GPIO expander configuration
     if (present.gpioExpanderSwitches)
         gpioExpanderDisplay();
+
+    // Display the MUX configuration
+    muxDisplayConfiguration();
 
     // Display the microSD support
     if (present.microSd)

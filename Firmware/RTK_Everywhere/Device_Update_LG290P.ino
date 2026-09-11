@@ -4,6 +4,7 @@ Device_Update_LG290P.ino
   Support routines to program the LG290P firmware
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+#ifdef  COMPILE_FIRMWARE_UPDATE
 #ifdef  COMPILE_LG290P
 
 //----------------------------------------
@@ -483,3 +484,4 @@ ssize_t dfuLg290pWrite(DEVICE_FIRMWARE_CTX * ctx,
 }
 
 #endif  // COMPILE_LG290P
+#endif  // COMPILE_FIRMWARE_UPDATE
