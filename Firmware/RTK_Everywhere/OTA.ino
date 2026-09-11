@@ -806,7 +806,7 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
     if (developerOptions)
         systemPrintf("D) %s firmware debugging\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
 
-    if (developerOptions && (otaEsp32AreFirmwareWritesSupported()))
+    if (developerOptions && (dfuEsp32AreFirmwareWritesSupported()))
         systemPrintf("E) ESP32: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_ESP32));
 
     if (developerOptions)
@@ -903,7 +903,7 @@ bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
     }
 
     // Select ESP32 request type
-    else if (developerOptions && (incoming == 'E') && otaEsp32AreFirmwareWritesSupported()) // ESP32 requires second APP partition
+    else if (developerOptions && (incoming == 'E') && dfuEsp32AreFirmwareWritesSupported()) // ESP32 requires second APP partition
         otaMenuNextSubsystemRequestType(OTA_SUBSYSTEM_ESP32);
 
     // Force updates to all subsystems
@@ -1352,7 +1352,7 @@ void otaUpdate()
 
         case OTA_STATE_REBOOT:
             // Update finished
-            otaEsp32Reboot();
+            dfuEsp32Reboot();
             break;
         }
     }

@@ -610,54 +610,6 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 }
 
 //----------------------------------------
-// Determine if the ESP32 supports OTA
-//----------------------------------------
-bool otaEsp32AreFirmwareWritesSupported()
-{
-    int partitionCount;
-
-    // We can do OTA if there are two APP partitions
-    partitionCount = countAppPartitions();
-    if (partitionCount >= 2)
-        return true;
-
-    // Warn the user
-    systemPrintf("WARNING: ESP32 updates require two APP paritions, found %d!\r\n",
-                 partitionCount);
-    printPartitionTable();
-    return false;
-}
-
-//----------------------------------------
-// Reboot the ESP32
-//----------------------------------------
-void otaEsp32Reboot()
-{
-    // Restart ESP32 to see changes
-    systemPrintf("Rebooting. Goodbye!\r\n");
-    Serial.flush();
-    delay(1000);
-    ESP.restart();
-}
-
-//----------------------------------------
-// Finish the ESP32 firmware update
-//----------------------------------------
-bool otaEsp32FirmwareUpdateEnd()
-{
-    bool success = Update.end();
-    if (success == false)
-        systemPrintln("ESP32 firmware error occurred. Error #: " + String(Update.getError()));
-    else
-    {
-        success = Update.isFinished();
-        if (success == false)
-            systemPrintln("ESP32 firmware update not finished? Something went wrong!");
-    }
-    return success;
-}
-
-//----------------------------------------
 // Reads packetBytes from an already-open HTTP stream and feeds them to the device,
 // reporting progress as it goes.
 //
