@@ -10,7 +10,14 @@ WebServer.ino
 // Constants
 //----------------------------------------
 
-static const int webServerStackSize = 1024 * 20;
+// Handlers route their buffers (file uploads, file lists, settings CSV, websocket payloads) through
+// rtkMalloc(), which prefers PSRAM - they don't consume this task's own stack. This stack only needs
+// to cover the handlers' own local variables plus the httpd/lwip call chain underneath them, which is
+// far short of the original 20KB. Kept modest deliberately: this stack comes from internal DRAM only
+// (CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY is disabled in this SDK build, so it can never come from
+// PSRAM), and internal DRAM gets fragmented/tight when ESP-NOW and BLE are also running, which can
+// make httpd_start() fail to create this task at all (ESP_ERR_HTTPD_TASK).
+static const int webServerStackSize = 1024 * 8;
 
 const char *const image_png = "image/png";
 const char *const text_css = "text/css";
@@ -123,6 +130,8 @@ static WEB_SOCKETS_CLIENT *webServerClientListTail;
 static httpd_handle_t webServerHandle;
 static SemaphoreHandle_t webServerMutex;
 static uint8_t webServerState;
+static uint32_t webServerStartRetryTimer;
+static const uint32_t webServerStartRetryMsec = 1000; // Backoff between httpd_start() attempts
 
 //----------------------------------------
 // Forward routines
@@ -251,6 +260,27 @@ bool webServerAssignResources(int httpPort = 80)
         {
             webServerHttpdDisplayConfig(&config);
             reportHeapNow(true);
+        }
+
+        // httpd_start() creates its own worker task, whose stack must come from a single contiguous
+        // block of internal DRAM (this SDK build has CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY
+        // disabled, so PSRAM is never used for task stacks, no matter how much is free). If ESP-NOW
+        // and/or BLE have fragmented internal DRAM enough that no block that size is available,
+        // httpd_start() fails with ESP_ERR_HTTPD_TASK *after* it has already bound and listened on
+        // the port - and esp_http_server does not close that socket on this failure path. Every
+        // later call to httpd_start() then fails with "error in listen" (EADDRINUSE) forever, since
+        // the leaked socket can never be released without a reboot. Check for enough contiguous
+        // internal DRAM before calling httpd_start() so that failure - and the resulting permanent
+        // leak - never happens in the first place; if there isn't enough, skip this attempt and let
+        // the caller's retry/backoff try again later once fragmentation eases.
+        size_t largestInternalBlock = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+        size_t neededInternalBlock = webServerStackSize + 4096; // Margin for httpd's own internal structures
+        if (largestInternalBlock < neededInternalBlock)
+        {
+            systemPrintf("Web Server: Not enough contiguous internal RAM to start (need %d, largest block %d) - "
+                         "will retry\r\n",
+                         neededInternalBlock, largestInternalBlock);
+            break;
         }
 
         // Start the web server
@@ -2486,6 +2516,9 @@ void webServerUpdate()
                 systemPrintln("Web Server connected to network");
 
             networkUserAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
+
+            // Allow the first attempt to start immediately
+            webServerStartRetryTimer = millis() - webServerStartRetryMsec;
             webServerSetState(WEBSERVER_STATE_NETWORK_CONNECTED);
         }
         break;
@@ -2500,9 +2533,16 @@ void webServerUpdate()
             webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
         }
 
-        // Attempt to start the web server
-        else if (webServerAssignResources(settings.httpPort) == true)
-            webServerSetState(WEBSERVER_STATE_RUNNING);
+        // Attempt to start the web server. httpd_start() can transiently fail (ex: EHOSTDOWN)
+        // immediately after the network interface comes up, before the LWIP stack has finished
+        // marking it as the default route. Back off between attempts rather than hammering
+        // httpd_start() every main loop iteration, which just spams the log.
+        else if ((millis() - webServerStartRetryTimer) >= webServerStartRetryMsec)
+        {
+            webServerStartRetryTimer = millis();
+            if (webServerAssignResources(settings.httpPort) == true)
+                webServerSetState(WEBSERVER_STATE_RUNNING);
+        }
     }
     break;
 
