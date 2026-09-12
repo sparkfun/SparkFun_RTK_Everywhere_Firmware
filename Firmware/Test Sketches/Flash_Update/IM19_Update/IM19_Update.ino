@@ -18,18 +18,26 @@
     Grab chunks of bytes over WiFi and throw at xxxUpdateFirmware(*data, length)
     When done, call xxxUpdateFirmwareEnd() to free buffers and exit the bootloader mode or reset the target
 
-    Test procedure commands:
-    1) o    ?.? --> 6.1
-    2) a    6.1 --> 11.1
-    3) e    11.1 --> 6.1    Connect to somewhere other than
-                            raw.githubusercontent.com using http://
-    4) e    6.1 --> 11.1    Connect to somewhere other than
+    Test procedure commands (Verifies all command URLs, HTTP, HTTPS and array:
+    1) u    ?.? --> 11.4.1  Verify HTTPS and 'u' command and URL
+    2) a    6.1 --> 11.1    Verify 'a' command and array
+    3) e    11.1 --> 6.1    Verify 'e' command and HTTP, connect to somewhere
+                            other than raw.githubusercontent.com using http://
+    4) e    6.1 --> 11.1    Verify HTTPS, connect to somewhere other than
                             raw.githubusercontent.com using https://
-    5) L
-       0    11.1 --> 11.4.1
-    6) o    11.4.1 --> 6.1
-    7) p    6.1 --> 11.1
-    8) u    11.1 --> 11.4.1
+    5) L                    Verify 'L' command and directory listing
+       0    11.1 --> 11.4.1 Verify HTTPS
+    6) o    11.4.1 --> 6.1  Verify 'o' command and URL
+    7) p    6.1 --> 11.1    Verify 'p' command and URL
+    8) u    11.1 --> 11.4.1 Leave at highest revision
+
+    Test procedure commands (Verifies HTTP, HTTPS and array):
+    1) a    ?.? --> 11.1    Verify array
+    2) L                    Verify directory listing
+       0    11.1 --> 11.4.1 Verify HTTPS
+    3) e    11.4.1 --> 11.1 Verify HTTP, connect to somewhere other than
+                            raw.githubusercontent.com using http://
+    4) u    11.1 --> 11.4.1 Leave at highest revision
 */
 
 //----------------------------------------
@@ -75,6 +83,15 @@ const uint8_t logoSparkPNT[] = {0};
 
 Firmware_Data_Stream dataArray(firmwareData, sizeof(firmwareData));
 
+const char * subsystem = "IMU";
+const char * chip = "IM19";
+
+uint8_t rxBuffer[256];
+
+const char * urlDirectory = "https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/imu/im19";
+
+const char * ulrFileServer = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/";
+
 // v11.4.1
 const char * url_11_4_1 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20260522185649_VH2_B2.2_A11.4.1_131b44ecee0bdad5670c7.enc";
 
@@ -84,13 +101,7 @@ const char * url_11_1 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK
 // v6.1
 const char * url_6_1 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/20230419111130_VH2_B2.2_A6.1_2eea4d4c024538bf5ed52.enc";
 
-const char * ulrFileServer = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/imu/im19/";
-
-const char * urlDirectory = "https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/imu/im19";
-
 char imuVersion[96];
-
-static uint8_t rxBuffer[256];
 
 uint32_t badBlocks1[] = {5, 15, 16, 17, 18, 19, 20, 36, 40, 89};
 uint32_t badBlocks2[] = {5, 36, 40};
@@ -175,7 +186,7 @@ void setup()
         reportFatalError("An IM19 is not in this product");
 
     // Display the current firmware version
-    im19GetVersionString();
+    im19GetVersionString(subsystem, chip);
 
     displayMenu();
 }
@@ -286,16 +297,19 @@ void flashUpdate(const char * url)
 
     // Attempt to update the firmware
     dataArray.init(0);
-    if (((url != nullptr) && (im19FirmwareUpdate("IM19", url, rxBuffer, sizeof(rxBuffer)) == true))
-        || ((url == nullptr) && im19ArrayFlashUpdate("IM19",
-                                                     (NetworkClient *)&dataArray,
-                                                     dataArray.available(),
+    if (((url != nullptr) && (im19FirmwareUpdate(subsystem,
+                                                 chip,
+                                                 url,
+                                                 rxBuffer,
+                                                 sizeof(rxBuffer)) == true))
+        || ((url == nullptr) && im19ArrayFlashUpdate(subsystem,
+                                                     chip,
                                                      rxBuffer,
                                                      sizeof(rxBuffer))))
     {
         // Stop timer and print elapsed time
         uint32_t flashUpdateElapsed = millis() - flashUpdateStartTime;
-        systemPrint("Firmware update time: ");
+        systemPrintf("%s (%s) firmware update time: ", chip, subsystem);
         systemPrint(flashUpdateElapsed / 1000.0, 3);
         systemPrint(" seconds, ");
         systemPrint(otaFileBytes);
