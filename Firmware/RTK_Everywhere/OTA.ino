@@ -192,6 +192,39 @@ void otaDisplayPerformance(uint8_t subsystemIndex,
 }
 
 //----------------------------------------
+// Display the firmware update start
+//----------------------------------------
+void otaFormatVersion(const int * version,
+                      char * buffer,
+                      size_t bufferBytes)
+{
+    if (version[3])
+        snprintf(buffer, bufferBytes, "v%d.%d.%d.%d%s",
+                 version[0], version[1], version[2], version[3],
+                 version[4] ? " (debug build)" : "");
+    else if (version[2])
+        snprintf(buffer, bufferBytes, "v%d.%d.%d%s",
+                 version[0], version[1], version[2],
+                 version[4] ? " (debug build)" : "");
+    else
+        snprintf(buffer, bufferBytes, "v%d.%d%s",
+                 version[0], version[1],
+                 version[4] ? " (debug build)" : "");
+}
+
+void otaPrintUpdateStart(uint8_t subsystemIndex,
+                         const OTA_TARGET * target)
+{
+    char localVersion[32];
+    char remoteVersion[32];
+
+    otaFormatVersion(target->_localVersion, localVersion, sizeof(localVersion));
+    otaFormatVersion(target->_remoteVersion, remoteVersion, sizeof(remoteVersion));
+    systemPrintf("Updating %s from %s to %s\r\n",
+                 otaSubsystem[subsystemIndex], localVersion, remoteVersion);
+}
+
+//----------------------------------------
 // Display the subsystem
 //----------------------------------------
 void otaDisplayTarget(OTA_TARGET * target)
@@ -352,7 +385,7 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
         firmwareUpdateProgressReset(target->_fileBytes);
 
         // Perform the update for the current target
-        systemPrintf("Updating %s\r\n", otaSubsystem[subsystemIndex]);
+        otaPrintUpdateStart(subsystemIndex, target);
         success = subsystemInfo->_streamFirmware(otaChipName[subsystemInfo->_chip],
                                                  stream,
                                                  target->_fileBytes,
@@ -1208,6 +1241,7 @@ void otaStateFirmwareUpdate()
                     systemPrintf("%s is calling _firmwareUpdate\r\n",
                                  otaSubsystem[subsystemIndex]);
                 uint32_t startMsec = millis();
+                otaPrintUpdateStart(subsystemIndex, target);
                 success &= subsystemInfo->_firmwareUpdate(target,
                                                           subsystemInfo,
                                                           otaFirmwareBuffer,
