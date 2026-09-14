@@ -1627,6 +1627,8 @@ bool stm32UpdateFirmwareBegin()
     if (productVariant == RTK_TORCH)
     {
         // The Torch is connected to the STM32 over ESP UART0 (Serial). There is not a separate UART connection.
+        Serial.flush();
+        Serial.end(); // Must end before begin, otherwise UART settings can be corrupted
         Serial.begin(115200, SERIAL_8E1);
     }
     else if (productVariant == RTK_FACET_FP)
@@ -1634,6 +1636,8 @@ bool stm32UpdateFirmwareBegin()
         beginUart2Serial(); // Init the UART if not already initialized.
 
         // Use UART2 to communicate with the LoRa radio
+        SerialForLoRa->flush();
+        SerialForLoRa->end();
         SerialForLoRa->begin(115200, SERIAL_8E1, pin_IMU_RX, pin_IMU_TX);
 
         // (On FP) Connect ESP32 UART2 to LoRa UART2 via SW3 for configuration and bootloading/firmware updates
