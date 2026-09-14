@@ -53,6 +53,19 @@ void firmwareUpdateProgressReset(size_t fileBytes)
 }
 
 //----------------------------------------
+// Report firmware update status text to the Web Config socket
+//----------------------------------------
+void firmwareUpdateStatusWebsocket(const char * status, const char * message)
+{
+    if (apConfigFirmwareUpdateInProcess == false)
+        return;
+
+    char updateStatus[120];
+    snprintf(updateStatus, sizeof(updateStatus), "%s,%s,", status, message);
+    webServerSendString(updateStatus);
+}
+
+//----------------------------------------
 // Callback for all firmware update targets. Called with the number of
 // bytes just written to flash. Used to track and print progress.
 //----------------------------------------

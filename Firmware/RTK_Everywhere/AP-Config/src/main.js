@@ -627,6 +627,9 @@ function parseIncoming(msg) {
         else if (id.includes("firmwareUpdateComplete")) {
             firmwareUpdateComplete();
         }
+        else if (id.includes("firmwareUpdateFailed")) {
+            firmwareUpdateFailed(val);
+        }
         else if (id.includes("firmwareUploadStatus")) {
             firmwareUploadStatus(val);
         }
@@ -3120,8 +3123,13 @@ function espOtaFirmwareStatus(percentComplete) {
 function gnssOtaFirmwareStatus(percentComplete) {
     clearTimeout(getNewFirmwareTimeout);
 
-    showMsg('gnssFirmwareUpdateReadyMsg', percentComplete + "% Complete");
-    ge("gnssFirmwareUpdateProgressBar").value = percentComplete;
+    const percentNumber = Number(percentComplete);
+    if (Number.isNaN(percentNumber))
+        showMsg('gnssFirmwareUpdateReadyMsg', percentComplete);
+    else {
+        showMsg('gnssFirmwareUpdateReadyMsg', percentComplete + "% Complete");
+        ge("gnssFirmwareUpdateProgressBar").value = percentNumber;
+    }
 }
 
 function loraOtaFirmwareStatus(percentComplete) {
@@ -3142,6 +3150,12 @@ function firmwareUpdateComplete() {
     clearTimeout(getNewFirmwareTimeout);
     showMsg('firmwareCheckNewMsg', "Update complete, system resetting");
     firmwareUploadComplete();
+}
+
+function firmwareUpdateFailed(message) {
+    clearTimeout(getNewFirmwareTimeout);
+    ge("btnCheckNewFirmware").disabled = false;
+    showMsg('firmwareCheckNewMsg', message, true);
 }
 
 //Given a user's string, try to identify the type and return the coordinate in DD.ddddddddd format

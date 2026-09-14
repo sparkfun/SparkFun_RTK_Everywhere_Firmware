@@ -4423,6 +4423,7 @@ bool x20pStreamFirmware(const char *chip, NetworkClient *stream, size_t fileByte
     // Reboot (fire-and-forget - device does not send a response)
     if (settings.debugFirmwareUpdate)
         systemPrintln("Rebooting X20P...");
+    firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "Rebooting, please wait...");
     x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x0E, nullptr, 0); // Reboot
 
     // Display the version number

@@ -1298,6 +1298,7 @@ void otaStateFirmwareUpdate()
         else
         {
             systemPrintln("Firmware update failed, not rebooting");
+            firmwareUpdateStatusWebsocket("firmwareUpdateFailed", "Update failed. Please restart the device and try again.");
             otaUpdateStop(false);
         }
     } while (0);

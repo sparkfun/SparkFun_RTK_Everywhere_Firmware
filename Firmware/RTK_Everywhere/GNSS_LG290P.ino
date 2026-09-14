@@ -3845,6 +3845,8 @@ bool lg290pFirmwareUpdateEnd()
     // Send the last (possibly partial) packet so it isn't left stranded in the library's buffer
     ((GNSS_LG290P *)gnss)->updateFirmwareEnd();
 
+    firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "Rebooting, please wait...");
+
     if (productVariant == RTK_FACET_FP)
         return (((GNSS_LG290P *)gnss)->updateFirmwareIsFinished(30));
 
