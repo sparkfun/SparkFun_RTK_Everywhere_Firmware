@@ -232,6 +232,16 @@ const char *printGnssModuleInfo()
     return ((const char *)gnssModuleInfo);
 }
 
+// Returns the GNSS firmware string for the web settings tab
+const char *printGnssFirmwareInfo()
+{
+    static char gnssFirmwareInfo[80];
+
+    snprintf(gnssFirmwareInfo, sizeof(gnssFirmwareInfo), "GNSS Firmware: %s", gnssFirmwareVersion);
+
+    return ((const char *)gnssFirmwareInfo);
+}
+
 //----------------------------------------
 // Returns true if otaReportedVersion is newer than currentVersion
 // Version number comes in as v2.7-Jan 5 2023

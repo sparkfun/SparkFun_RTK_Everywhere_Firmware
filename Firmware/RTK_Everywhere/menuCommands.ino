@@ -1884,7 +1884,7 @@ void createSettingsString(char *newSettings)
     }
 
     stringRecord(newSettings, "espFirmwareVersion", (char *)printEspFirmwareVersion());
-    stringRecord(newSettings, "gnssFirmwareVersion", (char *)printGnssModuleInfo());
+    stringRecord(newSettings, "gnssFirmwareVersion", (char *)printGnssFirmwareInfo());
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
     if (strlen(imuFirmwareVersionStr) > 3)
         stringRecord(newSettings, "imuFirmwareVersionStr", (char *)imuFirmwareVersionStr);

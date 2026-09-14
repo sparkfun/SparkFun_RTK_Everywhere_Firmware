@@ -17,6 +17,27 @@ static uint32_t lastHeapReport;      // Report heap every 1s if option enabled
 //====================== Firmware Update Support ======================
 
 //----------------------------------------
+// Convert firmware update device/chip names into OLED subsystem labels
+//----------------------------------------
+const char * firmwareUpdateDisplayName(const char * chipOrSubsystemName)
+{
+    if (strcmp(chipOrSubsystemName, "ESP32") == 0)
+        return "System";
+    if ((strcmp(chipOrSubsystemName, "LG290P") == 0)
+        || (strcmp(chipOrSubsystemName, "Mosaic-X5") == 0)
+        || (strcmp(chipOrSubsystemName, "UM980") == 0)
+        || (strcmp(chipOrSubsystemName, "ZED-F9P") == 0)
+        || (strcmp(chipOrSubsystemName, "ZED-X20P") == 0))
+        return "GNSS";
+    if ((strcmp(chipOrSubsystemName, "LoRa/STM32") == 0)
+        || (strcmp(chipOrSubsystemName, "LoRa-STM32WL") == 0))
+        return "LoRa";
+    if (strcmp(chipOrSubsystemName, "IM19") == 0)
+        return "IMU";
+    return chipOrSubsystemName;
+}
+
+//----------------------------------------
 // Resets the progress-bar state. Must be called once at the start of each
 // firmware update - these otherwise carry over from the previous update
 // (bytesProcessed and lastPercent both already at their prior-run end
@@ -65,7 +86,31 @@ void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
     systemPrintln("%");
 
     // Update the display
-    displayFirmwareUpdateProgress(progressPercent);
+    displayFirmwareUpdateProgress(firmwareUpdateDisplayName(chipOrSubsystemName), progressPercent);
+
+    // Report progress to the Web Config socket
+    if (apConfigFirmwareUpdateInProcess == true)
+    {
+        char myProgress[50];
+
+        if (strcmp(chipOrSubsystemName, "ESP32") == 0)
+            snprintf(myProgress, sizeof(myProgress), "espOtaFirmwareStatus,%d,", progressPercent);
+        else if ((strcmp(chipOrSubsystemName, "LG290P") == 0)
+                 || (strcmp(chipOrSubsystemName, "Mosaic-X5") == 0)
+                 || (strcmp(chipOrSubsystemName, "UM980") == 0)
+                 || (strcmp(chipOrSubsystemName, "ZED-F9P") == 0)
+                 || (strcmp(chipOrSubsystemName, "ZED-X20P") == 0))
+            snprintf(myProgress, sizeof(myProgress), "gnssOtaFirmwareStatus,%d,", progressPercent);
+        else if (strcmp(chipOrSubsystemName, "LoRa/STM32") == 0)
+            snprintf(myProgress, sizeof(myProgress), "loraOtaFirmwareStatus,%d,", progressPercent);
+        else if (strcmp(chipOrSubsystemName, "IM19") == 0)
+            snprintf(myProgress, sizeof(myProgress), "imuOtaFirmwareStatus,%d,", progressPercent);
+        else
+            myProgress[0] = 0;
+
+        if (myProgress[0])
+            webServerSendString(myProgress);
+    }
 }
 
 //======================== Certificate Support ========================

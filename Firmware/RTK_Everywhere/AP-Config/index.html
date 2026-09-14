@@ -106,7 +106,7 @@
     </div>
 
     <div class="container" style="display:none; margin-top:20px;max-width:600px;" id="firmwareUploadComplete">
-        <b>Done</b><br><br>Firmware update complete. RTK device is now rebooting.
+        <b>Done</b><br><br>Update complete, system resetting.
     </div>
 
     <div class="container">
@@ -2133,28 +2133,28 @@
                         </span>
                         <p id="firmwareCheckNewMsg"></p>
 
-                        <div class="form-check mt-3" id="espUpdateFirmwareDiv" style="display:none;">
-                            System Update: <progress id="espUpdateFirmwareProgressBar" value="37" max="100"
+                        <div class="form-check mt-3" id="imuFirmwareUpdateDiv" style="display:none;">
+                            IMU Update: <progress id="imuFirmwareUpdateProgressBar" value="37" max="100"
                                     style="width:300px;"></progress>
-                                <p id="espUpdateFirmwareProgressMsg" class="inlineSuccess">37%</p>
-                        </div>
-
-                        <div class="form-check mt-3" id="gnssFirmwareUpdateDiv" style="display:none;">
-                            GNSS Update: <progress id="gnssFirmwareUpdateProgressBar" value="37" max="100"
-                                    style="width:300px;"></progress>
-                                <p id="gnssFirmwareUpdateProgressMsg" class="inlineSuccess">37%</p>
+                            <p id="imuFirmwareUpdateReadyMsg" class="inlineSuccess"></p>
                         </div>
 
                         <div class="form-check mt-3" id="loraFirmwareUpdateDiv" style="display:none;">
                             LoRa Update: <progress id="loraFirmwareUpdateProgressBar" value="37" max="100"
                                     style="width:300px;"></progress>
-                                <p id="loraFirmwareUpdateProgressMsg" class="inlineSuccess">37%</p>
+                            <p id="loraFirmwareUpdateReadyMsg" class="inlineSuccess"></p>
                         </div>
 
-                        <div class="form-check mt-3" id="imuFirmwareUpdateDiv" style="display:none;">
-                            IMU Update: <progress id="imuFirmwareUpdateProgressBar" value="37" max="100"
+                        <div class="form-check mt-3" id="gnssFirmwareUpdateDiv" style="display:none;">
+                            GNSS Update: <progress id="gnssFirmwareUpdateProgressBar" value="37" max="100"
                                     style="width:300px;"></progress>
-                                <p id="imuFirmwareUpdateProgressMsg" class="inlineSuccess">37%</p>
+                            <p id="gnssFirmwareUpdateReadyMsg" class="inlineSuccess"></p>
+                        </div>
+
+                        <div class="form-check mt-3" id="espUpdateFirmwareDiv" style="display:none;">
+                            System Update: <progress id="espUpdateFirmwareProgressBar" value="37" max="100"
+                                    style="width:300px;"></progress>
+                            <p id="espUpdateFirmwareReadyMsg" class="inlineSuccess"></p>
                         </div>
 
                         <div class="form-check mt-3">

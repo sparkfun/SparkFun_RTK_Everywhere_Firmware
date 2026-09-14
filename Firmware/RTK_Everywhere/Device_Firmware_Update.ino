@@ -1853,7 +1853,7 @@ void deviceFirmwareWrite(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
         if (percentage != ctx->_percentage)
         {
             ctx->_percentage = percentage;
-            displayFirmwareUpdateProgress(percentage);
+            displayFirmwareUpdateProgress(firmwareUpdateDisplayName(ctx->_deviceInfo->_deviceName), percentage);
             systemPrintf("\r[%s %d%%%s",
                          &dfuEqualSigns[strlen(dfuEqualSigns) - (percentage >> 1)],
                          percentage,

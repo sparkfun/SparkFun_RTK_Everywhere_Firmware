@@ -55,6 +55,7 @@ var resetTimeout;
 var sendDataTimeout;
 var checkNewFirmwareTimeout;
 var getNewFirmwareTimeout;
+var firmwareUpdateCount = 0;
 
 const numCorrectionsSources = 9;
 var correctionsSourceNames = [];
@@ -622,6 +623,9 @@ function parseIncoming(msg) {
         }
         else if (id.includes("firmwareUploadComplete")) {
             firmwareUploadComplete();
+        }
+        else if (id.includes("firmwareUpdateComplete")) {
+            firmwareUpdateComplete();
         }
         else if (id.includes("firmwareUploadStatus")) {
             firmwareUploadStatus(val);
@@ -2952,7 +2956,7 @@ function checkNewFirmware() {
 
         checkNewFirmwareTimeout = setTimeout(checkNewFirmware, 2000);
     }
-    else if (ge("btnCheckNewFirmware").innerHTML == "Update System") {
+    else if (ge("btnCheckNewFirmware").innerHTML.startsWith("Begin Update")) {
         getNewFirmware();
     }
 }
@@ -2973,46 +2977,82 @@ function checkingNewFirmware() {
 // Given a firmware version string such as "ELI", show the appropriate update messages and progress bars for each subsystem
 function newSubsystemFirmware(firmwareVersion) {
     clearMsg('firmwareCheckNewMsg');
+    firmwareUpdateCount = 0;
     if (firmwareVersion == "NO_INTERNET") {
         showMsgError('firmwareCheckNewMsg', "No internet");
         hide("espUpdateFirmwareDiv");
+        hide("gnssFirmwareUpdateDiv");
+        hide("loraFirmwareUpdateDiv");
+        hide("imuFirmwareUpdateDiv");
         ge("btnCheckNewFirmware").disabled = false;
         return;
     }
     else if (firmwareVersion == "NO_SERVER") {
         showMsgError('firmwareCheckNewMsg', "Network or Server not available");
         hide("espUpdateFirmwareDiv");
+        hide("gnssFirmwareUpdateDiv");
+        hide("loraFirmwareUpdateDiv");
+        hide("imuFirmwareUpdateDiv");
         ge("btnCheckNewFirmware").disabled = false;
         return;
     }
     else if (firmwareVersion == "CURRENT") {
         showMsg('firmwareCheckNewMsg', "Firmware is up to date");
         hide("espUpdateFirmwareDiv");
+        hide("gnssFirmwareUpdateDiv");
+        hide("loraFirmwareUpdateDiv");
+        hide("imuFirmwareUpdateDiv");
         ge("btnCheckNewFirmware").disabled = false;
         return;
     }
 
+    const firmwareParts = firmwareVersion.split('|');
+    const subsystemLetters = firmwareParts[0];
+    const subsystemVersions = {};
+    if (firmwareParts.length > 1) {
+        const versionParts = firmwareParts[1].split(';');
+        for (const versionPart of versionParts) {
+            if (versionPart.length == 0)
+                continue;
+
+            const letterAndVersions = versionPart.split(':');
+            if (letterAndVersions.length != 2)
+                continue;
+
+            const versions = letterAndVersions[1].split('>');
+            if (versions.length == 2)
+                subsystemVersions[letterAndVersions[0]] = { current: versions[0], update: versions[1] };
+        }
+    }
+
     showMsg('firmwareCheckNewMsg', "New update available!");
-    ge("btnCheckNewFirmware").innerHTML = "Update System";
-    ge("btnCheckNewFirmware").disabled = false;
-    setTooltip("firmwareUpdateBubble", "Start an update on all systems that have new firmware available. The system will reboot when complete.");
+    setTooltip("firmwareUpdateBubble", "Update the subsystems with the latest firmware");
 
     const subsystems = [
-        { letter: "E", div: "espUpdateFirmwareDiv", bar: "espUpdateFirmwareProgressBar", msg: "espUpdateFirmwareProgressMsg" },
-        { letter: "G", div: "gnssFirmwareUpdateDiv", bar: "gnssFirmwareUpdateProgressBar", msg: "gnssFirmwareUpdateProgressMsg" },
-        { letter: "L", div: "loraFirmwareUpdateDiv", bar: "loraFirmwareUpdateProgressBar", msg: "loraFirmwareUpdateProgressMsg" },
-        { letter: "I", div: "imuFirmwareUpdateDiv", bar: "imuFirmwareUpdateProgressBar", msg: "imuFirmwareUpdateProgressMsg" },
+        { letter: "I", name: "IMU", div: "imuFirmwareUpdateDiv", bar: "imuFirmwareUpdateProgressBar", msg: "imuFirmwareUpdateReadyMsg" },
+        { letter: "L", name: "LoRa", div: "loraFirmwareUpdateDiv", bar: "loraFirmwareUpdateProgressBar", msg: "loraFirmwareUpdateReadyMsg" },
+        { letter: "G", name: "GNSS", div: "gnssFirmwareUpdateDiv", bar: "gnssFirmwareUpdateProgressBar", msg: "gnssFirmwareUpdateReadyMsg" },
+        { letter: "E", name: "ESP32", div: "espUpdateFirmwareDiv", bar: "espUpdateFirmwareProgressBar", msg: "espUpdateFirmwareReadyMsg" },
     ];
 
     for (const s of subsystems) {
-        if (firmwareVersion.includes(s.letter)) {
+        if (subsystemLetters.includes(s.letter)) {
             show(s.div);
             ge(s.bar).value = 0;
             clearMsg(s.msg);
+            if (subsystemVersions[s.letter])
+                showMsg(s.msg, "Ready to update from " + subsystemVersions[s.letter].current + " to " + subsystemVersions[s.letter].update);
+            else
+                showMsg(s.msg, s.name + " ready to update");
+            firmwareUpdateCount++;
         } else {
             hide(s.div);
+            clearMsg(s.msg);
         }
     }
+
+    ge("btnCheckNewFirmware").innerHTML = firmwareUpdateCount == 1 ? "Begin Update" : "Begin Updates";
+    ge("btnCheckNewFirmware").disabled = false;
 }
 
 function getNewFirmware() {
@@ -3032,13 +3072,13 @@ function getNewFirmware() {
     clearMsg('firmwareCheckNewMsg');
 
     if (ge("espUpdateFirmwareDiv").style.display === "block") // Visible
-        showMsg('espUpdateFirmwareProgressMsg', "Getting new firmware");
+        showMsg('espUpdateFirmwareReadyMsg', "Getting new firmware");
     if (ge("gnssFirmwareUpdateDiv").style.display === "block") // Visible
-        showMsg('gnssFirmwareUpdateProgressMsg', "Getting new firmware");
+        showMsg('gnssFirmwareUpdateReadyMsg', "Getting new firmware");
     if (ge("loraFirmwareUpdateDiv").style.display === "block") // Visible
-        showMsg('loraFirmwareUpdateProgressMsg', "Getting new firmware");
+        showMsg('loraFirmwareUpdateReadyMsg', "Getting new firmware");
     if (ge("imuFirmwareUpdateDiv").style.display === "block") // Visible
-        showMsg('imuFirmwareUpdateProgressMsg', "Getting new firmware");
+        showMsg('imuFirmwareUpdateReadyMsg', "Getting new firmware");
 
     var settingCSV = "";
 
@@ -3064,7 +3104,7 @@ function gettingNewFirmware(val) {
         hide("gnssFirmwareUpdateDiv");
         hide("loraFirmwareUpdateDiv");
         hide("imuFirmwareUpdateDiv");
-        ge("btnCheckNewFirmware").innerHTML = "Update System";
+        ge("btnCheckNewFirmware").innerHTML = firmwareUpdateCount == 1 ? "Begin Update" : "Begin Updates";
         ge("btnCheckNewFirmware").disabled = false; // Re-enable the button
         showMsg('firmwareCheckNewMsg', "Error getting new firmware", true);
     }
@@ -3073,33 +3113,35 @@ function gettingNewFirmware(val) {
 function espOtaFirmwareStatus(percentComplete) {
     clearTimeout(getNewFirmwareTimeout);
 
-    showMsg('espUpdateFirmwareProgressMsg', percentComplete + "% Complete");
+    showMsg('espUpdateFirmwareReadyMsg', percentComplete + "% Complete");
     ge("espUpdateFirmwareProgressBar").value = percentComplete;
-
-    if (percentComplete == 100) {
-        resetComplete();
-    }
 }
 
 function gnssOtaFirmwareStatus(percentComplete) {
     clearTimeout(getNewFirmwareTimeout);
 
-    showMsg('gnssFirmwareUpdateProgressMsg', percentComplete + "% Complete");
+    showMsg('gnssFirmwareUpdateReadyMsg', percentComplete + "% Complete");
     ge("gnssFirmwareUpdateProgressBar").value = percentComplete;
 }
 
 function loraOtaFirmwareStatus(percentComplete) {
     clearTimeout(getNewFirmwareTimeout);
 
-    showMsg('loraFirmwareUpdateProgressMsg', percentComplete + "% Complete");
+    showMsg('loraFirmwareUpdateReadyMsg', percentComplete + "% Complete");
     ge("loraFirmwareUpdateProgressBar").value = percentComplete;
 }
 
 function imuOtaFirmwareStatus(percentComplete) {
     clearTimeout(getNewFirmwareTimeout);
 
-    showMsg('imuFirmwareUpdateProgressMsg', percentComplete + "% Complete");
+    showMsg('imuFirmwareUpdateReadyMsg', percentComplete + "% Complete");
     ge("imuFirmwareUpdateProgressBar").value = percentComplete;
+}
+
+function firmwareUpdateComplete() {
+    clearTimeout(getNewFirmwareTimeout);
+    showMsg('firmwareCheckNewMsg', "Update complete, system resetting");
+    firmwareUploadComplete();
 }
 
 //Given a user's string, try to identify the type and return the coordinate in DD.ddddddddd format

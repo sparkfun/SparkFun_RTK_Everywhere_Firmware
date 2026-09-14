@@ -225,6 +225,38 @@ void otaPrintUpdateStart(uint8_t subsystemIndex,
 }
 
 //----------------------------------------
+// Build the websocket update summary: EGI|E:v1.0>v2.0;G:v1.0>v2.0
+//----------------------------------------
+void otaBuildUpdateSummary(char * systemsToUpdate,
+                           size_t systemsToUpdateBytes,
+                           char * versionSummary,
+                           size_t versionSummaryBytes)
+{
+    char localVersion[32];
+    char remoteVersion[32];
+    OTA_SUBSYSTEM_MASK mask;
+    OTA_TARGET * target;
+
+    memset(systemsToUpdate, 0, systemsToUpdateBytes);
+    memset(versionSummary, 0, versionSummaryBytes);
+    for (int index = 0; index < OTA_SUBSYSTEM_MAX; index++)
+    {
+        mask = otaGetSubsystemMaskFromSubsystem(index);
+        if ((otaUpdatesFound & mask) == 0)
+            continue;
+
+        target = &otaTarget[index];
+        systemsToUpdate[strlen(systemsToUpdate)] = otaSubsystem[index][0];
+
+        otaFormatVersion(target->_localVersion, localVersion, sizeof(localVersion));
+        otaFormatVersion(target->_remoteVersion, remoteVersion, sizeof(remoteVersion));
+        snprintf(&versionSummary[strlen(versionSummary)],
+                 versionSummaryBytes - strlen(versionSummary),
+                 "%c:%s>%s;", otaSubsystem[index][0], localVersion, remoteVersion);
+    }
+}
+
+//----------------------------------------
 // Display the subsystem
 //----------------------------------------
 void otaDisplayTarget(OTA_TARGET * target)
@@ -1342,17 +1374,15 @@ void otaStateGetSystemsToUpdate()
         if (otaRequestFirmwareVersionCheck)
         {
             char otaSystemsToUpdate[OTA_SUBSYSTEM_MAX + 1];
+            char otaVersionSummary[320];
 
-            // Build the string of subsystem characters
-            memset(otaSystemsToUpdate, 0, sizeof(otaSystemsToUpdate));
-            for (int index = 0; index < OTA_SUBSYSTEM_MAX; index++)
-                if (otaUpdatesFound & otaGetSubsystemMaskFromSubsystem(index))
-                    otaSystemsToUpdate[strlen(otaSystemsToUpdate)] = otaSubsystem[index][0];
+            otaBuildUpdateSummary(otaSystemsToUpdate, sizeof(otaSystemsToUpdate),
+                                  otaVersionSummary, sizeof(otaVersionSummary));
 
             // Notify web config
-            char systemsToUpdate[50];
-            snprintf(systemsToUpdate, sizeof(systemsToUpdate), "newSubsystemFirmware,%s,",
-                     otaSystemsToUpdate);
+            char systemsToUpdate[384];
+            snprintf(systemsToUpdate, sizeof(systemsToUpdate), "newSubsystemFirmware,%s|%s,",
+                     otaSystemsToUpdate, otaVersionSummary);
             webServerSendString(systemsToUpdate); // Report systems that have new firmware available
             commandSendStringResponse((char *)"SPGET", (char *)"newSubsystemFirmware", otaSystemsToUpdate);
 
@@ -1501,6 +1531,11 @@ void otaUpdate()
 
         case OTA_STATE_REBOOT:
             // Update finished
+            if (apConfigFirmwareUpdateInProcess)
+            {
+                webServerSendString("firmwareUpdateComplete,1,");
+                delay(500); // Allow websocket delivery before rebooting
+            }
             dfuEsp32Reboot();
             break;
         }
