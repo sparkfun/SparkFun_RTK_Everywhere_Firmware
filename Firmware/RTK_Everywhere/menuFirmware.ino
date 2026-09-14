@@ -805,6 +805,12 @@ bool otaSecurelyConnectGitHub(WiFiClientSecure &client)
 {
     client.setCACert(GITHUB_RAW_PUBLIC_CERT);
 
+    // Bound the connect/read/write and TLS handshake time so a stalled
+    // server fails fast instead of blocking on the library defaults
+    // (30 s socket / 120 s handshake).
+    client.setTimeout(10000);       // milliseconds: TCP connect + socket read/write
+    client.setHandshakeTimeout(15); // seconds: TLS handshake
+
     // Preflight TLS handshake using the expected host name.
     // With CA configured, connect() fails if certificate validation fails.
     if (!client.connect(OTA_FIRMWARE_GITHUB_RAW, 443))

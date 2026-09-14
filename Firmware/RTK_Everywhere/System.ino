@@ -27,6 +27,7 @@ const char * firmwareUpdateDisplayName(const char * chipOrSubsystemName)
         || (strcmp(chipOrSubsystemName, "Mosaic-X5") == 0)
         || (strcmp(chipOrSubsystemName, "UM980") == 0)
         || (strcmp(chipOrSubsystemName, "ZED-F9P") == 0)
+        || (strcmp(chipOrSubsystemName, "X20P") == 0)
         || (strcmp(chipOrSubsystemName, "ZED-X20P") == 0))
         return "GNSS";
     if ((strcmp(chipOrSubsystemName, "LoRa/STM32") == 0)
@@ -99,6 +100,7 @@ void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
                  || (strcmp(chipOrSubsystemName, "Mosaic-X5") == 0)
                  || (strcmp(chipOrSubsystemName, "UM980") == 0)
                  || (strcmp(chipOrSubsystemName, "ZED-F9P") == 0)
+                  || (strcmp(chipOrSubsystemName, "X20P") == 0)
                  || (strcmp(chipOrSubsystemName, "ZED-X20P") == 0))
             snprintf(myProgress, sizeof(myProgress), "gnssOtaFirmwareStatus,%d,", progressPercent);
         else if (strcmp(chipOrSubsystemName, "LoRa/STM32") == 0)
@@ -263,6 +265,12 @@ bool securelyConnectToServer(const char * url,
     if (settings.debugFirmwareUpdate)
         systemPrintf("Using TLS certificate: %s\r\n", getCertName(cert));
     client.setCACert(cert);
+
+    // Bound the connect/read/write and TLS handshake time so a stalled
+    // server fails fast instead of blocking on the library defaults
+    // (30 s socket / 120 s handshake).
+    client.setTimeout(10000);       // milliseconds: TCP connect + socket read/write
+    client.setHandshakeTimeout(15); // seconds: TLS handshake
 
     // Preflight TLS handshake using the expected host name.
     // With CA configured, connect() fails if certificate validation fails.

@@ -1567,34 +1567,49 @@ bool openUrl(const char * url,
         // Set the certificate
         client->setCACert(cert);
 
-        // Preflight TLS handshake using the expected host name.
-        // With CA configured, connect() fails if certificate validation fails.
-        if (!client->connect(server.c_str(), 443))
-        {
-            systemPrintf("ERROR: TLS socket connect to %s failed!\r\n", server.c_str());
-            delete https;
-            https = nullptr;
-            delete client;
-            return false;
-        }
+        // Bound the connect/read/write and TLS handshake time. HTTPClient's
+        // defaults (30 s socket / 120 s handshake) mean a stalled server can
+        // block a single attempt for up to two minutes, times 3 retries below.
+        client->setTimeout(10000);       // milliseconds: TCP connect + socket read/write
+        client->setHandshakeTimeout(15); // seconds: TLS handshake
 
-        if (settings.debugFirmwareUpdate)
-            systemPrintf("TLS certificate verified for %s\r\n", server.c_str());
-        client->stop();
-
-        // Initialize the HTTP client
+        // Hand the not-yet-connected client straight to HTTPClient rather than
+        // preflighting a connect() here: HTTPClient::begin() unconditionally
+        // stops any already-connected socket it's handed (beginInternal() in
+        // arduino-esp32's HTTPClient.cpp forces _canReuse = false and calls
+        // disconnect() the first time a client is bound), so a separate
+        // connect-then-stop pass here would just pay for the TLS handshake
+        // twice. The GET retry loop below performs the (single) real connect
+        // and already retries 3x on failure.
         https->begin(*client, url);
     }
 
     // Open the connection to the web server
-    if (startMsec)
-        *startMsec = millis();
-    https->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-    httpResponseCode = https->GET();
+    httpResponseCode = 0;
+    for (int attempt = 1; attempt <= 3; attempt++)
+    {
+        if (startMsec)
+            *startMsec = millis();
+        https->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        httpResponseCode = https->GET();
+        if (httpResponseCode >= 0)
+            break;
+
+        if (debug)
+            systemPrintf("HTTP GET failed, attempt %d of 3: %d (%s)\r\n", attempt, httpResponseCode,
+                         https->errorToString(httpResponseCode).c_str());
+        https->end();
+        delay(500);
+        if (cert == nullptr)
+            https->begin(url);
+        else
+            https->begin(*client, url);
+    }
 
     // Display the error
     if ((httpResponseCode != 200) || debug)
-        systemPrintf("HTTP Response code: %d\r\n", httpResponseCode);
+        systemPrintf("HTTP Response code: %d (%s)\r\n", httpResponseCode,
+                     https->errorToString(httpResponseCode).c_str());
 
     // Handle the responses
     if (httpResponseCode != 200)
