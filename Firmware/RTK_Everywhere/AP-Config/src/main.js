@@ -2945,9 +2945,9 @@ function checkNewFirmware() {
         }
 
         if (ge("enableRCFirmware").checked == true)
-            settingCSV += "enableRCFirmware,true,";
+            settingCSV += "enableRcFirmware,true,";
         else
-            settingCSV += "enableRCFirmware,false,";
+            settingCSV += "enableRcFirmware,false,";
 
         settingCSV += "checkNewFirmware,1,";
 

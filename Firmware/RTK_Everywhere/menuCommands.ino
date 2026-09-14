@@ -1709,6 +1709,16 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         }
         knownSetting = true;
     }
+    else if ((strcmp(settingName, "enableRcFirmware") == 0)
+             || (strcmp(settingName, "enableRCFirmware") == 0))
+    {
+        uint8_t requestType = settingValue ? OTA_REQUEST_USE_RC : OTA_REQUEST_LATEST_VERSION;
+
+        for (int subsystemIndex = 0; subsystemIndex < OTA_SUBSYSTEM_MAX; subsystemIndex++)
+            otaTarget[subsystemIndex]._requestType = requestType;
+
+        knownSetting = true;
+    }
     else if (strcmp(settingName, "checkNewFirmware") == 0)
     {
         if (settings.debugWebServer == true)
