@@ -29,8 +29,8 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 
-// char *firmwareURL = "/gnss/lg290p/LG290P03AANR01A03S.pkg"; //v1.5
-char *firmwareURL = "/gnss/lg290p/LG290P03AANR02A01S.pkg"; //v2.1
+char *firmwareURL = "/gnss/lg290p/LG290P03AANR01A03S.pkg"; //v1.3
+// char *firmwareURL = "/gnss/lg290p/LG290P03AANR02A01S.pkg"; //v2.1
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
 

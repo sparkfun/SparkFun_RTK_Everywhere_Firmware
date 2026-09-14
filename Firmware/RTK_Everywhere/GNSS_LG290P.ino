@@ -3832,10 +3832,14 @@ bool lg290pFirmwareUpdate(const uint8_t *buffer, size_t dataBytes)
 }
 
 //----------------------------------------
-// Wait for LG290P to reboot and respond to the PQTMUNIQID command
+// Flush any remaining buffered firmware bytes, reset the LG290P, and wait for it to reboot
+// and respond to the PQTMUNIQID command
 //----------------------------------------
 bool lg290pFirmwareUpdateEnd()
 {
+    // Send the last (possibly partial) packet so it isn't left stranded in the library's buffer
+    ((GNSS_LG290P *)gnss)->updateFirmwareEnd();
+
     if (productVariant == RTK_FACET_FP)
         return (((GNSS_LG290P *)gnss)->updateFirmwareIsFinished(30));
 
@@ -3858,8 +3862,19 @@ bool lg290pStreamFirmware(const char * chip,
 {
     uint32_t crc = 0;
 
+    // The LG290P bootloader requires the firmware CRC to be computed over a 4-byte
+    // little-endian size prefix followed by the firmware bytes (see
+    // LG290P::initFirmwareCrc32() in the SparkFun_LG290P_GNSS library), but expectedCrc
+    // (from the firmware manifest) is a plain whole-file CRC32 shared by every chip type.
+    // Combine the prefix's CRC with expectedCrc to get the value the bootloader actually
+    // requires, without re-reading the (potentially multi-megabyte) file a second time.
+    uint8_t sizePrefix[4] = {(uint8_t)fileBytes, (uint8_t)(fileBytes >> 8), (uint8_t)(fileBytes >> 16),
+                            (uint8_t)(fileBytes >> 24)};
+    uint32_t sizePrefixCrc = crc32Compute(0, sizePrefix, sizeof(sizePrefix));
+    uint32_t firmwareCrc32 = crc32Combine(sizePrefixCrc, expectedCrc, fileBytes);
+
     // Get the LG290P in a state to receive firmware updates
-    if (lg290pFirmwareUpdateBegin(fileBytes, expectedCrc) == false)
+    if (lg290pFirmwareUpdateBegin(fileBytes, firmwareCrc32) == false)
     {
         systemPrintln(otaEqualSigns);
         systemPrintln("ERROR: lg290pFirmwareUpdateBegin failed!\r\n");
@@ -3920,17 +3935,27 @@ bool lg290pStreamFirmware(const char * chip,
         validData = 0;
     }
 
-    // Release the buffers in the LG290P driver
-    lg290pFirmwareUpdateEnd();
+    // Flush the final packet, reset the LG290P, and wait for it to reboot and respond
+    bool rebooted = lg290pFirmwareUpdateEnd();
 
     // Done with the firmware update
     systemPrintln(otaEqualSigns);
+    bool success = (fileBytes == 0) && rebooted;
     if (fileBytes > 0)
         systemPrintln("LG290P OTA update failed during writeStream");
+    else if (rebooted == false)
+        systemPrintln("LG290P OTA update failed: module did not respond after reboot");
     else
+    {
+        // Confirm (and log) the version the module now reports
+        uint16_t versionMajor = 0;
+        uint8_t versionMinor = 0, versionPatch = 0, versionRevision = 0;
+        if (((GNSS_LG290P *)gnss)->getVersion(versionMajor, versionMinor, versionPatch, versionRevision))
+            systemPrintf("LG290P now reports firmware v%d.%d\r\n", versionMajor, versionMinor);
         systemPrintln("LG290P update successfully completed.");
+    }
     systemPrintln(otaEqualSigns);
-    return (fileBytes == 0);
+    return success;
 }
 #endif  // COMPILE_FIRMWARE_UPDATE
 #endif // COMPILE_LG290P

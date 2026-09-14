@@ -200,6 +200,7 @@ typedef ssize_t (* DEVICE_WRITE)(DEVICE_FIRMWARE_CTX * ctx,
                                  size_t bytesToWrite);
 typedef String (* GET_FIRMWARE_VERSION)(DEVICE_FIRMWARE_CTX * ctx);
 typedef bool (* INIT_DEV_CTX)(DEVICE_FIRMWARE_CTX * ctx);
+typedef uint32_t (* DEVICE_CRC_SEED)(DEVICE_FIRMWARE_CTX * ctx);
 
 //----------------------------------------
 // Describe a device that needs firmware updates
@@ -220,6 +221,7 @@ typedef struct _DEVICE_FIRMWARE_INFO
     INIT_DEV_CTX _initDevCtx;   // Initialize the device specific context
     size_t _devContextBytes;    // Size of device specific context buffer
     bool _crcNeeded;            // Is file CRC needed to do firmware update
+    DEVICE_CRC_SEED _crcSeed;   // Seed the CRC before reading the file, may be nullptr for a zero seed
     bool _useNvm;               // Allow copy to NVM
     size_t _writeBufferBytes;   // Number of bytes needed for the write buffer
     size_t _maxWriteBytes;      // Maximum write packet size
@@ -283,7 +285,6 @@ const int dfuBufferInfoCount = sizeof(dfuBufferInfo) / sizeof(dfuBufferInfo[0]);
 // LG290P declarations
 #ifdef  COMPILE_LG290P
 #define DFU_LG290P_MAX_PAYLOAD_SIZE     (5 * 1024)
-#define DFU_LG290P_BYTES                (1 + 1 + 1 + 2 + 4 + DFU_LG290P_MAX_PAYLOAD_SIZE + 4 + 1)
 #endif  // COMPILE_LG290P
 
 //----------------------------------------
@@ -313,6 +314,9 @@ ssize_t dfuLg290pWrite(DEVICE_FIRMWARE_CTX * ctx,
 void dfuEsp32Close(DEVICE_FIRMWARE_CTX * ctx);
 void dfuLg290pClose(DEVICE_FIRMWARE_CTX * ctx);
 
+// Seed the file CRC, required by the LG290P bootloader protocol
+uint32_t dfuLg290pCrcSeed(DEVICE_FIRMWARE_CTX * ctx);
+
 // Declare the begin routine
 bool deviceFirmwareUpdateBegin(bool doAll,
                                bool debugVerbose,
@@ -325,13 +329,13 @@ bool deviceFirmwareUpdateBegin(bool doAll,
 // Note: Use the JSON based OTA to get a new ESP32 image when the
 // parsing fails due to website changes on the servers below!
 const DEVICE_FIRMWARE_INFO deviceFirmwareInfo[] =
-{//  Name           present                 Directory                   NameData        Extension  Firmware version             Reset               Open                Write               Close           InitDevCtx          Context Bytes           CRC     useNvm  Buffer Bytes        Max Write Bytes                 Server     Branch      dPrefix1     dPrefix2  dirEnd      nPrefix  nameEnd     Raw Branch
-    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", dfuEsp32GetFirmwareVersion,  nullptr,            dfuEsp32Open,       dfuEsp32Write,      dfuEsp32Close,  nullptr,            0,                      false,  false,  0,                  0,                              dfuGithub, nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
+{//  Name           present                 Directory                   NameData        Extension  Firmware version             Reset               Open                Write               Close           InitDevCtx          Context Bytes           CRC     CrcSeed             useNvm  Buffer Bytes        Max Write Bytes                 Server     Branch      dPrefix1     dPrefix2  dirEnd      nPrefix  nameEnd     Raw Branch
+    {"ESP32",       nullptr,                nullptr,                    "Firmware_v",      ".bin", dfuEsp32GetFirmwareVersion,  nullptr,            dfuEsp32Open,       dfuEsp32Write,      dfuEsp32Close,  nullptr,            0,                      false,  nullptr,            false,  0,                  0,                              dfuGithub, nullptr,    dfuTree,     dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
     // ESP32 must be the first entry in the list, p command does list in reverse
 
     // GNSS devices
 #ifdef  COMPILE_LG290P
-    {"LG290P",      &present.gnss_lg290p,   "/gnss/lg290p",             "LG290P",          ".pkg", dfuGnssGetFirmwareVersion,   dfuLg290pReset,     dfuLg290pOpen,      dfuLg290pWrite,     dfuLg290pClose, nullptr,            0,                      true,   false,  DFU_LG290P_BYTES,   DFU_LG290P_MAX_PAYLOAD_SIZE,    dfuGithub, dfuRawHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
+    {"LG290P",      &present.gnss_lg290p,   "/gnss/lg290p",             "LG290P",          ".pkg", dfuGnssGetFirmwareVersion,   dfuLg290pReset,     dfuLg290pOpen,      dfuLg290pWrite,     dfuLg290pClose, nullptr,            0,                      true,   dfuLg290pCrcSeed,   false,  0,                  DFU_LG290P_MAX_PAYLOAD_SIZE,    dfuGithub, dfuRawHead, dfuFileTree, dfuItems, dfuListEnd, dfuName, dfuNameEnd, dfuRawHead},
 #endif  // COMPILE_LG290P
 };
 const int deviceFirmwareInfoCount = sizeof(deviceFirmwareInfo) / sizeof(deviceFirmwareInfo[0]);

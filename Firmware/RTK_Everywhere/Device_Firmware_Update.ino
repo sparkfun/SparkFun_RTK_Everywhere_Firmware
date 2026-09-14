@@ -353,7 +353,12 @@ void deviceFirmwareCrcOpen(DEVICE_FIRMWARE_CTX * ctx, uint32_t currentMsec)
     }
     systemPrintf("Computing %s firmware CRC\r\n", ctx->_deviceInfo->_deviceName);
     if (deviceFirmwareOpenInput(ctx, currentMsec))
+    {
+        // Some devices require the CRC to be seeded before the file data is read
+        if (ctx->_deviceInfo->_crcSeed)
+            ctx->_crc = ctx->_deviceInfo->_crcSeed(ctx);
         deviceFirmwareStateSet(ctx, DFUS_CRC_READ_DATA);
+    }
     else
         deviceFirmwareStateSet(ctx, DFUS_NEXT_DEVICE);
 }

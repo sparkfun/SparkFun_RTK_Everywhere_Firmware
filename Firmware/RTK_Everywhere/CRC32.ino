@@ -92,3 +92,89 @@ uint32_t crc32Compute(uint32_t initialValue, const uint8_t * data, size_t length
     crc ^= 0xffffffff;
     return crc;
 }
+
+//----------------------------------------
+// GF(2) matrix-vector multiply used by crc32Combine
+//----------------------------------------
+uint32_t crc32MatrixTimes(const uint32_t * matrix, uint32_t vector)
+{
+    uint32_t sum;
+    int n;
+
+    sum = 0;
+    n = 0;
+    while (vector)
+    {
+        if (vector & 1)
+            sum ^= matrix[n];
+        vector >>= 1;
+        n++;
+    }
+    return sum;
+}
+
+//----------------------------------------
+// GF(2) matrix squaring used by crc32Combine
+//----------------------------------------
+void crc32MatrixSquare(uint32_t * square, const uint32_t * matrix)
+{
+    for (int n = 0; n < 32; n++)
+        square[n] = crc32MatrixTimes(matrix, matrix[n]);
+}
+
+//----------------------------------------
+// Combine the CRC32 of two adjacent byte ranges (crc1 computed over the
+// first range, crc2 computed over the second range which is length2 bytes
+// long) into the CRC32 of the two ranges concatenated together, without
+// re-reading either range.
+//
+// This is the standard CRC32 "combine" operation (as used by zlib's
+// crc32_combine()). It lets a CRC that must be seeded with a short prefix
+// (for example the LG290P bootloader's 4-byte firmware size prefix, see
+// GNSS_LG290P.ino) be derived from a plain whole-buffer CRC32 that is
+// already known, which matters when the buffer is a multi-megabyte firmware
+// file streamed over the network and re-reading it a second time is not
+// practical.
+//----------------------------------------
+uint32_t crc32Combine(uint32_t crc1, uint32_t crc2, size_t length2)
+{
+    uint32_t even[32]; // Zeros operator for an even number of zero bits
+    uint32_t odd[32];  // Zeros operator for an odd number of zero bits
+    uint32_t row;
+
+    if (length2 == 0)
+        return crc1;
+
+    // Put the operator for one zero bit into odd
+    odd[0] = 0xedb88320UL; // CRC-32 polynomial
+    row = 1;
+    for (int n = 1; n < 32; n++)
+    {
+        odd[n] = row;
+        row <<= 1;
+    }
+
+    // Put the operator for two zero bits into even, then four zero bits into odd
+    crc32MatrixSquare(even, odd);
+    crc32MatrixSquare(odd, even);
+
+    // Apply the zeros operator for length2 bytes to crc1, one bit of length2 at a time
+    while (1)
+    {
+        crc32MatrixSquare(even, odd);
+        if (length2 & 1)
+            crc1 = crc32MatrixTimes(even, crc1);
+        length2 >>= 1;
+        if (length2 == 0)
+            break;
+
+        crc32MatrixSquare(odd, even);
+        if (length2 & 1)
+            crc1 = crc32MatrixTimes(odd, crc1);
+        length2 >>= 1;
+        if (length2 == 0)
+            break;
+    }
+
+    return crc1 ^ crc2;
+}
