@@ -466,6 +466,10 @@ OTA_SUBSYSTEM_MASK otaGetProductSubsystemSupport()
         if (subsystemInfo)
             subsystemMask |= otaGetSubsystemMaskFromSubsystem(subsystem);
     }
+
+    // Facet FP and Torch hardware can include an IM19 even when corrupt firmware prevents detection.
+    if ((productVariant == RTK_FACET_FP) || (productVariant == RTK_TORCH))
+        subsystemMask |= OTA_DEVICE_IMU;
     return subsystemMask;
 }
 
@@ -789,6 +793,16 @@ const OTA_SUBSYSTEM_INFO * otaGetSubsystemInfo(uint8_t subsystem)
                 || ((subsystemInfo->_productVariant == productVariant)
                     && ((subsystemInfo->_present == nullptr)
                         || *subsystemInfo->_present))))
+        {
+            return subsystemInfo;
+        }
+
+        // Allow explicit IMU recovery updates when tilt detection failed.
+        if ((subsystem == OTA_SUBSYSTEM_IMU)
+            && ((productVariant == RTK_FACET_FP) || (productVariant == RTK_TORCH))
+            && (subsystemInfo->_subsystem == OTA_SUBSYSTEM_IMU)
+            && (subsystemInfo->_chip == OTA_CHIP_IM19)
+            && (otaTarget[OTA_SUBSYSTEM_IMU]._requestType == OTA_REQUEST_ALWAYS_UPDATE))
         {
             return subsystemInfo;
         }
