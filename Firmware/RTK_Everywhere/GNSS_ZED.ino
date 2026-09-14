@@ -2076,13 +2076,11 @@ bool GNSS_ZED::setExternalCorrections(uint8_t port, bool enable, bool force, con
                 if ((settings.debugCorrections == true) && !inMainMenu)
                 {
                     systemPrintf("setExternalCorrections: %s -> %s%s%s%s%s\r\n",
-                                 _externalCorrectionsEnabled == -1 ? "not set" :
-                                 _externalCorrectionsEnabled ? "enabled" : "disabled",
-                                 enable ? "enabled" : "disabled",
-                                 force ? " (Forced)" : "",
-                                 debug ? " (" : "",
-                                 debug ? debug : "",
-                                 debug ? ")" : "");
+                                 _externalCorrectionsEnabled == -1 ? "not set"
+                                 : _externalCorrectionsEnabled     ? "enabled"
+                                                                   : "disabled",
+                                 enable ? "enabled" : "disabled", force ? " (Forced)" : "", debug ? " (" : "",
+                                 debug ? debug : "", debug ? ")" : "");
                 }
 
                 _externalCorrectionsEnabled = enable;
@@ -2090,14 +2088,15 @@ bool GNSS_ZED::setExternalCorrections(uint8_t port, bool enable, bool force, con
             }
             else
             {
-                systemPrintf("setExternalCorrections FAILED: %s -> %s%s%s%s%s\r\n",
-                                 _externalCorrectionsEnabled == -1 ? "not set" :
-                                 _externalCorrectionsEnabled ? "enabled" : "disabled",
-                                 enable ? "enabled" : "disabled",
-                                 force ? " (Forced)" : "",
-                                 debug ? " (" : "",
-                                 debug ? debug : "",
-                                 debug ? ")" : "");
+                if (!inMainMenu)
+                {
+                    systemPrintf("setExternalCorrections FAILED: %s -> %s%s%s%s%s\r\n",
+                                 _externalCorrectionsEnabled == -1 ? "not set"
+                                 : _externalCorrectionsEnabled     ? "enabled"
+                                                                   : "disabled",
+                                 enable ? "enabled" : "disabled", force ? " (Forced)" : "", debug ? " (" : "",
+                                 debug ? debug : "", debug ? ")" : "");
+                }
             }
         }
     }
@@ -3074,8 +3073,8 @@ bool messageSupported(int messageNumber)
             messageSupported = true;
             // If the message is supported, check if it is no longer supported
             // We use 0 to indicate "all versions", so we need to be careful when we use >=
-            if ((ubxMessages[messageNumber].x20pFirmwareVersionNotSupported > 0)
-                && (gnssFirmwareVersionInt >= ubxMessages[messageNumber].x20pFirmwareVersionNotSupported))
+            if ((ubxMessages[messageNumber].x20pFirmwareVersionNotSupported > 0) &&
+                (gnssFirmwareVersionInt >= ubxMessages[messageNumber].x20pFirmwareVersionNotSupported))
                 messageSupported = false;
         }
     }
@@ -3193,7 +3192,8 @@ bool zedCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands,
         // Record constellation settings
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            if (!commandSettingChanged(&settings.ubxConstellationsEnabled[x], sizeof(settings.ubxConstellationsEnabled[x])))
+            if (!commandSettingChanged(&settings.ubxConstellationsEnabled[x],
+                                       sizeof(settings.ubxConstellationsEnabled[x])))
                 continue;
 
             snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
@@ -3860,13 +3860,13 @@ void zedVerifyTables()
 {
     if (X20P_RX_PAYLOAD_MAX < (UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES))
     {
-        systemPrintf("Increase X20P_RX_PAYLOAD_MAX from %d to >= %d\r\n",
-                     X20P_RX_PAYLOAD_MAX, UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES);
+        systemPrintf("Increase X20P_RX_PAYLOAD_MAX from %d to >= %d\r\n", X20P_RX_PAYLOAD_MAX,
+                     UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES);
         reportFatalError("Set X20P_RX_PAYLOAD_MAX >= (UBX_MON_VER_SW_BYTES + UBX_MON_VER_HW_BYTES)");
     }
 }
 
-#ifdef  COMPILE_FIRMWARE_UPDATE
+#ifdef COMPILE_FIRMWARE_UPDATE
 // ==================================================================
 //  PUBLIC API
 // ==================================================================
@@ -3900,10 +3900,7 @@ void x20pSendDataFrame(HardwareSerial &ser, uint32_t address, const uint8_t *chu
  * write gets the short TIMEOUT_WRITE deadline - no concurrent-erase
  * bookkeeping is needed here.
  */
-bool x20pWriteChunk(HardwareSerial &ser,
-                    uint32_t address,
-                    const uint8_t *chunk,
-                    uint16_t chunkLen)
+bool x20pWriteChunk(HardwareSerial &ser, uint32_t address, const uint8_t *chunk, uint16_t chunkLen)
 {
     if (chunkLen == 0 || chunkLen > PACKET_SIZE)
         return false;
@@ -4319,12 +4316,8 @@ bool x20pFirmwareUpdateEnd()
  *
  * Returns true upon successful firmware update and false upon failure.
  */
-bool x20pStreamFirmware(const char * chip,
-                        NetworkClient * stream,
-                        size_t fileBytes,
-                        uint32_t expectedCrc,
-                        uint8_t * buffer,
-                        size_t packetBytes)
+bool x20pStreamFirmware(const char *chip, NetworkClient *stream, size_t fileBytes, uint32_t expectedCrc,
+                        uint8_t *buffer, size_t packetBytes)
 {
     // Display the parameters
     if (settings.debugFirmwareUpdate && otaDebugVerbose)
@@ -4400,8 +4393,7 @@ bool x20pStreamFirmware(const char * chip,
         if ((fileBytes == validData) && (crc != expectedCrc))
         {
             systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
-            systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n",
-                         expectedCrc, crc);
+            systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n", expectedCrc, crc);
             break;
         }
 
@@ -4453,5 +4445,5 @@ void x20pDisplayVersion()
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of X20P firmware update functions.
 
-#endif  // COMPILE_FIRMWARE_UPDATE
-#endif  // COMPILE_ZED
+#endif // COMPILE_FIRMWARE_UPDATE
+#endif // COMPILE_ZED

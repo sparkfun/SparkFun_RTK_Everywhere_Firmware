@@ -2288,12 +2288,15 @@ bool GNSS_MOSAIC::setExternalCorrections(uint8_t port, bool enable, bool force, 
             }
             else
             {
-                systemPrintf("setExternalCorrections FAILED: %s -> %s%s%s%s%s\r\n",
-                             _externalCorrectionsEnabled == -1 ? "not set"
-                             : _externalCorrectionsEnabled     ? "enabled"
-                                                               : "disabled",
-                             enable ? "enabled" : "disabled", force ? " (Forced)" : "", debug ? " (" : "",
-                             debug ? debug : "", debug ? ")" : "");
+                if (!inMainMenu)
+                {
+                    systemPrintf("setExternalCorrections FAILED: %s -> %s%s%s%s%s\r\n",
+                                 _externalCorrectionsEnabled == -1 ? "not set"
+                                 : _externalCorrectionsEnabled     ? "enabled"
+                                                                   : "disabled",
+                                 enable ? "enabled" : "disabled", force ? " (Forced)" : "", debug ? " (" : "",
+                                 debug ? debug : "", debug ? ")" : "");
+                }
             }
         }
     }
@@ -3155,8 +3158,8 @@ bool GNSS_MOSAIC::isPresent()
     {
         // Set COM1 to: auto input, RTCMv3+SBF+NMEA+Encapsulate output
         // See comment above - no soft reset here either, the module is already known to be a mosaic-X5
-        return isPresentOnSerial(serialGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>",
-                                 25, false);
+        return isPresentOnSerial(serialGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>", 25,
+                                 false);
     }
     else
         systemPrintln("MOSAIC isPresent: Uncaught platform");
@@ -3286,8 +3289,8 @@ void processSBFReceiverSetup(SEMP_PARSE_STATE *parse, uint16_t type)
         int versionMinor = 0;
         int versionPatch = 0;
         int versionRevision = 0;
-        int versionFields = sscanf(gnssFirmwareVersion, "%d.%d.%d.%d", &versionMajor, &versionMinor, &versionPatch,
-                                   &versionRevision);
+        int versionFields =
+            sscanf(gnssFirmwareVersion, "%d.%d.%d.%d", &versionMajor, &versionMinor, &versionPatch, &versionRevision);
         if (versionFields >= 2)
         {
             _versionMajor = versionMajor;
@@ -3487,7 +3490,8 @@ bool mosaicCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record Mosaic NMEA message streams
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            if (!commandSettingChanged(&settings.mosaicMessageStreamNMEA[x], sizeof(settings.mosaicMessageStreamNMEA[x])))
+            if (!commandSettingChanged(&settings.mosaicMessageStreamNMEA[x],
+                                       sizeof(settings.mosaicMessageStreamNMEA[x])))
                 continue;
 
             snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
@@ -3502,7 +3506,8 @@ bool mosaicCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record Mosaic NMEA stream intervals
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            if (!commandSettingChanged(&settings.mosaicStreamIntervalsNMEA[x], sizeof(settings.mosaicStreamIntervalsNMEA[x])))
+            if (!commandSettingChanged(&settings.mosaicStreamIntervalsNMEA[x],
+                                       sizeof(settings.mosaicStreamIntervalsNMEA[x])))
                 continue;
 
             snprintf(settingName, settingNameSize, "%s%d", rtkSettingsEntries[settingsIndex].name, x);
@@ -3516,7 +3521,8 @@ bool mosaicCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record Mosaic Rover RTCM intervals
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            if (!commandSettingChanged(&settings.mosaicMessageIntervalsRTCMv3Rover[x], sizeof(settings.mosaicMessageIntervalsRTCMv3Rover[x])))
+            if (!commandSettingChanged(&settings.mosaicMessageIntervalsRTCMv3Rover[x],
+                                       sizeof(settings.mosaicMessageIntervalsRTCMv3Rover[x])))
                 continue;
 
             snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
@@ -3531,7 +3537,8 @@ bool mosaicCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record Mosaic Base RTCM intervals
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            if (!commandSettingChanged(&settings.mosaicMessageIntervalsRTCMv3Base[x], sizeof(settings.mosaicMessageIntervalsRTCMv3Base[x])))
+            if (!commandSettingChanged(&settings.mosaicMessageIntervalsRTCMv3Base[x],
+                                       sizeof(settings.mosaicMessageIntervalsRTCMv3Base[x])))
                 continue;
 
             snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
@@ -3546,7 +3553,8 @@ bool mosaicCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record Mosaic Rover RTCM enabled
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            if (!commandSettingChanged(&settings.mosaicMessageEnabledRTCMv3Rover[x], sizeof(settings.mosaicMessageEnabledRTCMv3Rover[x])))
+            if (!commandSettingChanged(&settings.mosaicMessageEnabledRTCMv3Rover[x],
+                                       sizeof(settings.mosaicMessageEnabledRTCMv3Rover[x])))
                 continue;
 
             snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
@@ -3561,7 +3569,8 @@ bool mosaicCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record Mosaic Base RTCM enabled
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            if (!commandSettingChanged(&settings.mosaicMessageEnabledRTCMv3Base[x], sizeof(settings.mosaicMessageEnabledRTCMv3Base[x])))
+            if (!commandSettingChanged(&settings.mosaicMessageEnabledRTCMv3Base[x],
+                                       sizeof(settings.mosaicMessageEnabledRTCMv3Base[x])))
                 continue;
 
             snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,

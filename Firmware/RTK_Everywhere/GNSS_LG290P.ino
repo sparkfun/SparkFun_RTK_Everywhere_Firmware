@@ -2150,12 +2150,15 @@ bool GNSS_LG290P::setExternalCorrections(uint8_t port, bool enable, bool force, 
             }
             else
             {
-                systemPrintf("setExternalCorrections FAILED: %s -> %s%s%s%s%s\r\n",
-                             _externalCorrectionsEnabled[port - 1] == -1 ? "not set"
-                             : _externalCorrectionsEnabled[port - 1]     ? "enabled"
-                                                                         : "disabled",
-                             enable ? "enabled" : "disabled", force ? " (Forced)" : "", debug ? " (" : "",
-                             debug ? debug : "", debug ? ")" : "");
+                if (!inMainMenu)
+                {
+                    systemPrintf("setExternalCorrections FAILED: %s -> %s%s%s%s%s\r\n",
+                                 _externalCorrectionsEnabled[port - 1] == -1 ? "not set"
+                                 : _externalCorrectionsEnabled[port - 1]     ? "enabled"
+                                                                             : "disabled",
+                                 enable ? "enabled" : "disabled", force ? " (Forced)" : "", debug ? " (" : "",
+                                 debug ? debug : "", debug ? ")" : "");
+                }
             }
         }
     }
@@ -3235,7 +3238,8 @@ bool lg290pCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record LG290P Rover RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            if (!commandSettingChanged(&settings.lg290pMessageRatesRTCMRover[x], sizeof(settings.lg290pMessageRatesRTCMRover[x])))
+            if (!commandSettingChanged(&settings.lg290pMessageRatesRTCMRover[x],
+                                       sizeof(settings.lg290pMessageRatesRTCMRover[x])))
                 continue;
 
             snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
@@ -3250,7 +3254,8 @@ bool lg290pCommandList(RTK_Settings_Types type, int settingsIndex, bool inComman
         // Record LG290P Base RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            if (!commandSettingChanged(&settings.lg290pMessageRatesRTCMBase[x], sizeof(settings.lg290pMessageRatesRTCMBase[x])))
+            if (!commandSettingChanged(&settings.lg290pMessageRatesRTCMBase[x],
+                                       sizeof(settings.lg290pMessageRatesRTCMBase[x])))
                 continue;
 
             snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
@@ -3760,7 +3765,7 @@ void lg290pPrintNavModes()
         systemPrintf("%d) %s\r\n", i + 1, lg290pNavModes[i].name);
 }
 
-#ifdef  COMPILE_FIRMWARE_UPDATE
+#ifdef COMPILE_FIRMWARE_UPDATE
 //----------------------------------------
 // Reboot the module into bootloader mode, negotiate sync, query bootloader version,
 // send firmware metadata, and erase flash.
@@ -3853,12 +3858,8 @@ bool lg290pFirmwareUpdateEnd()
 //----------------------------------------
 // Update the LG290P firmware
 //----------------------------------------
-bool lg290pStreamFirmware(const char * chip,
-                          NetworkClient *stream,
-                          size_t fileBytes,
-                          uint32_t expectedCrc,
-                          uint8_t *buffer,
-                          size_t packetBytes)
+bool lg290pStreamFirmware(const char *chip, NetworkClient *stream, size_t fileBytes, uint32_t expectedCrc,
+                          uint8_t *buffer, size_t packetBytes)
 {
     uint32_t crc = 0;
 
@@ -3869,7 +3870,7 @@ bool lg290pStreamFirmware(const char * chip,
     // Combine the prefix's CRC with expectedCrc to get the value the bootloader actually
     // requires, without re-reading the (potentially multi-megabyte) file a second time.
     uint8_t sizePrefix[4] = {(uint8_t)fileBytes, (uint8_t)(fileBytes >> 8), (uint8_t)(fileBytes >> 16),
-                            (uint8_t)(fileBytes >> 24)};
+                             (uint8_t)(fileBytes >> 24)};
     uint32_t sizePrefixCrc = crc32Compute(0, sizePrefix, sizeof(sizePrefix));
     uint32_t firmwareCrc32 = crc32Combine(sizePrefixCrc, expectedCrc, fileBytes);
 
@@ -3957,5 +3958,5 @@ bool lg290pStreamFirmware(const char * chip,
     systemPrintln(otaEqualSigns);
     return success;
 }
-#endif  // COMPILE_FIRMWARE_UPDATE
+#endif // COMPILE_FIRMWARE_UPDATE
 #endif // COMPILE_LG290P
