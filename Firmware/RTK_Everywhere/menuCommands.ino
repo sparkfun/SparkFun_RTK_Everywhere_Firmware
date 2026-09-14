@@ -1712,10 +1712,17 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     else if ((strcmp(settingName, "enableRcFirmware") == 0)
              || (strcmp(settingName, "enableRCFirmware") == 0))
     {
-        uint8_t requestType = settingValue ? OTA_REQUEST_USE_RC : OTA_REQUEST_LATEST_VERSION;
-
         for (int subsystemIndex = 0; subsystemIndex < OTA_SUBSYSTEM_MAX; subsystemIndex++)
-            otaTarget[subsystemIndex]._requestType = requestType;
+        {
+            if (settingValue)
+            {
+                if ((otaTarget[subsystemIndex]._requestType == OTA_REQUEST_PRODUCT_RELEASE)
+                    || (otaTarget[subsystemIndex]._requestType == OTA_REQUEST_LATEST_VERSION))
+                    otaTarget[subsystemIndex]._requestType = OTA_REQUEST_USE_RC;
+            }
+            else if (otaTarget[subsystemIndex]._requestType == OTA_REQUEST_USE_RC)
+                otaTarget[subsystemIndex]._requestType = OTA_REQUEST_LATEST_VERSION;
+        }
 
         knownSetting = true;
     }
