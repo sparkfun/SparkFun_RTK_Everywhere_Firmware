@@ -1168,11 +1168,47 @@ static const uint32_t IM19_FRAME_PACING_MS = 100; // Works - 0.1% frame failure.
 // IM19 still has to finish flashing it and scan every received frame to build its
 // reply bitmap.
 static const uint32_t IM19_CPL_RESPONSE_TIMEOUT_MS = 500;
-static const int IM19_CPL_RESPONSE_RETRIES = 10; // up to IM19_CPL_RESPONSE_RETRIES * IM19_CPL_RESPONSE_TIMEOUT_MS total
+static const int IM19_CPL_RESPONSE_RETRIES = 30; // up to IM19_CPL_RESPONSE_RETRIES * IM19_CPL_RESPONSE_TIMEOUT_MS total
 
-static uint8_t im19FrameMap[IM19_FRAME_MAP_SIZE]; // bit set = IM19 has confirmed receipt of that frame
-static uint32_t im19TotalFrames;
-static uint32_t im19NextFrameID;
+static uint8_t *im19FrameMap = nullptr; // bit set = IM19 has confirmed receipt of that frame
+static uint32_t im19TotalFrames = 0;
+static uint32_t im19FileSize = 0;
+static uint32_t im19NextFrameID = 0;
+static uint8_t *im19FrameAssembly = nullptr;
+static uint32_t im19FrameAssemblyLen = 0;
+
+static void im19ReleaseBuffers()
+{
+    if (im19FrameMap != nullptr)
+    {
+        free(im19FrameMap);
+        im19FrameMap = nullptr;
+    }
+
+    if (im19FrameAssembly != nullptr)
+    {
+        free(im19FrameAssembly);
+        im19FrameAssembly = nullptr;
+    }
+}
+
+static bool im19AllocateBuffers()
+{
+    im19ReleaseBuffers();
+
+    im19FrameMap = (uint8_t *)malloc(IM19_FRAME_MAP_SIZE);
+    if (im19FrameMap == nullptr)
+        return false;
+
+    im19FrameAssembly = (uint8_t *)malloc(IM19_FRAME_PAYLOAD_SIZE);
+    if (im19FrameAssembly == nullptr)
+    {
+        im19ReleaseBuffers();
+        return false;
+    }
+
+    return true;
+}
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1216,6 +1252,18 @@ static void im19BuildFrame(uint16_t type, uint32_t id, uint8_t *frame)
     frame[7] = (check >> 24) & 0xFF;
 }
 
+// Sends one 256 byte firmware chunk as frame 'frameID'.
+static bool im19SendOneFrame(uint32_t frameID, const uint8_t *payload)
+{
+    uint8_t frame[IM19_FRAME_TOTAL_SIZE] = {0};
+    memcpy(&frame[12], payload, IM19_FRAME_PAYLOAD_SIZE);
+    im19BuildFrame(IM19_FRAME_TYPE_BIN, frameID, frame);
+    SerialForTilt->write(frame, sizeof(frame));
+    SerialForTilt->flush(); // Block until the frame is actually on the wire, not just queued
+    delay(IM19_FRAME_PACING_MS);
+    return true;
+}
+
 // Sends a command frame (CPL to ask what's missing, or RDY to tell the IM19 to boot).
 static void im19SendCmdFrame(uint16_t cmd, uint32_t frameTotal)
 {
@@ -1255,6 +1303,8 @@ static int im19CheckResponse(uint8_t *frameMap, uint32_t timeoutMs)
         switch (im19BufToUint16(p + 2))
         {
         case IM19_FRAME_TYPE_REQ:
+            if (frameMap == nullptr)
+                return -1;
             memcpy(frameMap, p + 12, IM19_FRAME_MAP_SIZE);
             return IM19_FRAME_TYPE_REQ;
         case IM19_FRAME_TYPE_RDY:
@@ -1269,6 +1319,9 @@ static int im19CheckResponse(uint8_t *frameMap, uint32_t timeoutMs)
 // True if every frame in [0, totalFrame) is marked present in frameMap.
 static bool im19AllFramesPresent(const uint8_t *frameMap, uint32_t totalFrame)
 {
+    if (frameMap == nullptr)
+        return false;
+
     for (uint32_t frame = 0; frame < totalFrame; frame++)
     {
         uint8_t bit = 0x01 << (frame % 8);
@@ -1346,9 +1399,18 @@ bool im19UpdateFirmwareBegin(size_t fileBytes)
         return false;
     }
 
+    if (!im19AllocateBuffers())
+    {
+        systemPrintln("Unable to allocate IM19 update buffers.");
+        return false;
+    }
+
     memset(im19FrameMap, 0, IM19_FRAME_MAP_SIZE);
     im19TotalFrames = totalFrames;
+    im19FileSize = fileBytes;
     otaFileBytes = fileBytes;
+    im19FrameAssemblyLen = 0;
+    im19NextFrameID = 0;
 
     for (int retry = 0; retry < 3; retry++)
     {
@@ -1359,28 +1421,45 @@ bool im19UpdateFirmwareBegin(size_t fileBytes)
         if (im19SendATCommand("AT+UPDATE_APP\r\n", "OK", 5))
             return true;
     }
+    im19ReleaseBuffers();
     return false;
+}
+
+// Repositions the frame-assembly cursor to a frame-aligned byte offset. Used before
+// streaming a retry range so its bytes land in the right frame IDs.
+void im19UpdateFirmwareSeek(uint32_t byteOffset)
+{
+    im19NextFrameID = byteOffset / IM19_FRAME_PAYLOAD_SIZE;
+    im19FrameAssemblyLen = 0;
 }
 
 // Feeds a chunk of firmware bytes (any length, any alignment) to the IM19. Internally
 // groups them into 256 byte protocol frames and sends each as it fills.
 bool im19UpdateFirmware(const uint8_t * data, uint32_t numBytes)
 {
-    uint8_t frame[IM19_FRAME_TOTAL_SIZE] = {0};
+    if (im19FrameAssembly == nullptr)
+        return false;
 
-    // Add the payload to the frame
-    memcpy(&frame[12], data, numBytes);
-    if (numBytes < IM19_FRAME_PAYLOAD_SIZE)
-        memset(&frame[12 + numBytes], 0, IM19_FRAME_PAYLOAD_SIZE - numBytes);
-    im19BuildFrame(IM19_FRAME_TYPE_BIN, im19NextFrameID, frame);
+    uint32_t consumed = 0;
+    while (consumed < numBytes)
+    {
+        uint32_t copyLength = numBytes - consumed;
+        uint32_t space = IM19_FRAME_PAYLOAD_SIZE - im19FrameAssemblyLen;
+        if (copyLength > space)
+            copyLength = space;
 
-    // Send the firmware bytes to the IM19
-    SerialForTilt->write(frame, sizeof(frame));
-    SerialForTilt->flush(); // Block until the frame is actually on the wire, not just queued
-    delay(IM19_FRAME_PACING_MS);
+        memcpy(im19FrameAssembly + im19FrameAssemblyLen, data + consumed, copyLength);
+        im19FrameAssemblyLen += copyLength;
+        consumed += copyLength;
 
-    // Account for this frame
-    im19NextFrameID++;
+        if (im19FrameAssemblyLen == IM19_FRAME_PAYLOAD_SIZE)
+        {
+            if (!im19SendOneFrame(im19NextFrameID, im19FrameAssembly))
+                return false;
+            im19NextFrameID++;
+            im19FrameAssemblyLen = 0;
+        }
+    }
     return true;
 }
 
@@ -1388,8 +1467,24 @@ bool im19UpdateFirmware(const uint8_t * data, uint32_t numBytes)
 // once the IM19 confirms it received everything and has booted the new image, RETRY
 // if it reports missing frames (caller should re-request just those and call again),
 // or FAILED if the IM19 never responds.
-Im19UpdateResult im19UpdateFirmwareEnd()
+Im19UpdateResult im19UpdateFirmwareEnd(const OTA_TARGET * target)
 {
+    if ((im19FrameMap == nullptr) || (im19FrameAssembly == nullptr))
+        return IM19_UPDATE_FAILED;
+
+    // The last frame of the file is usually short - zero-pad and send it now.
+    if (im19FrameAssemblyLen > 0)
+    {
+        memset(im19FrameAssembly + im19FrameAssemblyLen, 0, IM19_FRAME_PAYLOAD_SIZE - im19FrameAssemblyLen);
+        if (!im19SendOneFrame(im19NextFrameID, im19FrameAssembly))
+        {
+            im19ReleaseBuffers();
+            return IM19_UPDATE_FAILED;
+        }
+        im19NextFrameID++;
+        im19FrameAssemblyLen = 0;
+    }
+
     im19SendCmdFrame(IM19_FRAME_TYPE_CPL, im19TotalFrames);
 
     int retry = IM19_CPL_RESPONSE_RETRIES;
@@ -1398,19 +1493,31 @@ Im19UpdateResult im19UpdateFirmwareEnd()
         int response = im19CheckResponse(im19FrameMap, IM19_CPL_RESPONSE_TIMEOUT_MS);
 
         if (response == IM19_FRAME_TYPE_RDY)
-            return im19VerifyFirmwareRunning() ? IM19_UPDATE_SUCCESS : IM19_UPDATE_FAILED;
+        {
+            Im19UpdateResult result = im19VerifyFirmwareRunning() ? IM19_UPDATE_SUCCESS : IM19_UPDATE_FAILED;
+            im19ReleaseBuffers();
+            return result;
+        }
 
         if (response == IM19_FRAME_TYPE_REQ)
         {
             if (im19AllFramesPresent(im19FrameMap, im19TotalFrames))
             {
                 im19SendCmdFrame(IM19_FRAME_TYPE_RDY, im19TotalFrames);
-                return im19VerifyFirmwareRunning() ? IM19_UPDATE_SUCCESS : IM19_UPDATE_FAILED;
+                Im19UpdateResult result = im19VerifyFirmwareRunning() ? IM19_UPDATE_SUCCESS : IM19_UPDATE_FAILED;
+                im19ReleaseBuffers();
+                return result;
             }
             return IM19_UPDATE_RETRY;
         }
     }
-    return IM19_UPDATE_FAILED;
+
+    // The IM19 never acknowledged the CPL frame. It may still have written the image
+    // and rebooted - the flash write can outlast our response timeout. Check the
+    // running version before declaring failure.
+    Im19UpdateResult result = im19VerifyFirmwareVersion(target) ? IM19_UPDATE_SUCCESS : IM19_UPDATE_FAILED;
+    im19ReleaseBuffers();
+    return result;
 }
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -1716,14 +1823,14 @@ static bool im19StreamMissingRanges(const char * chip,
             while (frame < im19TotalFrames && !(im19FrameMap[frame / 8] & (0x01 << (frame % 8))))
                 frame++;
 
-            size_t fileBytes = (frame - runStart) * IM19_FRAME_PAYLOAD_SIZE;
+            uint32_t startByte = runStart * IM19_FRAME_PAYLOAD_SIZE;
+            uint32_t endByte = min(frame * IM19_FRAME_PAYLOAD_SIZE, im19FileSize);
+            size_t fileBytes = endByte - startByte;
             systemPrintf("Requesting frames %lu-%lu (%lu bytes) from source\r\n",
                          runStart, (frame - 1), fileBytes);
 
             // Send the firmware data to the IM19
-            im19NextFrameID = runStart;
-            uint32_t startByte = runStart * IM19_FRAME_PAYLOAD_SIZE;
-            uint32_t endByte = min(frame * IM19_FRAME_PAYLOAD_SIZE, otaFileBytes);
+            im19UpdateFirmwareSeek(startByte);
             success = im19StreamRange(chip,
                                       url,
                                       startByte,
@@ -1750,6 +1857,62 @@ static bool im19VerifyFirmwareRunning()
         if (im19SendATCommand("AT+VERSION\r\n", "Version:", 1))
             return true;
         delay(100);
+    }
+    return false;
+}
+
+// Last-ditch check for when the IM19 never acknowledged the CPL frame (no RDY/REQ
+// response). The flash write + reboot can outlast our response timeout even though
+// the update actually succeeded, so read back the running app version and consider
+// the update successful if it matches or exceeds the version we just flashed.
+static bool im19VerifyFirmwareVersion(const OTA_TARGET * target)
+{
+    delay(5000); // Give the IM19 time to finish flashing and boot the new image
+
+    for (int retry = 0; retry < 3; retry++)
+    {
+        IM19 * tiltSensor = new IM19();
+        if (tiltSensor != nullptr)
+        {
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                tiltSensor->enableDebugging();
+
+            if (tiltSensor->begin(*SerialForTilt))
+            {
+                char rawFirmwareVersionStr[32]; // Ex: IM19_H2_B2.2_A11.4.1
+                if (tiltSensor->getVersion(rawFirmwareVersionStr, sizeof(rawFirmwareVersionStr)))
+                {
+                    int major = 0, minor = 0, patch = 0;
+                    char *appVersionPtr = strstr(rawFirmwareVersionStr, "A");
+                    if (appVersionPtr != nullptr)
+                        sscanf(appVersionPtr + 1, "%d.%d.%d", &major, &minor, &patch);
+
+                    if (settings.debugFirmwareUpdate)
+                        systemPrintf("IM19 reports version: %s (parsed %d.%d.%d, expecting >= %d.%d.%d)\r\n",
+                                     rawFirmwareVersionStr, major, minor, patch,
+                                     target->_remoteVersion[0], target->_remoteVersion[1],
+                                     target->_remoteVersion[2]);
+
+                    int delta = otaCompareVersions(major, minor, patch, 0, 0,
+                                                   target->_remoteVersion[0],
+                                                   target->_remoteVersion[1],
+                                                   target->_remoteVersion[2],
+                                                   target->_remoteVersion[3],
+                                                   target->_remoteVersion[4]);
+                    if (delta >= 0) // Running version matches or exceeds the target
+                    {
+                        imuFirmwareVersionInt = (major * 100) + (minor * 10) + patch;
+                        if (appVersionPtr != nullptr)
+                            snprintf(imuFirmwareVersionStr, sizeof(imuFirmwareVersionStr), "%s", appVersionPtr + 1);
+                        delete tiltSensor;
+                        return true;
+                    }
+                }
+            }
+            delete tiltSensor;
+        }
+
+        delay(1000);
     }
     return false;
 }
@@ -1947,7 +2110,7 @@ bool im19FirmwareUpdate(const OTA_TARGET * target,
         errorMsg = msgBuffer;
         for (int attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            Im19UpdateResult result = im19UpdateFirmwareEnd();
+            Im19UpdateResult result = im19UpdateFirmwareEnd(target);
             if (result == IM19_UPDATE_SUCCESS)
             {
                 errorMsg = nullptr;
@@ -1956,10 +2119,18 @@ bool im19FirmwareUpdate(const OTA_TARGET * target,
 
             if (result == IM19_UPDATE_FAILED)
             {
-                //                           1         2         3         4         5         6         7         8         9
-                //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-                sprintf(msgBuffer, "ERROR: %s firmware update failed: no response from IM19.", chip, chip);
-                errorMsg = msgBuffer;
+                if (im19VerifyFirmwareVersion(target))
+                {
+                    systemPrintf("%s firmware update validated by firmware version check.\r\n", chip);
+                    errorMsg = nullptr;
+                }
+                else
+                {
+                    //                           1         2         3         4         5         6         7         8         9
+                    //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+                    sprintf(msgBuffer, "ERROR: %s firmware update failed: no response from IM19.", chip, chip);
+                    errorMsg = msgBuffer;
+                }
                 break;
             }
 
@@ -1990,6 +2161,8 @@ bool im19FirmwareUpdate(const OTA_TARGET * target,
 
     // Release the resources
     http.end();
+    if (success == false)
+        im19ReleaseBuffers();
     return success;
 }
 
@@ -1999,8 +2172,6 @@ bool im19FirmwareUpdate(const OTA_TARGET * target,
 //----------------------------------------
 bool im19GetVersionString()
 {
-    int imuFirmwareVersionInt;
-    char imuFirmwareVersionStr[32];    // Ex: IM19_H2_B2.2_A11.4.1
     bool success = false;
     IM19 * tiltSensor = nullptr;
     do
