@@ -2656,7 +2656,18 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Stop the long range radio protocols
         if (stopping & WIFI_EN_SET_PROTOCOLS)
         {
-            if (!setWiFiProtocols(WIFI_IF_STA, true, false))
+            // Mirrors the guard on the start side above: changing the STA protocol bitmap
+            // while associated forces the radio to disassociate/reconnect, dropping the
+            // station's IP address. Skip it here if the station has a live connection that
+            // is staying up (e.g. ESP-NOW turning off when Web Config starts) - the leftover
+            // long range bit is harmless until the station's own restart/reconnect corrects it.
+            bool staStayingOnline = stationOnline() && !(stopping & WIFI_STA_ONLINE);
+            if (staStayingOnline)
+            {
+                if (settings.debugWifiState && _verbose)
+                    systemPrintf("WiFi: Station remaining online, deferring long range protocol removal\r\n");
+            }
+            else if (!setWiFiProtocols(WIFI_IF_STA, true, false))
                 break;
             _started = _started & ~WIFI_EN_SET_PROTOCOLS;
         }
@@ -2835,15 +2846,32 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         {
             // The long range protocol changes the beacon's basic rate set in a way that
             // makes the soft AP invisible to phones, so only request it for ESP-NOW when
-            // the soft AP is not also online. Also skip it when the station already has a
-            // live connection to a remote AP (e.g. ESP-NOW starting after Web Config's WiFi
-            // station is already online): changing the STA protocol bitmap while associated
-            // forces the radio to disassociate/reconnect, dropping the station's IP address.
-            bool apOnline = (starting | (_started & ~stopping)) & WIFI_AP_ONLINE;
-            bool lrEnable =
-                ((starting & WIFI_EN_SET_PROTOCOLS) && !apOnline && !stationOnline()) ? true : false;
-            if (!setWiFiProtocols(WIFI_IF_STA, true, lrEnable))
-                break;
+            // the soft AP is not also online.
+            //
+            // Changing the STA protocol bitmap - adding OR removing the long range bit -
+            // while the station is actively associated forces the radio to disassociate
+            // and reconnect, dropping the station's IP address. This bites us in both
+            // directions: enabling ESP-NOW while already connected (avoided below by
+            // skipping the call), and disabling ESP-NOW earlier having left a stale long
+            // range bit that this same call would then try to clear. So if the station is
+            // already online and this isn't its own fresh bring-up (WIFI_STA_SET_PROTOCOLS),
+            // leave the bitmap alone entirely - the station's next real restart/reconnect
+            // (via WIFI_STA_SET_PROTOCOLS) will set the correct final protocol set anyway.
+            bool staOnline = stationOnline();
+            bool staStartingFresh = starting & WIFI_STA_SET_PROTOCOLS;
+            if (staOnline && !staStartingFresh)
+            {
+                if (settings.debugWifiState && _verbose)
+                    systemPrintf("WiFi: Station already online, deferring long range protocol change\r\n");
+            }
+            else
+            {
+                bool apOnline = (starting | (_started & ~stopping)) & WIFI_AP_ONLINE;
+                bool lrEnable =
+                    ((starting & WIFI_EN_SET_PROTOCOLS) && !apOnline && !staOnline) ? true : false;
+                if (!setWiFiProtocols(WIFI_IF_STA, true, lrEnable))
+                    break;
+            }
             _started = _started | (starting & (WIFI_EN_SET_PROTOCOLS | WIFI_STA_SET_PROTOCOLS));
         }
 
