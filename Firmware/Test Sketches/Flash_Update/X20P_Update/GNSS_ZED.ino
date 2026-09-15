@@ -79,7 +79,6 @@
 //  x20pFirmwareUpdateBegin(), freed in x20pFirmwareUpdateEnd().
 // ==================================================================
 
-uint8_t buffer[PACKET_SIZE];
 static uint32_t x20pCurrentAddress = FW_BASE_ADDR; // Next flash address to write; advances as pages are flashed
 
 // Write one byte to ser, updating the running Fletcher-8 checksum.
@@ -251,10 +250,10 @@ bool x20pPollMsg(HardwareSerial &ser, uint8_t cls, uint8_t id, const uint8_t *pa
 // Assumes ser is already communicating with the module at the correct baud rate
 // (works both in normal application firmware and in the bootloader).
 // Returns true if a version response was received and parsed.
-bool x20pPrintVersion(HardwareSerial &ser)
+bool x20pPrintVersion(const char * subsystem, const char * chip)
 {
     UbxMsg monVer;
-    if (x20pPollMsg(ser, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, monVer, TIMEOUT_POLL) == false)
+    if (x20pPollMsg(*serialGNSS, UBX_CLASS_MON, UBX_MON_VER, nullptr, 0, monVer, TIMEOUT_POLL) == false)
     {
         systemPrintln("Firmware version: no response from module.");
         return false;
@@ -273,7 +272,7 @@ bool x20pPrintVersion(HardwareSerial &ser)
     memcpy(hwVersion, monVer.payload + UBX_MON_VER_SW_BYTES, UBX_MON_VER_HW_BYTES);
     hwVersion[UBX_MON_VER_HW_BYTES] = '\0';
 
-    systemPrint("Firmware version: ");
+    systemPrintf("%s (%s) firmware version: ", chip, subsystem);
     systemPrint(swVersion);
     systemPrint("  Hardware version: ");
     systemPrintln(hwVersion);
@@ -383,21 +382,33 @@ bool x20pWriteChunk(HardwareSerial &ser,
  * Begin()/End() since they only happen once per update.
  *
  * Parameters:
- *   ser      HardwareSerial wired to ZED-X20P UART1
  *   data     Pointer to this chunk's bytes
  *   numBytes Number of bytes in this chunk
  *
  * Returns true on success (or a no-op success if a prior chunk already failed).
  */
-bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBytes)
+bool x20pUpdateFirmware(const uint8_t *data, uint32_t numBytes)
 {
-    if (!x20pWriteChunk(ser, x20pCurrentAddress, data, numBytes))
+    if (!x20pWriteChunk(*serialGNSS, x20pCurrentAddress, data, numBytes))
     {
         systemPrintf("ERROR: X20P write failed at address 0x%08X\r\n", x20pCurrentAddress);
         return false;
     }
     x20pCurrentAddress += numBytes;
     return true;
+}
+
+/*
+ * x20pReset
+ */
+void x20pReset()
+{
+    if (productVariant == RTK_FACET_FP)
+    {
+        gpioExpanderGnssReset();
+        delay(250);
+        gpioExpanderGnssBoot();
+    }
 }
 
 /*
@@ -416,9 +427,7 @@ bool x20pUpdateFirmware(HardwareSerial &ser, const uint8_t *data, uint32_t numBy
  */
 bool x20pEnterBootloaderMode()
 {
-    gpioExpanderGnssReset();
-    delay(25);
-    gpioExpanderGnssBoot();
+    x20pReset();
     delay(250);
 
     bool foundBaud = false;
@@ -722,54 +731,6 @@ bool x20pFirmwareUpdateEnd()
     return success;
 }
 
-// Update the X20P firmware
-// Owns the full update sequence: enters bootloader mode, streams the image
-// over WiFi, then verifies/reboots - callers only need to call this one
-// function and do not need to know about Begin()/End().
-bool x20pFirmwareUpdate(const char * url)
-{
-    // Verify secure connection is possible
-    WiFiClientSecure client;
-    if (!otaSecurelyConnectGitHub(client))
-    {
-        systemPrintln("Failed to securely connect to GitHub.");
-        return false;
-    }
-
-    systemPrintf("Starting HTTP GET for firmware: %s\r\n", url);
-    HTTPClient http;
-    if (!http.begin(client, url))
-    {
-        systemPrintln("Unable to begin HTTP request.");
-        return false;
-    }
-
-    int httpCode = http.GET();
-    if (httpCode != HTTP_CODE_OK)
-    {
-        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
-        http.end();
-        return false;
-    }
-
-    // Get the file size
-    size_t fileBytes = http.getSize();
-    if ((ssize_t)fileBytes <= 0)
-    {
-        systemPrintf("ERROR: Invalid file size: %d, must be > 0\r\n", fileBytes);
-        http.end();
-        return false;
-    }
-
-    WiFiClient *stream = http.getStreamPtr();
-
-    bool success = x20pStreamFirmware(stream, fileBytes, buffer, sizeof(buffer));
-
-    http.end();
-
-    return success;
-}
-
 /*
  * x20pStreamFirmware()
  *
@@ -780,125 +741,361 @@ bool x20pFirmwareUpdate(const char * url)
  * function and do not need to know about Begin()/End().
  *
  * Returns true upon successful firmware update and false upon failure.
+ *
+ * The generic process is:
+ * 1) Call the updateFirmwareBegin function to erase the flash on the device
+ * 2) Call firmwareUpdateProgressReset to initialize the progress bar and set
+ *    the file size
+ * 3) Loop reading firmware from the stream and writing it to the device, call
+ *    firmwareUpdateProgressCallback to update the progress bar
+ * 4) Call the updateFirmwareEnd function to complete the flash write operation
+ * 5) Display the flash write status
  */
-bool x20pStreamFirmware(NetworkClient * stream,
+bool x20pStreamFirmware(const char * subsystem,
+                        const char * chip,
+                        NetworkClient * stream,
                         size_t fileBytes,
                         uint8_t * buffer,
                         size_t packetBytes)
 {
-    // Display the parameters
-    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+    bool success;
+
+    do
     {
-        systemPrintf("fileBytes: %d\r\n", fileBytes);
-        systemPrintf("packetBytes: %d\r\n", packetBytes);
-    }
+        success = false;
 
-    systemPrintln("Starting X20P firmware update...");
-
-    // Enter the bootloader and erase flash before opening the GitHub connection.
-    // This sequence involves two hardware resets and autobaud probing and can take
-    // 30+ seconds; opening the HTTPS GET first and leaving it idle that long risked
-    // the connection going stale (and a stalled TLS read blocking forever) before a
-    // single body byte was ever consumed.
-    if (x20pFirmwareUpdateBegin() == false)
-    {
-        systemPrintln(otaEqualSigns);
-        systemPrintln("X20P failed to enter bootloader mode.");
-        systemPrintln(otaEqualSigns);
-        return false;
-    }
-    systemPrintln("X20P is in bootloader mode.");
-
-    // Initialize the progress bar
-    firmwareUpdateProgressReset(fileBytes);
-
-    unsigned long lastDataTime = millis();
-    size_t validData = 0;
-    if (settings.debugFirmwareUpdate)
-        systemPrintf("stream->connected(): %d\r\n", stream->connected());
-    while (stream->connected() && (fileBytes > 0))
-    {
-        // Wait until some data is available
-        size_t availableBytes = stream->available();
-        if (availableBytes == 0)
+        // Display the parameters
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
         {
-            if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+            systemPrintf("fileBytes: %d\r\n", fileBytes);
+            systemPrintf("packetBytes: %d\r\n", packetBytes);
+        }
+
+        // Enter the bootloader and erase flash before opening the GitHub connection.
+        // This sequence involves two hardware resets and autobaud probing and can take
+        // 30+ seconds; opening the HTTPS GET first and leaving it idle that long risked
+        // the connection going stale (and a stalled TLS read blocking forever) before a
+        // single body byte was ever consumed.
+        if (x20pFirmwareUpdateBegin() == false)
+        {
+            systemPrintf("ERROR: %s failed to enter bootloader mode.\r\n", chip);
+            break;
+        }
+        systemPrintf("%s is in bootloader mode.\r\n", chip);
+
+        // Initialize the progress bar
+        firmwareUpdateProgressReset(fileBytes);
+
+        // Loop until all data has been transferred or another error occurs.
+        // HTTPS conections remain open even after the data has been transferred
+        // and HTTP connections close after data has been transferred but some
+        // may still be available.  Only test the network connection when no
+        // data is available.
+        unsigned long lastDataTime = millis();
+        size_t validData = 0;
+        while (fileBytes > 0)
+        {
+            // Wait until some data is available
+            size_t availableBytes = stream->available();
+            if (availableBytes == 0)
             {
-                systemPrintf("X20P firmware update timed out waiting for data\r\n");
+                // Verify network connection
+                if (stream->connected() == false)
+                {
+                    systemPrintln("ERROR: lost connection to network server");
+                    break;
+                }
+
+                // Check for network timeout
+                if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+                {
+                    systemPrintf("ERROR: Timed out waiting for data\r\n");
+                    break;
+                }
+                yield();
+                continue;
+            }
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("availableBytes: %d\r\n", availableBytes);
+
+            // Read the received data
+            size_t bytesToRead = min(availableBytes, packetBytes - validData);
+            int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("bytesRead: %d\r\n", bytesRead);
+            if (bytesRead <= 0)
+            {
+                systemPrintln("ERROR: Failed reading data from network");
                 break;
             }
-            delay(1);
-            continue;
+            validData += bytesRead;
+
+            // Fill the packet
+            if ((validData < packetBytes) && (validData != fileBytes))
+                continue;
+
+            // Update this portion of the firmware
+            if (x20pUpdateFirmware(buffer, validData) == false)
+            {
+                systemPrintln("ERROR: Failed during write");
+                break;
+            }
+
+            // Display the progress
+            firmwareUpdateProgressCallback(subsystem, chip, validData);
+
+            // Account for this data
+            fileBytes -= validData;
+            lastDataTime = millis();
+            validData = 0;
         }
-        if (settings.debugFirmwareUpdate && otaDebugVerbose)
-            systemPrintf("availableBytes: %d\r\n", availableBytes);
-
-        // Read the received data
-        size_t bytesToRead = min(availableBytes, packetBytes - validData);
-        int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
-        if (settings.debugFirmwareUpdate && otaDebugVerbose)
-            systemPrintf("bytesRead: %d\r\n", bytesRead);
-        if (bytesRead <= 0)
+        if (fileBytes)
             break;
-        validData += bytesRead;
 
-        // Fill the packet
-        if ((validData < packetBytes) && (validData != fileBytes))
-            continue;
-
-        // Update this portion of the firmware
-        if (x20pUpdateFirmware(*serialGNSS, buffer, validData) == false)
-        {
-            systemPrintln("X20P firmware update failed during write");
+        // Complete the flash update transaction
+        if (x20pFirmwareUpdateEnd() == false)
             break;
-        }
 
-        // Display the progress
-        firmwareUpdateProgressCallback("X20P", validData);
+        success = true;
+    } while (0);
 
-        // Account for this data
-        fileBytes -= validData;
-        lastDataTime = millis();
-        validData = 0;
-    }
-
-    systemPrintf("%s\r\n", otaEqualSigns);
-    bool success = (fileBytes == 0) && x20pFirmwareUpdateEnd();
-    if (success)
-        systemPrintln("X20P firmware update successfully completed.");
-    else
-        systemPrintln("X20P firmware update failed.");
-
-    // Reboot (fire-and-forget - device does not send a response)
-    if (settings.debugFirmwareUpdate)
-        systemPrintln("Rebooting X20P...");
-    x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x0E, nullptr, 0); // Reboot
-
-    // Display the version number
-    x20pDisplayVersion();
-    systemPrintf("%s\r\n", otaEqualSigns);
+    // Display the number of bytes remaining
+    if (fileBytes && settings.debugFirmwareUpdate)
+        systemPrintf("fileBytes: %d\r\n", fileBytes);
     return success;
 }
 
-// Display the firmware version number
-void x20pDisplayVersion()
+//----------------------------------------
+// Update the X20P firmware
+// Owns the full update sequence: enters bootloader mode, streams the image
+// over WiFi, then verifies/reboots - callers only need to call this one
+// function and do not need to know about Begin()/End().
+//----------------------------------------
+bool x20pFirmwareUpdate(const char * subsystem,
+                        const char * chip,
+                        const char * url,
+                        uint8_t * buffer,
+                        size_t packetBytes)
 {
+    const char * cert;
+    NetworkClientSecure client;
+    const char * errorMsg;
+    size_t fileBytes;
+    HTTPClient http;
+    String ipAddressString;
+    const char * ipAddress;
+    char msgBuffer[128];
+    const char * server;
+    String serverString;
+    NetworkClient * stream;
+    bool success;
+
+    do
+    {
+        success = false;
+        errorMsg = nullptr;
+
+        // Verify that a URL was specified
+        if(settings.debugFirmwareUpdate)
+            systemPrintf("URL: %s\r\n", url ? url : "[nullptr]");
+        if ((url == nullptr) || (strlen(url) == 0))
+        {
+            errorMsg = "ERROR: No URL was specified!";
+            break;
+        }
+
+        // Locate the server for this URL
+        serverString = getServerFromUrl(url);
+        if (serverString.length() == 0)
+        {
+            errorMsg = "ERROR: Failed to find server name in URL string";
+            break;
+        }
+        server = serverString.c_str();
+
+        // Translate the server name into an IP address
+        ipAddressString = getServerIpAddress(server);
+        if (ipAddressString.length() == 0)
+        {
+            errorMsg = "Failed to get the IP address for the server\r\n";
+            break;
+        }
+        ipAddress = ipAddressString.c_str();
+
+        // Determine if the certificate is known for this server
+        cert = getCertFromUrl(url);
+        if(settings.debugFirmwareUpdate)
+            systemPrintf("Certificate: %s\r\n", cert ? "available" : "none");
+
+        // Use an encrypted and verified connection when possible
+        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        if (cert)
+        {
+            // Verify the server using the certificate
+            if (!securelyConnectToServer(url, client, cert))
+            {
+                //                           1         2         3         4         5         6         7         8         9
+                //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+                sprintf(msgBuffer, "ERROR: Failed to securely connect to %s (%s)", server, ipAddress);
+                errorMsg = msgBuffer;
+                break;
+            }
+
+            // Request the URL from the web server
+            if (!http.begin(client, url))
+            {
+                errorMsg = "ERROR: unable to begin HTTPS request.";
+                break;
+            }
+        }
+
+        // Request the URL from the web server
+        else if (!http.begin(url))
+        {
+            errorMsg = "ERROR: Unable to begin HTTP request.";
+            break;
+        }
+
+        // Get the web server's response
+        int httpCode = http.GET();
+        if (httpCode != HTTP_CODE_OK)
+        {
+            //                           1         2         3         4         5         6         7         8         9
+            //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+            sprintf(msgBuffer, "ERROR: Update failed HTTP GET request, code: %d", httpCode);
+            errorMsg = msgBuffer;
+            break;
+        }
+
+        // Get the file size
+        fileBytes = http.getSize();
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("File size: %d (0x%08x) bytes\r\n", fileBytes, fileBytes);
+        if (fileBytes <= 0)
+        {
+            errorMsg = "ERROR: Web server did not report a file size.";
+            break;
+        }
+        otaFileBytes = fileBytes;
+
+        // Get the connection to the file data
+        stream = http.getStreamPtr();
+
+        // Display the firmware update being attempted
+        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
+
+        // Start the firmware update and display any streaming errors
+        if (x20pStreamFirmware(subsystem,
+                               chip,
+                               stream,
+                               fileBytes,
+                               buffer,
+                               packetBytes) == false)
+        {
+            break;
+        }
+
+        success = true;
+    } while (0);
+
+    // Display the remote connection error
+    if (errorMsg)
+        systemPrintf("%s\r\n", errorMsg);
+
+    // Display the firmware update status
+    systemPrintln(otaEqualSigns);
+    if (success)
+        systemPrintf("%s (%s) firmware update completed successfully\r\n", chip, subsystem);
+    else
+        systemPrintf("%s (%s) firmware update failed!\r\n", chip, subsystem);
+
     // Display the version number
-    delay(2000);
-    serialGNSS->updateBaudRate(38400);
-    while (serialGNSS->available())
-        serialGNSS->read();
-    x20pPrintVersion(*serialGNSS);
+    if (success)
+        x20pDisplayVersion(subsystem, chip);
+    systemPrintln(otaEqualSigns);
+
+    // Release the resources
+    http.end();
+    return success;
 }
 
-// Perform the flash update using an array
-bool x20pArrayFlashUpdate()
+//----------------------------------------
+// Display the firmware version number
+//----------------------------------------
+void x20pDisplayVersion(const char * subsystem, const char * chip)
 {
-    dataArray.init();
-    return x20pStreamFirmware((NetworkClient *)&dataArray,
-                              dataArray.available(),
+    // Reset the X20P
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("Rebooting X20P...");
+    x20pReset();
+
+    // Set the proper baudrate
+    serialGNSS->end();
+    serialGNSS->begin(38400, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
+
+    // Display the version number
+    delay(2000);
+    while (serialGNSS->available())
+        serialGNSS->read();
+    x20pPrintVersion(subsystem, chip);
+}
+
+//----------------------------------------
+// Perform the flash update using an array
+//----------------------------------------
+bool x20pArrayFlashUpdate(const char * subsystem,
+                          const char * chip,
+                          uint8_t * buffer,
+                          size_t packetBytes)
+{
+    size_t fileBytes;
+    NetworkClient * stream;
+    bool success;
+
+    do
+    {
+        success = false;
+
+        // Initialize the data stream
+        dataArray.init(0);
+
+        // Get the file size
+        fileBytes = dataArray.available();
+        otaFileBytes = fileBytes;
+
+        // Get the connection to the file data
+        stream = (NetworkClient *)&dataArray;
+
+        // Display the firmware update being attempted
+        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
+
+        // Start the firmware update and display any streaming errors
+        if (x20pStreamFirmware(subsystem,
+                              chip,
+                              stream,
+                              fileBytes,
                               buffer,
-                              sizeof(buffer));
+                              packetBytes) == false)
+        {
+            break;
+        }
+
+        success = true;
+    } while (0);
+
+    // Display the firmware update status
+    systemPrintln(otaEqualSigns);
+    if (success)
+        systemPrintf("%s (%s) firmware update completed successfully\r\n", chip, subsystem);
+    else
+        systemPrintf("%s (%s) firmware update failed!\r\n", chip, subsystem);
+
+    // Display the version number
+    if (success)
+        x20pDisplayVersion(subsystem, chip);
+    systemPrintln(otaEqualSigns);
+
+    return success;
 }
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

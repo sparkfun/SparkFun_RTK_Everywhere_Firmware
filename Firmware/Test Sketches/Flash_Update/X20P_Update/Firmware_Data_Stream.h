@@ -19,7 +19,7 @@ class Firmware_Data_Stream : public NetworkClient
     {
     }
 
-    void init() { _pos = 0; }
+    void init(size_t startingPosition) { _pos = startingPosition; }
     virtual uint8_t connected() override { return 1; }
     virtual int available() override { return _size - _pos; }
     virtual int read() override { return (_pos < _size) ? _buffer[_pos++] : -1; }
