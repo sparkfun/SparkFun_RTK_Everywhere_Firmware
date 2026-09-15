@@ -1712,17 +1712,10 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     else if ((strcmp(settingName, "enableRcFirmware") == 0)
              || (strcmp(settingName, "enableRCFirmware") == 0))
     {
-        for (int subsystemIndex = 0; subsystemIndex < OTA_SUBSYSTEM_MAX; subsystemIndex++)
-        {
-            if (settingValue)
-            {
-                if ((otaTarget[subsystemIndex]._requestType == OTA_REQUEST_PRODUCT_RELEASE)
-                    || (otaTarget[subsystemIndex]._requestType == OTA_REQUEST_LATEST_VERSION))
-                    otaTarget[subsystemIndex]._requestType = OTA_REQUEST_USE_RC;
-            }
-            else if (otaTarget[subsystemIndex]._requestType == OTA_REQUEST_USE_RC)
-                otaTarget[subsystemIndex]._requestType = OTA_REQUEST_LATEST_VERSION;
-        }
+        // Actual request types are computed by otaEffectiveRequestType() - this just
+        // unlocks the ESP32 RC path, and (for GNSS/LoRa/IMU) whatever developer override
+        // is already stored, for the remainder of this boot/session
+        otaAllowBetaFirmware = settingValue;
 
         knownSetting = true;
     }

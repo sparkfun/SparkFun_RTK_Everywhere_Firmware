@@ -374,6 +374,7 @@ bool apConfigFirmwareUpdateInProcess; // Goes true once WiFi is connected and OT
 char otaReportedVersion[50];
 bool otaRequestFirmwareVersionCheck = false;
 bool otaRequestFirmwareUpdate = false;
+bool otaAllowBetaFirmware = false; // Web Config 'Allow Beta Firmware' checkbox, session only
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // Connection settings to NTRIP Caster

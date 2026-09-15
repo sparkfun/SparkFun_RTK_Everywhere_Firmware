@@ -864,9 +864,7 @@ struct Settings
     bool debugFirmwareUpdate = false;
     bool enableAutoFirmwareUpdate = false;
     char csvUrl[OTA_FIRMWARE_CSV_URL_LENGTH] = OTA_FIRMWARE_CSV_URL;
-    // Firmware Update menu developer options, serial menu only.
-    // The request values are OTA_FIRMWARE_UPDATE_REQUEST in OTA.h, which is included after this file.
-    bool otaDeveloperOptions = false;
+    // otaDeveloperOptions is NOT a member here - it must never be sticky/NVM (see otaDeveloperOptions global below)
     uint8_t otaRequestEsp32 = 0; // OTA_REQUEST_PRODUCT_RELEASE
     uint8_t otaRequestGnss = 0;
     uint8_t otaRequestLora = 0;
@@ -1515,7 +1513,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugFirmwareUpdate, "debugFirmwareUpdate", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableAutoFirmwareUpdate, "enableAutoFirmwareUpdate", nullptr, },
     { 0, 1, 0, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.csvUrl), & settings.csvUrl, "csvUrl", nullptr, },
-    { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.otaDeveloperOptions, "otaDeveloperOptions", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.otaRequestEsp32, "otaRequestEsp32", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.otaRequestGnss, "otaRequestGnss", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.otaRequestLora, "otaRequestLora", nullptr, },
@@ -2724,5 +2721,10 @@ const char * otaNameEnd = "\"";
 
 bool otaDebugVerbose;
 uint32_t otaFileBytes;
+
+// Firmware Update menu developer options, serial menu only (see OTA_REQUEST_* in OTA.h).
+// A plain global rather than a Settings member - it must never be sticky/NVM, always
+// starts disabled at boot so a forgotten 'Always update' override can't silently persist.
+bool otaDeveloperOptions = false;
 
 #endif // __SETTINGS_H__

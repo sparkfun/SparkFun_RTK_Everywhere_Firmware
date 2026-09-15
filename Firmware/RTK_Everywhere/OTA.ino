@@ -544,6 +544,32 @@ uint8_t otaGetRequestTypeFromSubsystem(uint8_t subsystem)
 }
 
 //----------------------------------------
+// Determine the request type to actually use for a subsystem's update check.
+// The sticky per-subsystem overrides (Always update, Use RC, Skip, etc., set via the
+// serial menu's developer options and stored in settings.otaRequest*) only take effect
+// while developer options or beta firmware is active for this boot/session. Otherwise
+// every subsystem simply follows the normal product-release update path, so a developer
+// override left over from a prior session can't silently keep forcing updates.
+//----------------------------------------
+uint8_t otaEffectiveRequestType(uint8_t subsystemIndex)
+{
+    if (subsystemIndex == OTA_SUBSYSTEM_ESP32)
+    {
+        // Beta firmware always means "check for an ESP32 RC", independent of developer options
+        if (otaAllowBetaFirmware)
+            return OTA_REQUEST_USE_RC;
+        if (otaDeveloperOptions)
+            return otaTarget[subsystemIndex]._requestType;
+        return OTA_REQUEST_PRODUCT_RELEASE;
+    }
+
+    // GNSS, LoRa, IMU: beta firmware unlocks whatever override the developer already selected
+    if (otaDeveloperOptions || otaAllowBetaFirmware)
+        return otaTarget[subsystemIndex]._requestType;
+    return OTA_REQUEST_PRODUCT_RELEASE;
+}
+
+//----------------------------------------
 // Get the required updates
 //----------------------------------------
 OTA_SUBSYSTEM_MASK otaGetRequiredUpdates(const char * fileData,
@@ -552,8 +578,7 @@ OTA_SUBSYSTEM_MASK otaGetRequiredUpdates(const char * fileData,
                                          int lineCount,
                                          bool debug,
                                          bool verbose)
-{
-    const char * buffer;
+{    const char * buffer;
     const char * bufferEnd;
     const char * chip;
     const char * csvEntry;
@@ -572,6 +597,7 @@ OTA_SUBSYSTEM_MASK otaGetRequiredUpdates(const char * fileData,
     OTA_TARGET * target;
     OTA_SUBSYSTEM_MASK updatesFound;
     int versionDelta;
+    uint8_t requestType;
 
     // Walk the list of subsystems
     updatesFound = 0;
@@ -612,8 +638,12 @@ OTA_SUBSYSTEM_MASK otaGetRequiredUpdates(const char * fileData,
                                        target->_localVersion[3],
                                        target->_localVersion[4]);
 
+        // Only honor the sticky per-subsystem override (target->_requestType) when developer
+        // options or beta firmware is active this session; otherwise use the normal update path
+        requestType = otaEffectiveRequestType(subsystemIndex);
+
         // Determine if this subsystem is being skipped
-        if ((target->_requestType) == OTA_REQUEST_SKIP_UPDATE)
+        if (requestType == OTA_REQUEST_SKIP_UPDATE)
         {
             // Subsystem being skipped
             if (debug && verbose)
@@ -627,7 +657,7 @@ OTA_SUBSYSTEM_MASK otaGetRequiredUpdates(const char * fileData,
         buffer = csvNextLine(buffer, bufferEnd, fieldCount);
 
         // Determine if a release candidate should be used
-        if ((target->_requestType) == OTA_REQUEST_USE_RC)
+        if (requestType == OTA_REQUEST_USE_RC)
         {
             // Attempt to locate the release candidate line
             for (lineIndex = 1; lineIndex < lineCount; lineIndex++)
@@ -728,7 +758,7 @@ OTA_SUBSYSTEM_MASK otaGetRequiredUpdates(const char * fileData,
                 // RC is handled in the previous line loop section above
 
                 // Product release firmware always matches the first entry
-                if (target->_requestType == OTA_REQUEST_PRODUCT_RELEASE)
+                if (requestType == OTA_REQUEST_PRODUCT_RELEASE)
                 {
                     // This is the first entry. Skip the update when the versions
                     // match, but leave the request type alone so that a later
@@ -746,8 +776,8 @@ OTA_SUBSYSTEM_MASK otaGetRequiredUpdates(const char * fileData,
                 }
 
                 // Check the version for latest or RC requests
-                if (((target->_requestType == OTA_REQUEST_LATEST_VERSION)
-                    || (target->_requestType == OTA_REQUEST_USE_RC))
+                if (((requestType == OTA_REQUEST_LATEST_VERSION)
+                    || (requestType == OTA_REQUEST_USE_RC))
                     && (versionDelta >= 0))
                 {
                     skipUpdate = true;
@@ -823,11 +853,12 @@ const OTA_SUBSYSTEM_INFO * otaGetSubsystemInfo(uint8_t subsystem)
         }
 
         // Allow explicit IMU recovery updates when tilt detection failed.
+        // Requires developer options (or beta firmware) to be active - see otaEffectiveRequestType()
         if ((subsystem == OTA_SUBSYSTEM_IMU)
             && ((productVariant == RTK_FACET_FP) || (productVariant == RTK_TORCH))
             && (subsystemInfo->_subsystem == OTA_SUBSYSTEM_IMU)
             && (subsystemInfo->_chip == OTA_CHIP_IM19)
-            && (otaTarget[OTA_SUBSYSTEM_IMU]._requestType == OTA_REQUEST_ALWAYS_UPDATE))
+            && (otaEffectiveRequestType(OTA_SUBSYSTEM_IMU) == OTA_REQUEST_ALWAYS_UPDATE))
         {
             return subsystemInfo;
         }
