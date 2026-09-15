@@ -28,9 +28,53 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 
-char *firmwareURL = "/lora/stm32wl/SparkPNT_LoRa_3.0.1.bin";
+char firmwareURL[64] = "/lora/stm32wl/SparkPNT_LoRa_3.0.1.bin"; // Default: v3.0.1
+const char *firmwareVersion = "v3.0.1";
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
+
+bool setFirmwareURLForSelection(char selection)
+{
+    switch (selection)
+    {
+        case '1':
+            strcpy(firmwareURL, "/lora/stm32wl/SparkPNT_LoRa_3.0.1.bin");
+            firmwareVersion = "v3.0.1";
+            return true;
+
+        case '2':
+            strcpy(firmwareURL, "/lora/stm32wl/SparkPNT_LoRa_1.0.2.bin");
+            firmwareVersion = "v1.0.2";
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+bool readFirmwareVersionSelection(char *selectionBuffer, size_t maxLength)
+{
+    size_t index = 0;
+
+    while (Serial.available() == 0)
+        delay(10);
+
+    while (Serial.available() > 0)
+    {
+        char c = Serial.read();
+
+        if ((c == '\r') || (c == '\n'))
+            break;
+
+        if (index < (maxLength - 1))
+        {
+            selectionBuffer[index++] = c;
+        }
+    }
+
+    selectionBuffer[index] = '\0';
+    return (index > 0);
+}
 
 #include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
 SFE_PCA95XX io(PCA95XX_PCA9534); // Create a PCA9534
@@ -137,7 +181,8 @@ void displayMenu()
     systemPrintln();
     systemPrintln("Menu:");
     systemPrintln("r) Reset");
-    systemPrintln("u) Update Firmware");
+    systemPrintln("1) Update LoRa Firmware to v3.0.1");
+    systemPrintln("2) Update LoRa Firmware to v1.0.2");
     systemPrint("Make selection: ");
 }
 
@@ -151,8 +196,19 @@ void loop()
         {
             ESP.restart();
         }
-        else if (incoming == 'u')
+        else if ((incoming == '1') || (incoming == '2'))
         {
+            if (setFirmwareURLForSelection((char)incoming) == false)
+            {
+                systemPrint("Invalid selection: ");
+                Serial.printf("%c\r\n", incoming);
+                systemPrintln("Use 1 for v3.0.1 or 2 for v1.0.2.");
+                displayMenu();
+                return;
+            }
+
+            systemPrint("Selected firmware version: ");
+            systemPrintln(firmwareVersion);
             systemPrintln("Starting firmware update...");
 
             // Start timer before erase
