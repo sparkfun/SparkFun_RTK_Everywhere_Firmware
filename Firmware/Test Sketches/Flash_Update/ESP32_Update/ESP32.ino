@@ -1,9 +1,19 @@
-uint8_t rxBuffer[16384];
-
 //----------------------------------------
-// Update the ESP32 firmware
+// Reads packetBytes from an already-open HTTP stream and feeds them to the device,
+// reporting progress as it goes.
+//
+// The generic process is:
+// 1) Call the updateFirmwareBegin function to erase the flash on the device
+// 2) Call firmwareUpdateProgressReset to initialize the progress bar and set
+//    the file size
+// 3) Loop reading firmware from the stream and writing it to the device, call
+//    firmwareUpdateProgressCallback to update the progress bar
+// 4) Call the updateFirmwareEnd function to complete the flash write operation
+// 5) Display the flash write status
 //----------------------------------------
-bool esp32StreamFirmware(NetworkClient * stream,
+bool esp32StreamFirmware(const char * subsystem,
+                         const char * chip,
+                         NetworkClient * stream,
                          size_t fileBytes,
                          uint8_t * buffer,
                          size_t packetBytes)
@@ -21,15 +31,13 @@ bool esp32StreamFirmware(NetworkClient * stream,
             systemPrintf("packetBytes: %d\r\n", packetBytes);
         }
 
-        systemPrintln("Starting ESP32 firmware update...");
-
         // Enter the bootloader and erase flash before opening the GitHub connection.
         if (Update.begin(fileBytes) == false)
         {
-            systemPrintln("ERROR: Failed to enter bootloader mode.");
+            systemPrintf("ERROR: %s failed to enter bootloader mode.\r\n", chip);
             break;
         }
-        systemPrintln("ESP32 is in bootloader mode.");
+        systemPrintf("%s is in bootloader mode.\r\n", chip);
 
         // Initialize the progress bar
         firmwareUpdateProgressReset(fileBytes);
@@ -83,14 +91,14 @@ bool esp32StreamFirmware(NetworkClient * stream,
                 continue;
 
             // Update this portion of the firmware
-            if (Update.write(buffer, validData) != (size_t)validData)
+            if (Update.write(buffer, validData) != validData)
             {
                 systemPrintln("ERROR: Failed during write");
                 break;
             }
 
             // Display the progress
-            firmwareUpdateProgressCallback("ESP32", validData);
+            firmwareUpdateProgressCallback(subsystem, chip, validData);
 
             // Account for this data
             fileBytes -= validData;
@@ -103,21 +111,21 @@ bool esp32StreamFirmware(NetworkClient * stream,
         // Complete the flash update transaction
         if (Update.end() == false)
         {
-            systemPrintf("ERROR: Update.end failed. Error #: %s\r\n",
-                         String(Update.getError()).c_str());
+            systemPrintf("ERROR: %s (%s) update.end failed. Error #: %s\r\n",
+                         chip, subsystem, String(Update.getError()).c_str());
             break;
         }
 
         if (Update.isFinished() == false)
         {
-            systemPrintln("ERROR: Update not finished? Something went wrong!");
+            systemPrintf("ERROR: %s update not finished? Something went wrong!\r\n", chip);
             break;
         }
 
-        systemPrintln("Update successfully completed.");
         success = true;
     } while (0);
 
+    // Display the number of bytes remaining
     if (fileBytes && settings.debugFirmwareUpdate)
         systemPrintf("fileBytes: %d\r\n", fileBytes);
     return success;
@@ -129,7 +137,11 @@ bool esp32StreamFirmware(NetworkClient * stream,
 // over WiFi, then verifies/reboots - callers only need to call this one
 // function and do not need to know about Begin()/End().
 //----------------------------------------
-bool esp32FirmwareUpdate(const char * url)
+bool esp32FirmwareUpdate(const char * subsystem,
+                         const char * chip,
+                         const char * url,
+                         uint8_t * buffer,
+                         size_t packetBytes)
 {
     const char * cert;
     NetworkClientSecure client;
@@ -142,9 +154,11 @@ bool esp32FirmwareUpdate(const char * url)
     const char * server;
     String serverString;
     NetworkClient * stream;
+    bool success;
 
     do
     {
+        success = false;
         errorMsg = nullptr;
 
         // Verify that a URL was specified
@@ -228,25 +242,37 @@ bool esp32FirmwareUpdate(const char * url)
             errorMsg = "ERROR: Web server did not report a file size.";
             break;
         }
+        otaFileBytes = fileBytes;
 
         // Get the connection to the file data
         stream = http.getStreamPtr();
 
-        // Start the firmware update
-        if (!esp32StreamFirmware(stream, fileBytes, rxBuffer, sizeof(rxBuffer)))
+        // Display the firmware update being attempted
+        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
+
+        // Start the firmware update and display any streaming errors
+        if (esp32StreamFirmware(subsystem,
+                                chip,
+                                stream,
+                                fileBytes,
+                                buffer,
+                                packetBytes) == false)
         {
-            errorMsg = "ESP32 did not respond to the bootloader entry command.";
             break;
         }
+        success = true;
     } while (0);
 
+    // Display the remote connection error
+    if (errorMsg)
+        systemPrintf("%s\r\n", errorMsg);
+
     // Display the firmware update status
-    bool success = (errorMsg == nullptr);
     systemPrintln(otaEqualSigns);
     if (success)
-        systemPrintln("ESP32 firmware update completed successfully");
+        systemPrintf("%s (%s) firmware update completed successfully\r\n", chip, subsystem);
     else
-        systemPrintf("%s\r\n", errorMsg);
+        systemPrintf("%s (%s) firmware update failed!\r\n", chip, subsystem);
     systemPrintln(otaEqualSigns);
 
     // Release the resources
@@ -257,11 +283,53 @@ bool esp32FirmwareUpdate(const char * url)
 //----------------------------------------
 // Perform the flash update using an array
 //----------------------------------------
-bool esp32ArrayFlashUpdate()
+bool esp32ArrayFlashUpdate(const char * subsystem,
+                           const char * chip,
+                           uint8_t * buffer,
+                           size_t packetBytes)
 {
-    dataArray.init(0);
-    return esp32StreamFirmware((NetworkClient *)&dataArray,
-                                dataArray.available(),
-                                rxBuffer,
-                                sizeof(rxBuffer));
+    size_t fileBytes;
+    NetworkClient * stream;
+    bool success;
+
+    do
+    {
+        success = false;
+
+        // Initialize the data stream
+        dataArray.init(0);
+
+        // Get the file size
+        fileBytes = dataArray.available();
+        otaFileBytes = fileBytes;
+
+        // Get the connection to the file data
+        stream = (NetworkClient *)&dataArray;
+
+        // Display the firmware update being attempted
+        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
+
+        // Start the firmware update and display any streaming errors
+        if (esp32StreamFirmware(subsystem,
+                                chip,
+                                stream,
+                                fileBytes,
+                                buffer,
+                                packetBytes) == false)
+        {
+            break;
+        }
+
+        success = true;
+    } while (0);
+
+    // Display the firmware update status
+    systemPrintln(otaEqualSigns);
+    if (success)
+        systemPrintf("%s (%s) firmware update completed successfully\r\n", chip, subsystem);
+    else
+        systemPrintf("%s (%s) firmware update failed!\r\n", chip, subsystem);
+    systemPrintln(otaEqualSigns);
+
+    return success;
 }

@@ -34,7 +34,8 @@ void firmwareUpdateProgressReset(size_t fileBytes)
 // Callback for all firmware update targets. Called with the number of
 // bytes just written to flash. Used to track and print progress.
 //----------------------------------------
-void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
+void firmwareUpdateProgressCallback(const char * subsystem,
+                                    const char * chip,
                                     uint16_t bytesProcessed)
 {
     const uint8_t progressBarWidth = 20;
@@ -56,7 +57,7 @@ void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
 
     firmwareUpdateLastPercent = progressPercent;
 
-    systemPrintf("%s Update Progress: [", chipOrSubsystemName);
+    systemPrintf("%s (%s) Update Progress: [", chip, subsystem);
     for (uint8_t i = 0; i < progressBarWidth; i++)
         systemWrite(i < filled ? '#' : '-');
 
@@ -770,8 +771,9 @@ void beginMux()
 }
 
 //----------------------------------------
-// For RTK_FACET_FP, set the port of the 1:4 dual channel analog mux
-// This allows NMEA, I2C, PPS/Event, and ADC/DAC to be routed through data port via software select
+// For RTK_FACET_MOSAIC, set the port of the 1:4 dual channel analog mux
+// This allows NMEA, I2C, PPS/Event, and ADC/DAC to be routed through data
+// port via software select
 //----------------------------------------
 void setMuxport(int channelNumber)
 {
@@ -932,7 +934,7 @@ void muxDisplayConfiguration()
         systemPrintf("ESP32 UART 0: %s\r\n", uart0);
         systemPrintf("ESP32 UART 1: %s\r\n", uart1);
     }
-    else if (productVariant == RTK_FACET_FP)
+    else if (productVariant == RTK_FACET_MOSAIC)
     {
         switch ((muxB ? 2 : 0) | (muxA ? 1 : 0))
         {
