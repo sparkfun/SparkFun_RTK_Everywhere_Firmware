@@ -225,6 +225,21 @@ void otaPrintUpdateStart(uint8_t subsystemIndex,
 }
 
 //----------------------------------------
+// Report subsystem firmware update status text to Web Config
+//----------------------------------------
+void otaFirmwareUpdateStatusWebsocket(uint8_t subsystemIndex, const char * message)
+{
+    if (subsystemIndex == OTA_SUBSYSTEM_ESP32)
+        firmwareUpdateStatusWebsocket("espOtaFirmwareStatus", message);
+    else if (subsystemIndex == OTA_SUBSYSTEM_GNSS)
+        firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", message);
+    else if (subsystemIndex == OTA_SUBSYSTEM_LORA)
+        firmwareUpdateStatusWebsocket("loraOtaFirmwareStatus", message);
+    else if (subsystemIndex == OTA_SUBSYSTEM_IMU)
+        firmwareUpdateStatusWebsocket("imuOtaFirmwareStatus", message);
+}
+
+//----------------------------------------
 // Build the websocket update summary: EGI|E:v1.0>v2.0;G:v1.0>v2.0
 //----------------------------------------
 void otaBuildUpdateSummary(char * systemsToUpdate,
@@ -426,7 +441,6 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
                                                  subsystemInfo->_packetBytes);
         if ((success == false) && (subsystemIndex == OTA_SUBSYSTEM_ESP32))
         {
-            webServerSendString((char *)"gettingNewFirmware,ERROR,");
             commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"OTA Error");
             break;
         }
@@ -1196,7 +1210,8 @@ void otaStateFirmwareUpdate()
     int subsystemIndex;
     const OTA_SUBSYSTEM_INFO * subsystemInfo;
     const OTA_TARGET * target;
-    bool success;
+    bool allUpdatesSucceeded;
+    bool subsystemSuccess;
     int updatesPerformed;
 
     do
@@ -1222,7 +1237,7 @@ void otaStateFirmwareUpdate()
         if (settings.debugFirmwareUpdate && otaDebugVerbose)
             rtkTaskList(&Serial);
 
-        success = true;
+        allUpdatesSucceeded = true;
         updatesPerformed = 0;
         productSubsystems = otaGetProductSubsystemSupport();
         for (subsystemIndex = OTA_SUBSYSTEM_MAX - 1; subsystemIndex >= 0; subsystemIndex--)
@@ -1279,7 +1294,7 @@ void otaStateFirmwareUpdate()
                 if (settings.debugFirmwareUpdate && otaDebugVerbose)
                     systemPrintf("%s is using _streamFirmware\r\n",
                                  otaSubsystem[subsystemIndex]);
-                success &= otaFirmwareUpdate(target, subsystemInfo);
+                subsystemSuccess = otaFirmwareUpdate(target, subsystemInfo);
             }
             else
             {
@@ -1288,16 +1303,23 @@ void otaStateFirmwareUpdate()
                                  otaSubsystem[subsystemIndex]);
                 uint32_t startMsec = millis();
                 otaPrintUpdateStart(subsystemIndex, target);
-                success &= subsystemInfo->_firmwareUpdate(target,
-                                                          subsystemInfo,
-                                                          otaFirmwareBuffer,
-                                                          subsystemInfo->_packetBytes);
+                subsystemSuccess = subsystemInfo->_firmwareUpdate(target,
+                                                                 subsystemInfo,
+                                                                 otaFirmwareBuffer,
+                                                                 subsystemInfo->_packetBytes);
                 // Display the performance
-                if (success)
+                if (subsystemSuccess)
                     otaDisplayPerformance(subsystemIndex,
                                           startMsec,
                                           millis(),
                                           target->_fileBytes);
+            }
+
+            if (subsystemSuccess == false)
+            {
+                allUpdatesSucceeded = false;
+                otaFirmwareUpdateStatusWebsocket(subsystemIndex,
+                                                 "Update failed. Please restart the device and try again.");
             }
         }
 
@@ -1307,12 +1329,11 @@ void otaStateFirmwareUpdate()
             systemPrintln("No firmware was updated, not rebooting");
             otaUpdateStop(false);
         }
-        else if (success)
+        else if (allUpdatesSucceeded)
             otaSetState(OTA_STATE_REBOOT);
         else
         {
             systemPrintln("Firmware update failed, not rebooting");
-            firmwareUpdateStatusWebsocket("firmwareUpdateFailed", "Update failed. Please restart the device and try again.");
             otaUpdateStop(false);
         }
     } while (0);

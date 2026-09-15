@@ -1903,14 +1903,15 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "espFirmwareVersion", (char *)printEspFirmwareVersion());
     stringRecord(newSettings, "gnssFirmwareVersion", (char *)printGnssFirmwareInfo());
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
-    if (strlen(imuFirmwareVersionStr) > 3)
-        stringRecord(newSettings, "imuFirmwareVersionStr", (char *)imuFirmwareVersionStr);
+    if (variantHousingProperties->tiltPossible == true)
+        stringRecord(newSettings, "imuFirmwareVersionStr",
+                     (char *)(strlen(imuFirmwareVersionStr) > 3 ? imuFirmwareVersionStr : "Not detected"));
     if (strlen(loraFirmwareVersionStr) > 3)
         stringRecord(newSettings, "loraFirmwareVersionStr", (char *)loraFirmwareVersionStr);
 
     // Pass extra setting so that web config can show/hide tilt enable check box
     // We can't depend on enableTiltCompensation setting because all FP platforms transmit it.
-    if (present.imu_im19 == true)
+    if (variantHousingProperties->tiltPossible == true)
         stringRecord(newSettings, "hasTilt", "1");
 
     char apDeviceBTID[30];
