@@ -2082,7 +2082,9 @@ void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
 #endif // COMPILE_WIFI
 }
 
-// Bluetooth and ESP Now icons off. WiFi in middle.
+// Bluetooth and ESP Now icons off. WiFi in middle on small displays, upper-left corner on
+// larger displays (128x64 / 184x88) where the web config screen instead uses a bigger
+// font for the SSID/IP text, filling the top-center area the icon used to occupy.
 // Blink while no clients are connected
 // This is used on all displays
 void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
@@ -2093,8 +2095,16 @@ void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
         icon.icon.bitmap = &WiFi_Symbol_3;
         icon.icon.width = WiFi_Symbol_Width;
         icon.icon.height = WiFi_Symbol_Height;
-        icon.icon.xPos = (theDisplay->getWidth() / 2) - (icon.icon.width / 2);
-        icon.icon.yPos = 0;
+        if (present.display_type == DISPLAY_64x48)
+        {
+            icon.icon.xPos = (theDisplay->getWidth() / 2) - (icon.icon.width / 2);
+            icon.icon.yPos = 0;
+        }
+        else
+        {
+            icon.icon.xPos = 1;
+            icon.icon.yPos = 1;
+        }
 
         if (present.display_type == DISPLAY_184x88)
             icon.duty = 0b11111111;
@@ -3704,12 +3714,97 @@ void printTextAt(const char *text, uint8_t xPos, uint8_t yPos, QwiicFont &fontTy
     }
 }
 
+// Fonts tried by displayMessageReserveTop(), largest-first, along with their line
+// spacing. Shared with displayWebConfig()'s large-display path so both agree on exactly
+// how many characters of the largest font fit on one line.
+QwiicFont *const displayAutoSizeFonts[] = { &QW_FONT_5X7, &QW_FONT_8X16 };
+const uint8_t displayAutoSizeFontLineSpacing[] = { 8, 16 };
+const int displayAutoSizeFontCount = 2;
+QwiicEpFont *const displayAutoSizeEpFonts[] = { &QW_EP_FONT_5X7, &QW_EP_FONT_8X16, &QW_EP_FONT_10X20 };
+const uint8_t displayAutoSizeEpFontLineSpacing[] = { 8, 16, 20 };
+const int displayAutoSizeEpFontCount = 3;
+
+// Returns the largest single-size font (biggest line spacing) available for the current
+// display_type, matching displayMessageReserveTop()'s largest tier (index [1] of the OLED
+// table / [2] of the e-paper table), along with the pixel width displayMessageReserveTop()
+// uses for that tier's fit check - note it (intentionally, to match existing behavior)
+// checks the e-paper font's width even on OLED displays, since the two both describe an
+// "8x16" font and are expected to have the same width.
+uint8_t displayLargestFontWidth()
+{
+    return (present.display_type == DISPLAY_184x88) ? displayAutoSizeEpFonts[2]->width
+                                                      : displayAutoSizeEpFonts[1]->width;
+}
+
+// Number of characters of displayLargestFontWidth() that fit on one line of the current
+// display, using the exact same math as displayMessageReserveTop()'s font-fit check, so
+// text pre-trimmed to this length is guaranteed to keep the largest font selected.
+int displayCharsForLargestFont(uint8_t kerning)
+{
+    int maxChars = theDisplay->getWidth() / (displayLargestFontWidth() + kerning);
+    if (maxChars < 1)
+        maxChars = 1;
+    return maxChars;
+}
+
+// Advances (by one call, i.e. one display refresh) the starting character of a sliding
+// "visible window" over text that's too long to fit in maxChars at once, producing a
+// slide-to-the-end / pause / slide-back-to-the-start / pause motion instead of a hard cut
+// between two fixed halves. Call this once per display refresh, per piece of text (each
+// with its own startChar/direction/pauseUntil state) - the pacing naturally follows
+// however often that display is actually redrawn (2 Hz for OLED, every 2s for e-paper),
+// so no separate animation timer is needed.
+// Returns the number of leading characters currently scrolled past (0 if textLen already
+// fits within maxChars).
+int displayScrollStep(size_t textLen, int maxChars, int &startChar, int8_t &direction,
+                      unsigned long &pauseUntil)
+{
+    int maxStart = (int)textLen - maxChars;
+    if (maxStart <= 0)
+    {
+        startChar = 0;
+        return 0;
+    }
+
+    const unsigned long pauseMs = 900; // Dwell time at each end before sliding back
+
+    unsigned long now = millis();
+    if (now < pauseUntil)
+        return startChar; // Still dwelling at an end - hold position
+
+    startChar += direction;
+
+    if (startChar >= maxStart)
+    {
+        startChar = maxStart;
+        direction = -1;
+        pauseUntil = now + pauseMs;
+    }
+    else if (startChar <= 0)
+    {
+        startChar = 0;
+        direction = 1;
+        pauseUntil = now + pauseMs;
+    }
+
+    return startChar;
+}
+
 // Given a message, display centered
 // Updated to do all the things:
 //   The font size is automatically maximised according to the display_type
 //   If the text contains spaces (only), split words onto separate lines
 //   If the text contains \n, \n moves to the next line. Spaces within a line are retained
 void displayMessage(const char *message, uint16_t displayTime)
+{
+    displayMessageReserveTop(message, displayTime, 0);
+}
+
+// Same as displayMessage(), but reserves vertical space (in pixels) at the top of the
+// display, below which the (auto-sized, vertically-centered) text block is confined - so
+// callers that also draw a fixed-position icon (e.g. the WiFi symbol drawn at yPos 0) can
+// keep the text from growing large enough to collide with it.
+void displayMessageReserveTop(const char *message, uint16_t displayTime, uint8_t topReserve)
 {
     if (online.display == true)
     {
@@ -3718,6 +3813,11 @@ void displayMessage(const char *message, uint16_t displayTime)
         // First, figure out which display we have
         uint8_t xPixels = theDisplay->getWidth();
         uint8_t yPixels = theDisplay->getHeight();
+
+        // Shrink the area considered for font-fit/centering by the reserved top margin
+        if (topReserve > yPixels)
+            topReserve = 0; // Sanity check - ignore an unreasonable reserve
+        uint8_t drawableYPixels = yPixels - topReserve;
 
         // strtok_r needs char[] and will blow away our separators
         size_t messageLength = strlen(message);
@@ -3782,13 +3882,13 @@ void displayMessage(const char *message, uint16_t displayTime)
         //systemPrintf("displayMessage longestLine %d: %s\r\n", longestLine, message);
 
         // Using longestLine and numLines, calculate what font size we can use
-        const int numQwiicFonts = 2;
-        QwiicFont *qwiicFonts[numQwiicFonts] = { &QW_FONT_5X7, &QW_FONT_8X16 };
-        uint8_t qwiicFontLineSpacing[numQwiicFonts] = { 8, 16 };
+        const int numQwiicFonts = displayAutoSizeFontCount;
+        QwiicFont *const *qwiicFonts = displayAutoSizeFonts;
+        const uint8_t *qwiicFontLineSpacing = displayAutoSizeFontLineSpacing;
         QwiicFont *chosenQwiicFont = nullptr;
-        const int numQwiicEpFonts = 3;
-        QwiicEpFont *qwiicEpFonts[numQwiicEpFonts] = { &QW_EP_FONT_5X7, &QW_EP_FONT_8X16, &QW_EP_FONT_10X20};
-        uint8_t qwiicEpFontLineSpacing[numQwiicEpFonts] = { 8, 16, 20 };
+        const int numQwiicEpFonts = displayAutoSizeEpFontCount;
+        QwiicEpFont *const *qwiicEpFonts = displayAutoSizeEpFonts;
+        const uint8_t *qwiicEpFontLineSpacing = displayAutoSizeEpFontLineSpacing;
         QwiicEpFont *chosenQwiicEpFont = nullptr;
         uint8_t chosenLineSpacing = 0;
 
@@ -3797,8 +3897,8 @@ void displayMessage(const char *message, uint16_t displayTime)
             // Step through e-paper fonts in reverse height order
             for (int i = numQwiicEpFonts; i > 0; i--)
             {
-                // Check if numLines will fit in yPixels given the line spacing
-                if (int(yPixels) >= (int(numLines) * int(qwiicEpFontLineSpacing[i - 1])))
+                // Check if numLines will fit in the drawable area given the line spacing
+                if (int(drawableYPixels) >= (int(numLines) * int(qwiicEpFontLineSpacing[i - 1])))
                 {
                     // Check if longestLine will fit in xPixels given the font width
                     // Include the kerning
@@ -3817,8 +3917,8 @@ void displayMessage(const char *message, uint16_t displayTime)
             // Step through OLED fonts in reverse height order
             for (int i = numQwiicFonts; i > 0; i--)
             {
-                // Check if numLines will fit in yPixels given the line spacing
-                if ((int)yPixels >= ((int)numLines * (int)qwiicFontLineSpacing[i - 1]))
+                // Check if numLines will fit in the drawable area given the line spacing
+                if ((int)drawableYPixels >= ((int)numLines * (int)qwiicFontLineSpacing[i - 1]))
                     // Check if longestLine will fit in xPixels given the font width
                     // Include the kerning
                     if ((size_t)xPixels >= (longestLine * (qwiicEpFonts[i - 1]->width + kerning)))
@@ -3843,8 +3943,8 @@ void displayMessage(const char *message, uint16_t displayTime)
             return;
         }
 
-        // yPos is display mid point minus half the line spacing
-        uint8_t yPos = (yPixels / 2) - (chosenLineSpacing / 2);
+        // yPos is the drawable area's mid point (below topReserve) minus half the line spacing
+        uint8_t yPos = topReserve + (drawableYPixels / 2) - (chosenLineSpacing / 2);
         // Bump yPos up by half the line spacing for each extra line
         for (uint8_t l = 1; l < numLines; l++)
             yPos -= (chosenLineSpacing / 2);
@@ -4098,23 +4198,40 @@ int displayEthernetIcon()
 
 void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
 {
-    // Characters before pixels start getting cut off. 11 characters can cut off a few pixels.
-    const int displayMaxCharacters = (present.display_type == DISPLAY_64x48) ? 10 : 21;
+    // Small (64x48) displays keep the small, fixed-position layout that leaves room for
+    // the WiFi icon at top-center. Larger displays (128x64 / 184x88) get displayMessage's
+    // largest available font instead, with the icon tucked into the upper-left corner
+    // (see setWiFiIcon()) so it no longer needs to share space with the text.
+    const bool isLargeDisplay = (present.display_type != DISPLAY_64x48);
+    // The smooth sliding-window scroll (see displayScrollStep()) is only used on the
+    // 128x64 OLED. The 64x48 OLED and the 184x88 e-paper keep the older toggle between
+    // showing the first and last portion of overflowing text every 2 seconds - e-paper in
+    // particular shouldn't be pushed to redraw any more often than its normal refresh
+    // (already throttled elsewhere to preserve panel life), and character-at-a-time
+    // scrolling there would just look like an arbitrary single-character jump anyway.
+    const bool smoothScroll = (present.display_type == DISPLAY_128x64);
+    const uint8_t kerning = 1;
     bool displaySsid = true;
     int fontHeight = 8;
     char myIP[20] = {'\0'};
     char mySSID[SSID_LENGTH + 1] = {'\0'};
+    // Independent sliding-window scroll state for the SSID and IP lines (128x64 only, see displayScrollStep())
+    static int ssidScrollChar = 0;
+    static int8_t ssidScrollDir = 1;
+    static unsigned long ssidScrollPauseUntil = 0;
+    static int ipScrollChar = 0;
+    static int8_t ipScrollDir = 1;
+    static unsigned long ipScrollPauseUntil = 0;
+    // Toggle-based first-half/last-half state for 64x48 and e-paper
     static bool ssidDisplayFirstHalf;
     static unsigned long ssidDisplayTimer;
     int yPos = WiFi_Symbol_Height + 2;
+    bool wifiIconShown = false; // Set true wherever setWiFiIcon() is called below
 
-    // Toggle display back and forth for long SSIDs and IPs
-    // Run the timer no matter what, but load firstHalf/lastHalf with the same thing if strlen < maxWidth
-    if ((millis() - ssidDisplayTimer) > 2000)
-    {
-        ssidDisplayTimer = millis();
-        ssidDisplayFirstHalf = !ssidDisplayFirstHalf;
-    }
+    // Max characters that fit on one line without getting cut off
+    int displayMaxCharacters = isLargeDisplay ? displayCharsForLargestFont(kerning) : 10;
+    if (displayMaxCharacters > (int)sizeof(myIP) - 1) // Clamp to myIP's buffer size
+        displayMaxCharacters = sizeof(myIP) - 1;
 
     // Get the SSID and IP Address
 #ifndef COMPILE_WIFI
@@ -4126,12 +4243,14 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
     if (wifi.softApOnline())
     {
         setWiFiIcon(&iconPropertyList); // Blink WiFi in center
+        wifiIconShown = true;
         snprintf(mySSID, sizeof(mySSID), "%s", wifiSoftApGetSsid());
         strcpy(myIP, wifi.softApIpAddress().toString().c_str());
     }
     else if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
     {
         setWiFiIcon(&iconPropertyList); // Blink WiFi in center
+        wifiIconShown = true;
         snprintf(mySSID, sizeof(mySSID), "%s", wifi.stationSsid());
         strcpy(myIP, wifi.stationIpAddress().toString().c_str());
     }
@@ -4155,6 +4274,7 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
     {
 #ifdef COMPILE_WIFI
         setWiFiIcon(&iconPropertyList); // Blink WiFi in center
+        wifiIconShown = true;
         displaySsid = false;
 #else  // COMPILE_WIFI
         yPos = displayEthernetIcon();
@@ -4164,15 +4284,39 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
     }
 #endif // COMPILE_ETHERNET
 
-    // Trim SSID to a max length
+    // Trim SSID/IP to a max length
     mySSID[SSID_LENGTH] = 0;
-    if ((strlen(mySSID) > displayMaxCharacters) && !ssidDisplayFirstHalf)
-        memcpy(mySSID, &mySSID[strlen(mySSID) - displayMaxCharacters], displayMaxCharacters);
-    mySSID[displayMaxCharacters] = '\0';
 
-    // Trim IP address to a max length
-    if ((strlen(myIP) > displayMaxCharacters) && !ssidDisplayFirstHalf)
-        memcpy(myIP, &myIP[strlen(myIP) - displayMaxCharacters], displayMaxCharacters);
+    if (smoothScroll)
+    {
+        // 128x64 OLED: slide the visible window across text that's too long to show at once
+        int ssidStart = displayScrollStep(strlen(mySSID), displayMaxCharacters, ssidScrollChar,
+                                          ssidScrollDir, ssidScrollPauseUntil);
+        if (ssidStart > 0)
+            memmove(mySSID, &mySSID[ssidStart], strlen(mySSID) - ssidStart + 1); // +1 for the null terminator
+
+        int ipStart = displayScrollStep(strlen(myIP), displayMaxCharacters, ipScrollChar,
+                                        ipScrollDir, ipScrollPauseUntil);
+        if (ipStart > 0)
+            memmove(myIP, &myIP[ipStart], strlen(myIP) - ipStart + 1);
+    }
+    else
+    {
+        // 64x48 and e-paper: toggle between showing the first and last portion every 2s
+        if ((millis() - ssidDisplayTimer) > 2000)
+        {
+            ssidDisplayTimer = millis();
+            ssidDisplayFirstHalf = !ssidDisplayFirstHalf;
+        }
+
+        if ((strlen(mySSID) > (size_t)displayMaxCharacters) && !ssidDisplayFirstHalf)
+            memmove(mySSID, &mySSID[strlen(mySSID) - displayMaxCharacters], displayMaxCharacters);
+
+        if ((strlen(myIP) > (size_t)displayMaxCharacters) && !ssidDisplayFirstHalf)
+            memmove(myIP, &myIP[strlen(myIP) - displayMaxCharacters], displayMaxCharacters);
+    }
+
+    mySSID[displayMaxCharacters] = '\0';
     myIP[displayMaxCharacters] = '\0';
 
     char temp[50];
@@ -4181,7 +4325,11 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
              mySSID,
              myIP);
 
-    displayMessage(temp, 100);
+    // On small displays the WiFi icon sits top-center, in the text block's way, so reserve
+    // room for it. On large displays the icon is in the upper-left corner (see
+    // setWiFiIcon()), clear of the centered text, so no reserve is needed.
+    uint8_t topReserve = (wifiIconShown && !isLargeDisplay) ? (WiFi_Symbol_Height + 2) : 0;
+    displayMessageReserveTop(temp, 100, topReserve);
 }
 
 // Show GNSS update - button exit
