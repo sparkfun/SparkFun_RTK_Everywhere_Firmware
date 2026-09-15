@@ -3113,12 +3113,19 @@ function gettingNewFirmware(val) {
     }
 }
 
+// Firmware update status text is either a percent number or a status/error string.
+// Treat outright failures and "not yet supported" subsystems as errors (shown in red).
+function isFirmwareStatusError(statusText) {
+    const lower = statusText.toLowerCase();
+    return lower.includes("failed") || lower.includes("not yet supported");
+}
+
 function espOtaFirmwareStatus(percentComplete) {
     clearTimeout(getNewFirmwareTimeout);
 
     const percentNumber = Number(percentComplete);
     if (Number.isNaN(percentNumber))
-        showMsg('espUpdateFirmwareReadyMsg', percentComplete, percentComplete.includes("failed"));
+        showMsg('espUpdateFirmwareReadyMsg', percentComplete, isFirmwareStatusError(percentComplete));
     else {
         showMsg('espUpdateFirmwareReadyMsg', percentComplete + "% Complete");
         ge("espUpdateFirmwareProgressBar").value = percentNumber;
@@ -3130,7 +3137,7 @@ function gnssOtaFirmwareStatus(percentComplete) {
 
     const percentNumber = Number(percentComplete);
     if (Number.isNaN(percentNumber))
-        showMsg('gnssFirmwareUpdateReadyMsg', percentComplete, percentComplete.includes("failed"));
+        showMsg('gnssFirmwareUpdateReadyMsg', percentComplete, isFirmwareStatusError(percentComplete));
     else {
         showMsg('gnssFirmwareUpdateReadyMsg', percentComplete + "% Complete");
         ge("gnssFirmwareUpdateProgressBar").value = percentNumber;
@@ -3142,7 +3149,7 @@ function loraOtaFirmwareStatus(percentComplete) {
 
     const percentNumber = Number(percentComplete);
     if (Number.isNaN(percentNumber))
-        showMsg('loraFirmwareUpdateReadyMsg', percentComplete, percentComplete.includes("failed"));
+        showMsg('loraFirmwareUpdateReadyMsg', percentComplete, isFirmwareStatusError(percentComplete));
     else {
         showMsg('loraFirmwareUpdateReadyMsg', percentComplete + "% Complete");
         ge("loraFirmwareUpdateProgressBar").value = percentNumber;
@@ -3154,7 +3161,7 @@ function imuOtaFirmwareStatus(percentComplete) {
 
     const percentNumber = Number(percentComplete);
     if (Number.isNaN(percentNumber))
-        showMsg('imuFirmwareUpdateReadyMsg', percentComplete, percentComplete.includes("failed"));
+        showMsg('imuFirmwareUpdateReadyMsg', percentComplete, isFirmwareStatusError(percentComplete));
     else {
         showMsg('imuFirmwareUpdateReadyMsg', percentComplete + "% Complete");
         ge("imuFirmwareUpdateProgressBar").value = percentNumber;
