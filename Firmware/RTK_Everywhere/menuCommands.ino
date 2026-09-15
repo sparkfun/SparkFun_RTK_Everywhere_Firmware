@@ -1905,7 +1905,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
     if (variantHousingProperties->tiltPossible == true)
         stringRecord(newSettings, "imuFirmwareVersionStr",
-                     (char *)(strlen(imuFirmwareVersionStr) > 3 ? imuFirmwareVersionStr : "Not detected"));
+                     (char *)(strlen(imuFirmwareVersionStr) > 0 ? imuFirmwareVersionStr : "Not detected"));
     if (strlen(loraFirmwareVersionStr) > 3)
         stringRecord(newSettings, "loraFirmwareVersionStr", (char *)loraFirmwareVersionStr);
 

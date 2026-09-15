@@ -1668,16 +1668,23 @@ bool networkMulticastDNSUpdate(bool wifiRunning)
     deltaMask = requests ^ networkMdnsRunning;
     if (deltaMask)
     {
-        // Stop mDNS if it is running
-        if (networkMdnsRunning)
+        // mDNS is process-wide. Avoid tearing it down just because the requested
+        // interface mask changed while mDNS should remain active.
+        if (networkMdnsRunning && requests)
+            networkMdnsRunning = requests;
+
+        // Stop mDNS only when no interface should be advertising
+        else if (networkMdnsRunning)
         {
             MDNS.end();
             if (settings.debugNetworkLayer)
                 systemPrintln("mDNS stopped");
+
+            networkMdnsRunning = 0;
         }
 
-        // Restart mDNS if it is needed by any interface
-        if (deltaMask & requests)
+        // Start mDNS if it is needed and not already running
+        if ((networkMdnsRunning == 0) && requests)
         {
             // This should make the device findable from 'rtk.local' in a browser
             if (MDNS.begin(&settings.mdnsHostName[0]) == false)
@@ -1691,9 +1698,9 @@ bool networkMulticastDNSUpdate(bool wifiRunning)
                 if (settings.debugNetworkLayer)
                     systemPrintf("mDNS started as %s.local\r\n", settings.mdnsHostName);
                 MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
+                networkMdnsRunning = requests;
             }
         }
-        networkMdnsRunning = requests;
     }
     return status;
 }
