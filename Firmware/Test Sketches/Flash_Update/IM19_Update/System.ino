@@ -34,7 +34,8 @@ void firmwareUpdateProgressReset(size_t fileBytes)
 // Callback for all firmware update targets. Called with the number of
 // bytes just written to flash. Used to track and print progress.
 //----------------------------------------
-void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
+void firmwareUpdateProgressCallback(const char * subsystem,
+                                    const char * chip,
                                     uint16_t bytesProcessed)
 {
     const uint8_t progressBarWidth = 20;
@@ -56,7 +57,7 @@ void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
 
     firmwareUpdateLastPercent = progressPercent;
 
-    systemPrintf("%s Update Progress: [", chipOrSubsystemName);
+    systemPrintf("%s (%s) Update Progress: [", chip, subsystem);
     for (uint8_t i = 0; i < progressBarWidth; i++)
         systemWrite(i < filled ? '#' : '-');
 
