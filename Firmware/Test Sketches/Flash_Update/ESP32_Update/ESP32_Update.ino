@@ -13,6 +13,27 @@
     Put the target into bootload mode and malloc any necessary buffers xxxUpdateFirmwareBegin()
     Grab chunks of bytes over WiFi and throw at xxxUpdateFirmware(*data, length)
     When done, call xxxUpdateFirmwareEnd() to free buffers and exit the bootloader mode or reset the target
+
+    Test procedure commands:
+    1) u    --> 3.3     Verify HTTPS and 'u' command and URL
+    2) a    --> 3.0     Verify 'a' command and array
+    3) e    --> 3.1     Verify 'e' command and HTTP, connect to somewhere
+                        other than raw.githubusercontent.com using http://
+    4) e    --> 3.2     Verify HTTPS, connect to somewhere other than
+                        raw.githubusercontent.com using https://
+    5) L                Verify 'L' command and directory listing
+       0    --> 3.3     Verify HTTPS
+    6) o    --> 3.1     Verify 'o' command and URL
+    7) p    --> 3.2     Verify 'p' command and URL
+    8) u    --> 3.3     Leave at highest revision
+
+    Test procedure commands (Verifies HTTP, HTTPS and array):
+    1) a    --> 3.0     Verify array
+    2) L                Verify directory listing
+       0    --> 3.3     Verify HTTPS
+    3) e    --> 3.1     Verify HTTP, connect to somewhere other than
+                        raw.githubusercontent.com using http://
+    4) u    --> 3.3     Leave at highest revision
 */
 
 //----------------------------------------
@@ -27,7 +48,6 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include <Network.h>
 #include <NetworkClientSecure.h>
 #include <sys/socket.h>
-#include <Update.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 
@@ -57,6 +77,17 @@ const uint8_t logoSparkPNT[] = {0};
 // Test specific declarations
 //----------------------------------------
 
+Firmware_Data_Stream dataArray(firmwareData, sizeof(firmwareData));
+
+const char * subsystem = "SOC";
+const char * chip = "ESP32";
+
+uint8_t rxBuffer[16384];
+
+const char * urlDirectory = "https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries";
+
+const char * ulrFileServer = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/";
+
 // 3.1
 const char * url_3_1 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK_Everywhere_Firmware_v3_1.bin";
 
@@ -66,13 +97,7 @@ const char * url_3_2 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_
 // 3.3
 const char * url_3_3 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK_Everywhere_Firmware_v3_3.bin";
 
-const char * ulrFileServer = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/";
-
-const char * urlDirectory = "https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries";
-
-#define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
-
-Firmware_Data_Stream dataArray(firmwareData, sizeof(firmwareData));
+#include <Update.h>
 
 //----------------------------------------
 // Connects to the configured SSID and blocks until connected or the attempt times out.
@@ -132,6 +157,7 @@ void setup()
         reportFatalError("WiFi network not found!");
 
     // Test specific setup
+    systemPrintln("ESP32 firmware update example");
     displayMenu();
 }
 
@@ -142,6 +168,8 @@ void displayMenu()
 {
     systemPrintln();
     systemPrintln("Menu:");
+
+    // Test specific menu items
     systemPrintln("a) Update ESP32 to v3.0 from array");
     systemPrintln("o) Update ESP32 to v3.1");
     systemPrintln("p) Update ESP32 to v3.2");
@@ -190,7 +218,8 @@ void loop()
             // Get the URL
             systemPrint("Enter URL: ");
             urlString = systemGetStringFromUser();
-            flashUpdate(urlString.c_str());
+            if (urlString.length())
+                flashUpdate(urlString.c_str());
         }
         else if (incoming == 'L')
         {
@@ -232,12 +261,19 @@ void flashUpdate(const char * url)
 
     // Attempt to update the firmware
     dataArray.init(0);
-    if (((url != nullptr) && (esp32FirmwareUpdate(url) == true))
-        || ((url == nullptr) && esp32ArrayFlashUpdate()))
+    if (((url != nullptr) && (esp32FirmwareUpdate(subsystem,
+                                                  chip,
+                                                  url,
+                                                  rxBuffer,
+                                                  sizeof(rxBuffer)) == true))
+        || ((url == nullptr) && esp32ArrayFlashUpdate(subsystem,
+                                                      chip,
+                                                      rxBuffer,
+                                                      sizeof(rxBuffer))))
     {
         // Stop timer and print elapsed time
         uint32_t flashUpdateElapsed = millis() - flashUpdateStartTime;
-        systemPrint("Firmware update time: ");
+        systemPrintf("%s (%s) firmware update time: ", chip, subsystem);
         systemPrint(flashUpdateElapsed / 1000.0, 3);
         systemPrint(" seconds, ");
         systemPrint(otaFileBytes);

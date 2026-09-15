@@ -517,6 +517,8 @@ bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved fro
 TwoWire * i2c_0;
 TwoWire * i2c_1;
 
+HardwareSerial *serialGNSS = nullptr;  // Don't instantiate until we know what gnssPlatform we're on
+HardwareSerial *serial2GNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 HardwareSerial *uart2Serial; // Shared serial port between LoRa and Tilt
 
 #define SerialForLoRa uart2Serial
@@ -555,6 +557,8 @@ enum Im19UpdateResult
 #define OTA_DATA_TIMEOUT        (15 * MILLISECONDS_IN_A_SECOND)
 
 const char * otaEqualSigns = "==================================================";
+
+#define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
 
 // Constants to parse GitHub directory listings
 const char * otaRawHead = "/raw/refs/heads/main";
