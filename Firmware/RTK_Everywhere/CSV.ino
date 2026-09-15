@@ -392,6 +392,7 @@ bool csvOpenCsvFile(const char * url,
 {
     ssize_t bytesRead;
     NetworkClient * client;
+    NetworkClientSecure * secureClient;
     uint8_t * data;
     uint8_t * dataEnd;
     HTTPClient * https;
@@ -401,6 +402,7 @@ bool csvOpenCsvFile(const char * url,
     do
     {
         client = nullptr;
+        secureClient = nullptr;
         *fileData = nullptr;
 
         // Open the CSV file web page
@@ -410,6 +412,7 @@ bool csvOpenCsvFile(const char * url,
                     https,
                     fileBytes,
                     &client,
+                    &secureClient,
                     &startMsec,
                     settings.debugFirmwareUpdate) == false)
             return false;
@@ -454,6 +457,12 @@ bool csvOpenCsvFile(const char * url,
         // Display the CSV file contents
         if (settings.debugFirmwareUpdate)
             csvDisplay(*(const char **)fileData, *fieldCount, *lineCount, debug, verbose);
+
+        // Done with the HTTP client - avoid leaking the TLS client and its open socket
+        https->end();
+        delete https;
+        if (secureClient)
+            delete secureClient;
         return true;
     } while (0);
 
@@ -470,6 +479,8 @@ bool csvOpenCsvFile(const char * url,
         https->end();
         delete https;
     }
+    if (secureClient)
+        delete secureClient;
     return false;
 }
 #endif // COMPILE_NETWORK

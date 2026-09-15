@@ -388,11 +388,15 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
     const char * cert;
     size_t fileBytes;
     HTTPClient * https;
+    NetworkClientSecure * secureClient;
     NetworkClient * stream;
     uint32_t startMsec;
     int subsystemIndex;
     bool success;
 
+    https = nullptr;
+    secureClient = nullptr;
+    success = false;
     do
     {
         // Perform the update for the current target
@@ -407,6 +411,7 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
                     https,
                     &fileBytes,
                     &stream,
+                    &secureClient,
                     &startMsec,
                     settings.debugFirmwareUpdate) == false)
         {
@@ -440,17 +445,23 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
                                                  otaFirmwareBuffer,
                                                  subsystemInfo->_packetBytes);
         if ((success == false) && (subsystemIndex == OTA_SUBSYSTEM_ESP32))
-        {
             commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"OTA Error");
-            break;
-        }
 
         // Display the performance
         if (success)
             otaDisplayPerformance(subsystemIndex, startMsec, millis(), fileBytes);
-        return success;
     } while (0);
-    return false;
+
+    // Release the connection - previously leaked on every call, eventually exhausting
+    // heap and LWIP sockets across a multi-subsystem update
+    if (https)
+    {
+        https->end();
+        delete https;
+    }
+    if (secureClient)
+        delete secureClient;
+    return success;
 }
 
 //----------------------------------------

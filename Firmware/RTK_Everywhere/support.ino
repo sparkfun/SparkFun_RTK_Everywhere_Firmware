@@ -1528,6 +1528,7 @@ bool openUrl(const char * url,
              HTTPClient * &https,
              size_t * fileBytes,
              NetworkClient ** networkClient,
+             NetworkClientSecure ** secureClient,
              uint32_t * startMsec,
              bool debug)
 {
@@ -1540,6 +1541,11 @@ bool openUrl(const char * url,
     // Locate the server
     server = getServerFromUrl(url);
     client = nullptr;
+
+    // openUrl() can't free the secure client itself: the returned stream IS that
+    // object, so ownership is handed back to the caller to free once done with it
+    if (secureClient)
+        *secureClient = nullptr;
 
     // Allocate the HTTP client
     https = new HTTPClient;
@@ -1636,6 +1642,10 @@ bool openUrl(const char * url,
     // Get TCP stream
     if (networkClient)
         *networkClient = https->getStreamPtr();
+
+    // Hand the secure client to the caller so it can be freed after https->end()
+    if (secureClient)
+        *secureClient = client;
     return true;
 }
 #endif // COMPILE_NETWORK
