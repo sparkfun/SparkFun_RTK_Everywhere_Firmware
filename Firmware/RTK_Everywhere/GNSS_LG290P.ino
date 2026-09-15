@@ -3845,16 +3845,24 @@ bool lg290pFirmwareUpdateEnd()
     // Send the last (possibly partial) packet so it isn't left stranded in the library's buffer
     ((GNSS_LG290P *)gnss)->updateFirmwareEnd();
 
-    firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "Rebooting, please wait...");
+    firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "Waiting for device to reboot...");
 
+    bool finished;
     if (productVariant == RTK_FACET_FP)
-        return (((GNSS_LG290P *)gnss)->updateFirmwareIsFinished(30));
+        finished = ((GNSS_LG290P *)gnss)->updateFirmwareIsFinished(30);
+    else
+    {
+        gpioGnssReset();
+        delay(100);
+        gpioGnssBoot();
 
-    gpioGnssReset();
-    delay(100);
-    gpioGnssBoot();
+        finished = ((GNSS_LG290P *)gnss)->updateFirmwareIsFinished(10);
+    }
 
-    return (((GNSS_LG290P *)gnss)->updateFirmwareIsFinished(10));
+    if (finished)
+        firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "100");
+
+    return finished;
 }
 
 //----------------------------------------

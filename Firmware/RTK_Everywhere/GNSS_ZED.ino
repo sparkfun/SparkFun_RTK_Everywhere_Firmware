@@ -4423,24 +4423,26 @@ bool x20pStreamFirmware(const char *chip, NetworkClient *stream, size_t fileByte
     // Reboot (fire-and-forget - device does not send a response)
     if (settings.debugFirmwareUpdate)
         systemPrintln("Rebooting X20P...");
-    firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "Rebooting, please wait...");
+    firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "Waiting for device to reboot...");
     x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x0E, nullptr, 0); // Reboot
 
     // Display the version number
-    x20pDisplayVersion();
+    if (x20pDisplayVersion())
+        firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "100");
     systemPrintf("%s\r\n", otaEqualSigns);
     return success;
 }
 
 // Display the firmware version number
-void x20pDisplayVersion()
+// Returns true if the module responded after reboot
+bool x20pDisplayVersion()
 {
     // Display the version number
     delay(2000);
     serialGNSS->updateBaudRate(38400);
     while (serialGNSS->available())
         serialGNSS->read();
-    x20pPrintVersion(*serialGNSS);
+    return x20pPrintVersion(*serialGNSS);
 }
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

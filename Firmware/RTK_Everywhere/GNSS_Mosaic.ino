@@ -4122,7 +4122,7 @@ static void mosaicFinishUpdate(HardwareSerial &serialPort)
 {
     uint8_t maxPolls = MOSAIC_TIMEOUT_POST_UPDATE_BOOT / MOSAIC_TIMEOUT_POLL;
 
-    firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "Rebooting, please wait...");
+    firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "Waiting for device to reboot...");
 
     systemPrintf("Polling for mosaic-X5 at %lu baud (once per second, up to %lu seconds)...\r\n",
                  (unsigned long)MOSAIC_NORMAL_BAUD, (unsigned long)(MOSAIC_TIMEOUT_POST_UPDATE_BOOT / 1000));
@@ -4142,7 +4142,10 @@ static void mosaicFinishUpdate(HardwareSerial &serialPort)
     }
 
     if (reconnected)
+    {
         mosaicKnownBaud = MOSAIC_NORMAL_BAUD;
+        firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "100");
+    }
     else
         mosaicFindCommandPrompt(serialPort);
 }
@@ -4156,6 +4159,7 @@ bool mosaicFirmwareUpdate(const OTA_TARGET *target, const OTA_SUBSYSTEM_INFO *su
     uint32_t crc = 0;
     size_t fileBytes;
     HTTPClient *https = nullptr;
+    NetworkClientSecure *secureClient = nullptr;
     NetworkClient *stream = nullptr;
     String server;
     uint32_t startMsec;
@@ -4183,7 +4187,8 @@ bool mosaicFirmwareUpdate(const OTA_TARGET *target, const OTA_SUBSYSTEM_INFO *su
         systemPrintf("Streaming .suf file at %lu baud...\r\n", (unsigned long)mosaicKnownBaud);
 
         cert = getCertFromUrl(target->_url);
-        if (openUrl(target->_url, cert, server, https, &fileBytes, &stream, &startMsec, settings.debugFirmwareUpdate) == false)
+        if (openUrl(target->_url, cert, server, https, &fileBytes, &stream, &secureClient, &startMsec,
+                    settings.debugFirmwareUpdate) == false)
             break;
 
         if ((fileBytes != target->_fileBytes) && (fileBytes != (size_t)-1))
@@ -4256,8 +4261,14 @@ bool mosaicFirmwareUpdate(const OTA_TARGET *target, const OTA_SUBSYSTEM_INFO *su
         success = (remainingBytes == 0);
     } while (0);
 
+    // Release the connection - previously leaked the secure client and its open socket
     if (https)
+    {
         https->end();
+        delete https;
+    }
+    if (secureClient)
+        delete secureClient;
 
     systemPrintln(otaEqualSigns);
     if (success)
