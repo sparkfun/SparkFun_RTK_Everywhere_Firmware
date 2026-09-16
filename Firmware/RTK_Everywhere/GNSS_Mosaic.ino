@@ -3952,12 +3952,28 @@ static const uint32_t mosaicBaudCandidates[] = {460800, 921600, 115200, 230400, 
 static const uint32_t mosaicUpgradeBaudCandidates[] = {4000000, 3000000, 921600};
 static uint32_t mosaicKnownBaud = 0;
 
+// Facet FP only. mosaic-X5 OTA firmware updates are not currently supported on Facet
+// mosaic - raising COM1's baud (needed to stream the .suf file at a usable rate) has been
+// observed on real hardware to leave the receiver transmitting something on COM1 that never
+// decodes as the expected reply, at every baud rate tried, and it never recovers - most
+// likely COM1's Base-mode RTCM output (sr3o,COM1+COM2,...) surviving the baud change even
+// though sdio,COM1,CMD,None silences it beforehand (sdio is a port-level TxDataType filter;
+// sr3o is an independent, per-port output assignment sdio doesn't touch). Facet FP isn't
+// affected - see mosaicFirmwareUpdate(), which reports this the same way OTA.ino's dispatch
+// loop reports a subsystem with no update support at all (e.g. UM980, ZED-F9P).
 static HardwareSerial *mosaicFirmwareUpdatePort()
 {
-    if ((productVariant == RTK_FACET_FP) || (productVariant == RTK_FACET_MOSAIC))
+    if (productVariant == RTK_FACET_FP)
         return serialGNSS;
 
-    systemPrintln("mosaic-X5 firmware update is not supported on this platform");
+    if (productVariant == RTK_FACET_MOSAIC)
+        systemPrintln("mosaic-X5 firmware update over WiFi is not yet supported on Facet mosaic - see "
+                     "mosaicFirmwareUpdatePort()'s comment. Use Test Sketches/Flash_Update/Mosaic_Update "
+                     "connected directly to this unit, or the mosaic-X5's own web page over USB-C "
+                     "(docs/firmware_update_mosaicX5.md), instead.");
+    else
+        systemPrintln("mosaic-X5 firmware update is not supported on this platform");
+
     return nullptr;
 }
 
@@ -4166,11 +4182,21 @@ bool mosaicFirmwareUpdate(const OTA_TARGET *target, const OTA_SUBSYSTEM_INFO *su
     bool success = false;
     HardwareSerial *serialPort = mosaicFirmwareUpdatePort();
 
+    // mosaicFirmwareUpdatePort() returns nullptr for any platform the update sequence isn't
+    // supported on - currently Facet mosaic (see its comment) plus anything else that isn't
+    // Facet FP. Report it the same way OTA.ino's dispatch loop reports a subsystem with no
+    // _firmwareUpdate/_streamFirmware at all (e.g. UM980, ZED-F9P): "Not currently available"
+    // on the web config page (green - isFirmwareStatusError() only flags "failed" and "not
+    // yet supported", so this text doesn't read as an error), and return false so the caller
+    // moves on to other subsystems (e.g. the ESP32) without starting anything here.
+    if (serialPort == nullptr)
+    {
+        firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "Not currently available");
+        return false;
+    }
+
     do
     {
-        if (serialPort == nullptr)
-            break;
-
         if (settings.debugFirmwareUpdate && otaDebugVerbose)
             systemPrintf("packetBytes: %d\r\n", packetBytes);
 

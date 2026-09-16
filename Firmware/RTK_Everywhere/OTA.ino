@@ -1326,7 +1326,7 @@ void otaStateFirmwareUpdate()
             {
                 systemPrintf("WARNING: Need to implement firmwareUpdate or streamFirmware support for %s!\r\n",
                              otaSubsystem[subsystemIndex]);
-                otaFirmwareUpdateStatusWebsocket(subsystemIndex, "Not yet supported");
+                otaFirmwareUpdateStatusWebsocket(subsystemIndex, "Not currently available");
                 continue;
             }
 
