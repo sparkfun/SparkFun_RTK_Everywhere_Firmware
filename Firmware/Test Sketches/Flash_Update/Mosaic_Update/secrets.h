@@ -1,2 +1,2 @@
-const char *wifiSSID = "Roving";
-const char *wifiPassword = "sparkfun";
+const char *wifiSSID = "sparkfun-iot";
+const char *wifiPassword = "iot001100";
