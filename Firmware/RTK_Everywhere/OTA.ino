@@ -107,61 +107,44 @@ void otaCleanup(bool keepTargets)
 int otaCompareVersions(int localMajor, int localMinor, int localPatch, int localRevision, int localReleaseCandidate,
                        int remoteMajor, int remoteMinor, int remotePatch, int remoteRevision, int remoteReleaseCandidate)
 {
-    if (localReleaseCandidate)
-    {
-        if (settings.debugFirmwareUpdate && otaDebugVerbose)
-            systemPrintf("%d.%d.%d.%d (debug build) < %d.%d.%d.%d%s\r\n",
-                         localMajor, localMinor, localPatch, localRevision,
-                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
-                         remoteReleaseCandidate ? " (debug build)" : "");
-        return -1;
-    }
-    if (localMajor != remoteMajor)
-    {
-        if (settings.debugFirmwareUpdate && otaDebugVerbose)
-            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
-                         localMajor, localMinor, localPatch, localRevision,
-                         (localMajor < remoteMajor) ? '<' : '>',
-                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
-                         remoteReleaseCandidate ? " (debug build)" : "");
-        return (localMajor < remoteMajor) ? -1 : 1;
-    }
-    if (localMinor != remoteMinor)
-    {
-        if (settings.debugFirmwareUpdate && otaDebugVerbose)
-            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
-                         localMajor, localMinor, localPatch, localRevision,
-                         (localMinor < remoteMinor) ? '<' : '>',
-                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
-                         remoteReleaseCandidate ? " (debug build)" : "");
-        return (localMinor < remoteMinor) ? -1 : 1;
-    }
-    if (localPatch != remotePatch)
-    {
-        if (settings.debugFirmwareUpdate && otaDebugVerbose)
-            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
-                         localMajor, localMinor, localPatch, localRevision,
-                         (localPatch < remotePatch) ? '<' : '>',
-                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
-                         remoteReleaseCandidate ? " (debug build)" : "");
-        return (localPatch < remotePatch) ? -1 : 1;
-    }
-    if (localRevision != remoteRevision)
-    {
-        if (settings.debugFirmwareUpdate && otaDebugVerbose)
-            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
-                         localMajor, localMinor, localPatch, localRevision,
-                         (localRevision < remoteRevision) ? '<' : '>',
-                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
-                         remoteReleaseCandidate ? " (debug build)" : "");
-        return (localRevision < remoteRevision) ? -1 : 1;
-    }
+    int delta;
+    const int No_Update_Higher_Version = 1;
+    const int No_Update_Same_Version = 0;
+    const int Update_Lower_Version = -1;
+
+    // Display the parameters
     if (settings.debugFirmwareUpdate && otaDebugVerbose)
-        systemPrintf("%d.%d.%d.%d == %d.%d.%d.%d%s\r\n",
+        systemPrintf("%d.%d.%d.%d (debug build) .vs. %d.%d.%d.%d%s\r\n",
                      localMajor, localMinor, localPatch, localRevision,
+                     localReleaseCandidate ? " (debug build)" : "",
                      remoteMajor, remoteMinor, remotePatch, remoteRevision,
                      remoteReleaseCandidate ? " (debug build)" : "");
-    return 0;
+
+    // Always replace local release candidate firmware
+    if (localReleaseCandidate)
+        delta = Update_Lower_Version;
+
+    // Update firmware if local version < remote version
+    else if (localMajor != remoteMajor)
+        delta = (localMajor < remoteMajor) ? Update_Lower_Version : No_Update_Higher_Version;
+    else if (localMinor != remoteMinor)
+        delta = (localMinor < remoteMinor) ? Update_Lower_Version : No_Update_Higher_Version;
+    else if (localPatch != remotePatch)
+        delta = (localPatch < remotePatch) ? Update_Lower_Version : No_Update_Higher_Version;
+    else if (localRevision != remoteRevision)
+        delta = (localRevision < remoteRevision) ? Update_Lower_Version : No_Update_Higher_Version;
+
+    // Keep local firmware when the versions are equal
+    else
+        delta = No_Update_Same_Version;
+
+    // Display the result
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+    {
+        const char * selection = (delta == Update_Lower_Version) ? "Update" : "Keep existing";
+        systemPrintf("%s\r\n", selection);
+    }
+    return delta;
 }
 
 //----------------------------------------
