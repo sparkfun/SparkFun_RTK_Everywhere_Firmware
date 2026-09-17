@@ -53,9 +53,25 @@ Icon
 # Linux Files
 # =========================
 
+# Build files
+Firmware/Test\ Sketches/*/build/*
+Firmware/Test\ Sketches/*/*/build/*
+
+# Temporary files
+Firmware/?/*
+Firmware/RTK_Everywhere/*.txt
+Firmware/Test\ Sketches/?/*
+Firmware/Test\ Sketches/Flash_Update/?/*
+
+# Executables
 Compare
+File_CRC
 NMEA_Client
 Read_Map_File
 RTK_Reset
 Split_Messages
 X.509_crt_bundle_bin_to_c
+File_to_Hex_Data_Array
+
+# Claude workspace metadata
+**/.claude/

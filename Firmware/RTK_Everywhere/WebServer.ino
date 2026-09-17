@@ -10,7 +10,14 @@ WebServer.ino
 // Constants
 //----------------------------------------
 
-static const int webServerStackSize = 1024 * 20;
+// Handlers route their buffers (file uploads, file lists, settings CSV, websocket payloads) through
+// rtkMalloc(), which prefers PSRAM - they don't consume this task's own stack. This stack only needs
+// to cover the handlers' own local variables plus the httpd/lwip call chain underneath them, which is
+// far short of the original 20KB. Kept modest deliberately: this stack comes from internal DRAM only
+// (CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY is disabled in this SDK build, so it can never come from
+// PSRAM), and internal DRAM gets fragmented/tight when ESP-NOW and BLE are also running, which can
+// make httpd_start() fail to create this task at all (ESP_ERR_HTTPD_TASK).
+static const int webServerStackSize = 1024 * 8;
 
 const char *const image_png = "image/png";
 const char *const text_css = "text/css";
@@ -46,8 +53,14 @@ static const int webServerStateEntries = sizeof(webServerStateNames) / sizeof(we
 // access to see if internet access is available.  If one is requested,
 // redirect user to captive portal (main page "/").
 const char *webServerCaptiveUrls[] = {
-    "canonical.html", "check_network_status.txt", "chrome-variations/seed",    "connecttest.txt",
-    "generate_204",   "hotspot-detect.html",      "library/test/success.html", "ncsi.txt",
+    "canonical.html",
+    "check_network_status.txt",
+    "chrome-variations/seed",
+    "connecttest.txt",
+    "generate_204",
+    "hotspot-detect.html",
+    "library/test/success.html",
+    "ncsi.txt",
     "success.txt",
 };
 const uint8_t webServerCaptiveUrlCount = sizeof(webServerCaptiveUrls) / sizeof(webServerCaptiveUrls[0]);
@@ -82,30 +95,30 @@ typedef struct _WEB_SOCKETS_CLIENT
 // Macros
 //----------------------------------------
 
-#define PAGE_HANDLER(index, page, httpMethod, type, routine)                                                           \
-    {                                                                                                                  \
-        {                                                                                                              \
-            .uri = page,                                                                                               \
-            .method = httpMethod,                                                                                      \
-            .handler = routine,                                                                                        \
-            .user_ctx = (void *)index,                                                                                 \
-        },                                                                                                             \
-        &type,                                                                                                         \
-        nullptr,                                                                                                       \
-        0,                                                                                                             \
+#define PAGE_HANDLER(index, page, httpMethod, type, routine) \
+    {                                                        \
+        {                                                    \
+            .uri = page,                                     \
+            .method = httpMethod,                            \
+            .handler = routine,                              \
+            .user_ctx = (void *)index,                       \
+        },                                                   \
+        &type,                                               \
+        nullptr,                                             \
+        0,                                                   \
     }
 
-#define WEB_PAGE(index, page, type, data)                                                                              \
-    {                                                                                                                  \
-        {                                                                                                              \
-            .uri = page,                                                                                               \
-            .method = HTTP_GET,                                                                                        \
-            .handler = webServerHandlerGetPage,                                                                        \
-            .user_ctx = (void *)index,                                                                                 \
-        },                                                                                                             \
-        &type,                                                                                                         \
-        (void *)data,                                                                                                  \
-        sizeof(data),                                                                                                  \
+#define WEB_PAGE(index, page, type, data)       \
+    {                                           \
+        {                                       \
+            .uri = page,                        \
+            .method = HTTP_GET,                 \
+            .handler = webServerHandlerGetPage, \
+            .user_ctx = (void *)index,          \
+        },                                      \
+        &type,                                  \
+        (void *)data,                           \
+        sizeof(data),                           \
     }
 
 //----------------------------------------
@@ -117,6 +130,8 @@ static WEB_SOCKETS_CLIENT *webServerClientListTail;
 static httpd_handle_t webServerHandle;
 static SemaphoreHandle_t webServerMutex;
 static uint8_t webServerState;
+static uint32_t webServerStartRetryTimer;
+static const uint32_t webServerStartRetryMsec = 1000; // Backoff between httpd_start() attempts
 
 //----------------------------------------
 // Forward routines
@@ -124,7 +139,6 @@ static uint8_t webServerState;
 
 esp_err_t webServerHandlerFileList(httpd_req_t *req);
 esp_err_t webServerHandlerFileUpload(httpd_req_t *req);
-esp_err_t webServerHandlerFirmwareUpload(httpd_req_t *req);
 esp_err_t webServerHandlerGetPage(httpd_req_t *req);
 esp_err_t webServerHandlerListBaseMessages(httpd_req_t *req);
 esp_err_t webServerHandlerListMessages(httpd_req_t *req);
@@ -172,15 +186,14 @@ const GET_PAGE_HANDLER webServerPages[] = {
     // File pages
     PAGE_HANDLER(22, "/listfiles", HTTP_GET, text_plain, webServerHandlerFileList),
     PAGE_HANDLER(23, "/file", HTTP_GET, text_plain, webServerHandlerFileManager),
-    PAGE_HANDLER(24, UPLOAD_FIRMWARE, HTTP_POST, text_plain, webServerHandlerFirmwareUpload),
 
     // Message handlers
-    PAGE_HANDLER(25, "/listMessages", HTTP_GET, text_plain, webServerHandlerListMessages),
-    PAGE_HANDLER(26, "/listMessagesBase", HTTP_GET, text_plain, webServerHandlerListBaseMessages),
-    PAGE_HANDLER(27, UPLOAD_PATH, HTTP_POST, text_plain, webServerHandlerFileUpload),
+    PAGE_HANDLER(24, "/listMessages", HTTP_GET, text_plain, webServerHandlerListMessages),
+    PAGE_HANDLER(25, "/listMessagesBase", HTTP_GET, text_plain, webServerHandlerListBaseMessages),
+    PAGE_HANDLER(26, UPLOAD_PATH, HTTP_POST, text_plain, webServerHandlerFileUpload),
 
     // Add pages above this line
-    WEB_PAGE(28, "/", text_html, index_html),
+    WEB_PAGE(27, "/", text_html, index_html),
 };
 
 const int webServerTotalPages = (sizeof(webServerPages) / sizeof(GET_PAGE_HANDLER));
@@ -215,21 +228,6 @@ bool webServerAssignResources(int httpPort = 80)
         }
         memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
 
-        // Note: MDNS should probably be begun by networkMulticastDNSUpdate, but that doesn't seem to be happening...
-        //       Is the networkInterface aware that AP needs it? Let's start it manually...
-        if (MDNS.begin(&settings.mdnsHostName[0]) == false)
-        {
-            systemPrintln("Error setting up MDNS responder!");
-        }
-        else
-        {
-            if (settings.debugNetworkLayer)
-                systemPrintf("mDNS started as %s.local\r\n", settings.mdnsHostName);
-        }
-
-        if (settings.mdnsEnable == true)
-            MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
-
         if (settings.debugWebServer == true)
             systemPrintln("Web Server: Started");
         reportHeapNow(false);
@@ -262,6 +260,27 @@ bool webServerAssignResources(int httpPort = 80)
         {
             webServerHttpdDisplayConfig(&config);
             reportHeapNow(true);
+        }
+
+        // httpd_start() creates its own worker task, whose stack must come from a single contiguous
+        // block of internal DRAM (this SDK build has CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY
+        // disabled, so PSRAM is never used for task stacks, no matter how much is free). If ESP-NOW
+        // and/or BLE have fragmented internal DRAM enough that no block that size is available,
+        // httpd_start() fails with ESP_ERR_HTTPD_TASK *after* it has already bound and listened on
+        // the port - and esp_http_server does not close that socket on this failure path. Every
+        // later call to httpd_start() then fails with "error in listen" (EADDRINUSE) forever, since
+        // the leaked socket can never be released without a reboot. Check for enough contiguous
+        // internal DRAM before calling httpd_start() so that failure - and the resulting permanent
+        // leak - never happens in the first place; if there isn't enough, skip this attempt and let
+        // the caller's retry/backoff try again later once fragmentation eases.
+        size_t largestInternalBlock = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+        size_t neededInternalBlock = webServerStackSize + 4096; // Margin for httpd's own internal structures
+        if (largestInternalBlock < neededInternalBlock)
+        {
+            systemPrintf("Web Server: Not enough contiguous internal RAM to start (need %d, largest block %d) - "
+                         "will retry\r\n",
+                         neededInternalBlock, largestInternalBlock);
+            break;
         }
 
         // Start the web server
@@ -426,7 +445,8 @@ void webServerCreateFirmwareVersionString(char *firmwareString)
 
     // Create a string of the unit's current firmware version
     char currentVersion[21];
-    firmwareVersionGet(currentVersion, sizeof(currentVersion), enableRCFirmware);
+    bool rcBuild = firmwareCheckForRcBuild();
+    espFirmwareVersionGet(currentVersion, sizeof(currentVersion), rcBuild);
 
     // Compare the unit's version against the reported version from OTA
     // Allow updates if locally compiled developer version is detected
@@ -535,7 +555,7 @@ void webServerFileDelete(httpd_req_t *req, const char *fileName)
         // Delete the file if it exists
         if (sd->exists(fileName))
         {
-            sd->remove(fileName);
+            removeFileSD(fileName, true);
             statusMessage = HTTPD_200;
             response = &responseSuccessful;
         }
@@ -1322,239 +1342,6 @@ esp_err_t webServerHandlerFileUpload(httpd_req_t *req)
     // Release the semaphore
     if (semaphoreAcquired)
         xSemaphoreGive(sdCardSemaphore);
-
-    // Display the error message
-    if (errorMessage)
-    {
-        // Respond with 500 Internal Server Error
-        systemPrintln(errorMessage);
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, errorMessage);
-    }
-
-    // Done with the buffers
-    if (buffer)
-        rtkFree(buffer, "WebServer file data buffer");
-    if (header)
-        rtkFree(header, "WebServer header");
-    if (separator)
-        rtkFree(separator, "WebServer separator");
-    return status;
-}
-
-//----------------------------------------
-// Handler for firmware file upload
-//----------------------------------------
-esp_err_t webServerHandlerFirmwareUpload(httpd_req_t *req)
-{
-    uint8_t *buffer;
-    const size_t bufferLength = 32768;
-    size_t bytes;
-    size_t bytesRead;
-    size_t bytesWritten;
-    uint8_t *data;
-    size_t dataBytes;
-    const char *errorMessage;
-    size_t fileLength;
-    char *fileName;
-    char *header;
-    size_t remainingLength;
-    char *separator;
-    size_t separatorLength;
-    esp_err_t status;
-    char *temp;
-    bool updateRunning;
-
-    do
-    {
-        buffer = nullptr;
-        errorMessage = nullptr;
-        header = nullptr;
-        separator = nullptr;
-        status = ESP_OK;
-        updateRunning = false;
-
-        // Display the request
-        webServerDisplayRequest(req);
-
-        // Get the separator
-        separator = webServerReadSeparator(req);
-        if (separator == nullptr)
-            break;
-        separatorLength = strlen(separator);
-
-        // Display the separator
-        if (settings.debugWebServer == true)
-        {
-            systemPrintln("Seperator");
-            dumpBuffer((uint8_t *)separator, strlen(separator) + 2);
-        }
-
-        // Get the header
-        header = webServerReadHeader(req);
-        if (header == nullptr)
-            break;
-
-        // Display the header
-        if (settings.debugWebServer == true)
-        {
-            systemPrintln("Header");
-            dumpBuffer((uint8_t *)header, strlen(header));
-        }
-
-        // Determine the file length
-        fileLength = req->content_len - separatorLength - 2 // CR/LF
-                     - strlen(header);
-
-        // Estimate the remaining content data
-        remainingLength = 2                      // CR/LF
-                          + separatorLength + 2; // Dash dash
-        if (fileLength >= (remainingLength + 2))
-            remainingLength += 2;
-        if (fileLength < remainingLength)
-        {
-            errorMessage = "ERROR: WebServer detected a bad file length!";
-            break;
-        }
-        fileLength -= remainingLength;
-
-        // Display the file length
-        if (settings.debugWebServer == true)
-            systemPrintf("fileLength: %d (0x%08x) bytes\r\n", fileLength, fileLength);
-
-        // Get the buffer for the file download
-        buffer = (uint8_t *)rtkMalloc(bufferLength, "WebServer file data buffer");
-        if (buffer == nullptr)
-        {
-            errorMessage = "ERROR: WebServer failed to allocate file data buffer!";
-            break;
-        }
-
-        // Locate the file name parameter
-        fileName = strstr(header, fileNameParameter);
-        if (fileName == nullptr)
-        {
-            errorMessage = "ERROR: WebServer failed to get filename parameter!";
-            break;
-        }
-        fileName += strlen(fileNameParameter);
-
-        // Get the file name
-        temp = fileName;
-        while (*temp && (*temp != '\r') && (*temp != '\"'))
-            temp += 1;
-
-        // Zero terminate the file name
-        *temp = 0;
-
-        // Display the file name
-        if (settings.debugWebServer == true)
-            systemPrintf("fileName: %s\r\n", fileName);
-
-        // Verify the firmware file name
-        if ((strstr(fileName, "RTK_Everywhere") != fileName) ||
-            (strstr(fileName, ".bin") != (fileName + strlen(fileName) - 4)))
-        {
-            errorMessage = "ERROR: WebServer detected unknown file type!";
-            break;
-        }
-
-        // Add the slash to the file name
-        fileName -= 1;
-        *fileName = '/';
-
-        // Begin update process
-        updateRunning = true;
-        if (!Update.begin(UPDATE_SIZE_UNKNOWN))
-        {
-            errorMessage = "ERROR: WebServer failed to start Update!";
-            break;
-        }
-
-        // Upload the firmware
-        bytesWritten = 0;
-        dataBytes = fileLength;
-        while (dataBytes > 0)
-        {
-            // Determine the transfer length
-            bytes = dataBytes;
-            if (bytes > bufferLength)
-                bytes = bufferLength;
-
-            // Get a portion of the file
-            bytesRead = httpd_req_recv(req, (char *)buffer, bytes);
-
-            // Check for end of file
-            if (bytesRead == 0)
-                break;
-
-            // Write the firmware file
-            if (Update.write(buffer, bytesRead) != bytesRead)
-            {
-                errorMessage = "ERROR: WebServer failed to write the firmware!";
-                break;
-            }
-
-            // Account for the data received
-            dataBytes -= bytesRead;
-        }
-
-        // Handle the errors
-        if (dataBytes != 0)
-            break;
-
-        // Get remaining portion of the page content
-        bytesRead = httpd_req_recv(req, (char *)buffer, remainingLength);
-        if (bytesRead != remainingLength)
-        {
-            errorMessage = "ERROR: WebServer failed to read the remaining content!";
-            break;
-        }
-
-        // Locate the separator at the end of the file
-        data = (uint8_t *)strstr((char *)buffer, separator);
-        if (data == nullptr)
-        {
-            errorMessage = "ERROR: WebServer failed to detect end of file!";
-            break;
-        }
-
-        // Backup two bytes to remove the required CR/LF before the separator
-        data -= 2;
-
-        // Write the data to the file
-        bytes = data - buffer;
-        if (bytes)
-        {
-            // Write the firmware file
-            if (Update.write(buffer, bytes) != bytes)
-            {
-                errorMessage = "ERROR: WebServer failed to finish writing the firmware!";
-                break;
-            }
-        }
-
-        // Display the file length
-        fileLength += bytes;
-        if (settings.debugWebServer == true)
-            systemPrintf("Firmware Length: %d (0x%08x) bytes\r\n", fileLength, fileLength);
-
-        // Finish writing the flash
-        if (!Update.end(true))
-        {
-            errorMessage = "ERROR: WebServer failed to finish writing the firmware!";
-            break;
-        }
-
-        // Success
-        webServerSendString("firmwareUploadComplete,1,");
-        systemPrintln("Firmware update complete. Restarting");
-        delay(500);
-        ESP.restart();
-    } while (0);
-
-    // Redirect the update output
-    if (updateRunning)
-        Update.printError(Serial);
 
     // Display the error message
     if (errorMessage)
@@ -2472,7 +2259,8 @@ void webServerSendString(const char *stringToSend)
 
     if (!webServerIsConnected())
     {
-        systemPrintf("webServerSendString: not connected - could not send %d bytes\r\n", strlen(stringToSend));
+        if (settings.debugWebServer == true)
+            systemPrintf("webServerSendString: not connected - could not send %d bytes\r\n", strlen(stringToSend));
         return;
     }
 
@@ -2728,12 +2516,16 @@ void webServerUpdate()
                 systemPrintln("Web Server connected to network");
 
             networkUserAdd(NETCONSUMER_WEB_CONFIG, __FILE__, __LINE__);
+
+            // Allow the first attempt to start immediately
+            webServerStartRetryTimer = millis() - webServerStartRetryMsec;
             webServerSetState(WEBSERVER_STATE_NETWORK_CONNECTED);
         }
         break;
 
     // Start the web server
-    case WEBSERVER_STATE_NETWORK_CONNECTED: {
+    case WEBSERVER_STATE_NETWORK_CONNECTED:
+    {
         // Determine if the network has failed
         if (connected == false && wifiSoftApRunning == false)
         {
@@ -2741,9 +2533,16 @@ void webServerUpdate()
             webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
         }
 
-        // Attempt to start the web server
-        else if (webServerAssignResources(settings.httpPort) == true)
-            webServerSetState(WEBSERVER_STATE_RUNNING);
+        // Attempt to start the web server. httpd_start() can transiently fail (ex: EHOSTDOWN)
+        // immediately after the network interface comes up, before the LWIP stack has finished
+        // marking it as the default route. Back off between attempts rather than hammering
+        // httpd_start() every main loop iteration, which just spams the log.
+        else if ((millis() - webServerStartRetryTimer) >= webServerStartRetryMsec)
+        {
+            webServerStartRetryTimer = millis();
+            if (webServerAssignResources(settings.httpPort) == true)
+                webServerSetState(WEBSERVER_STATE_RUNNING);
+        }
     }
     break;
 

@@ -117,7 +117,6 @@ RTK_Everywhere.ino
 #define COMPILE_MQTT_CLIENT  // Comment out to remove MQTT Client functionality
 #define COMPILE_NTRIP_CLIENT // Comment out to remove NTRIP client functionality
 #define COMPILE_NTRIP_SERVER // Comment out to remove NTRIP server functionality
-#define COMPILE_OTA_AUTO     // Comment out to disable automatic over-the-air firmware update
 #define COMPILE_TCP_CLIENT   // Comment out to remove TCP client functionality
 #define COMPILE_TCP_SERVER   // Comment out to remove TCP server functionality
 #define COMPILE_UDP_SERVER   // Comment out to remove UDP server functionality
@@ -142,6 +141,10 @@ RTK_Everywhere.ino
 #define COMPILE_MENU_USER_PROFILES // Comment out to remove user profile menu functionality
 #define COMPILE_MENU_WIFI          // Comment out to remove WiFi menu functionality
 #endif                             // COMPILE_SERIAL_MENUS
+
+#if defined(COMPILE_MENU_FIRMWARE) && defined(COMPILE_NETWORK)
+#define COMPILE_FIRMWARE_UPDATE // Comment out to disable firmware update
+#endif
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
 #ifndef ENABLE_DEVELOPER
@@ -169,7 +172,6 @@ RTK_Everywhere.ino
 #define NTRIP_SERVER_MAX 4
 
 #ifdef COMPILE_NETWORK
-#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
 #include <DNSServer.h>    //Built-in.
 #include <ESPmDNS.h>      //Built-in.
 #include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
@@ -177,7 +179,10 @@ RTK_Everywhere.ino
 #include <NetworkClient.h>
 #include <NetworkClientSecure.h>
 #include <NetworkUdp.h>
+#include <arpa/inet.h>
 #include <lwip/sockets.h>
+#include <netdb.h>
+#include <sys/socket.h>
 #endif // COMPILE_NETWORK
 
 #define RTK_MAX_CONNECTION_MSEC (15 * MILLISECONDS_IN_A_MINUTE)
@@ -208,137 +213,30 @@ const uint16_t HTTPS_PORT = 443;                                                
 
 #include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack - Needed for settings.h
 
+#define OTA_FIRMWARE_CSV_URL_LENGTH     192
+//                                                                                                      1         1 1
+//            1         2         3         4         5         6         7         8         9         0         1 2
+//   12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678
+#define OTA_FIRMWARE_CSV_URL    \
+    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-Variants.csv"
+
 #include "settings.h"
 #include <esp_mac.h> // MAC address support
+#include "OTA.h"     // Over-The-Air (OTA) support
 
 #define MAX_CPU_CORES 2
 #define IDLE_COUNT_PER_SECOND 515400 // Found by empirical sketch
 #define IDLE_TIME_DISPLAY_SECONDS 5
 #define MAX_IDLE_TIME_COUNT (IDLE_TIME_DISPLAY_SECONDS * IDLE_COUNT_PER_SECOND)
 
-#define HOURS_IN_A_DAY 24L
-#define MINUTES_IN_AN_HOUR 60L
-#define SECONDS_IN_A_MINUTE 60L
-#define MILLISECONDS_IN_A_SECOND 1000L
-#define MILLISECONDS_IN_A_MINUTE (SECONDS_IN_A_MINUTE * MILLISECONDS_IN_A_SECOND)
-#define MILLISECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * MILLISECONDS_IN_A_MINUTE)
-#define MILLISECONDS_IN_A_DAY (HOURS_IN_A_DAY * MILLISECONDS_IN_AN_HOUR)
-
-#define SECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * SECONDS_IN_A_MINUTE)
-#define SECONDS_IN_A_DAY (HOURS_IN_A_DAY * SECONDS_IN_AN_HOUR)
-
 const char *debugMessagePrefix = "# => "; // Something ~unique and easy to trigger on
-
-// Hardware connections
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// These pins are set in beginBoard()
-#define PIN_UNDEFINED -1
-int pin_debug = PIN_UNDEFINED;              // LED on EVK
-int pin_batteryStatusLED = PIN_UNDEFINED;   // LED on Torch
-int pin_baseStatusLED = PIN_UNDEFINED;      // LED on EVK
-int pin_bluetoothStatusLED = PIN_UNDEFINED; // LED on Torch
-int pin_gnssStatusLED = PIN_UNDEFINED;      // LED on Torch
-
-int pin_muxA = PIN_UNDEFINED;
-int pin_muxB = PIN_UNDEFINED;
-int pin_mux1 = PIN_UNDEFINED;
-int pin_mux2 = PIN_UNDEFINED;
-int pin_mux3 = PIN_UNDEFINED;
-int pin_mux4 = PIN_UNDEFINED;
-
-int pin_modeButton = PIN_UNDEFINED;   // Mode button on EVK, Function button on Facet FP
-int pin_powerButton = PIN_UNDEFINED;  // Power and general purpose button on Torch, Facet
-int pin_powerFastOff = PIN_UNDEFINED; // Output on Facet
-int pin_muxDAC = PIN_UNDEFINED;
-int pin_muxADC = PIN_UNDEFINED;
-int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK and Facet mosaic
-
-int pin_GnssEvent = PIN_UNDEFINED;   // Facet mosaic
-int pin_GnssOnOff = PIN_UNDEFINED;   // Facet mosaic
-int pin_chargerLED = PIN_UNDEFINED;  // Facet mosaic
-int pin_chargerLED2 = PIN_UNDEFINED; // Facet mosaic
-int pin_GnssReady = PIN_UNDEFINED;   // Facet mosaic
-
-int pin_loraRadio_reset = PIN_UNDEFINED;
-int pin_loraRadio_boot = PIN_UNDEFINED;
-int pin_loraRadio_power = PIN_UNDEFINED;
-
-int pin_Ethernet_CS = PIN_UNDEFINED;
-int pin_Ethernet_Interrupt = PIN_UNDEFINED;
-int pin_GNSS_CS = PIN_UNDEFINED;
-int pin_GNSS_TimePulse = PIN_UNDEFINED;
-int pin_GNSS_Reset = PIN_UNDEFINED;
-
-// microSD card pins
-int pin_PICO = PIN_UNDEFINED;
-int pin_POCI = PIN_UNDEFINED;
-int pin_SCK = PIN_UNDEFINED;
-int pin_microSD_CardDetect = PIN_UNDEFINED;
-int pin_microSD_CS = PIN_UNDEFINED;
-
-int pin_I2C0_SDA = PIN_UNDEFINED;
-int pin_I2C0_SCL = PIN_UNDEFINED;
-
-// On EVK, Display is on separate I2C bus
-int pin_I2C1_SDA = PIN_UNDEFINED;
-int pin_I2C1_SCL = PIN_UNDEFINED;
-
-int pin_GnssUart_RX = PIN_UNDEFINED;
-int pin_GnssUart_TX = PIN_UNDEFINED;
-
-int pin_GnssUart2_RX = PIN_UNDEFINED;
-int pin_GnssUart2_TX = PIN_UNDEFINED;
-
-int pin_Cellular_RX = PIN_UNDEFINED;
-int pin_Cellular_TX = PIN_UNDEFINED;
-int pin_Cellular_PWR_ON = PIN_UNDEFINED;
-int pin_Cellular_Network_Indicator = PIN_UNDEFINED;
-int pin_Cellular_Reset = PIN_UNDEFINED;
-int pin_Cellular_RTS = PIN_UNDEFINED;
-int pin_Cellular_CTS = PIN_UNDEFINED;
-bool cellularModemResetLow = false;
-#define CELLULAR_MODEM_FC ESP_MODEM_FLOW_CONTROL_NONE
-uint8_t laraPwrLowValue;
-uint32_t laraTimer; // Backoff timer
-
-int pin_IMU_RX = PIN_UNDEFINED;
-int pin_IMU_TX = PIN_UNDEFINED;
-int pin_GNSS_DR_Reset = PIN_UNDEFINED;
-
-int pin_powerAdapterDetect = PIN_UNDEFINED;
-int pin_usbSelect = PIN_UNDEFINED;
-int pin_beeper = PIN_UNDEFINED;
-
-int pin_gpioExpanderInterrupt = PIN_UNDEFINED;
-const uint8_t gpioExpander_up = 0;
-const uint8_t gpioExpander_down = 1;
-const uint8_t gpioExpander_right = 2;
-const uint8_t gpioExpander_left = 3;
-const uint8_t gpioExpander_center = 4;
-const uint8_t gpioExpander_cardDetect = 5;
-const uint8_t gpioExpander_io6 = 6;
-const uint8_t gpioExpander_io7 = 7;
-
-const uint8_t gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
-const uint8_t gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
-const uint8_t gpioExpanderSwitch_S3 = 2; // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
-const uint8_t gpioExpanderSwitch_S4 =
-    3; // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
-const uint8_t gpioExpanderSwitch_LoraEnable = 4; // LoRa_EN
-const uint8_t gpioExpanderSwitch_GNSS_Reset = 5; // RST_GNSS
-const uint8_t gpioExpanderSwitch_LoraBoot = 6;   // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
-const uint8_t gpioExpanderSwitch_S5 = 7;         // Controls U61 switch 5: connect GNSS UART1 to Port A of CH342
-const uint8_t gpioExpanderNumSwitches = 8;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // I2C for GNSS, battery gauge, display
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include "icons.h"
-#include <Wire.h> //Built-in
 #include <vector> //Needed for icons etc.
-TwoWire *i2c_0 = nullptr;
-TwoWire *i2c_1 = nullptr;
 TwoWire *i2cDisplay = nullptr;
 TwoWire *i2cAuthCoPro = nullptr;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -374,10 +272,8 @@ void beginSPI(bool force = false); // Header
 
 SdFat *sd;
 
-#define productVariantProperties getProductPropertiesFromVariant(productVariant)
 #define platformFilePrefix                                                                                             \
     getProductPropertiesFromVariant(productVariant)->filePrefix // Sets the prefix for logs and settings files
-#define variantHousingProperties getProductHousingPropertiesFromVariant(productVariant)
 
 SdFile *logFile;                  // File that all GNSS messages sentences are written to
 unsigned long lastUBXLogSyncTime; // Used to record to SD every half second
@@ -436,6 +332,8 @@ int packetRSSI;
 RTK_WIFI wifi(false); // wifi(false); is non-verbose. For verbose, change to wifi(true);
 #endif                // COMPILE_WIFI
 
+#define WIFI_IP_ADDRESS_TIMEOUT_MSEC (15 * MILLISECONDS_IN_A_SECOND)
+
 // WiFi Globals - For other module direct access
 WIFI_CHANNEL_t wifiChannel;     // Current WiFi channel number
 bool wifiEspNowOnline;          // ESP-NOW started successfully
@@ -469,32 +367,20 @@ const char *wifiSoftApPassword = nullptr;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
 
-#define OTA_FIRMWARE_JSON_URL_LENGTH 128
-//                                                                                                      1         1 1
-//            1         2         3         4         5         6         7         8         9         0         1 2
-//   12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678
-#define OTA_FIRMWARE_JSON_URL                                                                                          \
-    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/"                       \
-    "RTK-Everywhere-Firmware.json"
-#define OTA_RC_FIRMWARE_JSON_URL                                                                                       \
-    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/"                       \
-    "RTK-Everywhere-RC-Firmware.json"
-char otaFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
-char otaRcFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
+#define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
 
 bool apConfigFirmwareUpdateInProcess; // Goes true once WiFi is connected and OTA pull begins
-unsigned int binBytesSent;            // Tracks firmware bytes sent over WiFi OTA update via AP config.
 
 char otaReportedVersion[50];
 bool otaRequestFirmwareVersionCheck = false;
 bool otaRequestFirmwareUpdate = false;
+bool otaAllowBetaFirmware = false; // Web Config 'Allow Beta Firmware' checkbox, session only
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // Connection settings to NTRIP Caster
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include "base64.h" //Built-in. Needed for NTRIP Client credential encoding.
 
-bool enableRCFirmware;      // Goes true from AP config page
 bool currentlyParsingData;  // Goes true when we hit 750ms timeout with new data
 bool tcpServerInCasterMode; // True when TCP server is running in caster mode
 
@@ -535,6 +421,8 @@ unsigned long rtcmLastPacketReceived; // Time stamp of RTCM coming in (from BT, 
 bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
 #define RTCM_CORRECTION_INPUT_TIMEOUT (2 * 1000)
 #define RTCM_CORRECTION_WRITE_TIMEOUT (3 * 1000)
+
+bool gnssExternalIncomingRtcm; // Incoming RTCM direct to GNSS (Radio Ext - or LoRa on Facet FP)
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -610,9 +498,6 @@ volatile bool forwardGnssDataToUsbSerial;
 // entered then no changes are made and the +++ sequence must be re-entered.
 #define PLUS_PLUS_PLUS_TIMEOUT (2 * 1000) // Milliseconds
 
-HardwareSerial *serialGNSS = nullptr;  // Don't instantiate until we know what gnssPlatform we're on
-HardwareSerial *serial2GNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
-
 volatile bool inDirectConnectMode = false; // Global state to indicate if GNSS/LoRa has direct connection for update
 
 #define SERIAL_SIZE_TX 512
@@ -649,6 +534,8 @@ const uint8_t btMaxEscapeCharacters = 3; // Number of characters needed to enter
 // External Display
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_Qwiic_OLED.h>  //http://librarymanager/All#SparkFun_Qwiic_Graphic_OLED
+#include <SparkFun_SSD168x_I2C_Interface_Library.h> // http://librarymanager/All#SparkFun_SSD168x_I2C_Interface_Library
+#include "Display.h"
 unsigned long minSplashFor = 100; // Display SparkFun Logo for at least 1/10 of a second
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -658,8 +545,6 @@ unsigned long minSplashFor = 100; // Display SparkFun Logo for at least 1/10 of 
 int binCount;
 const int maxBinFiles = 10;
 char binFileNames[maxBinFiles][50];
-const char *forceFirmwareFileName =
-    "RTK_Everywhere_Firmware_Force.bin"; // File that will be loaded at startup regardless of user input
 int binBytesLastUpdate;                  // Allows websocket notification to be sent every 100k bytes
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -767,18 +652,27 @@ bool ethernetRestartRequested = false; // Perform ETH.end() to disconnect TCP re
 #endif                                 // COMPILE_ETHERNET
 
 unsigned long lastEthernetCheck; // Prevents cable checking from continually happening
+
+static NetPriority_t networkPriorityForDisplay = NETWORK_NONE; // Reduce calls to networkGetIpAddress
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // IM19 Tilt Compensation
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_IM19_IMU
-#include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU
-IM19 *tiltSensor;
-HardwareSerial *SerialForTilt; // Don't instantiate until we know the tilt sensor exists
 unsigned long lastTiltCheck;   // Limits polling on IM19 to 1Hz
 bool tiltFailedBegin;          // Goes true if IMU fails beginTilt()
 unsigned long lastTiltBeepMs;  // Emit a beep every 10s if tilt is active
+TiltState tiltState = TILT_DISABLED;
+// Forward routine declaration
+void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char *nmeaType,
+                           const int *latitudeComma, const int *longitudeComma,
+                           const int *altitudeComma = nullptr, const int *undulationComma = nullptr);
 #endif                         // COMPILE_IM19_IMU
+
+int imuFirmwareVersionInt;
+char imuFirmwareVersionStr[32];    // Ex: IM19_H2_B2.2_A11.4.1
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // PointPerfect Library (PPL)
@@ -810,9 +704,6 @@ unsigned long pplKeyExpirationMs = 0; // Milliseconds until the current PPL key 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
 
-SFE_PCA95XX io(PCA95XX_PCA9554); // Create a PCA9554, default address 0x20
-
-volatile bool gpioChanged = false; // Set by gpioExpanderISR
 uint8_t gpioExpander_previousState =
     0b00011111; // Buttons start high, card detect starts low. Ignore unconnected GPIO6/7.
 unsigned long gpioExpander_holdStart[8] = {0};
@@ -823,8 +714,6 @@ uint8_t gpioExpander_lastReleased = 255;
 #define GPIO_EXPANDER_BUTTON_RELEASED 1
 #define GPIO_EXPANDER_CARD_INSERTED 1
 #define GPIO_EXPANDER_CARD_REMOVED 0
-
-SFE_PCA95XX *gpioExpanderSwitches = nullptr;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -854,6 +743,12 @@ char *latestEASessionData;
 
 // Global variables
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#include "Device_Update.h"
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+// Global variables
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 uint8_t wifiMACAddress[6];     // Display this address in the system menu
 uint8_t btMACAddress[6];       // Display this address when Bluetooth is enabled, otherwise display wifiMACAddress
 uint8_t ethernetMACAddress[6]; // Display this address when Ethernet is enabled, otherwise display wifiMACAddress
@@ -878,7 +773,6 @@ uint32_t lastBaseLEDupdate; // Controls the blinking of the Base LED
 
 uint32_t lastFileReport = 0;  // When logging, print file record stats every few seconds
 long lastStackReport;         // Controls the report rate of stack highwater mark within a task
-uint32_t lastHeapReport;      // Report heap every 1s if option enabled
 uint32_t lastTaskHeapReport;  // Report task heap every 1s if option enabled
 uint32_t lastCasterLEDupdate; // Controls the cycling of position LEDs during casting
 uint32_t lastRTCAttempt;      // Wait 1000ms between checking GNSS for current date/time
@@ -998,23 +892,22 @@ unsigned long lastSpartnToPpl = 0;
 int commandCount;
 int16_t *commandIndex;
 
-bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved from CH34x to LoRa
 unsigned long loraLastIncomingSerial; // Last time a user sent a serial command. Used in LoRa timeouts.
-char loraFirmwareVersion[25] = {'\0'};
+char loraFirmwareVersionStr[25] = {'\0'};
 int loraFirmwareVersionInt = 0;
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 50
+#define MAX_BOOT_TIME_ENTRIES 54
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-// Foward routine declarations
+// Forward routine declarations
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 void changeProfileNumber(byte newProfileNumber, bool recordSettings = true);
@@ -1347,6 +1240,9 @@ void setup()
     DMW_b("beginPsram");
     beginPsram(); // Initialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
 
+    DMW_b("beginBuffers");
+    beginBuffers(); // Allocate permanent buffers from PSRAM
+
     DMW_b("beginMux");
     beginMux(); // Must come before I2C activity to avoid external devices from corrupting the bus. See issue 474
     //  https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
@@ -1354,8 +1250,8 @@ void setup()
     DMW_b("peripheralsOn");
     peripheralsOn(); // Enable power for the display, SD, etc
 
-    DMW_b("beginI2C");
-    beginI2C(); // Requires settings and peripheral power (if applicable).
+    DMW_b("beginI2CTask");
+    beginI2CTask(); // Requires settings and peripheral power (if applicable).
 
     DMW_b("beginGpioExpanderSwitches");
     beginGpioExpanderSwitches(); // Start the GPIO expander for switch control
@@ -1384,8 +1280,11 @@ void setup()
     DMW_b("loadSettings");
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
 
+    DMW_b("otaRequestTypesLoad");
+    otaRequestTypesLoad(); // Apply the saved Firmware Update menu developer selections
+
     DMW_b("gnssDetectReceiverType");
-    gnssDetectReceiverType(); // If we don't know the receiver from the platform, auto-detect it. Uses settings.
+    bool ranDetect = gnssDetectReceiverType(); // If we don't know the receiver from the platform, auto-detect it. Uses settings.
 
     // Check array defaults - after gnssDetectReceiverType() - before gnss->begin()
     DMW_b("checkArrayDefaults");
@@ -1394,25 +1293,29 @@ void setup()
     checkGNSSArrayDefaults(); // Check various setting arrays (message rates, etc) to see if they need to be reset to
                               // defaults
 
-    DMW_b("checkUpdateLoraFirmware");
-    if (checkUpdateLoraFirmware() == true) // Check if updateLoraFirmware.txt exists
-        beginLoraFirmwareUpdate();         // Needs I2C, GPIO Expander Switches, display, buttons, etc.
+    DMW_b("loraCheckPassthroughFile");
+    if (loraCheckPassthroughFile() == true) // Check if updateLoraFirmware.txt exists
+        loraBeginFirmwareUpdate();         // Needs I2C, GPIO Expander Switches, display, buttons, etc.
 
-    DMW_b("loraRxDirectCheckFile");
-    if (loraRxDirectCheckFile() == true) // Check if loraRxDirect.txt exists
+    DMW_b("loraCheckRxDirectFile");
+    if (loraCheckRxDirectFile() == true) // Check if loraRxDirect.txt exists
         loraRxDirectConnect();           // Needs I2C, GPIO Expander Switches, display, buttons, etc.
 
-    DMW_b("loraTxDirectCheckFile");
-    if (loraTxDirectCheckFile() == true) // Check if loraTxDirect.txt exists
+    DMW_b("loraCheckTxDirectFile");
+    if (loraCheckTxDirectFile() == true) // Check if loraTxDirect.txt exists
         loraTxDirectConnect();           // Needs I2C, GPIO Expander Switches, display, buttons, etc.
 
-    DMW_b("um980FirmwareCheckUpdate");
-    if (um980FirmwareCheckUpdate() == true) // UM980 needs special treatment - ** before the UARTs are started **
-        um980FirmwareBeginUpdate();         // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
+    DMW_b("um980CheckPassthroughFile");
+    if (um980CheckPassthroughFile() == true) // UM980 needs special treatment - ** before the UARTs are started **
+        um980BeginFirmwareUpdate();         // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
 
-    DMW_b("gnssFirmwareCheckUpdate");
-    if (gnssFirmwareCheckUpdate() == true) // Check if updateGnssFirmware.txt exists
-        gnssFirmwareBeginUpdate();         // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
+    DMW_b("gnssCheckPassthroughFile");
+    if (gnssCheckPassthroughFile() == true) // Check if updateGnssFirmware.txt exists
+        gnssBeginFirmwareUpdate();         // Needs Facet FP GNSS, I2C, GPIO Expander Switches, display, buttons, etc.
+
+    DMW_b("imuFirmwareCheckUpdate");
+    if (imuCheckPassthroughFile() == true) // Check if updateImuFirmware.txt exists
+        imuBeginFirmwareUpdate();         //
 
     DMW_b("commandIndexFillActual");
     commandIndexFillActual(); // Shrink the commandIndex table now we're certain what GNSS we have
@@ -1427,6 +1330,18 @@ void setup()
 
     DMW_b("gnss->begin");
     gnss->begin(); // Requires settings - with array defaults
+
+    // Repeat default resolution after the receiver reports its firmware capabilities.
+    DMW_b("checkGNSSArrayDefaultsAfterBegin");
+    checkGNSSArrayDefaults();
+
+    // Has the user switched the GNSS board in the Facet FP?
+    if ((online.gnss == false) && (ranDetect == false) && (productVariant == RTK_FACET_FP))
+    {
+        // Possibly, lets detect things again
+        settings.detectedGnssReceiver = GNSS_RECEIVER_UNKNOWN;
+        tiltForceDetectionReboot();
+    }
 
     DMW_b("beginRtcmParse");
     beginRtcmParse();
@@ -1610,7 +1525,7 @@ void loop()
     DMW_l("printReports");
     printReports(); // Periodically print GNSS coordinates and accuracy if enabled
 
-    DMW_l("otaAutoUpdate");
+    DMW_l("otaUpdate");
     otaUpdate(); // Initiate firmware version checks, scheduled automatic updates, or requested firmware over-the-air
                  // updates
 

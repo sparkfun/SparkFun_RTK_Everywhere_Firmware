@@ -121,6 +121,7 @@ void cellularEvent(arduino_event_id_t event)
     case ARDUINO_EVENT_PPP_GOT_IP6:
         ipAddress = CELLULAR.localIP();
         systemPrintf("Cellular IP address: %s\r\n", ipAddress.toString().c_str());
+        networkPriorityForDisplay = NETWORK_NONE; // Make displayFullIPAddress update the address
         break;
 
     case ARDUINO_EVENT_PPP_LOST_IP:

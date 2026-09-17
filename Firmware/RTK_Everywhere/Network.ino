@@ -118,6 +118,7 @@ static const char *networkConsumerTable[] = {
     "TCP_SERVER",
     "UDP_SERVER",
     "WEB_CONFIG",
+    "DEVICE_OTA",
 };
 
 static const int networkConsumerTableEntries = sizeof(networkConsumerTable) / sizeof(networkConsumerTable[0]);
@@ -321,7 +322,7 @@ void menuTcpUdp()
         else if (incoming == 'm')
         {
             settings.mdnsEnable ^= 1;
-            networkMulticastDNSUpdate();
+            networkMulticastDNSUpdate(wifiSoftApOnline);
         }
 
         else if (settings.mdnsEnable && (incoming == 'n'))
@@ -511,7 +512,7 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
                 networkDisplayStatus();
         }
 
-        // When Web Config is started, all consumers are stopped marking the networkPriority as offline. 
+        // When Web Config is started, all consumers are stopped marking the networkPriority as offline.
         // If the ethernet interface is running, mark the network priority so that consumers within Web Config will use it
         if(networkPriority == NETWORK_OFFLINE && ethernetLinkUp() == true)
         {
@@ -526,7 +527,7 @@ void networkConsumerAdd(NETCONSUMER_t consumer, NetIndex_t network, const char *
             if(settings.debugNetworkLayer)
                 systemPrintf("Network: WiFi station interface running, setting WiFi as highest network priority\r\n");
             networkPriority = 1;
-        }        
+        }
     }
     else
     {
@@ -615,20 +616,6 @@ bool networkConsumerIsConnected(NETCONSUMER_t consumer)
 
     // Validate the consumer
     networkConsumerValidate(consumer);
-
-    // if (consumer == NETCONSUMER_NTRIP_SERVER_1)
-    // {
-    //     index = networkIndexTable[networkPriority];
-    //     systemPrintf("NETCONSUMER_NTRIP_SERVER_1: %ld %d %d %d %d\r\n",
-    //         networkHasInternet_bm,
-    //         networkConsumerPriority[consumer],
-    //         networkPriority,
-    //         index,
-    //         networkInterfaceHasInternet(index)
-    //         );
-    // }
-
-    // NETCONSUMER_NTRIP_SERVER_1: 2 3 3 3 0
 
     // If the client is using the highest priority network and that
     // network is still available then continue as normal
@@ -727,6 +714,7 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const cha
 
     // Done with the network
     networkUserRemove(consumer, __FILE__, __LINE__);
+    networkConsumerOffline(consumer);
 
     // Remove the consumer only once
     previousBits = *bits;
@@ -772,7 +760,24 @@ void networkConsumerRemove(NETCONSUMER_t consumer, NetIndex_t network, const cha
             }
 
             // Update the network priority
+            // Self-managed interfaces (e.g. WiFi Station) have no stop routine in
+            // networkInterfaceTable and are not touched by the loop above, so they can
+            // still be online here. Forcing networkPriority to NETWORK_OFFLINE in that
+            // case leaves it permanently out of sync with networkHasInternet_bm: the
+            // interface keeps its internet access, but networkConsumerIsConnected()
+            // reports every future consumer as disconnected forever (until reboot)
+            // because it never has a reason to re-evaluate networkPriority again.
+            // Instead, fall back to the highest priority interface that is still online.
             networkPriority = NETWORK_OFFLINE;
+            for (priority = 0; priority < NETWORK_OFFLINE; priority += 1)
+            {
+                index = networkIndexTable[priority];
+                if (networkInterfaceHasInternet(index))
+                {
+                    networkPriority = priority;
+                    break;
+                }
+            }
 
             // Let other tasks handle the network failure
             delay(100);
@@ -1285,6 +1290,11 @@ void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
     {
         if (settings.debugNetworkLayer)
             systemPrintf("%s stop sequencer running, not marking interface online\r\n", networkGetNameByIndex(index));
+
+        // The stop sequence may finish shortly after this check. Re-arm the event so
+        // networkUpdate() retries on a later pass instead of losing it permanently,
+        // which otherwise leaves the interface with a valid IP but never marked online.
+        networkEventInternetAvailable[index] = true;
         return;
     }
 
@@ -1588,7 +1598,7 @@ bool networkMulticastDNSStart(NetIndex_t index)
         networkMdnsRequests |= bitMask;
 
         // Start mDNS on this interface
-        mdnsStarted = networkMulticastDNSUpdate();
+        mdnsStarted = networkMulticastDNSUpdate(wifiSoftApOnline);
     }
     return mdnsStarted;
 }
@@ -1609,7 +1619,7 @@ bool networkMulticastDNSStop(NetIndex_t index)
         networkMdnsRequests &= ~bitMask;
 
         // Stop mDNS on this interface
-        mdnsStopped = networkMulticastDNSUpdate();
+        mdnsStopped = networkMulticastDNSUpdate(wifiSoftApOnline);
     }
     return mdnsStopped;
 }
@@ -1633,13 +1643,13 @@ bool networkMulticastDNSStop()
     // Restart mDNS on the highest priority network
     if ((startIndex < NETWORK_OFFLINE) && networkInterfaceTable[startIndex].mDNS)
         networkMdnsRequests |= 1 << startIndex;
-    return networkMulticastDNSUpdate();
+    return networkMulticastDNSUpdate(wifiSoftApOnline);
 }
 
 //----------------------------------------
 // Start multicast DNS
 //----------------------------------------
-bool networkMulticastDNSUpdate()
+bool networkMulticastDNSUpdate(bool wifiRunning)
 {
     NetMask_t deltaMask;
     NetMask_t requests;
@@ -1648,6 +1658,7 @@ bool networkMulticastDNSUpdate()
     // Determine if mDNS needs to restart
     status = true;
     requests = networkMdnsRequests;
+    requests |= wifiRunning ? (1 << NETWORK_WIFI_AP) : 0;
 
     // Update the mDNS state
     if (settings.mdnsEnable == false)
@@ -1657,16 +1668,23 @@ bool networkMulticastDNSUpdate()
     deltaMask = requests ^ networkMdnsRunning;
     if (deltaMask)
     {
-        // Stop mDNS if it is running
-        if (networkMdnsRunning)
+        // mDNS is process-wide. Avoid tearing it down just because the requested
+        // interface mask changed while mDNS should remain active.
+        if (networkMdnsRunning && requests)
+            networkMdnsRunning = requests;
+
+        // Stop mDNS only when no interface should be advertising
+        else if (networkMdnsRunning)
         {
             MDNS.end();
             if (settings.debugNetworkLayer)
                 systemPrintln("mDNS stopped");
+
+            networkMdnsRunning = 0;
         }
 
-        // Restart mDNS if it is needed by any interface
-        if (deltaMask & requests)
+        // Start mDNS if it is needed and not already running
+        if ((networkMdnsRunning == 0) && requests)
         {
             // This should make the device findable from 'rtk.local' in a browser
             if (MDNS.begin(&settings.mdnsHostName[0]) == false)
@@ -1680,9 +1698,9 @@ bool networkMulticastDNSUpdate()
                 if (settings.debugNetworkLayer)
                     systemPrintf("mDNS started as %s.local\r\n", settings.mdnsHostName);
                 MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
+                networkMdnsRunning = requests;
             }
         }
-        networkMdnsRunning = requests;
     }
     return status;
 }
@@ -2157,7 +2175,7 @@ void networkSoftApConsumerAdd(NETCONSUMER_t consumer, const char *fileName, uint
             if (settings.debugNetworkLayer)
                 networkDisplayStatus();
         }
-        
+
         // If the WiFi station interface is running, mark the network priority so that consumers within Soft AP will use it
         if(networkPriority == NETWORK_OFFLINE && wifiStationRunning == true)
         {
@@ -2505,7 +2523,7 @@ void networkUpdate()
 
     // Update the network services
     // Start or stop mDNS
-    networkMulticastDNSUpdate();
+    networkMulticastDNSUpdate(wifiSoftApOnline);
 
     // Update the network services
     DMW_n("mqttClientUpdate");

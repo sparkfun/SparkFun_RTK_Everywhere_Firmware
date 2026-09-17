@@ -1,0 +1,306 @@
+void loraPowerOn()
+{
+    // if (productVariant == RTK_TORCH)
+    digitalWrite(pin_loraRadio_power, HIGH); // Power STM32/radio
+    // else if (productVariant == RTK_FACET_FP)
+    // gpioExpanderLoraEnable();
+}
+
+void loraPowerOff()
+{
+    // if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
+    digitalWrite(pin_loraRadio_power, LOW); // Power off STM32/radio
+    // else if (productVariant == RTK_FACET_FP)
+    // gpioExpanderLoraDisable();
+}
+
+// Connect ESP32 to LoRa for regular transmissions on Torch
+// On Facet, startLoRaConfigureCommunicationOnFacet() is called separately
+void muxSelectLoRaCommunication()
+{
+    // if (productVariant == RTK_TORCH)
+    {
+        pinMode(pin_muxB, OUTPUT);    // Make really sure we can control this pin
+        digitalWrite(pin_muxA, LOW);  // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
+        digitalWrite(pin_muxB, HIGH); // Control U18: Connect ESP UART0 to U11
+
+        //  usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
+    }
+}
+
+void muxSelectUsb()
+{
+    // if (productVariant == RTK_TORCH)
+    {
+        pinMode(pin_muxB, OUTPUT);   // Make really sure we can control this pin
+        digitalWrite(pin_muxA, LOW); // Control U12: Connect ESP UART1 to UM980 UART3. Control U11: Connect U18-B1 to LoRa UART2
+        digitalWrite(pin_muxB, LOW); // Control U18: Connect ESP UART0 to CH340 Serial
+
+        // usbSerialIsSelected = true; // Let other print operations know we are connected to the CH34x
+    }
+}
+
+// Enables BOOT pin
+void loraEnableBootloader()
+{
+    // if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
+    digitalWrite(pin_loraRadio_boot, HIGH); // Enter bootload mode
+    // else if (productVariant == RTK_FACET_FP)
+    // gpioExpanderLoraBootEnable();
+}
+
+// Enables BOOT pin, then resets the STM32
+void loraEnterBootloader()
+{
+    loraEnableBootloader();
+    loraReset();
+}
+
+// Disables BOOT pin
+void loraDisableBootloader()
+{
+    // if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
+    digitalWrite(pin_loraRadio_boot, LOW); // Exit bootload mode
+    // else if (productVariant == RTK_FACET_FP)
+    // gpioExpanderLoraBootDisable();
+}
+
+// Disables BOOT pin, then resets the STM32
+void loraExitBootloader()
+{
+    loraDisableBootloader();
+    loraReset();
+}
+
+void loraReset()
+{
+    //     // This timing is sensitive. Delay too long after the enable and the bootloader
+    //     // will exit due to timeout.
+
+    // if (productVariant == RTK_TORCH || productVariant == RTK_TORCH_X2)
+    {
+        digitalWrite(pin_loraRadio_reset, LOW); // Reset STM32/radio
+        delay(50);
+        digitalWrite(pin_loraRadio_reset, HIGH); // Run STM32/radio
+        delay(50);
+    }
+    // else if (productVariant == RTK_FACET_FP)
+    // {
+    //     // There is no reset, only a power cycle
+    //     gpioExpanderLoraDisable();
+    //     delay(50); // 50 ok, 100 ok,
+    //     gpioExpanderLoraEnable();
+    //     delay(50); // 50 ok, 100 ok, 250 too long
+    // }
+}
+
+// The following functions are for the STM32 firmware update process.
+
+#define STM32_WRITE_BLOCK_MAX 256
+
+uint8_t *stm32PageBuffer = nullptr; // Buffer written to the STM32 flash in 256 byte chunks
+uint16_t stm32BufferIndex = 0;
+
+uint32_t stm32CurrentAddress = 0x08000000; // Next flash address to write; advances as pages are flashed
+
+bool stm32UpdateFailed = false; // Set once a flash block write fails past its retries; halts further processing
+
+// Given a chunk of raw binary firmware bytes, feed the STM32 firmware update machine.
+// The binary blob is contiguous, so bytes are simply appended to the page buffer and
+// flashed every time a full 256 byte page accumulates.
+void stm32UpdateFirmware(uint8_t *dataArray, uint16_t bytesToWrite)
+{
+    if (stm32UpdateFailed)
+        return; // A prior block write failed - stop touching the page buffer/flash
+
+    stm32UpdatePageBuffer(dataArray, bytesToWrite);
+
+    muxSelectUsb();                               // Reconnect USB to print to terminal
+    firmwareUpdateProgressCallback(bytesToWrite); // Notify callback
+    Serial.flush();
+    muxSelectLoRaCommunication(); // Torch: Disconnect USB, connect to LoRa
+}
+
+// Helper to send STM32 commands and wait for ACK (0x79)
+bool stm32FirmwareUpdateWaitForAck()
+{
+    uint32_t startTime = millis();
+    while (millis() - startTime < 1000)
+    {
+        if (SerialForLoRa.available())
+        {
+            if (SerialForLoRa.read() == 0x79)
+                return true;
+        }
+        else
+            yield(); // Feed the idle/watchdog task while waiting on the UART
+    }
+    return false;
+}
+
+// Function to put STM32 into bootload mode and initialize UART sync
+void stm32UpdateFirmwareBegin()
+{
+    loraPowerOn(); // Regardless of previous state, turn on the STM32
+
+    loraEnterBootloader(); // Torch: Control Boot pin and reset the STM32
+    // gpioExpanderLoraBootEnable(); // Pull BOOT0 high to enter bootloader mode on reset
+    // loraReset(); // Power cycle LoRa to reset into bootloader mode
+
+    stm32UpdateFailed = false;
+
+    // Send 0x7F for auto-baud detection
+    SerialForLoRa.write(0x7F);
+    if (stm32FirmwareUpdateWaitForAck())
+    {
+        sharedSystemPrintln("STM32 Bootloader Synced.");
+    }
+    else
+    {
+        sharedSystemPrintln("STM32 Bootloader failed to sync - aborting update.");
+        stm32UpdateFailed = true;
+        return;
+    }
+
+    sharedSystemPrintln("Erasing flash...");
+
+    // Global Mass Erase Command (0x44 for extended erase)
+    SerialForLoRa.write(0x44);
+    SerialForLoRa.write(0xBB); // Checksum for 0x44
+    if (stm32FirmwareUpdateWaitForAck())
+    {
+        SerialForLoRa.write(0xFF); // Special Mass Erase
+        SerialForLoRa.write(0xFF);
+        SerialForLoRa.write(0x00); // Checksum
+        // Mass erase of the whole chip can take much longer than a normal command ACK,
+        // so poll well past the usual 1 second window before giving up.
+        bool erased = false;
+        uint32_t eraseStartTime = millis();
+        while (millis() - eraseStartTime < 20000)
+        {
+            if (stm32FirmwareUpdateWaitForAck())
+            {
+                erased = true;
+                break;
+            }
+            yield(); // Each failed attempt above already yields internally, but be explicit here too
+        }
+
+        if (erased == false)
+        {
+            sharedSystemPrintln("STM32 mass erase failed to ACK - aborting update.");
+            stm32UpdateFailed = true;
+            return;
+        }
+        sharedSystemPrintln("STM32 Erased.");
+    }
+    else
+    {
+        sharedSystemPrintln("STM32 did not ACK erase command - aborting update.");
+        stm32UpdateFailed = true;
+        return;
+    }
+
+    // Allocate page buffer if not already allocated
+    if (stm32PageBuffer == nullptr)
+        stm32PageBuffer = (uint8_t *)malloc(STM32_WRITE_BLOCK_MAX);
+
+    stm32BufferIndex = 0;
+    stm32CurrentAddress = 0x08000000; // Reset to Flash start for this update
+    firmwareUpdateBytesProcessed = 0;
+    firmwareUpdateBytesToProcess = sizeof(lora_firmware_3_0_1);
+}
+
+// Write a 256-byte chunk to the STM32 Flash
+bool stm32FirmwareUpdateFlashBlock(uint32_t addr, uint8_t *data, uint16_t len)
+{
+    if (len == 0)
+        return true;
+
+    // systemPrintf("Flashing block: Addr=0x%08X, Len=%d\n\r", addr, len);
+
+    // Write Memory Command
+    SerialForLoRa.write(0x31);
+    SerialForLoRa.write(0xCE);
+    if (stm32FirmwareUpdateWaitForAck() == false)
+        return false;
+
+    // Send Address + Checksum
+    uint8_t addrBytes[4] = {(uint8_t)(addr >> 24), (uint8_t)(addr >> 16), (uint8_t)(addr >> 8), (uint8_t)addr};
+    uint8_t checksum = addrBytes[0] ^ addrBytes[1] ^ addrBytes[2] ^ addrBytes[3];
+    SerialForLoRa.write(addrBytes, 4);
+    SerialForLoRa.write(checksum);
+
+    if (stm32FirmwareUpdateWaitForAck() == false)
+        return false;
+
+    // Send Number of bytes - 1 (STM32 protocol requirement)
+    uint8_t n = len - 1;
+    SerialForLoRa.write(n);
+    checksum = n;
+    for (uint16_t i = 0; i < len; i++)
+    {
+        SerialForLoRa.write(data[i]);
+        checksum ^= data[i];
+    }
+    SerialForLoRa.write(checksum);
+
+    return stm32FirmwareUpdateWaitForAck();
+}
+
+// Add data to the stm32PageBuffer. Write to STM32 when we hit 256 bytes.
+// The binary blob is contiguous, so bytes are always appended at stm32CurrentAddress,
+// which advances by one page every time a full 256 byte block is flashed.
+void stm32UpdatePageBuffer(uint8_t *dataArray, uint16_t bytesToWrite)
+{
+    for (uint16_t i = 0; i < bytesToWrite; i++)
+    {
+        stm32PageBuffer[stm32BufferIndex++] = dataArray[i];
+        // Once we hit 256 bytes, write to STM32
+        if (stm32BufferIndex == STM32_WRITE_BLOCK_MAX)
+        {
+            // A single dropped ACK/NACK is common on real hardware - retry a few times
+            // before treating it as fatal so the buffer index is always resolved one way
+            // or another (never left sitting at 256, which would overflow stm32PageBuffer).
+            bool wrote = false;
+            for (uint8_t attempt = 0; attempt < 3 && !wrote; attempt++)
+                wrote = stm32FirmwareUpdateFlashBlock(stm32CurrentAddress, stm32PageBuffer, STM32_WRITE_BLOCK_MAX);
+
+            stm32BufferIndex = 0; // Buffer is consumed either way - never let it stay at 256
+
+            if (wrote)
+                stm32CurrentAddress += STM32_WRITE_BLOCK_MAX;
+            else
+            {
+                muxSelectUsb(); // Reconnect USB to print to terminal
+                Serial.printf("Flash write failed at address 0x%08X - aborting update.\n\r", stm32CurrentAddress);
+                Serial.flush();
+                muxSelectLoRaCommunication(); // Torch: Disconnect USB, connect to LoRa
+
+                stm32UpdateFailed = true;
+                return;
+            }
+        }
+    }
+}
+
+// Flushes remaining bytes, cleans up memory, and resets the STM32
+bool stm32UpdateFirmwareEnd()
+{
+    bool success = !stm32UpdateFailed;
+    if (success && stm32BufferIndex > 0)
+    {
+        // systemPrintf("Flushing final block: Addr=0x%08X, BufferIndex=%d\n\r", stm32CurrentAddress, stm32BufferIndex);
+        success = stm32FirmwareUpdateFlashBlock(stm32CurrentAddress, stm32PageBuffer, stm32BufferIndex);
+    }
+
+    free(stm32PageBuffer);
+    stm32PageBuffer = nullptr;
+
+    // systemPrintln("Update Complete. Resetting IC...");
+
+    // gpioExpanderLoraBootDisable(); // Pull BOOT0 low to exit bootloader mode on reset
+    loraReset(); // Power cycle LoRa to reset into normal mode
+
+    return success;
+}

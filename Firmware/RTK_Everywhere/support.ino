@@ -1,5 +1,5 @@
 /*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-Support.ino
+support.ino
 
   Helper functions to support printing to either the serial port or bluetooth connection
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
@@ -125,9 +125,6 @@ void systemFlush()
 
     // Flush active Bluetooth device, does nothing when Bluetooth is off
     bluetoothFlush();
-
-    // Flush active TCP client, does nothing when no client is connected
-    tcpServerFlush();
 }
 
 // Output a byte to the serial port
@@ -747,9 +744,58 @@ void checkArrayDefaults()
 // Verify table sizes match enum definitions
 void verifyTables()
 {
+    // Verify the brand table
+    if (RTKBrandAttributesEntries != BRAND_NUM)
+        reportFatalError("Fix RTKBrandAttributes to match RTKBrands_e");
+    for (int index = 0; index < BRAND_NUM; index++)
+        if (RTKBrandAttributes[index].brand != index)
+            reportFatalError("RTKBrandAttributes entries are out of order");
+
+    // Verify the product housing table
+    if (productHousingEntries != (RTK_HOUSING_MAX_NONE + 1))
+        reportFatalError("Fix productHousingPropertiesTable to match ProductVariantHousing");
+    for (int index = 0; index <= RTK_HOUSING_MAX_NONE; index++)
+        if (productHousingPropertiesTable[index].housing != index)
+            reportFatalError("productHousingPropertiesTable entries are out of order");
+
+    // Verify the allVariants list
+    uint32_t productBitMap = 0;
+    for (int index = 0; index < productVariantCount; index++)
+    {
+        if ((allVariants[index] < 0) || (allVariants[index] > RTK_UNKNOWN))
+            reportFatalError("Remove bad values from allVariants list");
+        uint32_t bitMask = 1 << allVariants[index];
+        if (productBitMap & bitMask)
+            reportFatalError("Remove duplicate entries from allVariants list");
+        productBitMap |= bitMask;
+    }
+
+    // Verify that RTK_UNKNOWN is in the allVariants list
+    uint32_t bitMask = 1 << RTK_UNKNOWN;
+    if ((productBitMap & bitMask) == 0)
+        reportFatalError("RTK_UNKNOWN missing from allVariants list");
+
     // Verify the product properties table
     if (productPropertiesEntries != productVariantCount)
-        reportFatalError("Fix productPropertiesTable to match ProductVariant");
+        reportFatalError("Fix productPropertiesTable to match ProductVariant enum");
+    for (int index = 0; index < productVariantCount; index++)
+    {
+        const productProperties * product = &productPropertiesTable[index];
+        if ((product->productVariant < 0) || (product->productVariant > RTK_UNKNOWN))
+            reportFatalError("Remove bad productVariant values from productPropertiesTable");
+        uint32_t bitMask = 1 << product->productVariant;
+        if ((productBitMap & bitMask) == 0)
+            reportFatalError("productPropertiesTable contains entry not listed in allVariants list");
+        if ((product->brand < 0) || (product->brand >= BRAND_NUM))
+            reportFatalError("Fix productPropertiesTable brand entries < BRAND_NUM");
+        if ((product->housing < 0) || (product->housing > RTK_HOUSING_MAX_NONE))
+            reportFatalError("Fix productPropertiesTable housing entries <= RTK_HOUSING_MAX_NONE");
+    }
+
+    // Verify that RTK_UNKNOWN is the last entry in the productPropertiesTable
+    const productProperties * product = &productPropertiesTable[productVariantCount - 1];
+    if (product->productVariant != RTK_UNKNOWN)
+        reportFatalError("Last entry in productPropertiesTable MUST be RTK_UNKNOWN");
 
     // Verify the measurement scales
     if (measurementScaleEntries != MEASUREMENT_UNITS_MAX)
@@ -773,6 +819,9 @@ void verifyTables()
     pointPerfectVerifyTables();
     wifiVerifyTables();
     gnssVerifyTables();
+    lg290pVerifyTables();
+    nvmVerifyTables();
+    zedVerifyTables();
 
     if (CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");
@@ -1238,7 +1287,7 @@ void assembleDeviceName()
     RTKBrandAttribute *brandAttributes = getBrandAttributeFromProductVariant(productVariant);
 
     char gnssModelIdentifier[2] = {0};
-    char tiltIdentifier[2] = {0};
+    char tiltIdentifier[3] = {0};
 
     if (productVariant == RTK_FACET_FP)
     {
@@ -1255,7 +1304,7 @@ void assembleDeviceName()
 
         // Form the Tilt identifier.
         if (settings.detectedTilt)
-            snprintf(tiltIdentifier, sizeof(tiltIdentifier), "T");
+            snprintf(tiltIdentifier, sizeof(tiltIdentifier), "-T");
     }
 
     // Set the display name for the OLED: "TX2", "FPLT", "Facet LB"
@@ -1281,6 +1330,22 @@ void assembleDeviceName()
     }
 }
 
+
+const productProperties * getProductPropertiesFromAdcValue(uint16_t mvMeasured)
+{
+    // Walk the list of products
+    for (int i = 0; i < productPropertiesEntries; i++)
+    {
+        const productProperties *prop = &productPropertiesTable[i];
+        if ((prop->tolerancePercentage != 0.) &&
+            (idWithAdc(mvMeasured, prop->r1, prop->r2, prop->tolerancePercentage)))
+        {
+            return prop;
+        }
+    }
+    return nullptr;
+}
+
 const productProperties *getProductPropertiesFromVariant(ProductVariant variant)
 {
     for (int i = 0; i < productPropertiesEntries; i++)
@@ -1293,12 +1358,9 @@ const productProperties *getProductPropertiesFromVariant(ProductVariant variant)
 
 RTKBrandAttribute *getBrandAttributeFromBrand(RTKBrands_e brand)
 {
-    for (int i = 0; i < (int)RTKBrands_e::BRAND_NUM; i++)
-    {
-        if (RTKBrandAttributes[i].brand == brand)
-            return &RTKBrandAttributes[i];
-    }
-    return getBrandAttributeFromBrand(DEFAULT_BRAND);
+    if (brand >= BRAND_NUM)
+        brand = DEFAULT_BRAND;
+    return &RTKBrandAttributes[brand];
 }
 
 RTKBrandAttribute *getBrandAttributeFromProductVariant(ProductVariant variant)
@@ -1310,12 +1372,23 @@ RTKBrandAttribute *getBrandAttributeFromProductVariant(ProductVariant variant)
 const productHousingProperties *getProductHousingPropertiesFromVariant(ProductVariant variant)
 {
     const productProperties *properties = getProductPropertiesFromVariant(variant);
-    for (int i = 0; i < productHousingEntries; i++)
-    {
-        if (productHousingPropertiesTable[i].housing == properties->housing)
-            return &productHousingPropertiesTable[i];
-    }
-    return getProductHousingPropertiesFromVariant(RTK_UNKNOWN);
+    return &productHousingPropertiesTable[properties->housing];
+}
+
+// Construct the base product name
+String buildBaseProductName(ProductVariant variant)
+{
+    const productProperties * prop = getProductPropertiesFromVariant(variant);
+
+    // Get the product name
+    const char * brand = getBrandAttributeFromBrand(prop->brand)->name;
+    const char * product = prop->name;
+    String productName = String(brand);
+    productName += " ";
+    if (prop->rtkPrefix)
+        productName += "RTK ";
+    productName += product;
+    return productName;
 }
 
 // Used to report delay until next WiFi/NTRIP/etc connection attempt
@@ -1332,3 +1405,247 @@ const char *printMinuteSecondFromMilliseconds(uint32_t msToConvert)
 
     return (const char *)theTime;
 }
+
+//----------------------------------------
+// Configure UART2 serial port
+//----------------------------------------
+bool configureUart2(HardwareSerial **hwSerialPort)
+{
+    HardwareSerial *serialPort;
+
+    // Determine if serial port is already configured
+    serialPort = *hwSerialPort;
+    if (serialPort)
+        return true;
+
+    // Allocate the serial port object
+    serialPort = new HardwareSerial(2);
+
+    // Determine if the allocation failed
+    if (serialPort == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the serial port!\r\n");
+        return false;
+    }
+
+    // Configure the serial port
+    serialPort->setRxBufferSize(1024 * 1);
+    serialPort->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
+    *hwSerialPort = serialPort;
+    return true;
+}
+
+//----------------------------------------
+// Count the application partitions
+//----------------------------------------
+int countAppPartitions()
+{
+    // Count app partitions
+    int appPartitions = 0;
+    esp_partition_iterator_t it = esp_partition_find(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, nullptr);
+    while (it != nullptr)
+    {
+        appPartitions++;
+        it = esp_partition_next(it);
+    }
+    return appPartitions;
+}
+
+//----------------------------------------
+// Discard any input data
+//----------------------------------------
+void serialInputClear(Stream * stream)
+{
+    while (stream->available())
+        stream->read();
+}
+
+// Returns true if a file exists on LittleFS, false if not or if LittleFS is not mounted
+bool fileExistsLfs(const char *filename)
+{
+    if (online.fs == false)
+        return false;
+
+    if (LittleFS.exists(filename))
+    {
+        if (settings.debugSettings)
+            systemPrintf("LittleFS %s exists\r\n", filename);
+        return true;
+    }
+
+    return false;
+}
+
+// Returns true if file is successfully created
+// Used with passthrough files (LoRa, Tilt, GNSS, etc)
+bool createFileLfs(const char *filename)
+{
+    if (online.fs == false)
+        return false;
+
+    if (LittleFS.exists(filename))
+    {
+        if (settings.debugSettings)
+            systemPrintf("LittleFS %s already exists\r\n", filename);
+        return true;
+    }
+
+    File updateFile = LittleFS.open(filename, FILE_WRITE);
+    updateFile.close();
+
+    if (LittleFS.exists(filename))
+        return true;
+
+    if (settings.debugSettings)
+        systemPrintf("Unable to create %s on LittleFS\r\n", filename);
+    return false;
+}
+
+// Remove a given file from LFS
+bool removeFileLfs(const char *filename)
+{
+    if (online.fs == false)
+        return false;
+
+    if (LittleFS.exists(filename))
+    {
+        if (settings.debugSettings)
+            systemPrintf("Removing file: %s\r\n", filename);
+
+        LittleFS.remove(filename);
+        return true;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Open the URL
+//----------------------------------------
+#ifdef COMPILE_NETWORK
+bool openUrl(const char * url,
+             const char * cert,
+             String &server,
+             HTTPClient * &https,
+             size_t * fileBytes,
+             NetworkClient ** networkClient,
+             NetworkClientSecure ** secureClient,
+             uint32_t * startMsec,
+             bool debug)
+{
+    NetworkClientSecure * client;
+    const char * crcString;
+    int httpResponseCode;
+    if (debug)
+        systemPrintf("URL: %s\r\n", url);
+
+    // Locate the server
+    server = getServerFromUrl(url);
+    client = nullptr;
+
+    // openUrl() can't free the secure client itself: the returned stream IS that
+    // object, so ownership is handed back to the caller to free once done with it
+    if (secureClient)
+        *secureClient = nullptr;
+
+    // Allocate the HTTP client
+    https = new HTTPClient;
+    if (https == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the HTTP client\r\n");
+        return false;
+    }
+
+    // Use an encrypted connection when possible
+    if (cert == nullptr)
+        https->begin(url);
+    else
+    {
+        // Initialize the secure client
+        client = new NetworkClientSecure;
+        if (client == nullptr)
+        {
+            systemPrintf("ERROR: Failed to allocate network client!\r\n");
+            delete https;
+            https = nullptr;
+            return false;
+        }
+
+        // Set the certificate
+        client->setCACert(cert);
+
+        // Bound the connect/read/write and TLS handshake time. HTTPClient's
+        // defaults (30 s socket / 120 s handshake) mean a stalled server can
+        // block a single attempt for up to two minutes, times 3 retries below.
+        client->setTimeout(10000);       // milliseconds: TCP connect + socket read/write
+        client->setHandshakeTimeout(15); // seconds: TLS handshake
+
+        // Hand the not-yet-connected client straight to HTTPClient rather than
+        // preflighting a connect() here: HTTPClient::begin() unconditionally
+        // stops any already-connected socket it's handed (beginInternal() in
+        // arduino-esp32's HTTPClient.cpp forces _canReuse = false and calls
+        // disconnect() the first time a client is bound), so a separate
+        // connect-then-stop pass here would just pay for the TLS handshake
+        // twice. The GET retry loop below performs the (single) real connect
+        // and already retries 3x on failure.
+        https->begin(*client, url);
+    }
+
+    // Open the connection to the web server
+    httpResponseCode = 0;
+    for (int attempt = 1; attempt <= 3; attempt++)
+    {
+        if (startMsec)
+            *startMsec = millis();
+        https->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        httpResponseCode = https->GET();
+        if (httpResponseCode >= 0)
+            break;
+
+        if (debug)
+            systemPrintf("HTTP GET failed, attempt %d of 3: %d (%s)\r\n", attempt, httpResponseCode,
+                         https->errorToString(httpResponseCode).c_str());
+        https->end();
+        delay(500);
+        if (cert == nullptr)
+            https->begin(url);
+        else
+            https->begin(*client, url);
+    }
+
+    // Display the error
+    if ((httpResponseCode != 200) || debug)
+        systemPrintf("HTTP Response code: %d (%s)\r\n", httpResponseCode,
+                     https->errorToString(httpResponseCode).c_str());
+
+    // Handle the responses
+    if (httpResponseCode != 200)
+    {
+        systemPrintf("ERROR: Failed to open url: %s, error: %d\r\n", url, httpResponseCode);
+        delete https;
+        https = nullptr;
+        if (client)
+        {
+            delete client;
+            client = nullptr;
+        }
+        return false;
+    }
+
+    // Save the file length
+    if (fileBytes)
+    {
+        *fileBytes = https->getSize();
+        if (debug)
+            systemPrintf("File size: %d (0x%08x) bytes\r\n", *fileBytes, *fileBytes);
+    }
+
+    // Get TCP stream
+    if (networkClient)
+        *networkClient = https->getStreamPtr();
+
+    // Hand the secure client to the caller so it can be freed after https->end()
+    if (secureClient)
+        *secureClient = client;
+    return true;
+}
+#endif // COMPILE_NETWORK

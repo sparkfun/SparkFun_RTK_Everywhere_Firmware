@@ -37,26 +37,18 @@ Tilt.ino
 
 #ifdef COMPILE_IM19_IMU
 
-typedef enum
-{
-    TILT_DISABLED = 0,
-    TILT_OFFLINE,
-    TILT_STARTED,
-    TILT_INITIALIZED,
-    TILT_CORRECTING,
-    TILT_REQUEST_STOP,
-} TiltState;
-TiltState tiltState = TILT_DISABLED;
+IM19 * tiltSensor;
+
+uint32_t tiltCrc;
+float previousGGAUndulation = -9999.9999;
 
 // Tilt compensation sensor state machine
 void tiltUpdate()
 {
-    if (present.imu_im19 == false)
-        return;
-
+    // If the user has disabled the device, shut it down
     if (settings.enableTiltCompensation == false && tiltState != TILT_DISABLED)
     {
-        tiltStop(); // If the user has disabled the device, shut it down
+        tiltStop(); // Stop serial inteface. Mark IMU offline.
         tiltState = TILT_DISABLED;
     }
 
@@ -66,29 +58,36 @@ void tiltUpdate()
         systemPrintf("Unknown tiltState: %d\r\n", tiltState);
         break;
 
-    case TILT_DISABLED:
-        if (settings.enableTiltCompensation == true && tiltFailedBegin == false)
-            tiltState = TILT_OFFLINE;
+    case TILT_NOT_PRESENT:
+        if (present.imu_im19 == true)
+        {
+            // Try multiple times to configure IM19
+            uint8_t maxTries = 3;
+            for (int x = 0; x < maxTries; x++)
+            {
+                beginTilt(); // Start serial interface, get version, configure IM19
+                if (online.imu_im19 == true)
+                    break;
+            }
+
+            if (online.imu_im19 == true)
+                tiltState = TILT_STARTED;
+            else
+            {
+                systemPrintln("Tilt sensor failed to configure after multiple attempts.");
+                tiltFailedBegin = true;
+                tiltState = TILT_DISABLED;
+            }
+        }
+
         break;
 
-    case TILT_OFFLINE: {
-        // Try multiple times to configure IM19
-        uint8_t maxTries = 3;
-        for (int x = 0; x < maxTries; x++)
+    case TILT_DISABLED:
+        if (settings.enableTiltCompensation == true && tiltFailedBegin == false)
         {
-            beginTilt(); // Start IMU
-            if (tiltState == TILT_STARTED)
-                break;
+            tiltState = TILT_NOT_PRESENT; // Begin the machine again
         }
-
-        if (tiltState != TILT_STARTED) // If we failed to begin, disable future attempts
-        {
-            systemPrintln("Tilt sensor failed to configure after multiple attempts.");
-            tiltFailedBegin = true;
-            tiltState = TILT_DISABLED;
-        }
-    }
-    break;
+        break;
 
     case TILT_STARTED:
         // RTK Fix required for isInitialized so don't check tilt until we have RTK Fix.
@@ -103,7 +102,7 @@ void tiltUpdate()
         {
             lastTiltCheck = millis();
 
-            if (settings.antennaHeight_mm < 500)
+            if ((settings.antennaHeight_mm < 500) && (!inMainMenu))
                 systemPrintf("Warning: Short pole length detected: %0.3fm\r\n", settings.antennaHeight_mm / 1000.0);
 
             if (settings.enableImuDebug == true)
@@ -140,7 +139,7 @@ void tiltUpdate()
         {
             lastTiltCheck = millis();
 
-            if (settings.antennaHeight_mm < 500)
+            if ((settings.antennaHeight_mm < 500) && (!inMainMenu))
                 systemPrintf("Warning: Short pole length detected: %0.3fm\r\n", settings.antennaHeight_mm / 1000.0);
 
             if (settings.enableImuDebug == true)
@@ -190,7 +189,8 @@ void tiltUpdate()
         break;
 
     case TILT_REQUEST_STOP:
-        tiltStop(); // Changes state to TILT_OFFILINE
+        tiltStop(); // Stop serial inteface. Mark IMU offline.
+        tiltState = TILT_DISABLED;
         break;
     }
 }
@@ -283,12 +283,11 @@ void printTiltDebug()
     // if (naviStatus & (1 << 20)) //0x100000
     //     systemPrintln("Status: GNSS Connected"); //Module parses to RTK data "); // GnssConnect
     //     0x100000
-    if (naviStatus > 0x1FFFFF)
-    {
-        // Clear all lower/known bits
-        uint32_t bitsToShow = 0 ^ 0x1FFFFF;
-        systemPrintf("Status: Unknown status bits set: 0x%04X\r\n", naviStatus & bitsToShow);
-    }
+    // if (naviStatus > 0x1FFFFF)
+    // {
+    //     uint32_t bitsToShow = 0xFFFFFFFF ^ 0x1FFFFF; // Clear all lower/known bits
+    //     systemPrintf("Unknown tilt status bits set: 0x%04X\r\n", naviStatus & bitsToShow);
+    // }
 }
 
 // Start communication with the IM19 IMU
@@ -296,25 +295,43 @@ void beginTilt()
 {
     // Use UART2 on the ESP32 to receive IMU corrections
     // Shown as UART2 on these schematics: Torch, Facet FP
-    tiltSensor = new IM19();
+    beginUart2Serial();
     if (SerialForTilt == nullptr)
-        SerialForTilt = new HardwareSerial(2);
+        return;
 
-    SerialForTilt->setRxBufferSize(1024 * 1);
-
-    // We must start the serial port before handing it over to the library
-    SerialForTilt->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
-
+    tiltSensor = new IM19();
     if (settings.enableImuDebug == true)
         tiltSensor->enableDebugging(); // Print all debug to Serial
 
     if (tiltSensor->begin(*SerialForTilt) == false) // Give the serial port over to the library
     {
-        tiltStop(); // Free memory
+        tiltStop(); // Stop serial inteface. Mark IMU offline.
         return;
     }
 
     bool result = true;
+
+    result &= tiltSensor->getAppVersion(imuFirmwareVersionInt);
+
+    char rawFirmwareVersionStr[32]; // Ex: IM19_H2_B2.2_A11.4.1
+    result &= tiltSensor->getVersion(rawFirmwareVersionStr, sizeof(rawFirmwareVersionStr));
+
+    // Pull the pure number app version out of the full version string Ex: IM19_H2_B2.2_A11.4.1 -> 11.4.1
+    char *appVersionPtr = strstr(rawFirmwareVersionStr, "A");
+    if (appVersionPtr != nullptr)
+    {
+        snprintf(imuFirmwareVersionStr, sizeof(imuFirmwareVersionStr), "%s", appVersionPtr + 1);
+    }
+    else
+    {
+        systemPrintln("IM19 App Version not found in full version string");
+        imuFirmwareVersionStr[0] = '\0';
+    }
+
+    if (settings.enableImuDebug == true)
+        systemPrintf("IM19 Full Version: %s\r\n", rawFirmwareVersionStr);
+    else
+        systemPrintf("IMU firmware: %s\r\n", imuFirmwareVersionStr);
 
     // The filter has a set of default parameters, which can be loaded when setting an error.
     result &= tiltSensor->sendCommand("LOAD_DEFAULT");
@@ -325,13 +342,20 @@ void beginTilt()
     // Use serial port 1 as the main output with combined navigation data output
     result &= tiltSensor->sendCommand("NAVI_OUTPUT=UART1,ON");
 
+    // The following commands take time to output their full response. Delay to allow the serial to arrive, and then be
+    // flushed by the next sendCommand().
+
     // If defined, set the IMU installation angle - before LEVER_ARM2
     // "the AT+INSTALL_ANGLE command must be sent firstly"
     if (strlen(variantHousingProperties->installAngle) > 0)
         result &= tiltSensor->sendCommand(variantHousingProperties->installAngle);
 
+    delay(25);
+
     // Set the LEVER_ARM(2) distance of the antenna ARP from the IMU
     result &= tiltSensor->sendCommand(variantHousingProperties->leverArm);
+
+    delay(25);
 
     // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
     // POC 19.25mm = 1915.7mm
@@ -344,6 +368,8 @@ void beginTilt()
         systemPrintf("Setting club vector to: %s\r\n", clubVector);
 
     result &= tiltSensor->sendCommand(clubVector);
+
+    delay(25);
 
     // Configure interface type
     result &= tiltSensor->sendCommand(variantHousingProperties->gnssCard);
@@ -358,8 +384,14 @@ void beginTilt()
     // result &= tiltSensor->sendCommand("MEMS_OUTPUT=UART1,ON"); //Stock firmware enables MEMS
     result &= tiltSensor->sendCommand("MEMS_OUTPUT=UART1,OFF");
 
-    // Unknown new command for v2
-    result &= tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); // From stock firmware
+    // The 'CORRECT_HOLDER' command is not supported on app versions 11.1 and later.
+    // The command *is* supported on older 6.1 and 9.2 firmware. The command is not documented in the IM19 datasheet,
+    // but was found in the Torch v2 example firmware.
+    if (imuFirmwareVersionInt <= 920)
+    {
+        result &=
+            tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); // Unknown new command found in Torch v2 example firmware
+    }
 
     // Trigger IMU on PPS from GNSS
     result &= tiltSensor->sendCommand("SET_PPS_EDGE=RISING");
@@ -375,22 +407,47 @@ void beginTilt()
         if (tiltSensor->saveConfiguration() == true)
         {
             systemPrintln("Tilt sensor configuration complete");
-            tiltState = TILT_STARTED;
+            online.imu_im19 = true;
             return; // Success
         }
     }
 
-    tiltStop(); // Free memory
+    tiltStop(); // Stop serial inteface. Mark IMU offline.
 }
 
+// Based on the imuFirmwareVersionStr, modify major, minor, and patch to reflect the IM19 firmware version. Ex: 11.4.1 -> 11, 4, 1, 11.4 -> 11, 4, 0
+// Gracefully handle missing patch version
+bool tiltGetVersion(int &major, int &minor, int &patch, int &revision, int &releaseCandidate)
+{
+    major = 0;
+    minor = 0;
+    patch = 0;
+    revision = 0;
+    releaseCandidate = 0;
+
+    if (strlen(imuFirmwareVersionStr) == 0)
+        return false;
+
+    char versionCopy[32];
+    snprintf(versionCopy, sizeof(versionCopy), "%s", imuFirmwareVersionStr);
+
+    char *token = strtok(versionCopy, ".");
+    if (token != nullptr)
+        major = atoi(token);
+
+    token = strtok(nullptr, ".");
+    if (token != nullptr)
+        minor = atoi(token);
+
+    token = strtok(nullptr, ".");
+    if (token != nullptr)
+        patch = atoi(token);
+    return true;
+}
+
+// Stops serial inteface. Marks tilt offline.
 void tiltStop()
 {
-    // Gracefully stop the UART before freeing resources
-    while (SerialForTilt->available())
-        SerialForTilt->read();
-
-    SerialForTilt->end();
-
     // Free the resources
     if (tiltSensor != nullptr)
     {
@@ -398,16 +455,15 @@ void tiltStop()
         tiltSensor = nullptr;
     }
 
-    if (SerialForTilt != nullptr)
-    {
-        delete SerialForTilt;
-        SerialForTilt = nullptr;
-    }
+    // Gracefully stop the UART before freeing resources
+    while (SerialForTilt->available())
+        SerialForTilt->read();
 
-    if (tiltState == TILT_CORRECTING)
-        beepDurationMs(1000); // Indicate we are going offline
+    // Beep to indicate we are going offline - but only from tiltRequestStop
+    if (tiltState == TILT_REQUEST_STOP)
+        beepDurationMs(1000);
 
-    tiltState = TILT_OFFLINE;
+    online.imu_im19 = false;
 }
 
 // Called by other tasks. Prevents stopping serial port while within a library transaction.
@@ -431,18 +487,10 @@ void tiltSensorFactoryReset()
         tiltSensor->factoryReset();
 }
 
-// Given a NMEA sentence, modify the sentence to use the latest tilt-compensated lat/lon/alt
-// Modifies the sentence directly. Updates sentence CRC.
+// Modify a GGA/GNS/GLL/RMC sentence with tilt compensation
 // Auto-detects sentence type and will only modify sentences that have lat/lon/alt (ie GGA yes, GSV no)
 // Which sentences have altitude? Yes: GGA, GNS No: RMC, GLL
 // Which sentences have undulation? Yes: GGA, GNS No: RMC, GLL
-// Four possible compensations:
-// If tilt is active, and outputTipAltitude is enabled, then subtract undulation from IMU altitude, and apply LLA
-// compensation. If tilt is active, and outputTipAltitude is disabled, then subtract undulation from IMU altitude, and
-// add pole+ARP. If tilt is off, and outputTipAltitude is enabled, then subtract pole+ARP from altitude. If tilt is off,
-// and outputTipAltitude is disabled, then pass GNSS data without modification. See issues:
-//   https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
-//   https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/343
 void nmeaApplyCompensation(char *nmeaSentence, int sentenceLength)
 {
     // If tilt is off, and outputTipAltitude is disabled, then pass GNSS data without modification
@@ -478,504 +526,81 @@ void nmeaApplyCompensation(char *nmeaSentence, int sentenceLength)
     }
 }
 
+// Modify a GGA sentence with tilt compensation
+void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
+{
+    //$GNGGA,213441.00,4005.41769994,N,10507.40740734,W,1,12,99.99,1602.348,M,-21.3612,M,,*4C
+    const int latitudeComma = 2;
+    const int longitudeComma = 4;
+    const int altitudeComma = 9;
+    const int undulationComma = 11;
+
+    applyCompensationCommon(nmeaSentence, sentenceLength, "GGA", &latitudeComma, &longitudeComma, &altitudeComma, &undulationComma);
+}
+
 // Modify a GNS sentence with tilt compensation
-//$GNGNS,024034.00,4004.73854216,N,11614.19720023,E,ANAAA,28,0.8,1574.406,-8.4923,,,S*71 - Original
-//$GNGNS,024034.00,4004.73854216,N,11614.19720023,E,ANAAA,28,0.8,1589.4793,-8.4923,,,S*7E - Modified
-// 1580.987 is what is provided by the IMU and is the ellisoidal height
-// 1580.987 is called 'ellipsoidal height' in SW Maps and includes the MSL + undulation
-// To get mean sea level: 1580.987 - -8.4923 = 1589.4793
-// 1589.4793 is the orthometric height in meters (MSL reference) that we need to insert into the NMEA sentence
-// See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
-// https://support.virtual-surveyor.com/support/solutions/articles/1000261349-the-difference-between-ellipsoidal-geoid-and-orthometric-elevations-
 void applyCompensationGNS(char *nmeaSentence, int sentenceLength)
 {
+    //$GNGNS,024034.00,4004.73854216,N,11614.19720023,E,ANAAA,28,0.8,1589.4793,-8.4923,,,S*48
     const int latitudeComma = 2;
     const int longitudeComma = 4;
     const int altitudeComma = 9;
     const int undulationComma = 10;
 
-    uint8_t latitudeStart = 0;
-    uint8_t latitudeStop = 0;
-    uint8_t longitudeStart = 0;
-    uint8_t longitudeStop = 0;
-    uint8_t altitudeStart = 0;
-    uint8_t altitudeStop = 0;
-    uint8_t undulationStart = 0;
-    uint8_t undulationStop = 0;
-    uint8_t checksumStart = 0;
-
-    if (settings.enableImuCompensationDebug == true && !inMainMenu)
-        systemPrintf("Original GNGNS:\r\n%s\r\n", nmeaSentence);
-
-    int commaCount = 0;
-    for (int x = 0; x < strnlen(nmeaSentence, sentenceLength); x++) // Assumes sentence is null terminated
-    {
-        if (nmeaSentence[x] == ',')
-        {
-            commaCount++;
-            if (commaCount == latitudeComma)
-                latitudeStart = x + 1;
-            if (commaCount == latitudeComma + 1)
-                latitudeStop = x;
-            if (commaCount == longitudeComma)
-                longitudeStart = x + 1;
-            if (commaCount == longitudeComma + 1)
-                longitudeStop = x;
-            if (commaCount == altitudeComma)
-                altitudeStart = x + 1;
-            if (commaCount == altitudeComma + 1)
-                altitudeStop = x;
-            if (commaCount == undulationComma)
-                undulationStart = x + 1;
-            if (commaCount == undulationComma + 1)
-                undulationStop = x;
-        }
-        if (nmeaSentence[x] == '*')
-        {
-            checksumStart = x;
-            break;
-        }
-    }
-
-    if (latitudeStart == 0 || latitudeStop == 0 || longitudeStart == 0 || longitudeStop == 0 || altitudeStart == 0 ||
-        altitudeStop == 0 || undulationStart == 0 || undulationStop == 0 || checksumStart == 0)
-    {
-        systemPrintln("Delineator not found");
-        return;
-    }
-
-    // Extract the altitude
-    char altitudeStr[strlen("-1602.3481") + 1]; // 4 decimals
-    strncpy(altitudeStr, &nmeaSentence[altitudeStart], altitudeStop - altitudeStart);
-    float altitude = (float)atof(altitudeStr);
-
-    // Extract the undulation
-    char undulationStr[strlen("-1602.3481") + 1]; // 4 decimals
-    strncpy(undulationStr, &nmeaSentence[undulationStart], undulationStop - undulationStart);
-    float undulation = (float)atof(undulationStr);
-
-    char newSentence[150] = {0};
-
-    if (sizeof(newSentence) < sentenceLength)
-    {
-        systemPrintln("newSentence not big enough!");
-        return;
-    }
-
-    char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
-
-    // strncat terminates
-
-    if (tiltIsCorrecting() == true)
-    {
-        // Add start of message up to latitude
-        strncat(newSentence, nmeaSentence, latitudeStart);
-
-        // Convert tilt-compensated latitude to DDMM
-        coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
-                               sizeof(coordinateStringDDMM));
-
-        // Check if latitude length has changed
-        if (strlen(coordinateStringDDMM) != (latitudeStop - latitudeStart))
-        {
-            if (settings.enableImuCompensationDebug == true && !inMainMenu)
-                systemPrintf("Compensated latitude length has changed! Orig: %d New: %d\r\n",
-                             (latitudeStop - latitudeStart), strlen(coordinateStringDDMM));
-        }
-
-        // Add tilt-compensated Latitude
-        strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-        // We can't allow the message length to change. Truncate if needed
-        while (strlen(newSentence) > latitudeStop)
-            *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
-
-        // We can't allow the message length to change. Pad with zeros if needed
-        while (strlen(newSentence) < latitudeStop)
-            strncat(newSentence, "0", sizeof(newSentence) - 1);
-
-        // Add interstitial between end of lat and beginning of lon
-        strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
-
-        // Convert tilt-compensated longitude to DDMM
-        coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
-                               sizeof(coordinateStringDDMM));
-
-        // Check if longitude length has changed
-        if (strlen(coordinateStringDDMM) != (longitudeStop - longitudeStart))
-        {
-            if (settings.enableImuCompensationDebug == true && !inMainMenu)
-                systemPrintf("Compensated longitude length has changed! Orig: %d New: %d\r\n",
-                             (longitudeStop - longitudeStart), strlen(coordinateStringDDMM));
-        }
-
-        // Add tilt-compensated Longitude
-        strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-        // We can't allow the message length to change. Truncate if needed
-        while (strlen(newSentence) > longitudeStop)
-            *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
-
-        // We can't allow the message length to change. Pad with zeros if needed
-        while (strlen(newSentence) < longitudeStop)
-            strncat(newSentence, "0", sizeof(newSentence) - 1);
-
-        // Add interstitial between end of lon and beginning of alt
-        strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
-    }
-    else // No tilt compensation, no changes to the lat/lon
-    {
-        // Add start of message up to altitude
-        strncat(newSentence, nmeaSentence, altitudeStart);
-    }
-
-    // Calculate newAltitude based on tilt mode and outputTipAltitude setting
-    float newAltitude = 0;
-    if (tiltIsCorrecting() == true)
-    {
-        // If tilt is active and outputTipAltitude is disabled, then subtract undulation from IMU altitude, and add
-        // pole+ARP
-        if (settings.outputTipAltitude == false)
-            newAltitude = tiltSensor->getNaviAltitude() - undulation +
-                          ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
-
-        // If tilt is active and outputTipAltitude is enabled, then subtract undulation from IMU altitude
-        else if (settings.outputTipAltitude == true)
-            newAltitude = tiltSensor->getNaviAltitude() - undulation;
-    }
-    else
-    {
-        // If tilt is off and outputTipAltitude is enabled, then subtract pole+ARP from altitude
-        if (settings.outputTipAltitude == true)
-            newAltitude = altitude - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
-
-        // If tilt is off and outputTipAltitude is disabled, then we should not be here
-    }
-
-    // Convert altitude double to string
-    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", newAltitude);
-
-    // Check if altitude length has changed
-    if (strlen(coordinateStringDDMM) != (altitudeStop - altitudeStart))
-    {
-        if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("Compensated altitude length has changed! Orig: %d New: %d\r\n",
-                         (altitudeStop - altitudeStart), strlen(coordinateStringDDMM));
-    }
-
-    // Add tilt-compensated Altitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-    // We can't allow the message length to change. Truncate if needed
-    // altitudeStop is the position of the comma.
-    while (strlen(newSentence) > altitudeStop)
-        *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
-
-    // We can't allow the message length to change. Pad with zeros if needed
-    while (strlen(newSentence) < altitudeStop)
-        strncat(newSentence, "0", sizeof(newSentence) - 1);
-
-    // Add remainder of the sentence up to checksum
-    strncat(newSentence, nmeaSentence + altitudeStop, checksumStart - altitudeStop);
-
-    // From: http://engineeringnotes.blogspot.com/2015/02/generate-crc-for-nmea-strings-arduino.html
-    byte CRC = 0; // XOR chars between '$' and '*'
-    for (byte x = 1; x < strlen(newSentence); x++)
-        CRC = CRC ^ newSentence[x];
-
-    // Convert CRC to string, add * and CR LF
-    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "*%02X\r\n", CRC);
-
-    // Add CRC
-    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-    // Overwrite the original NMEA
-    strncpy(nmeaSentence, newSentence, sentenceLength);
-
-    if (settings.enableImuCompensationDebug == true && !inMainMenu)
-        systemPrintf("Compensated GNGNS:\r\n%s\r\n", nmeaSentence);
+    applyCompensationCommon(nmeaSentence, sentenceLength, "GNS", &latitudeComma, &longitudeComma, &altitudeComma, &undulationComma);
 }
 
 // Modify a GLL sentence with tilt compensation
-//$GNGLL,4005.4176871,N,10511.1034563,W,214210.00,A,A*68 - Original
-//$GNGLL,4005.41769994,N,10507.40740734,W,214210.00,A,A*6D - Modified
 void applyCompensationGLL(char *nmeaSentence, int sentenceLength)
 {
     // GLL only needs to be changed in tilt mode
     if (tiltIsCorrecting() == false)
         return;
 
-    if (settings.enableImuCompensationDebug == true && !inMainMenu)
-        systemPrintf("Original GNGLL:\r\n%s\r\n", nmeaSentence);
-
-    char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
-
+    //$GNGLL,4005.41769994,N,10507.40740734,W,214210.00,A,A*6D
     const int latitudeComma = 1;
     const int longitudeComma = 3;
 
-    uint8_t latitudeStart = 0;
-    uint8_t latitudeStop = 0;
-    uint8_t longitudeStart = 0;
-    uint8_t longitudeStop = 0;
-    uint8_t checksumStart = 0;
-
-    int commaCount = 0;
-    for (int x = 0; x < strnlen(nmeaSentence, sentenceLength); x++) // Assumes sentence is null terminated
-    {
-        if (nmeaSentence[x] == ',')
-        {
-            commaCount++;
-            if (commaCount == latitudeComma)
-                latitudeStart = x + 1;
-            else if (commaCount == latitudeComma + 1)
-                latitudeStop = x;
-            else if (commaCount == longitudeComma)
-                longitudeStart = x + 1;
-            else if (commaCount == longitudeComma + 1)
-                longitudeStop = x;
-        }
-        if (nmeaSentence[x] == '*')
-        {
-            checksumStart = x;
-        }
-    }
-
-    if (latitudeStart == 0 || latitudeStop == 0 || longitudeStart == 0 || longitudeStop == 0 || checksumStart == 0)
-    {
-        systemPrintln("Delineator not found");
-        return;
-    }
-
-    char newSentence[150] = {0};
-
-    if (sizeof(newSentence) < sentenceLength)
-    {
-        systemPrintln("newSentence not big enough!");
-        return;
-    }
-
-    // strncat terminates
-    // Add start of message up to latitude
-    strncat(newSentence, nmeaSentence, latitudeStart);
-
-    // Convert tilt-compensated latitude to DDMM
-    coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
-                           sizeof(coordinateStringDDMM));
-
-    // Check if latitude length has changed
-    if (strlen(coordinateStringDDMM) != (latitudeStop - latitudeStart))
-    {
-        if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("Compensated latitude length has changed! Orig: %d New: %d\r\n",
-                         (latitudeStop - latitudeStart), strlen(coordinateStringDDMM));
-    }
-
-    // Add tilt-compensated Latitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-    // We can't allow the message length to change. Truncate if needed
-    while (strlen(newSentence) > latitudeStop)
-        *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
-
-    // We can't allow the message length to change. Pad with zeros if needed
-    while (strlen(newSentence) < latitudeStop)
-        strncat(newSentence, "0", sizeof(newSentence) - 1);
-
-    // Add interstitial between end of lat and beginning of lon
-    strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
-
-    // Convert tilt-compensated longitude to DDMM
-    coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
-                           sizeof(coordinateStringDDMM));
-
-    // Check if longitude length has changed
-    if (strlen(coordinateStringDDMM) != (longitudeStop - longitudeStart))
-    {
-        if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("Compensated longitude length has changed! Orig: %d New: %d\r\n",
-                         (longitudeStop - longitudeStart), strlen(coordinateStringDDMM));
-    }
-
-    // Add tilt-compensated Longitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-    // We can't allow the message length to change. Truncate if needed
-    while (strlen(newSentence) > longitudeStop)
-        *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
-
-    // We can't allow the message length to change. Pad with zeros if needed
-    while (strlen(newSentence) < longitudeStop)
-        strncat(newSentence, "0", sizeof(newSentence) - 1);
-
-    // Add remainder of the sentence up to checksum
-    strncat(newSentence, nmeaSentence + longitudeStop, checksumStart - longitudeStop);
-
-    // From: http://engineeringnotes.blogspot.com/2015/02/generate-crc-for-nmea-strings-arduino.html
-    byte CRC = 0; // XOR chars between '$' and '*'
-    for (byte x = 1; x < strlen(newSentence); x++)
-        CRC = CRC ^ newSentence[x];
-
-    // Convert CRC to string, add * and CR LF
-    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "*%02X\r\n", CRC);
-
-    // Add CRC
-    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-    // Overwrite the original NMEA
-    strncpy(nmeaSentence, newSentence, sentenceLength);
-
-    if (settings.enableImuCompensationDebug == true && !inMainMenu)
-        systemPrintf("Compensated GNGLL:\r\n%s\r\n", nmeaSentence);
+    applyCompensationCommon(nmeaSentence, sentenceLength, "GLL", &latitudeComma, &longitudeComma);
 }
 
 // Modify a RMC sentence with tilt compensation
-//$GNRMC,214210.00,A,4005.4176871,N,10511.1034563,W,0.000,,070923,,,A,V*04 - Original
-//$GNRMC,214210.00,A,4005.41769994,N,10507.40740734,W,0.000,,070923,,,A,V*01 - Modified
 void applyCompensationRMC(char *nmeaSentence, int sentenceLength)
 {
     // RMC only needs to be changed in tilt mode
     if (tiltIsCorrecting() == false)
         return;
 
-    if (settings.enableImuCompensationDebug == true && !inMainMenu)
-        systemPrintf("Original GNRMC:\r\n%s\r\n", nmeaSentence);
-
-    char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
-
+    //$GNRMC,214210.00,A,4005.41769994,N,10507.40740734,W,0.000,,070923,,,A,V*01
     const int latitudeComma = 3;
     const int longitudeComma = 5;
 
-    uint8_t latitudeStart = 0;
-    uint8_t latitudeStop = 0;
-    uint8_t longitudeStart = 0;
-    uint8_t longitudeStop = 0;
-    uint8_t checksumStart = 0;
-
-    int commaCount = 0;
-    for (int x = 0; x < strnlen(nmeaSentence, sentenceLength); x++) // Assumes sentence is null terminated
-    {
-        if (nmeaSentence[x] == ',')
-        {
-            commaCount++;
-            if (commaCount == latitudeComma)
-                latitudeStart = x + 1;
-            else if (commaCount == latitudeComma + 1)
-                latitudeStop = x;
-            else if (commaCount == longitudeComma)
-                longitudeStart = x + 1;
-            else if (commaCount == longitudeComma + 1)
-                longitudeStop = x;
-        }
-        if (nmeaSentence[x] == '*')
-        {
-            checksumStart = x;
-        }
-    }
-
-    if (latitudeStart == 0 || latitudeStop == 0 || longitudeStart == 0 || longitudeStop == 0 || checksumStart == 0)
-    {
-        systemPrintln("Delineator not found");
-        return;
-    }
-
-    char newSentence[150] = {0};
-
-    if (sizeof(newSentence) < sentenceLength)
-    {
-        systemPrintln("newSentence not big enough!");
-        return;
-    }
-
-    // strncat terminates
-    // Add start of message up to latitude
-    strncat(newSentence, nmeaSentence, latitudeStart);
-
-    // Convert tilt-compensated latitude to DDMM
-    coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
-                           sizeof(coordinateStringDDMM));
-
-    // Check if latitude length has changed
-    if (strlen(coordinateStringDDMM) != (latitudeStop - latitudeStart))
-    {
-        if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("Compensated latitude length has changed! Orig: %d New: %d\r\n",
-                         (latitudeStop - latitudeStart), strlen(coordinateStringDDMM));
-    }
-
-    // Add tilt-compensated Latitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-    // We can't allow the message length to change. Truncate if needed
-    while (strlen(newSentence) > latitudeStop)
-        *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
-
-    // We can't allow the message length to change. Pad with zeros if needed
-    while (strlen(newSentence) < latitudeStop)
-        strncat(newSentence, "0", sizeof(newSentence) - 1);
-
-    // Add interstitial between end of lat and beginning of lon
-    strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
-
-    // Convert tilt-compensated longitude to DDMM
-    coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
-                           sizeof(coordinateStringDDMM));
-
-    // Check if longitude length has changed
-    if (strlen(coordinateStringDDMM) != (longitudeStop - longitudeStart))
-    {
-        if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("Compensated longitude length has changed! Orig: %d New: %d\r\n",
-                         (longitudeStop - longitudeStart), strlen(coordinateStringDDMM));
-    }
-
-    // Add tilt-compensated Longitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-    // We can't allow the message length to change. Truncate if needed
-    while (strlen(newSentence) > longitudeStop)
-        *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
-
-    // We can't allow the message length to change. Pad with zeros if needed
-    while (strlen(newSentence) < longitudeStop)
-        strncat(newSentence, "0", sizeof(newSentence) - 1);
-
-    // Add remainder of the sentence up to checksum
-    strncat(newSentence, nmeaSentence + longitudeStop, checksumStart - longitudeStop);
-
-    // From: http://engineeringnotes.blogspot.com/2015/02/generate-crc-for-nmea-strings-arduino.html
-    byte CRC = 0; // XOR chars between '$' and '*'
-    for (byte x = 1; x < strlen(newSentence); x++)
-        CRC = CRC ^ newSentence[x];
-
-    // Convert CRC to string, add * and CR LF
-    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "*%02X\r\n", CRC);
-
-    // Add CRC
-    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-    // Overwrite the original NMEA
-    strncpy(nmeaSentence, newSentence, sentenceLength);
-
-    if (settings.enableImuCompensationDebug == true && !inMainMenu)
-        systemPrintf("Compensated GNRMC:\r\n%s\r\n", nmeaSentence);
+    applyCompensationCommon(nmeaSentence, sentenceLength, "RMC", &latitudeComma, &longitudeComma);
 }
 
-// Modify a GGA sentence with tilt compensation
-//$GNGGA,213441.00,4005.4176871,N,10511.1034563,W,1,12,99.99,1581.450,M,-21.3612,M,,*7D - Original
-//$GNGGA,213441.00,4005.41769994,N,10507.40740734,W,1,12,99.99,1602.348,M,-21.3612,M,,*4C - Modified
-// 1580.987 is what is provided by the IMU and is the ellisoidal height
-//'Ellipsoidal height' includes the MSL + undulation
-// To get mean sea level: 1580.987 - -21.3612 = 1602.3482
-// 1602.3482 is the orthometric height in meters (MSL reference) that we need to insert into the NMEA sentence
+// Given a NMEA sentence, modify the sentence to use the latest tilt-compensated lat/lon/alt
+// Modifies the sentence directly. Updates sentence CRC
+// Note that the IM19 IMU outputs height above ellipsoid, not orthometric height
+// We need to subtract the Geoidal separation (undulation) to convert height above ellipsoid back into
+// orthometric height (altitude above mean sea level)
 // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
 // https://support.virtual-surveyor.com/support/solutions/articles/1000261349-the-difference-between-ellipsoidal-geoid-and-orthometric-elevations-
-void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
+// For GLL and RMC, altitudeComma and undulationComma are nullptr
+// Four possible compensations:
+// If tilt is active, and outputTipAltitude is enabled, then subtract undulation from IMU altitude, and
+// apply LLA compensation.
+// If tilt is active, and outputTipAltitude is disabled, then subtract undulation from IMU altitude, and
+// add pole+ARP. I.e. output altitude as if the pole were vertical.
+// If tilt is off, and outputTipAltitude is enabled, then subtract pole+ARP from altitude.
+// If tilt is off, and outputTipAltitude is disabled, then pass GNSS data without modification.
+// See issues:
+//   https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
+//   https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/343
+//   https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/1112
+void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char *nmeaType,
+                           const int *latitudeComma, const int *longitudeComma,
+                           const int *altitudeComma, const int *undulationComma)
 {
-    const int latitudeComma = 2;
-    const int longitudeComma = 4;
-    const int altitudeComma = 9;
-    const int undulationComma = 11;
-
     uint8_t latitudeStart = 0;
     uint8_t latitudeStop = 0;
     uint8_t longitudeStart = 0;
@@ -987,7 +612,7 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
     uint8_t checksumStart = 0;
 
     if (settings.enableImuCompensationDebug == true && !inMainMenu)
-        systemPrintf("Original GNGGA:\r\n%s\r\n", nmeaSentence);
+        systemPrintf("Original %s:\r\n%s\r\n", nmeaType, nmeaSentence);
 
     int commaCount = 0;
     for (int x = 0; x < strnlen(nmeaSentence, sentenceLength); x++) // Assumes sentence is null terminated
@@ -995,22 +620,28 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
         if (nmeaSentence[x] == ',')
         {
             commaCount++;
-            if (commaCount == latitudeComma)
+            if (commaCount == *latitudeComma)
                 latitudeStart = x + 1;
-            if (commaCount == latitudeComma + 1)
+            if (commaCount == *latitudeComma + 1)
                 latitudeStop = x;
-            if (commaCount == longitudeComma)
+            if (commaCount == *longitudeComma)
                 longitudeStart = x + 1;
-            if (commaCount == longitudeComma + 1)
+            if (commaCount == *longitudeComma + 1)
                 longitudeStop = x;
-            if (commaCount == altitudeComma)
-                altitudeStart = x + 1;
-            if (commaCount == altitudeComma + 1)
-                altitudeStop = x;
-            if (commaCount == undulationComma)
-                undulationStart = x + 1;
-            if (commaCount == undulationComma + 1)
-                undulationStop = x;
+            if (altitudeComma)
+            {
+                if (commaCount == *altitudeComma)
+                    altitudeStart = x + 1;
+                if (commaCount == *altitudeComma + 1)
+                    altitudeStop = x;
+                if (undulationComma)
+                {
+                    if (commaCount == *undulationComma)
+                        undulationStart = x + 1;
+                    if (commaCount == *undulationComma + 1)
+                        undulationStop = x;
+                }
+            }
         }
         if (nmeaSentence[x] == '*')
         {
@@ -1019,41 +650,88 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
         }
     }
 
-    if (latitudeStart == 0 || latitudeStop == 0 || longitudeStart == 0 || longitudeStop == 0 || altitudeStart == 0 ||
-        altitudeStop == 0 || undulationStart == 0 || undulationStop == 0 || checksumStart == 0)
+    bool commasOk = (latitudeStart > 0) && (latitudeStop > 0)
+                    && (longitudeStart > 0) && (longitudeStop > 0);
+    if (altitudeComma)
     {
-        systemPrintln("Delineator not found");
+        commasOk &= (altitudeStart > 0) && (altitudeStop > 0);
+        if (undulationComma)
+            commasOk &= (undulationStart > 0) && (undulationStop > 0);
+        else
+            commasOk = false; // If we have altitudeComma, we must also have undulationComma
+    }
+    commasOk &= checksumStart > 0;
+
+    if (!commasOk)
+    {
+        systemPrintf("applyCompensationCommon: %s delineator not found\r\n", nmeaType);
         return;
     }
 
-    // Extract the altitude
     char altitudeStr[strlen("-1602.3481") + 1]; // 4 decimals
-    strncpy(altitudeStr, &nmeaSentence[altitudeStart], altitudeStop - altitudeStart);
-    float altitude = (float)atof(altitudeStr);
-
-    // Extract the undulation
     char undulationStr[strlen("-1602.3481") + 1]; // 4 decimals
-    strncpy(undulationStr, &nmeaSentence[undulationStart], undulationStop - undulationStart);
-    float undulation = (float)atof(undulationStr);
+    float altitude;
+    float undulation;
+
+    if (altitudeComma)
+    {
+        // Extract the altitude
+        strncpy(altitudeStr, &nmeaSentence[altitudeStart], altitudeStop - altitudeStart);
+        altitude = (float)atof(altitudeStr);
+
+        if (undulationComma)
+        {
+            // Extract the undulation
+            strncpy(undulationStr, &nmeaSentence[undulationStart], undulationStop - undulationStart);
+            undulation = (float)atof(undulationStr);
+
+            // If this is GGA, store the undulation so we can compare in GNS
+            if (strncmp(nmeaType, "GGA", sizeof(nmeaType)) == 0)
+                previousGGAUndulation = undulation;
+
+            // IM19 always uses WGS-84 (from GGA)
+            // GNS can use an alternate reference datum
+            // If this is GNS, check if the undulation matches GGA
+            // If it doesn't match - because the reference datum is different -
+            // adjust the undulation so that our corrected height will be correct
+            const float undulationMismatchThreshold_m = 0.1;
+            if ((previousGGAUndulation > -9900.0) // Check if previousGGAUndulation has been recorded
+                 && (strncmp(nmeaType, "GNS", sizeof(nmeaType)) == 0) // If this is GNS
+                 && (abs(previousGGAUndulation - undulation) > undulationMismatchThreshold_m))
+            {
+                // If the difference in the undulation is bigger than 10cm
+                // (what's a safe threshold to use here?!)
+                // then adjust undulation by the difference
+                // *** TODO *** - validate this - especially the sign of the difference!
+                if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                    systemPrintf("GNS undulation (%.4f) does not match GGA undulation (%.4f)\r\n",
+                                    undulation, previousGGAUndulation);
+                float newUndulation = undulation - (previousGGAUndulation - undulation);
+                if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                    systemPrintf("Adjusting undulation from %.4f to %.4f\r\n",
+                                    undulation, newUndulation);
+                undulation = newUndulation;
+            }
+        }
+    }
 
     char newSentence[150] = {0};
 
     if (sizeof(newSentence) < sentenceLength)
     {
-        systemPrintln("newSentence not big enough!");
+        systemPrintf("applyCompensationCommon: %s newSentence not big enough!\r\n", nmeaType);
         return;
     }
 
     char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
-    // strncat terminates
-
     if (tiltIsCorrecting() == true)
     {
-        // Add start of message up to latitude
+        // Add start of message up to latitudeStart
         strncat(newSentence, nmeaSentence, latitudeStart);
 
         // Convert tilt-compensated latitude to DDMM
+        // This will add 8 decimal places - which may need to be adjusted to match GNSS
         coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                                sizeof(coordinateStringDDMM));
 
@@ -1061,8 +739,11 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
         if (strlen(coordinateStringDDMM) != (latitudeStop - latitudeStart))
         {
             if (settings.enableImuCompensationDebug == true && !inMainMenu)
-                systemPrintf("Compensated latitude length has changed! Orig: %d New: %d\r\n",
-                             (latitudeStop - latitudeStart), strlen(coordinateStringDDMM));
+                systemPrintf("Compensated latitude length needs to be %s by %d: %s\r\n",
+                             strlen(coordinateStringDDMM) > (latitudeStop - latitudeStart) ?
+                             "truncated" : "padded",
+                             abs((int)strlen(coordinateStringDDMM) - (latitudeStop - latitudeStart)),
+                             coordinateStringDDMM);
         }
 
         // Add tilt-compensated Latitude
@@ -1079,16 +760,20 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
         // Add interstitial between end of lat and beginning of lon
         strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
 
-        // Convert tilt-compensated longitude to DDMM
-        coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+        // Convert tilt-compensated longitude to DDDMM
+        // This will add 8 decimal places - which may need to be adjusted to match GNSS
+        coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDDMM, coordinateStringDDMM,
                                sizeof(coordinateStringDDMM));
 
         // Check if longitude length has changed
         if (strlen(coordinateStringDDMM) != (longitudeStop - longitudeStart))
         {
             if (settings.enableImuCompensationDebug == true && !inMainMenu)
-                systemPrintf("Compensated longitude length has changed! Orig: %d New: %d\r\n",
-                             (longitudeStop - longitudeStart), strlen(coordinateStringDDMM));
+                systemPrintf("Compensated longitude length needs to be %s by %d: %s\r\n",
+                             strlen(coordinateStringDDMM) > (longitudeStop - longitudeStart) ?
+                             "truncated" : "padded",
+                             abs((int)strlen(coordinateStringDDMM) - (longitudeStop - longitudeStart)),
+                             coordinateStringDDMM);
         }
 
         // Add tilt-compensated Longitude
@@ -1102,47 +787,115 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
         while (strlen(newSentence) < longitudeStop)
             strncat(newSentence, "0", sizeof(newSentence) - 1);
 
-        // Add interstitial between end of lon and beginning of alt
-        strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
+        // Note: the comma after the longitude has not yet been added
     }
     else // No tilt compensation, no changes to the lat/lon
     {
-        // Add start of message up to altitude
-        strncat(newSentence, nmeaSentence, altitudeStart);
+        // Add start of message up to longitudeStop
+        // longitudeStop is the position of the comma after the longitude
+        // The following line does not copy the comma
+        strncat(newSentence, nmeaSentence, longitudeStop);
     }
+
+    // If altitudeComma is nullptr, copy the remainder, add the CRC and return
+    if (altitudeComma == nullptr)
+    {
+        // Copy the remainder of the message from the longitudeStop comma to the asterix
+        strncat(newSentence, nmeaSentence + longitudeStop, checksumStart - longitudeStop);
+
+        // From: http://engineeringnotes.blogspot.com/2015/02/generate-crc-for-nmea-strings-arduino.html
+        byte CRC = 0; // XOR chars between '$' and '*'
+        for (byte x = 1; x < strlen(newSentence); x++)
+            CRC = CRC ^ newSentence[x];
+
+        // Convert CRC to string, add * and CR LF
+        snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "*%02X\r\n", CRC);
+
+        // Add CRC
+        strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+
+        // Overwrite the original NMEA
+        strncpy(nmeaSentence, newSentence, sentenceLength);
+
+        if (settings.enableImuCompensationDebug == true && !inMainMenu)
+            systemPrintf("Compensated %s:\r\n%s\r\n", nmeaType, nmeaSentence);
+
+        return;
+    }
+
+    // Add interstitial between end of lon and beginning of alt
+    strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
 
     // Calculate newAltitude based on tilt mode and outputTipAltitude setting
     float newAltitude = 0;
     if (tiltIsCorrecting() == true)
     {
-        // If tilt is active and outputTipAltitude is disabled, then subtract undulation from IMU altitude, and add
-        // pole+ARP
+        // If tilt is active and outputTipAltitude is disabled, then subtract undulation from IMU altitude
+        // and add pole+ARP. I.e. output altitude as if the pole were vertical.
         if (settings.outputTipAltitude == false)
+        {
             newAltitude = tiltSensor->getNaviAltitude() - undulation +
                           ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
 
+            if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                systemPrintf("Navi altitude (%.4f) - undulation (%.4f) + pole length (%.4f) + APC (%.4f) = %.4f\r\n",
+                             tiltSensor->getNaviAltitude(),
+                             undulation,
+                             settings.antennaHeight_mm / 1000.0,
+                             settings.antennaPhaseCenter_mm / 1000.0,
+                             newAltitude);
+        }
         // If tilt is active and outputTipAltitude is enabled, then subtract undulation from IMU altitude
         else if (settings.outputTipAltitude == true)
+        {
             newAltitude = tiltSensor->getNaviAltitude() - undulation;
+
+            if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                systemPrintf("Navi altitude (%.4f) - undulation (%.4f) = %.4f\r\n",
+                             tiltSensor->getNaviAltitude(),
+                             undulation,
+                             newAltitude);
+        }
     }
     else
     {
-        // If tilt is off and outputTipAltitude is enabled, then subtract pole+ARP from altitude
+        // If tilt is off and outputTipAltitude is enabled, then assume the pole is vertical and
+        // subtract pole+ARP from altitude
         if (settings.outputTipAltitude == true)
+        {
             newAltitude = altitude - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
 
+            if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                systemPrintf("altitude (%.4f) - (pole length (%.4f) + APC (%.4f)) = %.4f\r\n",
+                             altitude,
+                             settings.antennaHeight_mm / 1000.0,
+                             settings.antennaPhaseCenter_mm / 1000.0,
+                             newAltitude);
+        }
+
         // If tilt is off and outputTipAltitude is disabled, then we should not be here
+        else if (settings.outputTipAltitude == false)
+        {
+            newAltitude = altitude; // Nothing to do
+
+            if (settings.enableImuCompensationDebug == true && !inMainMenu)
+                systemPrintln("altitude unchanged");
+        }
     }
 
     // Convert altitude double to string
+    // Add 4 decimal places - which may need to be adjusted to match GNSS
     snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.4f", newAltitude);
 
     // Check if altitude length has changed
     if (strlen(coordinateStringDDMM) != (altitudeStop - altitudeStart))
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("Compensated altitude length has changed! Orig: %d New: %d\r\n",
-                         (altitudeStop - altitudeStart), strlen(coordinateStringDDMM));
+            systemPrintf("Compensated altitude length needs to be %s by %d: %s\r\n",
+                            strlen(coordinateStringDDMM) > (altitudeStop - altitudeStart) ?
+                            "truncated" : "padded",
+                            abs((int)strlen(coordinateStringDDMM) - (altitudeStop - altitudeStart)),
+                            coordinateStringDDMM);
     }
 
     // Add tilt-compensated Altitude
@@ -1175,13 +928,27 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
     strncpy(nmeaSentence, newSentence, sentenceLength);
 
     if (settings.enableImuCompensationDebug == true && !inMainMenu)
-        systemPrintf("Compensated GNGGA:\r\n%s\r\n", nmeaSentence);
+        systemPrintf("Compensated %s:\r\n%s\r\n", nmeaType, nmeaSentence);
+}
+
+// Force tilt detection
+void tiltForceDetectionReboot()
+{
+    // Force the tilt detection
+    settings.detectedTilt = false;
+    settings.testedTilt = false;
+    recordSystemSettings();
+
+    // Reboot the system
+    systemReset();
 }
 
 // Determine if a tilt sensor is available or not
 // Records outcome to NVM
 void tiltDetect()
 {
+    int x;
+
     // Only test housings that may have a tilt sensor on board
     if (variantHousingProperties->tiltPossible == false)
         return;
@@ -1233,7 +1000,7 @@ void tiltDetect()
     // The library will try twice with a 250ms
     // If communication fails, retry after a 3s timeout
     uint8_t maxTries = 2;
-    for (int x = 0; x < maxTries; x++)
+    for (x = 0; x < maxTries; x++)
     {
         if (tiltSensor->begin(SerialTiltTest) == true)
         {
@@ -1245,6 +1012,13 @@ void tiltDetect()
 
         if (x < (maxTries - 1))
             delay(3000);
+    }
+
+    // Check for tilt sensor not detected
+    if (x == maxTries)
+    {
+        delete tiltSensor;
+        tiltSensor = nullptr;
     }
 
     SerialTiltTest.end(); // Release UART2 for reuse
@@ -1262,4 +1036,1195 @@ void tiltDetect()
     return;
 }
 
-#endif // COMPILE_IM19_IMU
+// Handle the file creation and tear down the for the firmware update process.
+bool imuCreatePassthroughFile()
+{
+    return createFileLfs("/updateImuFirmware.txt");
+}
+bool imuCheckPassthroughFile()
+{
+    return fileExistsLfs("/updateImuFirmware.txt");
+}
+bool imuRemovePassthroughFile()
+{
+    return removeFileLfs("/updateImuFirmware.txt");
+}
+
+void imuBeginFirmwareUpdate()
+{
+    // Flag that we are in direct connect mode
+    inDirectConnectMode = true;
+
+    // Paint IMU Update
+    paintImuUpdate();
+
+    systemPrintln();
+    systemPrintln("Entering IM19 direct connect for firmware update");
+    systemPrintln("Disconnect this terminal connection");
+    systemPrintln("Use the python tool to update the firmware:");
+    systemPrintln("Baudrate: 115200bps. Parity: None.");
+    systemPrintln("Press the power button to return to normal operation");
+
+    systemFlush(); // Complete prints
+
+    // Use UART2 on the ESP32 to communicate with the IMU
+    // Shown as UART2 on these schematics: Torch, Facet FP
+    beginUart2Serial();
+    if (SerialForTilt == nullptr)
+        return;
+
+    // The IM19 update relies on the AT+UPDATE_APP command which is only available during normal runtime.
+    // Don't enter the bootloader.
+    // imuEnterBootloader(); // Push DR_BOOT pin high and reset the IMU
+
+    delay(50);
+
+    // Clear out any data from the serial buffer before entering the echo mode
+    while (Serial.available())
+        Serial.read();
+
+    // Push any incoming ESP32 UART2 to the IM19 and vice versa
+    // Infinite loop until button is pressed
+    task.endDirectConnectMode = false;
+    while (task.endDirectConnectMode == false)
+    {
+        if (Serial.available()) // Note: use if, not while
+            SerialForTilt->write(Serial.read());
+
+        if (SerialForTilt->available()) // Note: use if, not while
+            Serial.write(SerialForTilt->read());
+
+        // Button task will set task.endDirectConnectMode true
+    }
+
+    // Remove the special file.
+    imuRemovePassthroughFile();
+
+    systemFlush(); // Complete prints
+
+    ESP.restart();
+}
+
+// Reset the GNSS/IMU module ahead of entering the bootloader.
+// On Flex modules, the IMU reset is tied to the GNSS reset
+void imuReset()
+{
+    if (productVariant == RTK_TORCH)
+    {
+        digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell UM980 and DR to reset
+        delay(50);
+        digitalWrite(pin_GNSS_DR_Reset, HIGH);
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        gpioExpanderImuReset(); // Drive the GNSS reset pin low to reset both GNSS and IMU
+        delay(50);
+        gpioExpanderImuBoot();
+    }
+    else
+        systemPrintln("Uncaught imuReset()");
+}
+
+// Below are the functions necessary for firmware upgrading the IM19
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// IM19 bootloader state.
+//
+// im19FrameMap is a small bitmap (one bit per 256 byte frame) that mirrors what the
+// IM19 last told us it received. It is required by the wire protocol itself, not an
+// optimization we chose to add: after every pass the IM19 replies to FRAME_TYPE_CPL
+// with a FRAME_TYPE_REQ frame whose payload IS that bitmap (see im19CheckResponse()
+// / FRAME_TYPE_REQ in code/upgrade.c). Without recording it we would have no way to
+// tell "fully received" from "still missing some frames", and no way to know which
+// bytes to send on a retry - we'd be forced to either trust an unverified flash (risk
+// of bricking the IM19) or blindly resend the whole file every retry.
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+// IM19 bootloader wire protocol (268 byte frames: 12 byte header + 256 byte payload).
+// Ported from the reference implementation in code/upgrade.c.
+#define IM19_FRAME_HEADER 0xAA55
+#define IM19_FRAME_TYPE_BIN 0x01 // host -> IM19 : one 256 byte chunk of the firmware image
+#define IM19_FRAME_TYPE_REQ 0x02 // IM19 -> host : bitmap of frames received so far (sent in response to CPL)
+#define IM19_FRAME_TYPE_CPL 0x03 // host -> IM19 : "that's every frame I have, tell me what you're missing"
+#define IM19_FRAME_TYPE_RDY 0x04 // host -> IM19 : "you have everything, boot it" / IM19 -> host : "already booting"
+#define IM19_FRAME_PAYLOAD_SIZE 256
+#define IM19_FRAME_TOTAL_SIZE 268
+#define IM19_FRAME_MAP_SIZE 256 // bitmap bytes -> supports up to 2048 frames (512KB firmware image)
+
+// Delay after each frame is put on the wire, giving the IM19 bootloader time to parse
+// and flash it before the next one arrives. The wire protocol has no per-frame ACK, so
+// this is a blind pacing value (ported from the vendor's SleepMs(50) in upgrade.c) -
+// tune it empirically on hardware: lower it, then watch how many frames the IM19
+// reports missing at the end. The existing retry path only re-fetches what's missing,
+// so occasional drops are safe; a delay set too low just means more retry passes.
+static const uint32_t IM19_FRAME_PACING_MS = 100; // Works - 0.1% frame failure.
+// static const uint32_t IM19_FRAME_PACING_MS = 75; // Works - 42% frame failure.
+// static const uint32_t IM19_FRAME_PACING_MS = 50; // Original mfg timeout. 87% frame failure.
+//  static const uint32_t IM19_FRAME_PACING_MS = 30; // Works - 94% frame failure.
+// static const uint32_t IM19_FRAME_PACING_MS = 15; // Works in test sketch. Partial fail in RTK Everywhere.
+
+// How long to wait for the IM19 to reply after CPL. After the last frame lands, the
+// IM19 still has to finish flashing it and scan every received frame to build its
+// reply bitmap.
+static const uint32_t IM19_CPL_RESPONSE_TIMEOUT_MS = 500;
+static const int IM19_CPL_RESPONSE_RETRIES = 30; // up to IM19_CPL_RESPONSE_RETRIES * IM19_CPL_RESPONSE_TIMEOUT_MS total
+
+static uint8_t *im19FrameMap = nullptr; // bit set = IM19 has confirmed receipt of that frame
+static uint32_t im19TotalFrames = 0;
+static uint32_t im19FileSize = 0;
+static uint32_t im19NextFrameID = 0;
+static uint8_t *im19FrameAssembly = nullptr;
+static uint32_t im19FrameAssemblyLen = 0;
+
+static void im19ReleaseBuffers()
+{
+    if (im19FrameMap != nullptr)
+    {
+        free(im19FrameMap);
+        im19FrameMap = nullptr;
+    }
+
+    if (im19FrameAssembly != nullptr)
+    {
+        free(im19FrameAssembly);
+        im19FrameAssembly = nullptr;
+    }
+}
+
+static bool im19AllocateBuffers()
+{
+    im19ReleaseBuffers();
+
+    im19FrameMap = (uint8_t *)malloc(IM19_FRAME_MAP_SIZE);
+    if (im19FrameMap == nullptr)
+        return false;
+
+    im19FrameAssembly = (uint8_t *)malloc(IM19_FRAME_PAYLOAD_SIZE);
+    if (im19FrameAssembly == nullptr)
+    {
+        im19ReleaseBuffers();
+        return false;
+    }
+
+    return true;
+}
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+static uint16_t im19BufToUint16(const uint8_t *buffer)
+{
+    return (uint16_t)(buffer[0] | (buffer[1] << 8));
+}
+
+static uint32_t im19BufToUint32(const uint8_t *buffer)
+{
+    return (uint32_t)(buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) | (buffer[3] << 24));
+}
+
+static uint32_t im19CheckSum(const uint8_t *frame)
+{
+    uint16_t type = im19BufToUint16(&frame[2]);
+    uint32_t id = im19BufToUint32(&frame[8]);
+    uint32_t check = type + id;
+    for (int i = 12; i < IM19_FRAME_TOTAL_SIZE; i++)
+        check += frame[i];
+    return check;
+}
+
+static void im19BuildFrame(uint16_t type, uint32_t id, uint8_t *frame)
+{
+    frame[0] = (IM19_FRAME_HEADER >> 0) & 0xFF;
+    frame[1] = (IM19_FRAME_HEADER >> 8) & 0xFF;
+
+    frame[2] = (type >> 0) & 0xFF;
+    frame[3] = (type >> 8) & 0xFF;
+
+    frame[8] = (id >> 0) & 0xFF;
+    frame[9] = (id >> 8) & 0xFF;
+    frame[10] = (id >> 16) & 0xFF;
+    frame[11] = (id >> 24) & 0xFF;
+
+    uint32_t check = im19CheckSum(frame);
+    frame[4] = (check >> 0) & 0xFF;
+    frame[5] = (check >> 8) & 0xFF;
+    frame[6] = (check >> 16) & 0xFF;
+    frame[7] = (check >> 24) & 0xFF;
+}
+
+// Sends one 256 byte firmware chunk as frame 'frameID'.
+static bool im19SendOneFrame(uint32_t frameID, const uint8_t *payload)
+{
+    uint8_t frame[IM19_FRAME_TOTAL_SIZE] = {0};
+    memcpy(&frame[12], payload, IM19_FRAME_PAYLOAD_SIZE);
+    im19BuildFrame(IM19_FRAME_TYPE_BIN, frameID, frame);
+    SerialForTilt->write(frame, sizeof(frame));
+    SerialForTilt->flush(); // Block until the frame is actually on the wire, not just queued
+    delay(IM19_FRAME_PACING_MS);
+    return true;
+}
+
+// Sends a command frame (CPL to ask what's missing, or RDY to tell the IM19 to boot).
+static void im19SendCmdFrame(uint16_t cmd, uint32_t frameTotal)
+{
+    uint8_t frame[IM19_FRAME_TOTAL_SIZE] = {0};
+    if (cmd == IM19_FRAME_TYPE_RDY)
+    {
+        uint32_t num = frameTotal / 8, mod = frameTotal % 8;
+        for (uint32_t i = 0; i < num; i++)
+            frame[12 + i] = 0xFF;
+        if (mod > 0)
+            frame[12 + num] = 0xFF >> (8 - mod);
+    }
+    im19BuildFrame(cmd, 0xFFFFFFFF, frame);
+    SerialForTilt->write(frame, sizeof(frame));
+    SerialForTilt->flush();
+    delay(IM19_FRAME_PACING_MS);
+}
+
+// Waits for a response frame from the IM19. On FRAME_TYPE_REQ, copies the IM19's
+// received-frame bitmap into frameMap. Returns the frame type, or -1 on timeout/garbage.
+static int im19CheckResponse(uint8_t *frameMap, uint32_t timeoutMs)
+{
+    uint8_t buf[350]; // a little slack past one frame (268B) in case of a leading garbage byte
+    SerialForTilt->setTimeout(timeoutMs);
+    int buf_len = SerialForTilt->readBytes(buf, sizeof(buf));
+    uint8_t *p = buf;
+
+    while (buf_len >= IM19_FRAME_TOTAL_SIZE)
+    {
+        if (im19BufToUint16(p + 0) != IM19_FRAME_HEADER || im19BufToUint32(p + 4) != im19CheckSum(p))
+        {
+            p++;
+            buf_len--;
+            continue;
+        }
+
+        switch (im19BufToUint16(p + 2))
+        {
+        case IM19_FRAME_TYPE_REQ:
+            if (frameMap == nullptr)
+                return -1;
+            memcpy(frameMap, p + 12, IM19_FRAME_MAP_SIZE);
+            return IM19_FRAME_TYPE_REQ;
+        case IM19_FRAME_TYPE_RDY:
+            return IM19_FRAME_TYPE_RDY;
+        default:
+            return -1;
+        }
+    }
+    return -1;
+}
+
+// True if every frame in [0, totalFrame) is marked present in frameMap.
+static bool im19AllFramesPresent(const uint8_t *frameMap, uint32_t totalFrame)
+{
+    if (frameMap == nullptr)
+        return false;
+
+    for (uint32_t frame = 0; frame < totalFrame; frame++)
+    {
+        uint8_t bit = 0x01 << (frame % 8);
+        if ((frameMap[frame / 8] & bit) == 0)
+            return false;
+    }
+    return true;
+}
+
+static bool im19FindStr(const uint8_t *buf, int buf_len, const char *str)
+{
+    int str_len = strlen(str);
+    for (int i = 0; i <= buf_len - str_len; i++)
+    {
+        if (memcmp(buf + i, str, str_len) == 0)
+            return true;
+    }
+    return false;
+}
+
+// Sends an AT command and waits (with retries) for the expected response substring.
+static bool im19SendATCommand(const char *cmd, const char *response, int retries)
+{
+    uint8_t buf[256];
+    while (retries--)
+    {
+        SerialForTilt->write((const uint8_t *)cmd, strlen(cmd));
+        delay(50);
+        SerialForTilt->setTimeout(50);
+        int buf_len = SerialForTilt->readBytes(buf, sizeof(buf));
+        if ((buf_len > 0) && im19FindStr(buf, buf_len, response))
+            return true;
+    }
+    return false;
+}
+
+// Hardware-resets the GNSS/IMU module ahead of entering the bootloader.
+static void im19ResetImu()
+{
+    if (productVariant == RTK_TORCH)
+    {
+        // ESP32 UART2 is connected directly to IM19 UART1
+
+        gpioGnssReset();
+        delay(50);
+        gpioGnssBoot();
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        // On FP, confirm SW3 is in the correct position
+        // linking ESP32 UART2 to IMU UART1 on Flex Module (Flex UART3)
+        gpioExpanderSelectImu();
+
+        // On FP, the GNSS and IMU reset is shared
+        // Putting the LG290P Flex Module into reset can bring down the I2C bus
+        // so we need to perfrom a very quick reset
+        gpioExpanderGnssResetFast();
+    }
+    else
+    {
+        reportFatalError("im19ResetImu: unknown product variant");
+    }
+}
+
+#ifdef  COMPILE_FIRMWARE_UPDATE
+
+// Puts the IM19 into its bootloader and gets ready to receive frames for a file of
+// 'fileBytes' bytes. Mallocs nothing - the frame map is a fixed, small static buffer.
+bool im19UpdateFirmwareBegin(size_t fileBytes)
+{
+    uint32_t totalFrames = (fileBytes + IM19_FRAME_PAYLOAD_SIZE - 1) / IM19_FRAME_PAYLOAD_SIZE;
+    if (totalFrames > (uint32_t)IM19_FRAME_MAP_SIZE * 8)
+    {
+        systemPrintf("Firmware image too large for the IM19 update protocol (%lu bytes).\r\n", fileBytes);
+        return false;
+    }
+
+    if (!im19AllocateBuffers())
+    {
+        systemPrintln("Unable to allocate IM19 update buffers.");
+        return false;
+    }
+
+    memset(im19FrameMap, 0, IM19_FRAME_MAP_SIZE);
+    im19TotalFrames = totalFrames;
+    im19FileSize = fileBytes;
+    otaFileBytes = fileBytes;
+    im19FrameAssemblyLen = 0;
+    im19NextFrameID = 0;
+
+    for (int retry = 0; retry < 3; retry++)
+    {
+        imuReset();
+        delay(1000);
+        while (SerialForTilt->available()) // Ensure the RX buffer is clear
+            SerialForTilt->read();
+        if (im19SendATCommand("AT+UPDATE_APP\r\n", "OK", 5))
+            return true;
+    }
+    im19ReleaseBuffers();
+    return false;
+}
+
+// Repositions the frame-assembly cursor to a frame-aligned byte offset. Used before
+// streaming a retry range so its bytes land in the right frame IDs.
+void im19UpdateFirmwareSeek(uint32_t byteOffset)
+{
+    im19NextFrameID = byteOffset / IM19_FRAME_PAYLOAD_SIZE;
+    im19FrameAssemblyLen = 0;
+}
+
+// Feeds a chunk of firmware bytes (any length, any alignment) to the IM19. Internally
+// groups them into 256 byte protocol frames and sends each as it fills.
+bool im19UpdateFirmware(const uint8_t * data, uint32_t numBytes)
+{
+    if (im19FrameAssembly == nullptr)
+        return false;
+
+    uint32_t consumed = 0;
+    while (consumed < numBytes)
+    {
+        uint32_t copyLength = numBytes - consumed;
+        uint32_t space = IM19_FRAME_PAYLOAD_SIZE - im19FrameAssemblyLen;
+        if (copyLength > space)
+            copyLength = space;
+
+        memcpy(im19FrameAssembly + im19FrameAssemblyLen, data + consumed, copyLength);
+        im19FrameAssemblyLen += copyLength;
+        consumed += copyLength;
+
+        if (im19FrameAssemblyLen == IM19_FRAME_PAYLOAD_SIZE)
+        {
+            if (!im19SendOneFrame(im19NextFrameID, im19FrameAssembly))
+                return false;
+            im19NextFrameID++;
+            im19FrameAssemblyLen = 0;
+        }
+    }
+    return true;
+}
+
+// Tells the IM19 "that's every frame I have" and handles its reply. Returns SUCCESS
+// once the IM19 confirms it received everything and has booted the new image, RETRY
+// if it reports missing frames (caller should re-request just those and call again),
+// or FAILED if the IM19 never responds.
+Im19UpdateResult im19UpdateFirmwareEnd(const OTA_TARGET * target)
+{
+    if ((im19FrameMap == nullptr) || (im19FrameAssembly == nullptr))
+        return IM19_UPDATE_FAILED;
+
+    // The last frame of the file is usually short - zero-pad and send it now.
+    if (im19FrameAssemblyLen > 0)
+    {
+        memset(im19FrameAssembly + im19FrameAssemblyLen, 0, IM19_FRAME_PAYLOAD_SIZE - im19FrameAssemblyLen);
+        if (!im19SendOneFrame(im19NextFrameID, im19FrameAssembly))
+        {
+            im19ReleaseBuffers();
+            return IM19_UPDATE_FAILED;
+        }
+        im19NextFrameID++;
+        im19FrameAssemblyLen = 0;
+    }
+
+    im19SendCmdFrame(IM19_FRAME_TYPE_CPL, im19TotalFrames);
+
+    int retry = IM19_CPL_RESPONSE_RETRIES;
+    while (retry--)
+    {
+        int response = im19CheckResponse(im19FrameMap, IM19_CPL_RESPONSE_TIMEOUT_MS);
+
+        if (response == IM19_FRAME_TYPE_RDY)
+        {
+            Im19UpdateResult result = im19VerifyFirmwareRunning() ? IM19_UPDATE_SUCCESS : IM19_UPDATE_FAILED;
+            im19ReleaseBuffers();
+            return result;
+        }
+
+        if (response == IM19_FRAME_TYPE_REQ)
+        {
+            if (im19AllFramesPresent(im19FrameMap, im19TotalFrames))
+            {
+                im19SendCmdFrame(IM19_FRAME_TYPE_RDY, im19TotalFrames);
+                Im19UpdateResult result = im19VerifyFirmwareRunning() ? IM19_UPDATE_SUCCESS : IM19_UPDATE_FAILED;
+                im19ReleaseBuffers();
+                return result;
+            }
+            return IM19_UPDATE_RETRY;
+        }
+    }
+
+    // The IM19 never acknowledged the CPL frame. It may still have written the image
+    // and rebooted - the flash write can outlast our response timeout. Check the
+    // running version before declaring failure.
+    Im19UpdateResult result = im19VerifyFirmwareVersion(target) ? IM19_UPDATE_SUCCESS : IM19_UPDATE_FAILED;
+    im19ReleaseBuffers();
+    return result;
+}
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// WiFi streaming: pulls bytes from the URL and feeds them to the IM19 update state
+// machine above. A retry only re-requests (via HTTP Range) the byte ranges the IM19
+// says it's still missing - the rest of the file is never re-downloaded or re-sent.
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+//----------------------------------------
+// Reads packetBytes from an already-open HTTP stream and feeds them to the device,
+// reporting progress as it goes.
+//
+// The generic process is:
+// 1) Call the updateFirmwareBegin function to erase the flash on the device
+// 2) Call firmwareUpdateProgressReset to initialize the progress bar and set
+//    the file size
+// 3) Loop reading firmware from the stream and writing it to the device, call
+//    firmwareUpdateProgressCallback to update the progress bar
+// 4) Call the updateFirmwareEnd function to complete the flash write operation
+// 5) Display the flash write status
+//
+// The IM19 differs because it supports a block retry mechansim, the differences
+// are:
+// 1) The updateFirmwareBegin routine is called in the im19FirmwareUpdate routine
+// 2) The updateFirmwareEnd routine is called in the im19FirmwareUpdate routine
+// 3) After calling updateFirmwareEnd, the code determines if any blocks are
+//    missing.  If so, im19FirmwareUpdate calls im19StreamMissingRanges to send
+//    the missing blocks.
+// 4) Upon successful completion, hard failure or to many retries, the flash
+//    write status is displayed by the im19FirmwareUpdate routine
+// 5) im19ArrayFlashUpdate is a stripped down version of im19FirmwareUpdate
+//----------------------------------------
+static bool im19StreamFirmware(const char * chip,
+                               NetworkClient * stream,
+                               size_t fileBytes,
+                               uint8_t * buffer,
+                               size_t packetBytes)
+{
+    bool success;
+
+    do
+    {
+        success = false;
+
+        // Display the parameters
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        {
+            systemPrintf("fileBytes: %d\r\n", fileBytes);
+            systemPrintf("packetBytes: %d\r\n", packetBytes);
+        }
+
+        // Initialize the progress bar
+        firmwareUpdateProgressReset(fileBytes);
+
+        // Loop until all data has been transferred or another error occurs.
+        // HTTPS conections remain open even after the data has been transferred
+        // and HTTP connections close after data has been transferred but some
+        // may still be available.  Only test the network connection when no
+        // data is available.
+        unsigned long lastDataTime = millis();
+        size_t validData = 0;
+        while (fileBytes > 0)
+        {
+            // Wait until some data is available
+            size_t availableBytes = stream->available();
+            if (availableBytes == 0)
+            {
+                // Verify network connection
+                if (stream->connected() == false)
+                {
+                    systemPrintln("ERROR: lost connection to network server");
+                    break;
+                }
+
+                // Check for network timeout
+                if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+                {
+                    systemPrintf("ERROR: Timed out waiting for data\r\n");
+                    break;
+                }
+                yield();
+                continue;
+            }
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("availableBytes: %d\r\n", availableBytes);
+
+            // Read the received data
+            size_t bytesToRead = min(availableBytes, packetBytes - validData);
+            int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("bytesRead: %d\r\n", bytesRead);
+            if (bytesRead <= 0)
+            {
+                systemPrintln("ERROR: Failed reading data from network");
+                break;
+            }
+            validData += bytesRead;
+
+            // Fill the packet
+            if ((validData < packetBytes) && (validData != fileBytes))
+                continue;
+
+            // Compute the CRC
+            tiltCrc = crc32Compute(tiltCrc, buffer, validData);
+
+            // Update this portion of the firmware
+            if (im19UpdateFirmware(buffer, validData) == false)
+            {
+                systemPrintln("ERROR: Failed during write");
+                break;
+            }
+
+            // Display the progress
+            firmwareUpdateProgressCallback(chip, validData);
+
+            // Account for this data
+            fileBytes -= validData;
+            lastDataTime = millis();
+            validData = 0;
+        }
+        if (fileBytes)
+            break;
+        success = true;
+    } while (0);
+
+    if (fileBytes && settings.debugFirmwareUpdate)
+        systemPrintf("fileBytes: %d\r\n", fileBytes);
+    return success;
+}
+
+//----------------------------------------
+// Re-downloads the range and streams it to the IM19.
+//----------------------------------------
+static bool im19StreamRange(const char * chip,
+                            const char * url,
+                            size_t startByte,
+                            size_t numBytes,
+                            uint8_t * buffer,
+                            size_t packetBytes)
+{
+    const char * cert;
+    NetworkClientSecure client;
+    HTTPClient http;
+    const char * ipAddress;
+    String ipAddressString;
+    const char * server;
+    String serverString;
+    NetworkClient * stream;
+    bool success;
+
+    // Display the parameters
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+    {
+        systemPrintf("startByte: 0x%08x (%d)\r\n", startByte, startByte);
+        systemPrintf("numBytes: 0x%08x (%d)\r\n", numBytes, numBytes);
+        systemPrintf("packetBytes: %d\r\n", packetBytes);
+    }
+    do
+    {
+        success = false;
+        if (url)
+        {
+            // Locate the server for this URL
+            serverString = getServerFromUrl(url);
+            if (serverString.length() == 0)
+            {
+                systemPrintf("%s firmware update failed to find server name in URL string\r\n", chip);
+                break;
+            }
+            server = serverString.c_str();
+
+            // Translate the server name into an IP address
+            ipAddressString = getServerIpAddress(server);
+            if (ipAddressString.length() == 0)
+            {
+                systemPrintln("Failed to get the IP address for the server");
+                break;
+            }
+            ipAddress = ipAddressString.c_str();
+
+            cert = getCertFromUrl(url);
+            if (cert)
+            {
+                if (!securelyConnectToServer(url, client, cert))
+                {
+                    systemPrintf("Failed to securely connect to %s (%s)", server, ipAddress);
+                    break;
+                }
+
+                if (!http.begin(client, url))
+                {
+                    systemPrintf("%s firmware update unable to begin HTTPS request.\r\n", chip);
+                    break;
+                }
+            }
+            else if (!http.begin(url))
+            {
+                systemPrintf("%s firmware update unable to begin HTTP request.\r\n", chip);
+                break;
+            }
+
+            char rangeHeader[48];
+            snprintf(rangeHeader, sizeof(rangeHeader), "bytes=%lu-%lu", startByte, startByte + numBytes - 1);
+            http.addHeader("Range", rangeHeader);
+
+            int httpCode = http.GET();
+            if (httpCode != HTTP_CODE_PARTIAL_CONTENT)
+            {
+                // A 200 here means the server ignored our Range request and is about to send
+                // the whole file from byte 0 - streaming that into this offset would corrupt
+                // the image, so bail rather than guess.
+                systemPrintf("HTTP range request failed, code: %d\r\n", httpCode);
+                break;
+            }
+
+            // Get the data stream
+            stream = http.getStreamPtr();
+            success = true;
+        }
+
+        // Stream the data
+        if (success)
+            success = im19StreamFirmware(chip,
+                                         stream,
+                                         numBytes,
+                                         buffer,
+                                         packetBytes);
+    } while (0);
+    http.end();
+    return success;
+}
+
+//----------------------------------------
+// Walks im19FrameMap for runs of missing frames and re-requests just those byte
+// ranges from the source URL, instead of re-streaming the entire firmware image.
+//----------------------------------------
+static bool im19StreamMissingRanges(const char * chip,
+                                    const char * url,
+                                    uint8_t * buffer,
+                                    size_t packetBytes)
+{
+    bool success = true;
+
+    if (im19TotalFrames == 0)
+        return success;
+
+    // Count the number of missing frames
+    uint32_t totalMissingFrames = 0;
+    for (uint32_t i = 0; i < im19TotalFrames; i++)
+    {
+        if ((im19FrameMap[i / 8] & (0x01 << (i % 8))) == 0)
+            totalMissingFrames++;
+    }
+
+    // Count and display the missing frames
+    if (totalMissingFrames && settings.debugFirmwareUpdate)
+    {
+        int32_t previousFrame = -1;
+        for (int32_t i = 0; i < im19TotalFrames; i++)
+        {
+            if ((im19FrameMap[i / 8] & (0x01 << (i % 8))) == 0)
+            {
+                if (previousFrame < 0)
+                    previousFrame = i;
+            }
+            else
+            {
+                if (previousFrame >= 0)
+                {
+                    if ((previousFrame + 1) == i)
+                        systemPrintf("Frame #: %d\r\n", previousFrame);
+                    else
+                        systemPrintf("Frame # %d - %d\r\n", previousFrame, i - 1);
+                }
+                previousFrame = -1;
+            }
+        }
+    }
+
+    // Determine if any frames are misssing
+    if (totalMissingFrames)
+    {
+        uint32_t missingRateTenthsPct = 0;
+        missingRateTenthsPct = (totalMissingFrames * 10 * 100 + (im19TotalFrames / 2)) / im19TotalFrames;
+
+        systemPrintf("%s firmware update missed %d frames (%d.%d%%)\r\n",
+                     chip, totalMissingFrames,
+                     missingRateTenthsPct / 10, missingRateTenthsPct % 10);
+
+        uint32_t frame = 0;
+        while (frame < im19TotalFrames)
+        {
+            // Walk the bitmap of received frames to find the next missed frame
+            uint8_t bit = 0x01 << (frame % 8);
+            if (im19FrameMap[frame / 8] & bit)
+            {
+                frame++;
+                continue;
+            }
+
+            // Walk the bitmap of received frames to find the next received frame
+            uint32_t runStart = frame;
+            while (frame < im19TotalFrames && !(im19FrameMap[frame / 8] & (0x01 << (frame % 8))))
+                frame++;
+
+            uint32_t startByte = runStart * IM19_FRAME_PAYLOAD_SIZE;
+            uint32_t endByte = min(frame * IM19_FRAME_PAYLOAD_SIZE, im19FileSize);
+            size_t fileBytes = endByte - startByte;
+            systemPrintf("Requesting frames %lu-%lu (%lu bytes) from source\r\n",
+                         runStart, (frame - 1), fileBytes);
+
+            // Send the firmware data to the IM19
+            im19UpdateFirmwareSeek(startByte);
+            success = im19StreamRange(chip,
+                                      url,
+                                      startByte,
+                                      endByte - startByte,
+                                      buffer,
+                                      packetBytes);
+
+            // Stop upon error
+            if (success == false)
+                break;
+        }
+    }
+    return success;
+}
+
+//----------------------------------------
+// Confirms the new firmware is running by polling for a response to AT+VERSION.
+//----------------------------------------
+static bool im19VerifyFirmwareRunning()
+{
+    delay(5000); // Give the IM19 time to flash and boot the new image
+    for (int retry = 0; retry < 3; retry++)
+    {
+        if (im19SendATCommand("AT+VERSION\r\n", "Version:", 1))
+            return true;
+        delay(100);
+    }
+    return false;
+}
+
+// Last-ditch check for when the IM19 never acknowledged the CPL frame (no RDY/REQ
+// response). The flash write + reboot can outlast our response timeout even though
+// the update actually succeeded, so read back the running app version and consider
+// the update successful if it matches or exceeds the version we just flashed.
+static bool im19VerifyFirmwareVersion(const OTA_TARGET * target)
+{
+    delay(5000); // Give the IM19 time to finish flashing and boot the new image
+
+    for (int retry = 0; retry < 3; retry++)
+    {
+        IM19 * tiltSensor = new IM19();
+        if (tiltSensor != nullptr)
+        {
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                tiltSensor->enableDebugging();
+
+            if (tiltSensor->begin(*SerialForTilt))
+            {
+                char rawFirmwareVersionStr[32]; // Ex: IM19_H2_B2.2_A11.4.1
+                if (tiltSensor->getVersion(rawFirmwareVersionStr, sizeof(rawFirmwareVersionStr)))
+                {
+                    int major = 0, minor = 0, patch = 0;
+                    char *appVersionPtr = strstr(rawFirmwareVersionStr, "A");
+                    if (appVersionPtr != nullptr)
+                        sscanf(appVersionPtr + 1, "%d.%d.%d", &major, &minor, &patch);
+
+                    if (settings.debugFirmwareUpdate)
+                        systemPrintf("IM19 reports version: %s (parsed %d.%d.%d, expecting >= %d.%d.%d)\r\n",
+                                     rawFirmwareVersionStr, major, minor, patch,
+                                     target->_remoteVersion[0], target->_remoteVersion[1],
+                                     target->_remoteVersion[2]);
+
+                    int delta = otaCompareVersions(major, minor, patch, 0, 0,
+                                                   target->_remoteVersion[0],
+                                                   target->_remoteVersion[1],
+                                                   target->_remoteVersion[2],
+                                                   target->_remoteVersion[3],
+                                                   target->_remoteVersion[4]);
+                    if (delta >= 0) // Running version matches or exceeds the target
+                    {
+                        imuFirmwareVersionInt = (major * 100) + (minor * 10) + patch;
+                        if (appVersionPtr != nullptr)
+                            snprintf(imuFirmwareVersionStr, sizeof(imuFirmwareVersionStr), "%s", appVersionPtr + 1);
+                        delete tiltSensor;
+                        return true;
+                    }
+                }
+            }
+            delete tiltSensor;
+        }
+
+        delay(1000);
+    }
+    return false;
+}
+
+//----------------------------------------
+// Initialize the UART that communicates with the IM19
+//----------------------------------------
+void im19InitUart()
+{
+    // Initialize the UART communicating with the IM19
+    if (SerialForTilt == nullptr)
+    {
+        SerialForTilt = new HardwareSerial(2);
+        if (SerialForTilt == nullptr)
+            reportFatalError("Failed to allocate the SerialForTilt port!");
+    }
+    else
+        SerialForTilt->end();
+    SerialForTilt->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
+}
+
+//----------------------------------------
+// Updates the IM19 module firmware from the given URL over WiFi.
+//
+// Structure (see the header comment at the top of the .ino for the general pattern):
+//   1. Connect to WiFi.
+//   2. im19UpdateFirmwareBegin() puts the IM19 into its bootloader.
+//   3. Stream the file once, feeding chunks to im19UpdateFirmware().
+//   4. im19UpdateFirmwareEnd() asks the IM19 what it's missing. If anything, re-request
+//      only those byte ranges (im19StreamMissingRanges) and ask again - up to a few
+//      attempts - rather than re-streaming the whole binary.
+//----------------------------------------
+bool im19FirmwareUpdate(const OTA_TARGET * target,
+                        const OTA_SUBSYSTEM_INFO * subsystemInfo,
+                        uint8_t * buffer,
+                        size_t packetBytes)
+{
+    const char * cert;
+    const char * chip;
+    NetworkClientSecure client;
+    const char * errorMsg;
+    size_t fileBytes;
+    HTTPClient http;
+    String ipAddressString;
+    const char * ipAddress;
+    char msgBuffer[128];
+    const char * server;
+    String serverString;
+    NetworkClient * stream;
+    const char * url;
+
+    do
+    {
+        errorMsg = nullptr;
+        chip = otaGetChipNameFromChipId(subsystemInfo->_chip);
+        url = target->_url;
+
+        // Verify that a URL was specified
+        if(settings.debugFirmwareUpdate)
+            systemPrintf("URL: %s\r\n", url ? url : "[nullptr]");
+        if ((url == nullptr) || (strlen(url) == 0))
+        {
+            errorMsg = "ERROR: No URL was specified!";
+            break;
+        }
+
+        // Initialize the UART communicating with the IM19
+        im19InitUart();
+
+        // Locate the server for this URL
+        serverString = getServerFromUrl(url);
+        if (serverString.length() == 0)
+        {
+            errorMsg = "ERROR: Failed to find server name in URL string";
+            break;
+        }
+        server = serverString.c_str();
+
+        // Translate the server name into an IP address
+        ipAddressString = getServerIpAddress(server);
+        if (ipAddressString.length() == 0)
+        {
+            errorMsg = "Failed to get the IP address for the server\r\n";
+            break;
+        }
+        ipAddress = ipAddressString.c_str();
+
+        // Determine if the certificate is known for this server
+        cert = getCertFromUrl(url);
+        if(settings.debugFirmwareUpdate)
+            systemPrintf("Certificate: %s\r\n", cert ? "available" : "none");
+
+        // Use an encrypted and verified connection when possible
+        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        if (cert)
+        {
+            // Verify the server using the certificate
+            if (!securelyConnectToServer(url, client, cert))
+            {
+                //                           1         2         3         4         5         6         7         8         9
+                //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+                sprintf(msgBuffer, "ERROR: Failed to securely connect to %s (%s)", server, ipAddress);
+                errorMsg = msgBuffer;
+                break;
+            }
+
+            // Request the URL from the web server
+            if (!http.begin(client, url))
+            {
+                errorMsg = "ERROR: unable to begin HTTPS request.";
+                break;
+            }
+        }
+
+        // Request the URL from the web server
+        else if (!http.begin(url))
+        {
+            errorMsg = "ERROR: Unable to begin HTTP request.";
+            break;
+        }
+
+        // Get the web server's response
+        int httpCode = http.GET();
+        if (httpCode != HTTP_CODE_OK)
+        {
+            //                           1         2         3         4         5         6         7         8         9
+            //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+            sprintf(msgBuffer, "ERROR: Update failed HTTP GET request, code: %d", httpCode);
+            errorMsg = msgBuffer;
+            break;
+        }
+
+        // Get the file size
+        fileBytes = http.getSize();
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("File size: %d (0x%08x) bytes\r\n", fileBytes, fileBytes);
+        if (fileBytes <= 0)
+        {
+            errorMsg = "ERROR: Web server did not report a file size.";
+            break;
+        }
+        otaFileBytes = fileBytes;
+
+        // Validate the file size
+        if (fileBytes != target->_fileBytes)
+        {
+            //                           1         2         3         4         5         6         7         8         9
+            //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+            sprintf(msgBuffer, "ERROR: File size has changed, expecting %d bytes, actual %d bytes",
+                    target->_fileBytes, fileBytes);
+            errorMsg = msgBuffer;
+            break;
+        }
+
+        // Get the connection to the file data
+        stream = http.getStreamPtr();
+
+        if (!im19UpdateFirmwareBegin(fileBytes))
+        {
+            //                           1         2         3         4         5         6         7         8         9
+            //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+            sprintf(msgBuffer, "ERROR: %s did not respond to the bootloader entry command.", chip);
+            errorMsg = msgBuffer;
+            break;
+        }
+
+        // Initialize the CRC to be computed over the entire firmware image
+        tiltCrc = 0;
+
+        // Start the firmware update
+        im19NextFrameID = 0;
+        if (im19StreamFirmware(chip,
+                               stream,
+                               fileBytes,
+                               buffer,
+                               packetBytes) == false)
+        {
+            errorMsg = "ERROR: Failed to stream firmware to the device.";
+            break;
+        }
+
+        // Validate the computed CRC matches the expected CRC
+        if (tiltCrc != target->_crc)
+        {
+            systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n",
+                         target->_crc, tiltCrc);
+            errorMsg = "ERROR: File has changed, CRC does not match!";
+            break;
+        }
+
+        const int maxAttempts = 5;
+        //                           1         2         3         4         5         6         7         8         9
+        //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+        sprintf(msgBuffer, "ERROR: %s firmware update failed: too many retries.", chip);
+        errorMsg = msgBuffer;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            Im19UpdateResult result = im19UpdateFirmwareEnd(target);
+            if (result == IM19_UPDATE_SUCCESS)
+            {
+                errorMsg = nullptr;
+                break;
+            }
+
+            if (result == IM19_UPDATE_FAILED)
+            {
+                if (im19VerifyFirmwareVersion(target))
+                {
+                    systemPrintf("%s firmware update validated by firmware version check.\r\n", chip);
+                    errorMsg = nullptr;
+                }
+                else
+                {
+                    //                           1         2         3         4         5         6         7         8         9
+                    //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+                    sprintf(msgBuffer, "ERROR: %s firmware update failed: no response from IM19.", chip, chip);
+                    errorMsg = msgBuffer;
+                }
+                break;
+            }
+
+            // IM19_UPDATE_RETRY - the IM19 told us exactly which frames it's missing.
+            systemPrintf("Attempt %d: %s reports missing frames.\r\n", attempt, chip);
+            if (!im19StreamMissingRanges(chip, url, buffer, packetBytes))
+            {
+                //                           1         2         3         4         5         6         7         8         9
+                //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+                sprintf(msgBuffer, "ERROR: %s firmware update failed while requesting missing frames.", chip);
+                errorMsg = msgBuffer;
+                break;
+            }
+        }
+    } while (0);
+
+    // Display the firmware update status
+    bool success = (errorMsg == nullptr);
+    systemPrintln(otaEqualSigns);
+    if (success)
+        systemPrintf("%s firmware update completed successfully\r\n", chip);
+    else
+        systemPrintf("%s\r\n", errorMsg);
+
+    // Attempt to display the IM19 firmware version
+    im19GetVersionString();
+    systemPrintln(otaEqualSigns);
+
+    // Release the resources
+    http.end();
+    if (success == false)
+        im19ReleaseBuffers();
+    return success;
+}
+
+//----------------------------------------
+// Sends AT+VERSION and copies the returned "Version:" line into imuFirmwareVersionStr.
+// Returns true if "Version:" is seen in the response
+//----------------------------------------
+bool im19GetVersionString()
+{
+    bool success = false;
+    IM19 * tiltSensor = nullptr;
+    do
+    {
+        imuReset();
+        delay(5000);
+
+        // Initialize the UART communicating with the IM19
+        im19InitUart();
+
+        tiltSensor = new IM19();
+        if (tiltSensor == nullptr)
+        {
+            systemPrintln("ERROR: IM19 firmware upload fail to allocate tiltSensor");
+            break;
+        }
+
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            tiltSensor->enableDebugging(); // Print all debug to Serial
+
+        if (tiltSensor->begin(*SerialForTilt) == false) // Give the serial port over to the library
+        {
+            systemPrintln("IM19 firmware version not available");
+            break;
+        }
+
+        success = true;
+        success &= tiltSensor->getAppVersion(imuFirmwareVersionInt);
+        char rawFirmwareVersionStr[32]; // Ex: IM19_H2_B2.2_A11.4.1
+        success &= tiltSensor->getVersion(rawFirmwareVersionStr, sizeof(rawFirmwareVersionStr));
+
+        // Pull the pure number app version out of the full version string Ex: IM19_H2_B2.2_A11.4.1 -> 11.4.1
+        char *appVersionPtr = strstr(rawFirmwareVersionStr, "A");
+        if (appVersionPtr != nullptr)
+            snprintf(imuFirmwareVersionStr, sizeof(imuFirmwareVersionStr), "%s", appVersionPtr + 1);
+        else
+        {
+            systemPrintln("IM19 App Version not found in full version string");
+            imuFirmwareVersionStr[0] = '\0';
+        }
+
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("IM19 Full Version: %s\r\n", rawFirmwareVersionStr);
+        else
+            systemPrintf("IMU firmware: %s\r\n", imuFirmwareVersionStr);
+    } while (0);
+    if (tiltSensor)
+        delete tiltSensor;
+    return success;
+}
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// End of IM19 firmware update functions.
+
+#endif  // COMPILE_FIRMWARE_UPDATE
+#endif  // COMPILE_IM19_IMU

@@ -67,21 +67,21 @@ RUN arduino-cli core install "esp32:esp32@${CORE_VERSION}"
 # Get Known Libraries
 RUN arduino-cli lib install ESP32Time@2.0.0
 #RUN arduino-cli lib install ESP32_BleSerial@3.0.0
-RUN arduino-cli lib install "ESP32-OTA-Pull"@1.0.0
 RUN arduino-cli lib install JC_Button@2.1.2
 RUN arduino-cli lib install PubSubClient@2.8.0
 RUN arduino-cli lib install "SdFat"@2.1.1
 RUN arduino-cli lib install "SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4
-RUN arduino-cli lib install "SparkFun u-blox GNSS v3"@3.1.10
+RUN arduino-cli lib install "SparkFun u-blox GNSS v3"@3.1.14
 RUN arduino-cli lib install "SparkFun Qwiic OLED Arduino Library"@1.0.15
 RUN arduino-cli lib install SSLClientESP32@2.0.0
 RUN arduino-cli lib install "SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0
 RUN arduino-cli lib install "ArduinoMqttClient"@0.1.8
 RUN arduino-cli lib install "SparkFun u-blox PointPerfect Library"@1.11.4
-RUN arduino-cli lib install "SparkFun IM19 IMU Arduino Library"@1.0.2
-RUN arduino-cli lib install "SparkFun UM980 Triband RTK GNSS Arduino Library"@2.0.1
-RUN arduino-cli lib install "SparkFun LG290P Quadband RTK GNSS Arduino Library"@3.0.1
+RUN arduino-cli lib install "SparkFun IM19 IMU Arduino Library"@1.1.1
+RUN arduino-cli lib install "SparkFun UM980 Triband RTK GNSS Arduino Library"@2.0.2
+RUN arduino-cli lib install "SparkFun LG290P Quadband RTK GNSS Arduino Library"@3.1.1
 RUN arduino-cli lib install "SparkFun I2C Expander Arduino Library"@1.0.1
+RUN arduino-cli lib install "SparkFun SSD168x I2C Interface Library"@1.0.1
 
 # Install the depends last. See:
 # https://community.sparkfun.com/t/rtk-everywhere-firmware-no-longer-builds-for-me/68045
@@ -98,6 +98,9 @@ RUN arduino-cli config set library.enable_unsafe_install true
 
 # Install SparkFun fork of ESP32_BleSerial
 RUN arduino-cli lib install --git-url https://github.com/sparkfun/ESP32_BleSerial.git
+
+# Install release_candidate of SparkFun SSD168x I2C Interface Library
+#RUN arduino-cli lib install --git-url https://github.com/sparkfun/SparkFun_SSD168x_I2C_Interface_Library.git#release_candidate
 
 # The Accessory and Authentication Coprocessor libraries depends=SparkFun Toolkit (>=1.0.6)
 RUN arduino-cli lib install "SparkFun Toolkit"@1.0.6

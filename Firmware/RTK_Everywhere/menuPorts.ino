@@ -158,6 +158,7 @@ void menuPortsNoMux()
             // Toggle the enable for the external corrections radio
             settings.enableExtCorrRadio ^= 1;
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // We may need to enable / disable NMEA
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_OTHER); // Make sure PQTMRTCMIS is enabled on LG290P
             gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS); // Request receiver to use new settings
         }
 
@@ -168,6 +169,7 @@ void menuPortsNoMux()
         {
             settings.enableNmeaOnRadio ^= 1;
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // We may need to enable / disable NMEA
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_OTHER); // Make sure PQTMRTCMIS is enabled on LG290P
         }
         else if (incoming == 'x')
             break;

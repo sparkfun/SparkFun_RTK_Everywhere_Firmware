@@ -140,7 +140,7 @@ void storeRTCMForConsumers(uint8_t *rtcmData, uint16_t dataLength)
         dest += (size_t)rtcmConsumerBufferEntrySize * (size_t)rtcmConsumerBufferHead;
         memcpy(dest, rtcmData, dataLength); // Store the RTCM
         rtcmConsumerBufferLengths[rtcmConsumerBufferHead] = dataLength; // Store the length
-        if (settings.debugRtcmBuffers)
+        if (settings.debugRtcmBuffers && !inMainMenu)
             systemPrintf("Filling RTCM Buffer %d: %4d bytes\r\n", rtcmConsumerBufferHead, dataLength);
         rtcmConsumerBufferHead = rtcmConsumerBufferHead + 1; // Increment the Head
         rtcmConsumerBufferHead = rtcmConsumerBufferHead % rtcmConsumerBufferEntries; // Wrap
@@ -165,7 +165,7 @@ void sendRTCMToConsumers()
         uint8_t *dest = rtcmConsumerBufferPtr;
         dest += (size_t)rtcmConsumerBufferEntrySize * (size_t)rtcmConsumerBufferTail;
         size_t dataLength = rtcmConsumerBufferLengths[rtcmConsumerBufferTail];
-        if (settings.debugRtcmBuffers)
+        if (settings.debugRtcmBuffers && !inMainMenu)
             systemPrintf("Sending RTCM Buffer %d: %4d bytes\r\n", rtcmConsumerBufferTail, dataLength);
 
         // NTRIP Server
@@ -207,6 +207,34 @@ void sendRTCMToConsumers()
 void processRTCM(uint8_t *rtcmData, uint16_t dataLength)
 {
     storeRTCMForConsumers(rtcmData, dataLength);
+}
+
+//----------------------------------------
+// Determine which correction broadcast method(s) are currently transmitting in Base mode
+// Used by Display.ino to show the outgoing corrections icon(s) next to the Logging icon
+//----------------------------------------
+bool baseBroadcastIsActive(BCAST_ID_T id)
+{
+    switch (id)
+    {
+    case BCAST_ESPNOW:
+        return (espNowIsPaired() || espNowIsBroadcasting());
+
+    case BCAST_RADIO_LORA:
+        return (present.radio_lora && loraIsTransmitting());
+
+    case BCAST_NTRIP_SERVER:
+        for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            if (online.ntripServer[serverIndex])
+                return true;
+        return false;
+
+    case BCAST_NTRIP_CASTER:
+        return tcpServerNtripCasterActive();
+
+    default:
+        return false;
+    }
 }
 
 //------------------------------

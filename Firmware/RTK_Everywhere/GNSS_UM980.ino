@@ -308,6 +308,34 @@ bool GNSS_UM980::configureRover()
 }
 
 //----------------------------------------
+// Configure the RTCM 1033 Antenna Description
+//----------------------------------------
+bool GNSS_UM980::configureRtcm1033()
+{
+    if (present.rtcm1033AntennaDescription)
+    {
+        char antInfo[100];
+        // If the antenna descriptor or serial number include a space, we must use quotes
+        // BUT the quotes are then included in 1033 and passed to the NTRIP Server!
+        // What a mess...
+        if ((strstr(settings.rtcm1033AntennaDescriptor, " ") != nullptr)
+            || (strstr(settings.rtcm1033AntennaSerialNr, " ") != nullptr))
+            snprintf(antInfo, sizeof(antInfo), "CONFIG BASEANTENNAMODEL \"%s\" \"%s\" %d NO",
+                settings.rtcm1033AntennaDescriptor,
+                settings.rtcm1033AntennaSerialNr,
+                settings.rtcm1033AntennaSetupID);
+        else
+            snprintf(antInfo, sizeof(antInfo), "CONFIG BASEANTENNAMODEL %s %s %d NO",
+                settings.rtcm1033AntennaDescriptor,
+                settings.rtcm1033AntennaSerialNr,
+                settings.rtcm1033AntennaSetupID);
+        return _um980->sendCommand(antInfo); // Set antenna configuration
+    }
+
+    return true; // Return true to clear configuration
+}
+
+//----------------------------------------
 // Responds with the messages supported on this platform
 // Inputs:
 //   returnText: String to receive message names
@@ -445,6 +473,12 @@ bool GNSS_UM980::fixedBaseStart()
         float totalFixedAltitude =
             settings.fixedAltitude + ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
 
+        // UM980 seems to add the geoidal separation to the fixed LLH Height?
+        // If settings.um980FixedBaseLLHSubtractSeparation is true, subtract the separation before applying
+        // If you use ECEF coordinates, the Base position correct
+        if (settings.um980FixedBaseLLHSubtractSeparation)
+            totalFixedAltitude -= _um980->getGeoidalSeparation();
+
         _um980->setModeBaseGeodetic(settings.fixedLat, settings.fixedLong, totalFixedAltitude);
     }
 
@@ -460,7 +494,7 @@ const float um980MaxRateHz = 20.0; // 20Hz
 
 bool GNSS_UM980::fixRateIsAllowed(uint32_t fixRateMs)
 {
-    if (fixRateMs > (1000.0 / um980MinRateHz) && fixRateMs < (1000.0 / um980MaxRateHz))
+    if (fixRateMs >= fixRateGetMinimumMs() && fixRateMs <= fixRateGetMaximumMs())
         return (true);
     return (false);
 }
@@ -468,13 +502,13 @@ bool GNSS_UM980::fixRateIsAllowed(uint32_t fixRateMs)
 // Return minimum in milliseconds
 uint32_t GNSS_UM980::fixRateGetMinimumMs()
 {
-    return (1000.0 / um980MinRateHz);
+    return (1000.0 / um980MaxRateHz); // Max Hz is min ms
 }
 
 // Return maximum in milliseconds
 uint32_t GNSS_UM980::fixRateGetMaximumMs()
 {
-    return (1000.0 / um980MaxRateHz);
+    return (1000.0 / um980MinRateHz); // Min Hz is max ms
 }
 
 //----------------------------------------
@@ -884,6 +918,27 @@ uint32_t GNSS_UM980::getTimeAccuracy()
 }
 
 //----------------------------------------
+// Sets the pieces of the version number
+//----------------------------------------
+bool GNSS_UM980::getVersion(uint16_t &major, uint8_t &minor, uint8_t &patch, uint8_t &revision)
+{
+    if (online.gnss)
+    {
+        // Unit responds with a large in such as 11833
+        int um980Version = String(_um980->getVersion()).toInt(); // Convert the string response to a value
+        if (um980Version >= 0)
+        {
+            major = um980Version;
+            minor = 0;
+            patch = 0;
+            revision = 0;
+            return (true);
+        }
+    }
+    return false;
+}
+
+//----------------------------------------
 // Returns full year, ie 2023, not 23.
 //----------------------------------------
 uint16_t GNSS_UM980::getYear()
@@ -927,6 +982,14 @@ bool GNSS_UM980::gnssInRoverMode()
         return (true);
 
     return (false);
+}
+
+//----------------------------------------
+// Indicate if there are any additional settings specific to this GNSS
+//----------------------------------------
+bool GNSS_UM980::hasGnssSpecificConfiguration()
+{
+    return true;
 }
 
 // If we issue a library command that must wait for a response, we don't want
@@ -1372,6 +1435,44 @@ void GNSS_UM980::menuMessagesSubtype(float *localMessageRate, const char *messag
                 }
             }
         }
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
+}
+
+//----------------------------------------
+// Configure any settings specific to this GNSS
+//----------------------------------------
+void GNSS_UM980::menuGnssSpecificConfiguration()
+{
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: GNSS-Specific Configuration");
+
+        systemPrintf("1) Subtract geoidal separation from Fixed Base LLH coords: %s\r\n",
+            settings.um980FixedBaseLLHSubtractSeparation ? "Enabled" : "Disabled");
+
+        systemPrintln("x) Exit");
+
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+        if (incoming == 1)
+        {
+            settings.um980FixedBaseLLHSubtractSeparation ^= 1;
+            // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
+            // This prevents a user, while in Rover mode, but changing a Base setting, from entering Base mode
+            // GNSS_CONFIG_BASE is ignored if we are already in Base mode. Use GNSS_CONFIG_BASE_FIXED
+            if (gnss->gnssInBaseFixedMode())
+                gnssConfigure(GNSS_CONFIG_BASE_FIXED); // Request receiver to use new settings
+        }
+
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
@@ -2199,7 +2300,7 @@ bool GNSS_UM980::setRtcmRoverMessageRateByName(const char *msgName, uint8_t msgR
 // List available settings, their type in CSV, and value
 //----------------------------------------
 bool um980CommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands, int qualifier, char *settingName,
-                      char *settingValue)
+                      size_t settingNameSize, char *settingValue)
 {
     switch (type)
     {
@@ -2210,7 +2311,10 @@ bool um980CommandList(RTK_Settings_Types type, int settingsIndex, bool inCommand
         // Record UM980 NMEA rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.um980MessageRatesNMEA[x], sizeof(settings.um980MessageRatesNMEA[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      umMessagesNMEA[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -2222,7 +2326,10 @@ bool um980CommandList(RTK_Settings_Types type, int settingsIndex, bool inCommand
         // Record UM980 Rover RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.um980MessageRatesRTCMRover[x], sizeof(settings.um980MessageRatesRTCMRover[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      umMessagesRTCM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -2234,7 +2341,10 @@ bool um980CommandList(RTK_Settings_Types type, int settingsIndex, bool inCommand
         // Record UM980 Base RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.um980MessageRatesRTCMBase[x], sizeof(settings.um980MessageRatesRTCMBase[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      umMessagesRTCM[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -2246,7 +2356,10 @@ bool um980CommandList(RTK_Settings_Types type, int settingsIndex, bool inCommand
         // Record UM980 Constellations
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[settingsIndex].name,
+            if (!commandSettingChanged(&settings.um980Constellations[x], sizeof(settings.um980Constellations[x])))
+                continue;
+
+            snprintf(settingName, settingNameSize, "%s%s", rtkSettingsEntries[settingsIndex].name,
                      um980ConstellationCommands[x].textName);
 
             getSettingValue(inCommands, settingName, settingValue);
@@ -2498,7 +2611,10 @@ bool um980NewSettingValue(struct Settings * tempSettings, RTK_Settings_Types typ
 //----------------------------------------
 // Called by gnssSettingsToFile to save UM980 specific settings
 //----------------------------------------
-bool um980SettingsToFile(File *settingsFile, RTK_Settings_Types type, int settingsIndex)
+bool um980SettingsToFile(char * line,
+                         size_t lineSize,
+                         RTK_Settings_Types type,
+                         int settingsIndex)
 {
     switch (type)
     {
@@ -2509,10 +2625,10 @@ bool um980SettingsToFile(File *settingsFile, RTK_Settings_Types type, int settin
         // Record UM980 NMEA rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // um980MessageRatesNMEA_GPDTM=0.05
-            snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+            // um980MessageRatesNMEA_GPDTM=0.05
+            snprintf(line, lineSize, "%s%s=%0.2f\r\n", rtkSettingsEntries[settingsIndex].name,
                      umMessagesNMEA[x].msgTextName, settings.um980MessageRatesNMEA[x]);
-            settingsFile->println(tempString);
+            nvmRecordStringToFile(line);
         }
     }
     break;
@@ -2520,10 +2636,10 @@ bool um980SettingsToFile(File *settingsFile, RTK_Settings_Types type, int settin
         // Record UM980 Rover RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // um980MessageRatesRTCMRover_RTCM1001=0.2
-            snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+            // um980MessageRatesRTCMRover_RTCM1001=0.2
+            snprintf(line, lineSize, "%s%s=%0.2f\r\n", rtkSettingsEntries[settingsIndex].name,
                      umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMRover[x]);
-            settingsFile->println(tempString);
+            nvmRecordStringToFile(line);
         }
     }
     break;
@@ -2531,10 +2647,10 @@ bool um980SettingsToFile(File *settingsFile, RTK_Settings_Types type, int settin
         // Record UM980 Base RTCM rates
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // um980MessageRatesRTCMBase_RTCM1001=0.2
-            snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[settingsIndex].name,
+            // um980MessageRatesRTCMBase_RTCM1001=0.2
+            snprintf(line, lineSize, "%s%s=%0.2f\r\n", rtkSettingsEntries[settingsIndex].name,
                      umMessagesRTCM[x].msgTextName, settings.um980MessageRatesRTCMBase[x]);
-            settingsFile->println(tempString);
+            nvmRecordStringToFile(line);
         }
     }
     break;
@@ -2542,10 +2658,10 @@ bool um980SettingsToFile(File *settingsFile, RTK_Settings_Types type, int settin
         // Record UM980 Constellations
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            char tempString[50]; // um980Constellations_GLONASS=1
-            snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[settingsIndex].name,
+            // um980Constellations_GLONASS=1
+            snprintf(line, lineSize, "%s%s=%0d\r\n", rtkSettingsEntries[settingsIndex].name,
                      um980ConstellationCommands[x].textName, settings.um980Constellations[x]);
-            settingsFile->println(tempString);
+            nvmRecordStringToFile(line);
         }
     }
     break;
@@ -2556,7 +2672,7 @@ bool um980SettingsToFile(File *settingsFile, RTK_Settings_Types type, int settin
 #endif // COMPILE_UM980
 
 //----------------------------------------
-void um980FirmwareBeginUpdate()
+void um980BeginFirmwareUpdate()
 {
     // Note: We cannot increase the bootloading speed beyond 115200 because
     //  we would need to alter the UM980 baud, then save to NVM, then allow the UM980 to reset.
@@ -2568,9 +2684,9 @@ void um980FirmwareBeginUpdate()
     // Note: UM980 needs its own dedicated update function, due to the T@ and bootloader trigger
 
     // Note: UM980 is currently only available on Torch.
-    //  But um980FirmwareBeginUpdate has been reworked so it will work on Facet too.
+    //  But um980BeginFirmwareUpdate has been reworked so it will work on Facet too.
 
-    // Note: um980FirmwareBeginUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
+    // Note: um980BeginFirmwareUpdate is called during setup, after identify board. I2C, gpio expanders, buttons
     //  and display have all been initialized. But, importantly, the UARTs have not yet been started.
     //  This makes our job much easier...
 
@@ -2633,7 +2749,7 @@ void um980FirmwareBeginUpdate()
             {
                 if (incoming == '@')
                 {
-                    gnssReset(); // Reset UM980
+                    gpioGnssReset(); // Reset UM980
 
                     // Fast beep to indicate start of upgrade
                     beepOn();
@@ -2641,7 +2757,7 @@ void um980FirmwareBeginUpdate()
                     beepOff();
                     delay(400);
 
-                    gnssBoot(); // Exit Reset
+                    gpioGnssBoot(); // Exit Reset
 
                     // No delay here!
 
@@ -2656,7 +2772,7 @@ void um980FirmwareBeginUpdate()
     }
 
     // Remove the special file. See #763 . Do the file removal in the loop
-    um980FirmwareRemoveUpdate();
+    um980RemovePassthroughFile();
 
     systemFlush(); // Complete prints
 
@@ -2668,25 +2784,25 @@ const char *um980FirmwareFileName = "/updateUm980Firmware.txt";
 //----------------------------------------
 // Force UART connection to GNSS for firmware update on the next boot by special file in LittleFS
 //----------------------------------------
-bool um980CreatePassthrough()
+bool um980CreatePassthroughFile()
 {
-    return createPassthrough(um980FirmwareFileName);
+    return createFileLfs(um980FirmwareFileName);
 }
 
 //----------------------------------------
 // Check if direct connection file exists
 //----------------------------------------
-bool um980FirmwareCheckUpdate()
+bool um980CheckPassthroughFile()
 {
-    return gnssFirmwareCheckUpdateFile(um980FirmwareFileName);
+    return fileExistsLfs(um980FirmwareFileName);
 }
 
 //----------------------------------------
 // Remove direct connection file
 //----------------------------------------
-void um980FirmwareRemoveUpdate()
+void um980RemovePassthroughFile()
 {
-    gnssFirmwareRemoveUpdateFile(um980FirmwareFileName);
+    removeFile(um980FirmwareFileName);
 }
 
 //----------------------------------------

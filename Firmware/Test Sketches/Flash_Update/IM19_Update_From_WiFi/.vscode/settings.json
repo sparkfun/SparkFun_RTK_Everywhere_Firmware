@@ -1,0 +1,5 @@
+{
+    "terminal.integrated.enableFileLinks": true,
+    "terminal.integrated.shellIntegration.enabled": true,
+    "C_Cpp.default.compilerPath": "C:/msys64/ucrt64/bin/gcc.exe"
+}

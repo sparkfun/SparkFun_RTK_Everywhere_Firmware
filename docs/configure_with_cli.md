@@ -74,6 +74,30 @@ If there was an error in getting the setting value, such as the setting name bei
 
 If a setting is a string, the setting will be surrounded in quotes. Any internal quotes will be escaped.
 
+## Getting Changed Settings
+
+To retrieve only CLI settings that differ from their factory defaults, send:
+
+	$SPGET,changedSettings*36<CR><LF>
+
+The receiver first sends device metadata (`deviceName`, `bluetoothId`, `deviceId`, `profileNumber`,
+`espFirmwareVersion`, and `gnssModuleInfo`; `tiltState` is included on tilt-capable platforms). It then sends one
+`$SPLST,[setting name],[setting type],[setting value]` response for each changed setting, followed by:
+
+	$SPGET,changedSettings,[number of changed settings],OK*FF<CR><LF>
+
+The checksum in each response is calculated by the receiver. This query is intended for clients that already know the device model and setting definitions.
+
+For direct serial testing, enter `changed` to list the changed settings without NMEA command framing.
+
+## Getting Tilt State
+
+To get the current tilt sensor state, send:
+
+	$SPGET,tiltState*FF<CR><LF>
+
+The receiver returns the numeric `TiltState` enum value. The response does not include the IM19 navigation-status bitfield.
+
 Send:
 
 	$SPGET,ntripClientCasterUserPW*35

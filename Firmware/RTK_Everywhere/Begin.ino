@@ -19,16 +19,27 @@ Begin.ino
 
 static uint32_t i2cPowerUpDelay;
 
-//----------------------------------------
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Hardware initialization functions
-//----------------------------------------
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+//----------------------------------------
+// Compute the upper and lower threshold values
+//----------------------------------------
+float computeThreshold(float r1, float r2, float tolerance)
+{
+    return MAX_ADC_VOLTAGE * (r2 * (1.0 + (tolerance / 100.0))) /
+           ((r1 * (1.0 + (-tolerance / 100.0))) + (r2 * (1.0 + (tolerance / 100.0))));
+}
+
+//----------------------------------------
 // Determine if the measured value matches the product ID value
 // idWithAdc applies resistor tolerance using worst-case tolerances:
 // Upper threshold: R1 down by TOLERANCE, R2 up by TOLERANCE
 // Lower threshold: R1 up by TOLERANCE, R2 down by TOLERANCE
 // Testing shows the combined ADC+resistors is under a 1% window
 // But the internal ESP32 VRef fuse is not always set correctly
+//----------------------------------------
 bool idWithAdc(uint16_t mvMeasured, float r1, float r2, float tolerance)
 {
     float lowerThreshold;
@@ -40,10 +51,8 @@ bool idWithAdc(uint16_t mvMeasured, float r1, float r2, float tolerance)
 
     // Return true if the mvMeasured value is within the tolerance range
     // of the mvProduct value
-    upperThreshold = ceil(MAX_ADC_VOLTAGE * (r2 * (1.0 + (tolerance / 100.0))) /
-                          ((r1 * (1.0 - (tolerance / 100.0))) + (r2 * (1.0 + (tolerance / 100.0)))));
-    lowerThreshold = floor(MAX_ADC_VOLTAGE * (r2 * (1.0 - (tolerance / 100.0))) /
-                           ((r1 * (1.0 + (tolerance / 100.0))) + (r2 * (1.0 - (tolerance / 100.0)))));
+    upperThreshold = ceil(computeThreshold(r1, r2, tolerance));
+    lowerThreshold = floor(computeThreshold(r1, r2, -tolerance));
 
     bool result = (upperThreshold > mvMeasured) && (mvMeasured > lowerThreshold);
     if (result && ENABLE_DEVELOPER)
@@ -53,13 +62,31 @@ bool idWithAdc(uint16_t mvMeasured, float r1, float r2, float tolerance)
     return result;
 }
 
+//----------------------------------------
+// Read the voltage on the device ID pin to determine the product
+//----------------------------------------
+uint16_t readBoardIdValue()
+{
+    // Use ADC to check the resistor divider
+    int pin_deviceID = 35;
+    uint16_t idValue = analogReadMilliVolts(pin_deviceID);
+    idValue = analogReadMilliVolts(pin_deviceID); // Read twice - just in case
+    return idValue;
+}
+
+//----------------------------------------
 // Use a pair of resistors on pin 35 to ID the board type
 // If the ID resistors are not available then use a variety of other methods
 // (I2C, GPIO test, etc) to ID the board.
 // Assume no hardware interfaces have been started so we need to start/stop any hardware
 // used in tests accordingly.
+//----------------------------------------
 void identifyBoard()
 {
+    uint16_t idValue = 0;
+    char line[128];
+    const productProperties * prop;
+
 #if ENABLE_DEVELOPER && defined(DEVELOPER_MAC_ADDRESS)
     static const uint8_t developerMacAddress[] = {DEVELOPER_MAC_ADDRESS};
     esp_base_mac_addr_set(developerMacAddress);
@@ -82,47 +109,35 @@ void identifyBoard()
     if (productVariant == RTK_UNKNOWN)
     {
         // Use ADC to check the resistor divider
-        int pin_deviceID = 35;
-        uint16_t idValue = analogReadMilliVolts(pin_deviceID);
-        idValue = analogReadMilliVolts(pin_deviceID); // Read twice - just in case
-        char adcId[50];
-        snprintf(adcId, sizeof(adcId), "Board ADC ID (mV): %d", idValue);
-        for (int i = 0; i < strlen(adcId); i++)
-            systemPrint("=");
-        systemPrintln();
-        systemPrintln(adcId);
-        for (int i = 0; i < strlen(adcId); i++)
-            systemPrint("=");
-        systemPrintln();
+        idValue = readBoardIdValue();
 
-        // Order the following ID checks, by millivolt values high to low (Torch reads low)
-
-        // EVK: 1/10  -->  2888mV < 3000mV < 3084mV (17.5% tolerance)
-        if (idWithAdc(idValue, 1, 10, 17.5))
-            productVariant = RTK_EVK;
-
-        // Facet mosaic: 1/4.7  -->  2618mV < 2721mV < 2811mV (10% tolerance)
-        else if (idWithAdc(idValue, 1, 4.7, 10))
-            productVariant = RTK_FACET_MOSAIC;
-
-        // Facet FP: 10.0/20.0  -->  2071mV < 2200mV < 2322mV (8.5% tolerance)
-        else if (idWithAdc(idValue, 10.0, 20.0, 8.5))
-            productVariant = RTK_FACET_FP;
-
-        // Postcard: 3.3/10  -->  2371mV < 2481mV < 2582mV (8.5% tolerance)
-        else if (idWithAdc(idValue, 3.3, 10, 8.5))
-            productVariant = RTK_POSTCARD;
-
-        // Torch X2: 8.2/3.3  -->  836mV < 947mV < 1067mV (8.5% tolerance)
-        else if (idWithAdc(idValue, 8.2, 3.3, 8.5))
-            productVariant = RTK_TORCH_X2;
+        // Lookup the product ID
+        prop = getProductPropertiesFromAdcValue(idValue);
+        if (prop)
+            productVariant = prop->productVariant;
     }
 
-    if (ENABLE_DEVELOPER)
-        systemPrintf("Identified variant: %s\r\n", productVariantProperties->name);
+    // Lookup the product properties
+    String productNameString = buildBaseProductName(productVariant);
+    const char * productName = productNameString.c_str();
+
+    // Display the product
+    if (idValue)
+        snprintf(line, sizeof(line), "%s (ADC ID %d mV)", productName, idValue);
+    else
+        snprintf(line, sizeof(line), "%s\r\n", productName);
+    for (int i = 0; i < strlen(line); i++)
+        systemPrint("=");
+    systemPrintln();
+    systemPrintln(line);
+    for (int i = 0; i < strlen(line); i++)
+        systemPrint("=");
+    systemPrintln();
 }
 
+//----------------------------------------
 // Turn on power for the display before beginDisplay
+//----------------------------------------
 void peripheralsOn()
 {
     if (present.peripheralPowerControl)
@@ -134,6 +149,10 @@ void peripheralsOn()
             i2cPowerUpDelay = millis(); // Skip startup time
     }
 }
+
+//----------------------------------------
+// Turn off power to the display
+//----------------------------------------
 void peripheralsOff()
 {
     if (present.peripheralPowerControl)
@@ -142,9 +161,11 @@ void peripheralsOff()
     }
 }
 
+//----------------------------------------
 // Assign pin numbers and initial pin states
 // Generally speaking, digitalWrites should be done in separate functions,
 // and this is the only function where pinModes are set
+//----------------------------------------
 void beginBoard()
 {
     if (productVariant == RTK_UNKNOWN)
@@ -187,6 +208,7 @@ void beginBoard()
         present.minElevation = true;
         present.dynamicModel = true;
         present.display_type = DISPLAY_MAX_NONE;
+        present.rtcm1033AntennaDescription = true;
 
 #ifdef COMPILE_IM19_IMU
         present.imu_im19 = true; // Allow tiltUpdate() to run
@@ -202,6 +224,7 @@ void beginBoard()
 
         pin_IMU_RX = 14; // Pin 16 is not available on Torch due to PSRAM
         pin_IMU_TX = 17;
+        pin_IMU_Boot = 2; // On Torch ESP GPIO2 is connected to DR_BOOT of the IM19.
 
         pin_GNSS_TimePulse = 39; // PPS on UM980
 
@@ -242,7 +265,7 @@ void beginBoard()
         pinMode(pin_GNSS_TimePulse, INPUT);
 
         pinMode(pin_GNSS_DR_Reset, OUTPUT);
-        gnssBoot(); // Tell UM980 and DR to boot
+        gpioGnssBoot(); // Tell UM980 and IMU to boot
 
         pinMode(pin_powerAdapterDetect, INPUT); // Has 10k pullup
 
@@ -258,7 +281,7 @@ void beginBoard()
         settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps.
 
         pinMode(pin_loraRadio_power, OUTPUT);
-        loraPowerOff(); // Keep LoRa powered down for now
+        gpioLoraPowerOff(); // Keep LoRa powered down for now
 
         pinMode(pin_loraRadio_boot, OUTPUT);
         digitalWrite(pin_loraRadio_boot, LOW); // Exit bootloader, run program
@@ -368,7 +391,7 @@ void beginBoard()
         // Disable the microSD card
         DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
         pinMode(pin_microSD_CS, OUTPUT);
-        sdDeselectCard();
+        gpioSdDeselectCard();
 
         DMW_if systemPrintf("pin_baseStatusLED: %d\r\n", pin_baseStatusLED);
         pinMode(pin_baseStatusLED, OUTPUT);
@@ -444,6 +467,7 @@ void beginBoard()
         present.minElevation = true;
         present.needsExternalPpl = true; // Uses the PointPerfect Library for L-Band
         present.dynamicModel = true;
+        present.rtcm1033AntennaDescription = true;
 
         pin_muxA = 2;
         pin_muxB = 12;
@@ -496,7 +520,7 @@ void beginBoard()
 
         present.psram_2mb = true;
         present.gnss_lg290p = true;
-        present.needsExternalPpl = true;      // Uses the PointPerfect Library
+        present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.gnss_to_uart = true;
         present.gnssUpdatePort = "CH342 Channel B";
 
@@ -514,6 +538,7 @@ void beginBoard()
         // We can't enable here because we don't know if lg290pFirmwareVersion is >= v1.5
         // present.minElevation = true;
         // present.minCN0 = true;
+        // present.rtcm1033AntennaDescription = true; // Added at protocol 1.1
 
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
@@ -546,11 +571,11 @@ void beginBoard()
         pinMode(pin_GNSS_TimePulse, INPUT);
 
         pinMode(pin_GNSS_Reset, OUTPUT);
-        gnssBoot(); // Tell LG290P to boot
+        gpioGnssBoot(); // Tell LG290P to boot
 
         // Disable the microSD card
         pinMode(pin_microSD_CS, OUTPUT);
-        sdDeselectCard();
+        gpioSdDeselectCard();
     }
 
     else if (productVariant == RTK_FACET_FP)
@@ -573,7 +598,7 @@ void beginBoard()
 
         present.display_i2c0 = true;
         // present.i2c0BusSpeed_400 = true; // The BQ40Z50 fuel gauge requires 100kHz
-        present.display_type = DISPLAY_128x64;
+        present.display_type = DISPLAY_128x64; // Standard Facet FP OLED. Changed to DISPLAY_184x88 by i2cBusInitialization if needed
         present.displayInverted = true;
 
         present.fastPowerOff = true;
@@ -622,7 +647,7 @@ void beginBoard()
 
         // Disable the microSD card
         pinMode(pin_microSD_CS, OUTPUT);
-        sdDeselectCard();
+        gpioSdDeselectCard();
 
         // Turn on Bluetooth LED to indicate power on
         bluetoothLedOn();
@@ -663,6 +688,7 @@ void beginBoard()
         // We can't enable GNSS features here because we don't know if lg290pFirmwareVersion is >= v1.5
         // present.minElevation = true;
         // present.minCN0 = true;
+        // present.rtcm1033AntennaDescription = true; // Added at protocol 1.1
 
         pin_I2C0_SDA = 15;
         pin_I2C0_SCL = 4;
@@ -713,7 +739,7 @@ void beginBoard()
         pinMode(pin_GNSS_TimePulse, INPUT);
 
         pinMode(pin_GNSS_DR_Reset, OUTPUT);
-        gnssBoot(); // Tell GNSS to boot
+        gpioGnssBoot(); // Tell GNSS to boot
 
         pinMode(pin_powerAdapterDetect, INPUT); // Has 10k pullup
 
@@ -722,23 +748,22 @@ void beginBoard()
 
         // LoRa not mounted in X2, but power down to be sure
         pinMode(pin_loraRadio_power, OUTPUT);
-        loraPowerOff(); // Keep LoRa powered down for now
+        gpioLoraPowerOff(); // Keep LoRa powered down for now
     }
 }
 
+//----------------------------------------
+//----------------------------------------
 void beginVersion()
 {
-    firmwareVersionGet(deviceFirmware, sizeof(deviceFirmware), false);
+    espFirmwareVersionGet(deviceFirmware, sizeof(deviceFirmware), false);
 
     char versionString[21];
-    firmwareVersionGet(versionString, sizeof(versionString), true);
+    espFirmwareVersionGet(versionString, sizeof(versionString), true);
 
     // The GNSS and Tilt could be unknown. Show the generic name only
-    char title[50];
-    snprintf(title, sizeof(title), "%s %s%s %s",
-        getBrandAttributeFromProductVariant(productVariant)->name,
-        productVariantProperties->rtkPrefix ? "RTK " : "",
-        productVariantProperties->name, versionString);
+    String productNameString = buildBaseProductName(productVariant);
+    const char * title = productNameString.c_str();
     for (int i = 0; i < strlen(title); i++)
         systemPrint("=");
     systemPrintln();
@@ -810,6 +835,9 @@ void beginVersion()
     }
 }
 
+//----------------------------------------
+// Initialize the SPI controller
+//----------------------------------------
 void beginSPI(bool force) // Call after beginBoard
 {
     static bool started = false;
@@ -823,6 +851,9 @@ void beginSPI(bool force) // Call after beginBoard
     }
 }
 
+//----------------------------------------
+// Initialize the SD layer on top of the SPI controller
+//----------------------------------------
 void beginSD()
 {
     if (present.microSd == false)
@@ -835,8 +866,15 @@ void beginSD()
     while (settings.enableSD == true) // Note: settings.enableSD is never set to false
     {
         // Setup SD card access semaphore
-        if (sdCardSemaphore == NULL)
+        if (sdCardSemaphore == nullptr)
+        {
             sdCardSemaphore = xSemaphoreCreateMutex();
+            if (sdCardSemaphore == nullptr)
+            {
+                systemPrintln("ERROR: Failed to create sdCardSemaphore");
+                break;
+            }
+        }
         else if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_shortWait_ms) != pdPASS)
         {
             // This is OK since a retry will occur next loop
@@ -887,7 +925,7 @@ void beginSD()
             if (tries == maxTries)
             {
                 systemPrintln("microSD init failed. Is card formatted? Marking card offline.");
-                sdDeselectCard();
+                gpioSdDeselectCard();
 
                 present.microSd = false; // Stop attempting to use SD
 
@@ -932,6 +970,9 @@ void beginSD()
         xSemaphoreGive(sdCardSemaphore); // Make the file system available for use
 }
 
+//----------------------------------------
+// Stop the SD layer
+//----------------------------------------
 void endSD(bool alreadyHaveSemaphore, bool releaseSemaphore)
 {
     // Stop size check if running
@@ -965,10 +1006,12 @@ void endSD(bool alreadyHaveSemaphore, bool releaseSemaphore)
         xSemaphoreGive(sdCardSemaphore);
 }
 
+//----------------------------------------
 // We want the GNSS UART interrupts to be pinned to core 0 to avoid competing with I2C interrupts
 // We do not start the UART for GNSS->BT reception here because the interrupts would be pinned to core 1
 // We instead start a task that runs on core 0, that then begins serial
 // See issue: https://github.com/espressif/arduino-esp32/issues/3386
+//----------------------------------------
 void beginGnssUart()
 {
     if (present.gnss_to_uart == false)
@@ -1003,14 +1046,18 @@ void beginGnssUart()
             task.gnssUartPinnedTaskRunning = true; // The xTaskCreate runs and completes nearly immediately. Mark start
                                                    // here and check for completion.
 
-            xTaskCreatePinnedToCore(
-                pinGnssUartTask,
-                "GnssUartStart", // Just for humans
-                2000,            // Stack Size
-                nullptr,         // Task input parameter
-                0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                &taskHandle, // Task handle
-                settings.gnssUartInterruptsCore); // Core where task should run, 0=core, 1=Arduino
+            if (xTaskCreatePinnedToCore(
+                    pinGnssUartTask,
+                    "GnssUartStart", // Just for humans
+                    2000,            // Stack Size
+                    nullptr,         // Task input parameter
+                    0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                    &taskHandle,                                // Task handle
+                    settings.gnssUartInterruptsCore) != pdPASS) // Core where task should run, 0=core, 1=Arduino
+            {
+                systemPrintln("ERROR: Failed to create GnssUartStart task");
+                task.gnssUartPinnedTaskRunning = false;
+            }
         }
 
         while (task.gnssUartPinnedTaskRunning == true) // Wait for task to complete run
@@ -1018,6 +1065,8 @@ void beginGnssUart()
     }
 }
 
+//----------------------------------------
+//----------------------------------------
 void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
 {
     if (productVariant == RTK_TORCH)
@@ -1038,8 +1087,8 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
     }
     else if (productVariant == RTK_FACET_MOSAIC)
     {
-            // Start the hardware at the dataPortBaud rate. This is similarly set in GNSS_MOSAIC::begin().
-            platformGnssCommunicationRate = settings.dataPortBaud;
+        // Start the hardware at the dataPortBaud rate. This is similarly set in GNSS_MOSAIC::begin().
+        platformGnssCommunicationRate = settings.dataPortBaud;
     }
     else if (productVariant == RTK_FACET_FP)
     {
@@ -1053,8 +1102,8 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
             // Mosaic defaults to 115200, but mosaicIsPresentOnFacetFP() increases COM1 to 460800bps
             platformGnssCommunicationRate = 115200 * 4;
         }
-        else if ((settings.detectedGnssReceiver == GNSS_RECEIVER_F9P)
-                 || (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P))
+        else if ((settings.detectedGnssReceiver == GNSS_RECEIVER_F9P) ||
+                 (settings.detectedGnssReceiver == GNSS_RECEIVER_X20P))
         {
             // ZED defaults to 38400. settings.dataPortBaud defaults to 230400
             // Keep the baud rate at settings.dataPortBaud for now
@@ -1072,8 +1121,11 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
         systemPrintln("Error: Unhandled GNSS communication rate");
     }
 }
+
+//----------------------------------------
 // Assign GNSS UART interrupts to the core that started the task. See:
 // https://github.com/espressif/arduino-esp32/issues/3386
+//----------------------------------------
 void pinGnssUartTask(void *pvParameters)
 {
     // Start notification
@@ -1085,6 +1137,13 @@ void pinGnssUartTask(void *pvParameters)
     // Not specified on EVK, Postcard and Facet mosaic-X5
     if (serialGNSS == nullptr)
         serialGNSS = new HardwareSerial(1);
+    if (serialGNSS == nullptr)
+    {
+        systemPrintln("ERROR: Failed to allocate serialGNSS");
+        task.gnssUartPinnedTaskRunning = false;
+        vTaskDelete(nullptr);
+        return;
+    }
 
     serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
@@ -1113,6 +1172,9 @@ void pinGnssUartTask(void *pvParameters)
     vTaskDelete(nullptr); // Delete task once it has run once
 }
 
+//----------------------------------------
+// Initialize UART 2
+//----------------------------------------
 void beginGnssUart2()
 {
     if (present.gnss_to_uart2 == false)
@@ -1121,12 +1183,47 @@ void beginGnssUart2()
     // Use UART2 on the ESP32 to communicate with the mosaic
     // (UART1 is already allocated to serialGNSS)
     serial2GNSS = new HardwareSerial(2);
+    if (serial2GNSS == nullptr)
+    {
+        systemPrintln("ERROR: Failed to allocate serial2GNSS");
+        return;
+    }
 
     serial2GNSS->setRxBufferSize(1024 * 1);
 
     serial2GNSS->begin(115200, SERIAL_8N1, pin_GnssUart2_RX, pin_GnssUart2_TX);
 }
 
+//----------------------------------------
+// Configure UART2 serial port shared between LoRa and Tilt
+// This only applies to the FP. The Torch has tilt connected direct to ESP UART0 (shared with USB)
+//----------------------------------------
+bool beginUart2Serial()
+{
+    // Determine if serial port is already configured
+    if (uart2Serial)
+        return true;
+
+    // Allocate the serial port object
+    uart2Serial = new HardwareSerial(2);
+
+    // Determine if the allocation failed
+    if (uart2Serial == nullptr)
+    {
+        systemPrintf("ERROR: Failed to allocate the uart2Serial port!\r\n");
+        return false;
+    }
+
+    // Configure the serial port
+    uart2Serial->setRxBufferSize(settings.uartReceiveBufferSize);
+    uart2Serial->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
+    uart2Serial->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
+    return true;
+}
+
+//----------------------------------------
+// Start the NVM file system
+//----------------------------------------
 void beginFS()
 {
     if (online.fs == false)
@@ -1149,7 +1246,9 @@ void beginFS()
     }
 }
 
+//----------------------------------------
 // Begin interrupts
+//----------------------------------------
 void beginInterrupts()
 {
     if (present.timePulseInterrupt ==
@@ -1161,7 +1260,9 @@ void beginInterrupts()
     }
 }
 
+//----------------------------------------
 // Start ticker tasks for LEDs and beeper
+//----------------------------------------
 void tickerBegin()
 {
     if (pin_bluetoothStatusLED != PIN_UNDEFINED)
@@ -1202,7 +1303,9 @@ void tickerBegin()
     beepOff();
 }
 
+//----------------------------------------
 // Stop any ticker tasks and PWM control
+//----------------------------------------
 void tickerStop()
 {
     bluetoothLedTask.detach();
@@ -1214,7 +1317,9 @@ void tickerStop()
     ledcDetach(pin_batteryStatusLED);
 }
 
+//----------------------------------------
 // Configure the battery fuel gauge
+//----------------------------------------
 void beginFuelGauge()
 {
     if (present.fuelgauge_max17048 == true)
@@ -1301,7 +1406,9 @@ void beginFuelGauge()
 #endif // COMPILE_BQ40Z50
 }
 
+//----------------------------------------
 // Configure the battery charger IC
+//----------------------------------------
 void beginCharger()
 {
     if (present.charger_mp2762a == true)
@@ -1313,6 +1420,9 @@ void beginCharger()
     }
 }
 
+//----------------------------------------
+// Start the button input task
+//----------------------------------------
 void beginButtons()
 {
     if (present.button_powerHigh == false && present.button_powerLow == false && present.button_mode == false &&
@@ -1419,16 +1529,21 @@ void beginButtons()
     {
         // Starts task for monitoring button presses
         if (!task.buttonCheckTaskRunning)
-            xTaskCreate(buttonCheckTask,
-                        "BtnCheck",          // Just for humans
-                        buttonTaskStackSize, // Stack Size
-                        nullptr,             // Task input parameter
-                        buttonCheckTaskPriority,
-                        &taskHandle); // Task handle
+        {
+            if (xTaskCreate(buttonCheckTask,
+                            "BtnCheck",          // Just for humans
+                            buttonTaskStackSize, // Stack Size
+                            nullptr,             // Task input parameter
+                            buttonCheckTaskPriority,
+                            &taskHandle) != pdPASS) // Task handle
+                systemPrintln("ERROR: Failed to create BtnCheck task");
+        }
     }
 }
 
+//----------------------------------------
 // Depending on platform and previous power down state, set system state
+//----------------------------------------
 void beginSystemState()
 {
     if (systemState > STATE_NOT_SET)
@@ -1480,6 +1595,9 @@ void beginSystemState()
     }
 }
 
+//----------------------------------------
+// Create the idle time monitoring tasks
+//----------------------------------------
 void beginIdleTasks()
 {
     if (settings.enablePrintIdleTime == true)
@@ -1490,19 +1608,24 @@ void beginIdleTasks()
         {
             snprintf(taskName, sizeof(taskName), "IdleTask%d", index);
             if (idleTaskHandle[index] == nullptr)
-                xTaskCreatePinnedToCore(
-                    idleTask,
-                    taskName, // Just for humans
-                    2000,     // Stack Size
-                    nullptr,  // Task input parameter
-                    0,        // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                    &idleTaskHandle[index], // Task handle
-                    index);                 // Core where task should run, 0=core, 1=Arduino
+            {
+                if (xTaskCreatePinnedToCore(
+                        idleTask,
+                        taskName, // Just for humans
+                        2000,     // Stack Size
+                        nullptr,  // Task input parameter
+                        0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                        &idleTaskHandle[index], // Task handle
+                        index) != pdPASS)       // Core where task should run, 0=core, 1=Arduino
+                    systemPrintf("ERROR: Failed to create %s task\r\n", taskName);
+            }
         }
     }
 }
 
+//----------------------------------------
 // Torch has no ID resistors. We need to test the I2C bus to detect a Torch
+//----------------------------------------
 void testI2cDevices()
 {
     TaskHandle_t taskHandle;
@@ -1515,24 +1638,29 @@ void testI2cDevices()
         while (millis() < i2cPowerUpDelay)
             ;
 
-    //if (settings.printTaskStartStop) // Settings have not yet been loaded
-    // systemPrintf("Task pinI2CDetectTask will be run on core %d%s\r\n",
-    //     settings.i2cInterruptsCore, settings.i2cInterruptsCore == 1 ? " (Arduino)" : "");
+    // if (settings.printTaskStartStop) // Settings have not yet been loaded
+    //  systemPrintf("Task pinI2CDetectTask will be run on core %d%s\r\n",
+    //      settings.i2cInterruptsCore, settings.i2cInterruptsCore == 1 ? " (Arduino)" : "");
 
     if (task.i2cDetectTaskRunning == false)
     {
-        xTaskCreatePinnedToCore(
-            pinI2CDetectTask,
-            "I2CDetect",  // Just for humans
-            2000,        // Stack Size
-            nullptr,     // Task input parameter
-            0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-            &taskHandle, // Task handle
-            settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
-
-        // Wait for task to start running
-        while (task.i2cDetectTaskRunning == false)
-            delay(1);
+        if (xTaskCreatePinnedToCore(
+                pinI2CDetectTask,
+                "I2CDetect", // Just for humans
+                3000,        // Stack Size
+                nullptr,     // Task input parameter
+                0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                &taskHandle, // Task handle
+                settings.i2cInterruptsCore) != pdPASS) // Core where task should run, 0=core, 1=Arduino
+        {
+            systemPrintln("ERROR: Failed to create I2CDetect task");
+        }
+        else
+        {
+            // Wait for task to start running
+            while (task.i2cDetectTaskRunning == false)
+                delay(1);
+        }
     }
 
     // Wait for task to complete
@@ -1540,13 +1668,15 @@ void testI2cDevices()
         delay(1);
 }
 
+//----------------------------------------
 // Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
+//----------------------------------------
 void pinI2CDetectTask(void *pvParameters)
 {
     task.i2cDetectTaskRunning = true;
 
     // Start notification
-    //if (settings.printTaskStartStop) // Settings have not yet been loaded
+    // if (settings.printTaskStartStop) // Settings have not yet been loaded
     // systemPrintln("Task pinI2CDetectTask started");
 
     // Check if unique ICs are on the Torch I2C bus
@@ -1588,28 +1718,96 @@ void pinI2CDetectTask(void *pvParameters)
     }
 
     // Stop notification
-    //if (settings.printTaskStartStop) // Settings have not yet been loaded
+    // if (settings.printTaskStartStop) // Settings have not yet been loaded
     // systemPrintln("Task pinI2CDetectTask stopped");
 
     task.i2cDetectTaskRunning = false;
     vTaskDelete(nullptr); // Delete task once it has run once
 }
 
-void beginI2C()
+//----------------------------------------
+// Allocate the I2C controller objects
+//----------------------------------------
+void allocateI2C()
+{
+    if (i2c_0 == nullptr) // i2c_0 could have been instantiated by identifyBoard
+        i2c_0 = new TwoWire(0);
+    if (i2c_0 == nullptr)
+        reportFatalError("ERROR: Failed to allocate i2c_0 object!");
+
+    if (present.i2c1 == true)
+    {
+        if (i2c_1 == nullptr)
+            i2c_1 = new TwoWire(1);
+        if (i2c_1 == nullptr)
+            reportFatalError("ERROR: Failed to allocate i2c_1 object!");
+    }
+}
+
+//----------------------------------------
+// Initialize the I2C controllers
+//----------------------------------------
+bool beginI2C()
+{
+    bool success;
+
+    do
+    {
+        success = true;
+        if (online.i2c == true)
+            break;
+        success = false;
+
+        // Allocate the I2C objects
+        allocateI2C();
+
+        // Complete the power-up delay for a power-controlled I2C bus
+        if (i2cPowerUpDelay)
+            while (millis() < i2cPowerUpDelay)
+                ;
+
+        // Initialize I2C bus 1
+        if (present.i2c1)
+        {
+            int bus1speed = 100;
+            if (present.i2c1BusSpeed_400 == true)
+                bus1speed = 400;
+
+            if (pin_I2C1_SDA == PIN_UNDEFINED || pin_I2C1_SCL == PIN_UNDEFINED)
+                reportFatalError("Illegal I2C1 pin assignment.");
+            if (i2cBusInitialization(i2c_1, 1, pin_I2C1_SDA, pin_I2C1_SCL, bus1speed) == false)
+                break;
+        }
+
+        // Initialize I2C bus 0
+        int bus0speed = 100;
+        if (present.i2c0BusSpeed_400 == true)
+            bus0speed = 400;
+
+        if (pin_I2C0_SDA == PIN_UNDEFINED || pin_I2C0_SCL == PIN_UNDEFINED)
+            reportFatalError("Illegal I2C0 pin assignment.");
+        if (i2cBusInitialization(i2c_0, 0, pin_I2C0_SDA, pin_I2C0_SCL, bus0speed) == false)
+            break;
+
+        // Update the I2C status
+        online.i2c = true;
+        success = true;
+    } while (0);
+    return success;
+}
+
+//----------------------------------------
+// Initialize the I2C task
+//----------------------------------------
+void beginI2CTask()
 {
     if (online.i2c == true)
         return;
 
     TaskHandle_t taskHandle;
 
-    if (i2c_0 == nullptr) // i2c_0 could have been instantiated by identifyBoard
-        i2c_0 = new TwoWire(0);
-
-    if (present.i2c1 == true)
-    {
-        if (i2c_1 == nullptr)
-            i2c_1 = new TwoWire(1);
-    }
+    // Allocate the I2C objects
+    allocateI2C();
 
     if ((present.display_i2c0 == true) && (present.display_i2c1 == true))
         reportFatalError("Displays on both i2c_0 and i2c_1");
@@ -1635,25 +1833,25 @@ void beginI2C()
         minSplashFor = 1000;
     }
 
-    // Complete the power-up delay for a power-controlled I2C bus
-    if (i2cPowerUpDelay)
-        while (millis() < i2cPowerUpDelay)
-            ;
-
     if (task.i2cPinnedTaskRunning == false)
     {
-        xTaskCreatePinnedToCore(
-            pinI2CTask,
-            "I2CStart",  // Just for humans
-            2000,        // Stack Size
-            nullptr,     // Task input parameter
-            0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-            &taskHandle, // Task handle
-            settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
-
-        // Wait for task to start running
-        while (task.i2cPinnedTaskRunning == false)
-            delay(1);
+        if (xTaskCreatePinnedToCore(
+                pinI2CTask,
+                "I2CStart",  // Just for humans
+                2000,        // Stack Size
+                nullptr,     // Task input parameter
+                0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                &taskHandle, // Task handle
+                settings.i2cInterruptsCore) != pdPASS) // Core where task should run, 0=core, 1=Arduino
+        {
+            systemPrintln("ERROR: Failed to create I2CStart task");
+        }
+        else
+        {
+            // Wait for task to start running
+            while (task.i2cPinnedTaskRunning == false)
+                delay(1);
+        }
     }
 
     // Wait for task to complete run
@@ -1661,7 +1859,9 @@ void beginI2C()
         delay(1);
 }
 
+//----------------------------------------
 // Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
+//----------------------------------------
 void pinI2CTask(void *pvParameters)
 {
     task.i2cPinnedTaskRunning = true;
@@ -1670,29 +1870,7 @@ void pinI2CTask(void *pvParameters)
     if (settings.printTaskStartStop)
         systemPrintln("Task pinI2CTask started");
 
-    if (pin_I2C0_SDA == PIN_UNDEFINED || pin_I2C0_SCL == PIN_UNDEFINED)
-        reportFatalError("Illegal I2C0 pin assignment.");
-
-    int bus0speed = 100;
-    if (present.i2c0BusSpeed_400 == true)
-        bus0speed = 400;
-
-    // Initialize I2C bus 0
-    if (i2cBusInitialization(i2c_0, pin_I2C0_SDA, pin_I2C0_SCL, bus0speed))
-        // Update the I2C status
-        online.i2c = true;
-
-    // Initialize I2C bus 1
-    if (present.i2c1)
-    {
-        int bus1speed = 100;
-        if (present.i2c1BusSpeed_400 == true)
-            bus1speed = 400;
-
-        if (pin_I2C1_SDA == PIN_UNDEFINED || pin_I2C1_SCL == PIN_UNDEFINED)
-            reportFatalError("Illegal I2C1 pin assignment.");
-        i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, bus1speed);
-    }
+    beginI2C();
 
     // Stop notification
     if (settings.printTaskStartStop)
@@ -1701,14 +1879,13 @@ void pinI2CTask(void *pvParameters)
     vTaskDelete(nullptr); // Delete task once it has run once
 }
 
+//----------------------------------------
 // Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
-bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
+//----------------------------------------
+bool i2cBusEnumerate(TwoWire *i2cBus, int i2cBusNumber)
 {
     bool deviceFound;
     uint32_t timer;
-
-    i2cBus->begin(sda, scl); // SDA, SCL - Start I2C on the core that was chosen when the task was started
-    i2cBus->setClock(clockKHz * 1000);
 
     // Display the device addresses
     deviceFound = false;
@@ -1732,7 +1909,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
             {
                 if (deviceFound == false)
                 {
-                    systemPrintln("I2C Devices:");
+                    systemPrintf("I2C-%d Devices:\r\n", i2cBusNumber);
                     deviceFound = true;
                 }
 
@@ -1744,7 +1921,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
         {
             if (deviceFound == false)
             {
-                systemPrintln("I2C Devices:");
+                systemPrintf("I2C-%d Devices:\r\n", i2cBusNumber);
                 deviceFound = true;
             }
 
@@ -1810,6 +1987,13 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
                 break;
             }
 
+            case 0x48: {
+                systemPrintf("  0x%02X - SSD168x e-Paper Driver (Facet FP)\r\n", addr);
+                if (productVariant == RTK_FACET_FP)
+                    present.display_type = DISPLAY_184x88;
+                break;
+            }
+
             case 0x5C: {
                 systemPrintf("  0x%02X - MP27692A Power Management / Charger\r\n", addr);
                 break;
@@ -1837,22 +2021,64 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
     return true;
 }
 
-// Start task to determine SD card size
-void beginSDSizeCheckTask()
+//----------------------------------------
+// Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
+//----------------------------------------
+bool i2cBusInitialization(TwoWire *i2cBus, int i2cBusNumber, int sda, int scl, int clockKHz)
 {
-    xTaskCreate(sdSizeCheckTask,         // Function to call
-                "SDSizeCheck",           // Just for humans
-                sdSizeCheckStackSize,    // Stack Size
-                nullptr,                 // Task input parameter
-                sdSizeCheckTaskPriority, // Priority
-                nullptr); // Task handle
+    i2cBus->begin(sda, scl); // SDA, SCL - Start I2C on the core that was chosen when the task was started
+    i2cBus->setClock(clockKHz * 1000);
+
+    // Display the device addresses
+    return i2cBusEnumerate(i2cBus, i2cBusNumber);
 }
 
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//----------------------------------------
+// Read an I2C device register and check for an expected value
+//----------------------------------------
+bool i2cIsDeviceRegisterPresent(TwoWire *i2cBus, uint8_t deviceAddress, uint8_t registerAddress, uint8_t expectedValue)
+{
+    int maxRetries = 3;
+
+    while (maxRetries > 0)
+    {
+        maxRetries--;
+        delay(1);
+
+        i2cBus->beginTransmission(deviceAddress);
+        i2cBus->write(registerAddress);
+        if (i2cBus->endTransmission() != 0)
+            continue;
+
+        i2cBus->requestFrom(deviceAddress, (uint8_t)1);
+        if (i2cBus->available())
+        {
+            return (i2cBus->read() == expectedValue);
+        }
+    }
+
+    return false;
+}
+
+//----------------------------------------
+// Start task to determine SD card size
+//----------------------------------------
+void beginSDSizeCheckTask()
+{
+    if (xTaskCreate(sdSizeCheckTask,         // Function to call
+                    "SDSizeCheck",           // Just for humans
+                    sdSizeCheckStackSize,    // Stack Size
+                    nullptr,                 // Task input parameter
+                    sdSizeCheckTaskPriority, // Priority
+                    nullptr) != pdPASS)      // Task handle
+        systemPrintln("ERROR: Failed to create SDSizeCheck task");
+}
+
+//----------------------------------------
 // Time Pulse ISR
 // Triggered by the rising edge of the time pulse signal, indicates the top-of-second.
 // Set the ESP32 RTC to UTC
-
+//----------------------------------------
 void tpISR()
 {
     unsigned long millisNow = millis();
@@ -1896,5 +2122,114 @@ void tpISR()
                 }
             }
         }
+    }
+}
+
+//----------------------------------------
+// Display the product table, resistors voltages
+//----------------------------------------
+void displayProductResistorTable()
+{
+    int productCount = productPropertiesEntries - 1;
+    int lowerThreshold[productCount];
+    int expectedValue[productCount];
+    int upperThreshold[productCount];
+    int sortIndex[productCount];
+
+    // Populate the tables
+    for (int i = 0; i < productCount; i++)
+    {
+        sortIndex[i] = i;
+        const productProperties * prop = &productPropertiesTable[i];
+
+        // A value of zero for r2 indicates no resistor network present
+        if (prop->r2)
+        {
+            upperThreshold[i] = ceil(computeThreshold(prop->r1, prop->r2, prop->tolerancePercentage));
+            expectedValue[i] = computeThreshold(prop->r1, prop->r2, 0);
+            lowerThreshold[i] = floor(computeThreshold(prop->r1, prop->r2, -prop->tolerancePercentage));
+        }
+        else
+        {
+            upperThreshold[i] = 0;
+            expectedValue[i] = 0;
+            lowerThreshold[i] = 0;
+        }
+    }
+
+    // Perform a bubble on the values to order the values high to low
+    for (int i = 0; i < productCount - 1; i++)
+    {
+        const productProperties * prodI = &productPropertiesTable[sortIndex[i]];
+        int vI = (prodI->r2 == 0) ? 0 : expectedValue[sortIndex[i]];
+        for (int j = i + 1; j < productCount; j++)
+        {
+            const productProperties * prodJ = &productPropertiesTable[sortIndex[j]];
+            int vJ = (prodJ->r2 == 0) ? 0 : expectedValue[sortIndex[j]];
+            if (vI < vJ)
+            {
+                // Swap the two index values
+                int temp = sortIndex[i];
+                sortIndex[i] = sortIndex[j];
+                sortIndex[j] = temp;
+                prodI = prodJ;
+                vI = vJ;
+            }
+        }
+    }
+
+    // Display the table header
+    systemPrintln();
+    systemPrintln("                 R1 K Ohms           R2 K Ohms");
+    systemPrintf( "%d.%03d Volts -----/\\/\\/\\/\\/----+----/\\/\\/\\/\\/----- Ground\r\n",
+                  MAX_ADC_VOLTAGE / 1000, MAX_ADC_VOLTAGE % 1000);
+    systemPrintln("                              |");
+    systemPrintf("                     ADC input: %d mVolts\r\n",
+                 readBoardIdValue());
+    systemPrintln("                              |");
+    systemPrintln("                              V");
+    systemPrintln("  K Ohms                 Millivolts             Max");
+    systemPrintln(" R1    R2  Tolerance High Expected  Low Delta  uAmps  Product");
+    systemPrintln("----  ---- --------- ------------------------  -----  ------------------------");
+
+    // Walk the list of products
+    for (int i = 0; i < productCount; i++)
+    {
+        int j = sortIndex[i];
+        const productProperties * prop = &productPropertiesTable[j];
+
+        // Get the product name
+        char productName[64];
+        const char * brand = getBrandAttributeFromBrand(prop->brand)->name;
+        const char * product = prop->name;
+        strcpy(productName, brand);
+        strcat(productName, " ");
+        if (prop->rtkPrefix)
+            strcat(productName, "RTK ");
+        strcat(productName, product);
+
+        // Compute the maximum current flow
+        float totalResistance = (prop->r1 + prop->r2) * 1000.;
+        float tolerance = prop->tolerancePercentage / 100.;
+        float minResistance = (totalResistance * (1. - tolerance));
+        float microVolts = MAX_ADC_VOLTAGE * 1000.;
+        int uAmps = (int)(ceil(microVolts / minResistance));
+
+        // Display the product values
+        if (prop->r2 == 0)
+            systemPrint("Using I2C instead                                    ");
+        else
+        {
+            systemPrintf("%4.1f  ", prop->r1);
+            systemPrintf("%4.1f  ", prop->r2);
+            systemPrintf(" %4.1f%%   ", prop->tolerancePercentage);
+            systemPrintf("%4d   ", upperThreshold[j]);
+            systemPrintf("%4d   ", expectedValue[j]);
+            systemPrintf("%4d  ", lowerThreshold[j]);
+            systemPrintf("%4d ", upperThreshold[j] - lowerThreshold[j]);
+            systemPrintf("%6d ", uAmps);
+        }
+        systemPrintf("%c", (prop->productVariant == productVariant) ? '*' : ' ');
+        systemPrintf("%02d:%s\r\n", prop->productVariant, productName);
     }
 }
