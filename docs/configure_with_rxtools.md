@@ -27,6 +27,8 @@ We have only used RxTools on Windows, but it is also Linux compatible.
 
 Download and install RxTools before continuing. This will also install the USB drivers needed to communicate with the mosaic-X5.
 
+Please see [this section](./firmware_update_mosaicX5.md#mosaic-x5-firmware-4151) for further information about mosaic-X5 firmware v4.15.1. On 4.15.1, some of the following may not be possible until you log in using your user-defined username and password.
+
 There are multiple ways to connect to the mosaic-X5 using RxTools:
 
 - While the RTF Facet mosaic is connected to your computer via USB, two additional serial COM ports will appear in Device Manager: Septentrio Virtual USB COM Port 1 and 2. RxTools can be configured to use either serial port. The X5 firmware names these ports _USB1_ and _USB2_.

@@ -25,6 +25,8 @@ However, because the ESP32 does considerable configuration of the mosaic-X5 and 
 
 Download and install [Septentrio's RxTools](https://www.septentrio.com/en/products/gps-gnss-receiver-software/rxtools) before continuing. This will also install the USB drivers needed to communicate with the mosaic-X5 using Ethernet-over-USB.
 
+Please see [this section](./firmware_update_mosaicX5.md#mosaic-x5-firmware-4151) for further information about mosaic-X5 firmware v4.15.1. On 4.15.1, some of the following may not be possible until you log in using your user-defined username and password.
+
 Connect the RTK Facet mosaic to your computer using a USB-C cable. Power on the RTK and wait a few seconds for the mosaic-X5 to boot up. The OLED display will show the Satellites In View count and Horizontal Accuracy once the mosaic-X5 is running. Open a web browser and navigate to **192.168.3.1**. You should see the mosaic-X5's internal web page.
 
 <figure markdown>

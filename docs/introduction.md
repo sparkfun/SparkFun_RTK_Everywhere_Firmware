@@ -90,7 +90,7 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 	[![Product Image](./img/SparkPNT_TX2.png)](https://www.sparkfun.com/sparkpnt-tx2.html "Go to Product Page")
 	<figcaption markdown>
 
-	[SparkFun RTK Torch (GPS-29524)](https://www.sparkfun.com/sparkpnt-tx2.html)
+	[SparkPNT TX2 (GPS-29524)](https://www.sparkfun.com/sparkpnt-tx2.html)
 	</figcaption>
 	</figure>
 
@@ -101,7 +101,7 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 	<center>
 
-	Hookup Guide *(Coming Soon)*
+	[Hookup Guide](https://docs.sparkpnt.com/TX2/){ .md-button .md-button--primary }
 	</center>
 
 </div>

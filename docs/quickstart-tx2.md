@@ -135,7 +135,8 @@ To get millimeter accuracy we need to provide the RTK unit with correction value
 ## Common Gotchas
 
 - High-precision GNSS works best with a clear view of the sky; it does not work indoors or near a window. GNSS performance is generally *not* affected by clouds or storms. Trees and buildings *can* degrade performance but usually only in very thick canopies or very near tall building walls. GNSS reception is very possible in dense urban centers with skyscrapers but high-precision RTK may be impossible.
-- The location reported by the RTK device is the location of the antenna element; it's *not* the location of the pointy end of the stick. Lat and Long are fairly easy to obtain but if you're capturing altitude be sure to do additional reading on ARPs (antenna reference points) and how to account for the antenna height in your data collection software. The Torch ARP is [here](https://docs.sparkfun.com/SparkFun_RTK_Torch/hardware_overview/#antenna-reference-point).
+- The location reported by the RTK device is the location of the antenna element; it's *not* the location of the pointy end of the stick. Lat and Long are fairly easy to obtain but if you're capturing altitude be sure to do additional reading on ARPs (antenna reference points) and how to account for the antenna height in your data collection software.
+	- Information on the TX2 ARP can be [found here](https://docs.sparkpnt.com/TX2/equipment_overview#antenna-and-north-reference-points).
 - Galileo HAS:
 	- Users should expect a minimum convergence time of ~8-10 min. to establish the position of the device.
 	- Users may notice that the position status remains in **RTK Float** and never reaches an **RTK Fix**; please, be aware of the associated errors.
