@@ -1,0 +1,30 @@
+model,subsystem,version_major,version_minor,version_patch,version_revision,release_candidate,file_name,file_bytes,file_crc32
+#
+# List older products first
+# Retired products should list all firmware components
+# The first subsystem component for a product listed overrides any additional found
+#
+# Retired products
+#
+EVK,ESP32,3,3,0,0,0,RTK_Everywhere_Firmware_v3_3.bin,3236512,0x6979f191
+EVK,GNSS,1,51,0,0,0,UBX_F9_100_HPG151_ZED_F9P.6c43b30ccfed539322eccedfb96ad933.bin,1354632,0xf2fe231a
+#
+# Current products
+#
+Facet X5,GNSS,4,14,10,1,0,mosaic-X5-4.14.10.1.suf,22829643,0xce009b8f
+Torch,GNSS,17548,0,0,0,0,UM980_R4.10Build17548.pkg,2969008,0x48e12aa0
+Postcard,GNSS,2,1,0,0,0,LG290P03AANR02A01S.pkg,2688712,0xb852abe9
+FPL,GNSS,2,1,0,0,0,LG290P03AANR02A01S.pkg,2688712,0xb852abe9
+FPL-T,GNSS,2,1,0,0,0,LG290P03AANR02A01S.pkg,2688712,0xb852abe9
+FPM,GNSS,4,14,10,1,0,mosaic-X5-4.14.10.1.suf,22829643,0xce009b8f
+FPM-T,GNSS,4,14,10,1,0,mosaic-X5-4.14.10.1.suf,22829643,0xce009b8f
+FPX,GNSS,2,2,0,0,0,UBX_20_HPG_202_ZED_F20P.329facb56ce18631d607fe15177834dc.bin,1095012,90e54861
+FPX-T,GNSS,2,2,0,0,0,UBX_20_HPG_202_ZED_F20P.329facb56ce18631d607fe15177834dc.bin,1095012,90e54861
+TX2,GNSS,2,1,0,0,0,LG290P03AANR02A01S.pkg,2688712,0xb852abe9
+#
+# Common firmware
+#
+*,ESP32,3,3,0,0,0,RTK_Everywhere_Firmware_v3_3.bin,3236512,0x6979f191
+*,ESP32,3,4,0,0,1,RTK_Everywhere_Firmware_RC-Jun_25_2026.bin,3312592,0x9c35da3e
+*,IMU,11,1,0,0,0,20260302210315_VH2_B2.2_A11.1_6bf04becee0bda310e65d.enc,259328,0xbbc162c3
+*,LoRa,3,0,1,0,0,SparkPNT_LoRa_3.0.1.bin,81424,0xaa992f57

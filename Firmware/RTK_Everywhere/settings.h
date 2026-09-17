@@ -74,12 +74,14 @@ typedef enum {
 // sd->begin will crash second time around with ~v2.2.3
 #include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman.
 
+// Peripherals
 #include "GNSS.h"
 #include "GNSS_None.h"
 #include "GNSS_ZED.h" //Structs of ZED messages, needed for settings.h
 #include "GNSS_UM980.h" //Structs of UM980 messages, needed for settings.h
 #include "GNSS_Mosaic.h" //Structs of mosaic messages, needed for settings.h
 #include "GNSS_LG290P.h" //Structs of LG90P messages, needed for settings.h
+
 #include <vector>
 
 // System can enter a variety of states
@@ -164,7 +166,7 @@ typedef enum {
     BRAND_NUM
 } RTKBrands_e;
 
-const RTKBrands_e DEFAULT_BRAND = BRAND_SPARKPNT;
+#define DEFAULT_BRAND           BRAND_SPARKPNT
 
 typedef struct
 {
@@ -181,15 +183,24 @@ extern const uint8_t logoSparkFun[];
 extern const uint8_t logoSparkPNT_Height;
 extern const uint8_t logoSparkPNT_Width;
 extern const uint8_t logoSparkPNT[];
+extern const uint8_t logoSparkPNT_128x64_Height;
+extern const uint8_t logoSparkPNT_128x64_Width;
+extern const uint8_t logoSparkPNT_128x64[];
 
 RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
     { BRAND_SPARKFUN, "SparkFun", logoSparkFun_Width, logoSparkFun_Height, logoSparkFun },
     { BRAND_SPARKPNT, "SparkPNT", logoSparkPNT_Width, logoSparkPNT_Height, logoSparkPNT },
 };
+const int RTKBrandAttributesEntries = sizeof(RTKBrandAttributes) / sizeof(RTKBrandAttributes[0]);
 
-// Product Variant used as part of device ID and whitelists. Do not reorder.
+// Product Variant - Do NOT reorder and do NOT remove unused values!!!
+// The label on the product lists the device ID which consists of the
+// Bluetooth address followed by two digits of the ProductVariant below.
+// This same ID value is used for the whitelists.  Skipped values represent
+// unreleased or new products.
 typedef enum
 {
+    RTK_ALL = -1,
     RTK_EVK = 0, // 0x00
     // RTK_FACET_V2 = 1, // 0x01 - No L-Band
     RTK_FACET_MOSAIC = 2, // 0x02
@@ -203,7 +214,8 @@ typedef enum
 } ProductVariant;
 ProductVariant productVariant = RTK_UNKNOWN;
 
-// Must match the contents of ProductVariant
+// allVariants - Do NOT remove, MUST match the contents of ProductVariant
+// without the RTK_ALL value!!!
 static const ProductVariant allVariants[] = { RTK_EVK, RTK_FACET_MOSAIC, RTK_TORCH, RTK_POSTCARD, RTK_FACET_FP, RTK_TORCH_X2, RTK_UNKNOWN};
 #define productVariantCount (sizeof(allVariants) / sizeof(allVariants[0]))
 
@@ -241,6 +253,17 @@ const productHousingProperties productHousingPropertiesTable[] =
 };
 const int productHousingEntries = sizeof(productHousingPropertiesTable) / sizeof(productHousingPropertiesTable[0]);
 
+typedef enum
+{
+    TILT_NOT_PRESENT = 0,
+    TILT_DISABLED,
+    TILT_OFFLINE,
+    TILT_STARTED,
+    TILT_INITIALIZED,
+    TILT_CORRECTING,
+    TILT_REQUEST_STOP,
+} TiltState;
+
 // Product Properties Table
 // ========================
 // name is used to create the BT broadcast deviceName
@@ -260,6 +283,9 @@ const int productHousingEntries = sizeof(productHousingPropertiesTable) / sizeof
 typedef struct
 {
     ProductVariant productVariant;
+    const float r1; // First resistor value in K Ohms, zero = no resistor
+    const float r2; // Second resistor value in K OHms, zero = no resistor
+    const float tolerancePercentage;  // Resistor tolerance
     const RTKBrands_e brand;
     const ProductVariantHousing housing;
     const char *name;
@@ -274,17 +300,20 @@ typedef struct
 
 const productProperties productPropertiesTable[] =
 {
-    //productVariant        brand           housing                 name            displayName filePrefix              platformProvision   rtkPfx  productPlanUID      defaultSystemState          platformRegistration
-    //==============        =====           =======                 ====            =========== ==========              =================   ======  ==============      ==================          ====================
-    { RTK_EVK,              BRAND_SPARKFUN, RTK_HOUSING_EVK,        "EVK",          "EVK",      "SFE_EVK",              "EVK",              true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_evk_registration" },
-    { RTK_FACET_MOSAIC,     BRAND_SPARKPNT, RTK_HOUSING_FACET,      "Facet X5",     "Facet X5", "SFE_Facet_mosaic",     "Facet mosaicX5",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_mosaic_registration" },
-    { RTK_FACET_FP,         BRAND_SPARKPNT, RTK_HOUSING_FP,         "FP",           "FP",       "SFE_FP",               "FP",               false,  "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_fp_registration" },
-    { RTK_POSTCARD,         BRAND_SPARKFUN, RTK_HOUSING_POSTCARD,   "Postcard",     "Postcard", "SFE_Postcard",         "Postcard",         true,   "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_postcard_registration" },
-    { RTK_TORCH,            BRAND_SPARKPNT, RTK_HOUSING_TORCH,      "Torch",        "Torch",    "SFE_Torch",            "Torch",            true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_torch_registration" },
-    { RTK_TORCH_X2,         BRAND_SPARKPNT, RTK_HOUSING_TX2,        "TX2",          "TX2",      "SFE_TX2",              "TX2",              false,  "3407c7ca3d6b4984", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/tx2_registration" },
-    { RTK_UNKNOWN,          DEFAULT_BRAND,  RTK_HOUSING_MAX_NONE,   "Unknown",      "Unknown",  "SFE_Unknown",          "Unknown",          true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
+    //productVariant    r1    r2    Tol %   brand           housing                 name            displayName filePrefix              platformProvision   rtkPfx  productPlanUID      defaultSystemState          platformRegistration
+    //==============    ==    ==    =====   =====           =======                 ====            =========== ==========              =================   ======  ==============      ==================          ====================
+    { RTK_EVK,          1,    10,   17.5,   BRAND_SPARKFUN, RTK_HOUSING_EVK,        "EVK",          "EVK",      "SFE_EVK",              "EVK",              true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_evk_registration" },
+    { RTK_FACET_MOSAIC, 1,    4.7,  10,     BRAND_SPARKPNT, RTK_HOUSING_FACET,      "Facet X5",     "Facet X5", "SFE_Facet_mosaic",     "Facet mosaicX5",   true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_mosaic_registration" },
+    { RTK_TORCH,        0,    0,    0,      BRAND_SPARKPNT, RTK_HOUSING_TORCH,      "Torch",        "Torch",    "SFE_Torch",            "Torch",            true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_torch_registration" },
+    { RTK_POSTCARD,     3.3,  10,   8.5,    BRAND_SPARKFUN, RTK_HOUSING_POSTCARD,   "Postcard",     "Postcard", "SFE_Postcard",         "Postcard",         true,   "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_postcard_registration" },
+    { RTK_FACET_FP,     10,   20,   8.5,    BRAND_SPARKPNT, RTK_HOUSING_FP,         "FP",           "FP",       "SFE_FP",               "FP",               false,  "e9e877bb278140f0", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/rtk_facet_fp_registration" },
+    { RTK_TORCH_X2,     8.2,  3.3,  8.5,    BRAND_SPARKPNT, RTK_HOUSING_TX2,        "TX2",          "TX2",      "SFE_TX2",              "TX2",              false,  "3407c7ca3d6b4984", STATE_ROVER_NOT_STARTED,    "https://www.sparkfun.com/tx2_registration" },
+    { RTK_UNKNOWN,      0,    0,    0,      DEFAULT_BRAND,  RTK_HOUSING_MAX_NONE,   "Unknown",      "Unknown",  "SFE_Unknown",          "Unknown",          true,   "0000000000000000", STATE_ROVER_NOT_STARTED,    "Unknown" },
 };
 const int productPropertiesEntries = sizeof(productPropertiesTable) / sizeof(productPropertiesTable[0]);
+
+#define productVariantProperties getProductPropertiesFromVariant(productVariant)
+#define variantHousingProperties getProductHousingPropertiesFromVariant(productVariant)
 
 // Corrections Priority
 typedef enum
@@ -322,6 +351,20 @@ const char * const correctionsSourceNames[CORR_NUM] =
 };
 const int correctionsSourceNamesEntries = sizeof(correctionsSourceNames) / sizeof(correctionsSourceNames[0]);
 
+// Base mode - outgoing correction broadcast methods
+// Used by Display.ino to show which method(s) are currently transmitting corrections
+typedef enum
+{
+    BCAST_ESPNOW = 0,   // ESPNOW.ino
+    BCAST_RADIO_LORA,   // LoRa.ino
+    BCAST_NTRIP_SERVER, // NtripServer.ino
+    BCAST_NTRIP_CASTER, // TcpServer.ino
+    // Add new broadcast methods just above this line
+    BCAST_NUM
+} broadcastSource;
+
+typedef uint8_t BCAST_ID_T; // Type holding a broadcast method ID
+
 // Setup Buttons
 typedef struct
 {
@@ -335,12 +378,13 @@ typedef enum
 {
     DISPLAY_64x48,
     DISPLAY_128x64,
+    DISPLAY_184x88, // Facet FP e-Paper (SSD168x via I2C-SPI bridge)
     // Add new displays above this line
     DISPLAY_MAX_NONE // This represents the maximum numbers of display and also "no display"
 } DisplayType;
 
-const uint8_t DisplayWidth[DISPLAY_MAX_NONE] = { 64, 128 }; // We could get these from the oled, but this is const
-const uint8_t DisplayHeight[DISPLAY_MAX_NONE] = { 48, 64 };
+const uint8_t DisplayWidth[DISPLAY_MAX_NONE] = { 64, 128, 184 }; // We could get these from the oled, but this is const
+const uint8_t DisplayHeight[DISPLAY_MAX_NONE] = { 48, 64, 88 };
 
 typedef enum
 {
@@ -598,10 +642,14 @@ typedef enum
 
 // Print the base coordinates in different formats, depending on the type the user has entered
 // These are the different supported types
+// Note: COORDINATE_INPUT_TYPE_DDDMM is needed by coordinateConvertInput for longitude only.
+//       coordinateIdentifyInputType will return COORDINATE_INPUT_TYPE_DDMM for both
+//       5-digit longitude and 4-digit latitude.
 typedef enum
 {
     COORDINATE_INPUT_TYPE_DD = 0,                   // Default DD.ddddddddd
     COORDINATE_INPUT_TYPE_DDMM,                     // DDMM.mmmmm
+    COORDINATE_INPUT_TYPE_DDDMM,                    // DDDMM.mmmmm - coordinateConvertInput longitude only
     COORDINATE_INPUT_TYPE_DD_MM,                    // DD MM.mmmmm
     COORDINATE_INPUT_TYPE_DD_MM_DASH,               // DD-MM.mmmmm
     COORDINATE_INPUT_TYPE_DD_MM_SYMBOL,             // DD°MM.mmmmmmm'
@@ -710,6 +758,7 @@ enum
     NETCONSUMER_TCP_SERVER,
     NETCONSUMER_UDP_SERVER,
     NETCONSUMER_WEB_CONFIG,
+    NETCONSUMER_DEVICE_OTA,
     // Add new consumers just before this line
     // Also add them to the networkConsumerTable
     NETCONSUMER_MAX
@@ -735,6 +784,9 @@ struct Settings
 {
     int sizeOfSettings = 0;             // sizeOfSettings **must** be the first entry and must be int
     int rtkIdentifier = RTK_IDENTIFIER; // rtkIdentifier **must** be the second entry
+
+    // CRC control, old files missing this value use false, new file write true
+    bool settingsFileHasCrc = false;    // settingsFileHasCrc **must** be the third entry
 
     //Once we detect the platform or receiver, no need to re-detect
     //ProductVariant previouslyDetectedPlatform = RTK_UNKNOWN; //Because LFS is started after deviceID, this is mute
@@ -811,6 +863,12 @@ struct Settings
     uint32_t autoFirmwareCheckMinutes = 24 * 60;
     bool debugFirmwareUpdate = false;
     bool enableAutoFirmwareUpdate = false;
+    char csvUrl[OTA_FIRMWARE_CSV_URL_LENGTH] = OTA_FIRMWARE_CSV_URL;
+    // otaDeveloperOptions is NOT a member here - it must never be sticky/NVM (see otaDeveloperOptions global below)
+    uint8_t otaRequestEsp32 = 0; // OTA_REQUEST_PRODUCT_RELEASE
+    uint8_t otaRequestGnss = 0;
+    uint8_t otaRequestLora = 0;
+    uint8_t otaRequestImu = 0;
 
     // GNSS
     muxConnectionType_e dataPortChannel = MUX_GNSS_UART; // Mux default to GNSS UART
@@ -1026,8 +1084,11 @@ struct Settings
     // RTC (Real Time Clock)
     bool enablePrintRtcSync = false;
 
-    // RTCM buffers
+    // RTCM
     bool debugRtcmBuffers = false;
+    char rtcm1033AntennaDescriptor[21] = "ADVNULLANTENNA"; // Supported on mosaic-X5 [20], LG290P [31], UM980 [31]
+    char rtcm1033AntennaSerialNr[21] = "Unknown"; // Supported on mosaic-X5 [20], LG290P [31], UM980 [31]
+    uint8_t rtcm1033AntennaSetupID = 0; // 0-255 Supported on mosaic-X5, LG290P, UM980
 
     // SD Card
     bool enablePrintBufferOverrun = false;
@@ -1098,6 +1159,7 @@ struct Settings
     float um980MessageRatesRTCMRover[MAX_UM980_RTCM_MSG] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Unicore recommended rates.
+    bool um980FixedBaseLLHSubtractSeparation = false; // Set true to subtract geoidal separation from fixed base LLH
 #endif // COMPILE_UM980
 
     // mosaic
@@ -1148,7 +1210,8 @@ struct Settings
         {"", ""},
         {"", ""},
     };
-    uint32_t wifiConnectTimeoutMs = 10000; // Wait this long for a WiFiMulti connection
+    // Must cover a full AP scan, association, DHCP and network priority arbitration
+    uint32_t wifiConnectTimeoutMs = 30000;
 
     bool outputTipAltitude = false; // If enabled, subtract the pole length and APC from the GNSS receiver's reported altitude
 
@@ -1177,6 +1240,9 @@ struct Settings
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Quectel recommended rates.
     int lg290pMessageRatesPQTM[MAX_LG290P_PQTM_MSG] = {254}; // Mark first record with key so defaults will be applied.
+    uint16_t lg290pRtkDifferentialAge = 120; // LG290P only. Sets the max differential age of RTK fix. 1-600s. Default: 120s
+    uint16_t lg290pRtkDifferentialSourceType = 0; // LG290P only. 0 = Auto, 1 = Normal, 2 = Wide Lane. Default is Auto.
+    uint16_t lg290pRtkReliabilityLevel = 3; // LG290P only. 1 = Very relax, 2 = Relax, 3 = Medium, 4 = Strict, 5 = Very strict. Default is 3.
 #endif // COMPILE_LG290P
 
     bool debugSettings = false;
@@ -1209,16 +1275,18 @@ const char *localizedDistributionTileLevelNames[LOCALIZED_DISTRIBUTION_TILE_LEVE
 
 typedef enum
 {
-    NON = 0,            // NONE - must be first
-    L29 = (1 << 0),     // LG290P - No Tilt
-    MX5 = (1 << 1),     // mosaic-X5 - No Tilt
-    U98 = (1 << 2),     // UM980 - Tilt TBC
-    ZF9 = (1 << 3),     // ZED-F9P - Tilt TBC
-    ZX2 = (1 << 4),     // ZED-X20P - Tilt TBC
-    ALL = (1 << 5) - 1, // ALL - must be the highest single variant
-    ZED = ZF9 | ZX2,    // Hybrids are possible (enums don't have to be consecutive)
-    MSM = L29,          // Platforms which require parameter selection of MSM7 over MSM4
-    HAS = L29,          // Platforms which support Galileo HAS
+    NON = 0,               // NONE - must be first
+    L29 = (1 << 0),        // LG290P
+    MX5 = (1 << 1),        // mosaic-X5
+    U98 = (1 << 2),        // UM980 - Possible future product
+    ZF9 = (1 << 3),        // ZED-F9P - Possible future product
+    ZX2 = (1 << 4),        // ZED-X20P
+    ALL = (1 << 5) - 1,    // ALL - must be the highest single variant
+    ZED = ZF9 | ZX2,       // Hybrids are possible (enums don't have to be consecutive)
+    MSM = L29,             // Platforms which _require_ parameter selection of MSM7 over MSM4
+    HAS = L29 | ZX2,       // Platforms which support Galileo HAS - includes ZED-X20P with HPG >= 2.10
+    R33 = L29 | MX5 | U98, // Platforms which support configuration of the RTCM 1033 Antenna Descriptor
+    // Note: when adding new variants or hybrids, update settingAvailableOnPlatform in menuComands.ino to match
 } Facet_FP_Variant;
 
 typedef bool (* AFTER_CMD)(const char *settingName, void *settingData, int settingType);
@@ -1246,18 +1314,19 @@ typedef struct
 
 #define COMMAND_PROFILE_0_INDEX            -1
 #define COMMAND_PROFILE_NUMBER             (COMMAND_PROFILE_0_INDEX - MAX_PROFILE_COUNT) // -1 - 8 = -9
-#define COMMAND_FIRMWARE_VERSION           (COMMAND_PROFILE_NUMBER - 1) // -9 - 1 = -10
-#define COMMAND_REMOTE_FIRMWARE_VERSION    (COMMAND_FIRMWARE_VERSION - 1) // -10 - 1 = -11
-#define COMMAND_ENABLE_RC_FIRMWARE         (COMMAND_REMOTE_FIRMWARE_VERSION - 1) // -11 - 1 = -12
-#define COMMAND_GNSS_MODULE_INFO           (COMMAND_ENABLE_RC_FIRMWARE - 1) // -12 - 1 = -13
-#define COMMAND_BATTERY_LEVEL_PERCENT      (COMMAND_GNSS_MODULE_INFO - 1) // -13 - 1 = -14
-#define COMMAND_BATTERY_VOLTAGE            (COMMAND_BATTERY_LEVEL_PERCENT - 1) // -13 - 1 = -14
-#define COMMAND_BATTERY_CHARGING_PERCENT   (COMMAND_BATTERY_VOLTAGE - 1) // -13 - 1 = -14
-#define COMMAND_BLUETOOTH_ID               (COMMAND_BATTERY_CHARGING_PERCENT - 1) // -13 - 1 = -14
-#define COMMAND_DEVICE_NAME                (COMMAND_BLUETOOTH_ID - 1) // -14 - 1 = -15
-#define COMMAND_DEVICE_ID                  (COMMAND_DEVICE_NAME - 1) // -15 - 1 = -16
-#define COMMAND_UNKNOWN                    (COMMAND_DEVICE_ID - 1) // -16 - 1 = -17
-#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN)) // 17
+#define COMMAND_FIRMWARE_VERSION           (COMMAND_PROFILE_NUMBER - 1)         //  -9 - 1 = -10
+#define COMMAND_REMOTE_FIRMWARE_VERSION    (COMMAND_FIRMWARE_VERSION - 1)       // -10 - 1 = -11
+#define COMMAND_ENABLE_RC_FIRMWARE         (COMMAND_REMOTE_FIRMWARE_VERSION - 1)// -11 - 1 = -12
+#define COMMAND_GNSS_MODULE_INFO           (COMMAND_ENABLE_RC_FIRMWARE - 1)     // -12 - 1 = -13
+#define COMMAND_BATTERY_LEVEL_PERCENT      (COMMAND_GNSS_MODULE_INFO - 1)       // -13 - 1 = -14
+#define COMMAND_BATTERY_VOLTAGE            (COMMAND_BATTERY_LEVEL_PERCENT - 1)  // -14 - 1 = -15
+#define COMMAND_BATTERY_CHARGING_PERCENT   (COMMAND_BATTERY_VOLTAGE - 1)        // -15 - 1 = -16
+#define COMMAND_BLUETOOTH_ID               (COMMAND_BATTERY_CHARGING_PERCENT - 1)// -16 - 1 = -17
+#define COMMAND_DEVICE_NAME                (COMMAND_BLUETOOTH_ID - 1)           // -17 - 1 = -18
+#define COMMAND_DEVICE_ID                  (COMMAND_DEVICE_NAME - 1)            // -18 - 1 = -19
+#define COMMAND_TILT_STATE                 (COMMAND_DEVICE_ID - 1)              // -19 - 1 = -20
+#define COMMAND_UNKNOWN                    (COMMAND_TILT_STATE - 1)              // -20 - 1 = -21
+#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN))                 // -21
 
 // Exit types for processCommand
 typedef enum
@@ -1443,6 +1512,11 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.autoFirmwareCheckMinutes, "autoFirmwareCheckMinutes", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugFirmwareUpdate, "debugFirmwareUpdate", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableAutoFirmwareUpdate, "enableAutoFirmwareUpdate", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, tCharArry, sizeof(settings.csvUrl), & settings.csvUrl, "csvUrl", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.otaRequestEsp32, "otaRequestEsp32", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.otaRequestGnss, "otaRequestGnss", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.otaRequestLora, "otaRequestLora", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.otaRequestImu, "otaRequestImu", nullptr, },
 
     // GNSS UART
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.serialGNSSRxFullThreshold, "serialGNSSRxFullThreshold", nullptr, },
@@ -1491,12 +1565,12 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Mosaic
 #ifdef  COMPILE_MOSAICX5
     { 1, 1, 1, 0, 1, 0, 0, MX5, 0, tMosaicConst,  MAX_MOSAIC_CONSTELLATIONS, & settings.mosaicConstellations, "constellation_", gnssCmdUpdateConstellations, },
-    { 1, 1, 1, 0, 1, 0, 0, MX5, 0, tMosaicMSNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageStreamNMEA, "messageStreamNMEA_", gnssCmdUpdateMessageRates, },
-    { 1, 1, 1, 0, 1, 0, 0, MX5, 0, tMosaicSINmea, MOSAIC_NUM_NMEA_STREAMS, & settings.mosaicStreamIntervalsNMEA, "streamIntervalNMEA_", gnssCmdUpdateMessageRates, },
-    { 1, 1, 1, 0, 1, 0, 0, MX5, 0, tMosaicMIRvRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Rover, "messageIntervalRTCMRover_", gnssCmdUpdateMessageRates, },
-    { 1, 1, 1, 0, 1, 0, 0, MX5, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_", gnssCmdUpdateMessageRates, },
-    { 1, 1, 1, 0, 1, 0, 0, MX5, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_", gnssCmdUpdateMessageRates, },
-    { 1, 1, 1, 0, 1, 0, 0, MX5, 0, tMosaicMEBaRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Base, "messageEnabledRTCMBase_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 1, 0, 0, MX5, 0, tMosaicMSNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageStreamNMEA, "messageStreamNMEA_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 1, 0, 0, MX5, 0, tMosaicSINmea, MOSAIC_NUM_NMEA_STREAMS, & settings.mosaicStreamIntervalsNMEA, "streamIntervalNMEA_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 1, 0, 0, MX5, 0, tMosaicMIRvRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Rover, "messageIntervalRTCMRover_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 1, 0, 0, MX5, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 1, 0, 0, MX5, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_", gnssCmdUpdateMessageRates, },
+    { 0, 1, 1, 0, 1, 0, 0, MX5, 0, tMosaicMEBaRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Base, "messageEnabledRTCMBase_", gnssCmdUpdateMessageRates, },
     { 1, 1, 0, 0, 1, 0, 0, MX5, 0, _bool,     0, & settings.enableLoggingRINEX, "enableLoggingRINEX", nullptr, },
     { 1, 1, 0, 0, 1, 0, 0, MX5, 0, _uint8_t,  0, & settings.RINEXFileDuration, "RINEXFileDuration", nullptr, },
     { 1, 1, 0, 0, 1, 0, 0, MX5, 0, _uint8_t,  0, & settings.RINEXObsInterval, "RINEXObsInterval", nullptr, },
@@ -1654,7 +1728,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.gnssHandlerBufferSize, "gnssHandlerBufferSize", nullptr, },
 
     // Rover operation
-    { 1, 1, 0, 1, 1, 1, 0, ALL, 0, _uint8_t,  0, & settings.dynamicModel, "dynamicModel", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.dynamicModel, "dynamicModel", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy", nullptr, },
     { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.minCN0, "minCN0", nullptr, }, // Not inWebConfig - createSettingsString gets from GNSS
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.minElev, "minElev", nullptr, },
@@ -1662,8 +1736,11 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // RTC (Real Time Clock)
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRtcSync, "enablePrintRtcSync", nullptr, },
 
-    // RTCM Buffers
+    // RTCM
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugRtcmBuffers, "debugRtcmBuffers", nullptr, },
+    { 1, 1, 0, 0, 1, 1, 1, R33, 1, tCharArry, sizeof(settings.rtcm1033AntennaDescriptor), & settings.rtcm1033AntennaDescriptor, "rtcm1033AntennaDescriptor", nullptr, },
+    { 1, 1, 0, 0, 1, 1, 1, R33, 1, tCharArry, sizeof(settings.rtcm1033AntennaSerialNr), & settings.rtcm1033AntennaSerialNr, "rtcm1033AntennaSerialNr", nullptr, },
+    { 1, 1, 0, 0, 1, 1, 1, R33, 1, _uint8_t,  0, & settings.rtcm1033AntennaSetupID, "rtcm1033AntennaSetupID", nullptr, },
 
 //                F
 //    i           a
@@ -1768,7 +1845,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
-    { 1, 1, 0, 0, 0, 1, 0, ALL, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
+    { 1, 1, 0, 0, 0, 1, 0, NON, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
     { 0, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug", nullptr, },
     { 0, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableImuDebug, "enableImuDebug", nullptr, },
     { 1, 1, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation", nullptr, },
@@ -1776,6 +1853,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // UM980 GNSS Receiver
 #ifdef  COMPILE_UM980
     { 1, 1, 1, 0, 0, 1, 0, U98, 0, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellation_", gnssCmdUpdateConstellations, },
+    { 1, 1, 0, 0, 0, 1, 0, U98, 0, _bool,     0, & settings.um980FixedBaseLLHSubtractSeparation, "um980FixedBaseLLHSubtractSeparation", nullptr },
     { 0, 1, 1, 0, 0, 1, 0, U98, 0, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 1, 0, U98, 0, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 1, 0, U98, 0, tUmMRRvRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
@@ -1788,7 +1866,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugWebServer, "debugWebServer", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugWifiState, "debugWifiState", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel", nullptr, },
+    { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel", nullptr, },
     { 1, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.wifiConfigOverAP, "wifiConfigOverAP", nullptr, },
     { 1, 1, 1, 1, 1, 1, 1, ALL, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.wifiConnectTimeoutMs, "wifiConnectTimeoutMs", nullptr, },
@@ -1828,6 +1906,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 0, 0, 1, L29, 1, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 0, 1, L29, 1, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 0, 1, L29, 1, tLgMRPqtm, MAX_LG290P_PQTM_MSG, & settings.lg290pMessageRatesPQTM, "messageRatePQTM_", gnssCmdUpdateMessageRates, },
+    { 1, 1, 0, 0, 0, 0, 1, L29, 1, _uint16_t, 0, & settings.lg290pRtkDifferentialAge, "lg290pRtkDifferentialAge", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, L29, 1, _uint16_t, 0, & settings.lg290pRtkDifferentialSourceType, "lg290pRtkDifferentialSourceType", nullptr, },
+    { 1, 1, 0, 0, 0, 0, 1, L29, 1, _uint16_t, 0, & settings.lg290pRtkReliabilityLevel, "lg290pRtkReliabilityLevel", nullptr, },
 #endif  // COMPILE_LG290P
 
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugSettings, "debugSettings", nullptr, },
@@ -1931,11 +2012,13 @@ struct struct_present
     bool multipathMitigation = false; // UM980 has MPM, other platforms do not
     bool minCN0 = false; // ZED, mosaic, UM980 have minCN0. LG290P does on version >= v5.
     bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does on versions >= v5.
-    bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does not.
+    bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does with firmware v2.01.
     bool gpioExpanderSwitches = false; // Used on Facet FP
     bool loraDedicatedUart = false; // Platforms may have a dedicated or shared UART interface to the LoRa radio
 
     const char *gnssUpdatePort = ""; // "CH342 Channel A" etc.
+
+    bool rtcm1033AntennaDescription = false; // RTCM 1033 Antenna Descriptor - supported on X5, LG290P and UM980
 } present;
 
 // Monitor which devices on the device are on or offline.
@@ -1957,7 +2040,6 @@ struct struct_online
     bool lband_gnss = false;
     bool pointPerfectKeysApplied = false;
     bool logging = false;
-    bool loraRadio = false;
     bool microSD = false;
     bool mqttClient = false;
     bool ntripClient = false;
@@ -1965,6 +2047,7 @@ struct struct_online
     bool otaClient = false;
     bool ppl = false;
     bool psram = false;
+    bool radio_lora = false;
     bool rtc = false;
     bool serialOutput = false;
     bool tcpClient = false;
@@ -1972,6 +2055,7 @@ struct struct_online
     bool udpServer = false;
     bool webServer = false;
     bool authenticationCoPro = false; // MFi authentication
+    bool imu_im19 = false;
 } online;
 
 typedef uint8_t NetIndex_t;     // Index into the networkInterfaceTable
@@ -1991,6 +2075,9 @@ enum NetworkTypes
     // Add new networks above this line in default priority order
     NETWORK_ANY,            // 3
     NETWORK_MAX = NETWORK_ANY,
+
+    // Reserved: Only used to manage mDNS
+    NETWORK_WIFI_AP         // 4
 };
 
 #ifdef  COMPILE_NETWORK
@@ -2123,6 +2210,42 @@ o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU
 rqXRfboQnoZsG4q5WTP468SQvvG5
 -----END CERTIFICATE-----
 )=====";
+
+// ISRG Root X1 (Let's Encrypt). Used to validate raw.githubusercontent.com's server cert chain.
+static const char GITHUB_RAW_PUBLIC_CERT[] PROGMEM = R"EOF(
+-----BEGIN CERTIFICATE-----
+MIIFazCCA1OgAwIBAgIRAIIQz7DSQONZRGPgu2OCiwAwDQYJKoZIhvcNAQELBQAw
+TzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh
+cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMTUwNjA0MTEwNDM4
+WhcNMzUwNjA0MTEwNDM4WjBPMQswCQYDVQQGEwJVUzEpMCcGA1UEChMgSW50ZXJu
+ZXQgU2VjdXJpdHkgUmVzZWFyY2ggR3JvdXAxFTATBgNVBAMTDElTUkcgUm9vdCBY
+MTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAK3oJHP0FDfzm54rVygc
+h77ct984kIxuPOZXoHj3dcKi/vVqbvYATyjb3miGbESTtrFj/RQSa78f0uoxmyF+
+0TM8ukj13Xnfs7j/EvEhmkvBioZxaUpmZmyPfjxwv60pIgbz5MDmgK7iS4+3mX6U
+A5/TR5d8mUgjU+g4rk8Kb4Mu0UlXjIB0ttov0DiNewNwIRt18jA8+o+u3dpjq+sW
+T8KOEUt+zwvo/7V3LvSye0rgTBIlDHCNAymg4VMk7BPZ7hm/ELNKjD+Jo2FR3qyH
+B5T0Y3HsLuJvW5iB4YlcNHlsdu87kGJ55tukmi8mxdAQ4Q7e2RCOFvu396j3x+UC
+B5iPNgiV5+I3lg02dZ77DnKxHZu8A/lJBdiB3QW0KtZB6awBdpUKD9jf1b0SHzUv
+KBds0pjBqAlkd25HN7rOrFleaJ1/ctaJxQZBKT5ZPt0m9STJEadao0xAH0ahmbWn
+OlFuhjuefXKnEgV4We0+UXgVCwOPjdAvBbI+e0ocS3MFEvzG6uBQE3xDk3SzynTn
+jh8BCNAw1FtxNrQHusEwMFxIt4I7mKZ9YIqioymCzLq9gwQbooMDQaHWBfEbwrbw
+qHyGO0aoSCqI3Haadr8faqU9GY/rOPNk3sgrDQoo//fb4hVC1CLQJ13hef4Y53CI
+rU7m2Ys6xt0nUW7/vGT1M0NPAgMBAAGjQjBAMA4GA1UdDwEB/wQEAwIBBjAPBgNV
+HRMBAf8EBTADAQH/MB0GA1UdDgQWBBR5tFnme7bl5AFzgAiIyBpY9umbbjANBgkq
+hkiG9w0BAQsFAAOCAgEAVR9YqbyyqFDQDLHYGmkgJykIrGF1XIpu+ILlaS/V9lZL
+ubhzEFnTIZd+50xx+7LSYK05qAvqFyFWhfFQDlnrzuBZ6brJFe+GnY+EgPbk6ZGQ
+3BebYhtF8GaV0nxvwuo77x/Py9auJ/GpsMiu/X1+mvoiBOv/2X/qkSsisRcOj/KK
+NFtY2PwByVS5uCbMiogziUwthDyC3+6WVwW6LLv3xLfHTjuCvjHIInNzktHCgKQ5
+ORAzI4JMPJ+GslWYHb4phowim57iaztXOoJwTdwJx4nLCgdNbOhdjsnvzqvHu7Ur
+TkXWStAmzOVyyghqpZXjFaH3pO3JLF+l+/+sKAIuvtd7u+Nxe5AW0wdeRlN8NwdC
+jNPElpzVmbUq4JUagEiuTDkHzsxHpFKVK7q4+63SM1N95R1NbdWhscdCb+ZAJzVc
+oyi3B43njTOQ5yOf+1CceWxG1bQVs5ZufpsMljq4Ui0/1lvh+wjChP4kqKOJ2qxq
+4RgqsahDYVvTH9w7jXbyLeiNdd8XM2w9U/t7y0Ff/9yi0GE44Za4rF2LN9d11TPA
+mRGunUHBcnWEvgJBQl9nJEiU0Zsnvgc/ubhPgXRR4Xq37Z0j4r7g1SgEEzwxA57d
+emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
+-----END CERTIFICATE-----
+)EOF";
+
 #endif  // COMPILE_NETWORK
 
 //****************************************
@@ -2141,7 +2264,6 @@ class RTK_WIFI
 {
   private:
 
-    WIFI_CHANNEL_t _apChannel;  // Channel required for soft AP, zero (0) use wifiChannel
     int16_t _apCount;           // The number or remote APs detected in the WiFi network
     IPAddress _apDnsAddress;    // DNS IP address to use while translating names into IP addresses
     IPAddress _apFirstDhcpAddress;  // First IP address to use for DHCP
@@ -2149,7 +2271,6 @@ class RTK_WIFI
     IPAddress _apIpAddress;     // IP address of the soft AP
     uint8_t _apMacAddress[6];   // MAC address of the soft AP
     IPAddress _apSubnetMask;    // Subnet mask for soft AP
-    WIFI_CHANNEL_t _espNowChannel;  // Channel required for ESPNow, zero (0) use wifiChannel
     volatile bool _scanRunning; // Scan running
     int _staAuthType;           // Authorization type for the remote AP
     bool _staConnected;         // True when station is connected
@@ -2160,7 +2281,6 @@ class RTK_WIFI
     const char * _staRemoteApSsid;      // SSID of remote AP
     const char * _staRemoteApPassword;  // Password of remote AP
     volatile WIFI_ACTION_t _started;    // Components that are started and running
-    WIFI_CHANNEL_t _stationChannel; // Channel required for station, zero (0) use wifiChannel
     bool _usingDefaultChannel;  // Using default WiFi channel
     bool _verbose;              // True causes more debug output to be displayed
 
@@ -2330,16 +2450,6 @@ class RTK_WIFI
                 const char * fileName,
                 int lineNumber);
 
-    // Get the ESP-NOW channel
-    // Outputs:
-    //   Returns the requested ESP-NOW channel
-    WIFI_CHANNEL_t espNowChannelGet();
-
-    // Set the ESP-NOW channel
-    // Inputs:
-    //   channel: New ESP-NOW channel number
-    void espNowChannelSet(WIFI_CHANNEL_t channel);
-
     // Get the ESP-NOW status
     // Outputs:
     //   Returns true when ESP-NOW is online and ready for use
@@ -2357,16 +2467,6 @@ class RTK_WIFI
     // Outputs:
     //   Returns the current WiFi channel number
     WIFI_CHANNEL_t getChannel();
-
-    // Get the soft AP channel
-    // Outputs:
-    //   Returns the requested soft AP channel
-    WIFI_CHANNEL_t softApChannelGet();
-
-    // Set the soft AP channel
-    // Inputs:
-    //   channel: Request the channel for WiFi soft AP
-    void softApChannelSet(WIFI_CHANNEL_t channel);
 
     // Configure the soft AP
     // Inputs:
@@ -2406,16 +2506,6 @@ class RTK_WIFI
     //    otherwise
     bool startAp(bool forceAP);
 
-    // Get the station channel
-    // Outputs:
-    //   Returns the requested station channel
-    WIFI_CHANNEL_t stationChannelGet();
-
-    // Set the station channel
-    // Inputs:
-    //   channel: Request the channel for WiFi station
-    void stationChannelSet(WIFI_CHANNEL_t channel);
-
     // Get the WiFi station IP address
     // Returns the IP address of the WiFi station
     IPAddress stationIpAddress();
@@ -2454,4 +2544,187 @@ class RTK_WIFI
 
 #endif // COMPILE_WIFI
 #endif // COMPILE_NETWORK
+
+//----------------------------------------
+// Hardware connections
+//----------------------------------------
+
+#define PIN_UNDEFINED -1
+
+// These pins are set in beginBoard()
+int pin_debug = PIN_UNDEFINED;              // LED on EVK
+int pin_batteryStatusLED = PIN_UNDEFINED;   // LED on Torch
+int pin_baseStatusLED = PIN_UNDEFINED;      // LED on EVK
+int pin_bluetoothStatusLED = PIN_UNDEFINED; // LED on Torch
+int pin_gnssStatusLED = PIN_UNDEFINED;      // LED on Torch
+
+int pin_muxA = PIN_UNDEFINED;
+int pin_muxB = PIN_UNDEFINED;
+int pin_mux1 = PIN_UNDEFINED;
+int pin_mux2 = PIN_UNDEFINED;
+int pin_mux3 = PIN_UNDEFINED;
+int pin_mux4 = PIN_UNDEFINED;
+
+int pin_modeButton = PIN_UNDEFINED;   // Mode button on EVK, Function button on Facet FP
+int pin_powerButton = PIN_UNDEFINED;  // Power and general purpose button on Torch, Facet
+int pin_powerFastOff = PIN_UNDEFINED; // Output on Facet
+int pin_muxDAC = PIN_UNDEFINED;
+int pin_muxADC = PIN_UNDEFINED;
+int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK and Facet mosaic
+
+int pin_GnssEvent = PIN_UNDEFINED;   // Facet mosaic
+int pin_GnssOnOff = PIN_UNDEFINED;   // Facet mosaic
+int pin_chargerLED = PIN_UNDEFINED;  // Facet mosaic
+int pin_chargerLED2 = PIN_UNDEFINED; // Facet mosaic
+int pin_GnssReady = PIN_UNDEFINED;   // Facet mosaic
+
+int pin_loraRadio_reset = PIN_UNDEFINED;
+int pin_loraRadio_boot = PIN_UNDEFINED;
+int pin_loraRadio_power = PIN_UNDEFINED;
+
+int pin_Ethernet_CS = PIN_UNDEFINED;
+int pin_Ethernet_Interrupt = PIN_UNDEFINED;
+int pin_GNSS_CS = PIN_UNDEFINED;
+int pin_GNSS_TimePulse = PIN_UNDEFINED;
+int pin_GNSS_Reset = PIN_UNDEFINED;
+
+// microSD card pins
+int pin_PICO = PIN_UNDEFINED;
+int pin_POCI = PIN_UNDEFINED;
+int pin_SCK = PIN_UNDEFINED;
+int pin_microSD_CardDetect = PIN_UNDEFINED;
+int pin_microSD_CS = PIN_UNDEFINED;
+
+int pin_I2C0_SDA = PIN_UNDEFINED;
+int pin_I2C0_SCL = PIN_UNDEFINED;
+
+// On EVK, Display is on separate I2C bus
+int pin_I2C1_SDA = PIN_UNDEFINED;
+int pin_I2C1_SCL = PIN_UNDEFINED;
+
+int pin_GnssUart_RX = PIN_UNDEFINED;
+int pin_GnssUart_TX = PIN_UNDEFINED;
+
+int pin_GnssUart2_RX = PIN_UNDEFINED;
+int pin_GnssUart2_TX = PIN_UNDEFINED;
+
+int pin_Cellular_RX = PIN_UNDEFINED;
+int pin_Cellular_TX = PIN_UNDEFINED;
+int pin_Cellular_PWR_ON = PIN_UNDEFINED;
+int pin_Cellular_Network_Indicator = PIN_UNDEFINED;
+int pin_Cellular_Reset = PIN_UNDEFINED;
+int pin_Cellular_RTS = PIN_UNDEFINED;
+int pin_Cellular_CTS = PIN_UNDEFINED;
+
+int pin_GNSS_DR_Reset = PIN_UNDEFINED;
+
+int pin_IMU_RX = PIN_UNDEFINED;
+int pin_IMU_TX = PIN_UNDEFINED;
+int pin_IMU_Boot = PIN_UNDEFINED;
+
+int pin_powerAdapterDetect = PIN_UNDEFINED;
+int pin_usbSelect = PIN_UNDEFINED;
+int pin_beeper = PIN_UNDEFINED;
+
+bool cellularModemResetLow = false;
+#define CELLULAR_MODEM_FC ESP_MODEM_FLOW_CONTROL_NONE
+uint8_t laraPwrLowValue;
+uint32_t laraTimer; // Backoff timer
+
+int pin_gpioExpanderInterrupt = PIN_UNDEFINED;
+const uint8_t gpioExpander_up = 0;
+const uint8_t gpioExpander_down = 1;
+const uint8_t gpioExpander_right = 2;
+const uint8_t gpioExpander_left = 3;
+const uint8_t gpioExpander_center = 4;
+const uint8_t gpioExpander_cardDetect = 5;
+const uint8_t gpioExpander_io6 = 6;
+const uint8_t gpioExpander_io7 = 7;
+
+const uint8_t gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
+const uint8_t gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
+const uint8_t gpioExpanderSwitch_S3 = 2; // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
+const uint8_t gpioExpanderSwitch_S4 = 3; // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
+const uint8_t gpioExpanderSwitch_LoraEnable = 4; // LoRa_EN
+const uint8_t gpioExpanderSwitch_GNSS_Reset = 5; // RST_GNSS
+const uint8_t gpioExpanderSwitch_LoraBoot = 6;   // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
+const uint8_t gpioExpanderSwitch_S5 = 7;         // Controls U61 switch 5: connect GNSS UART1 to Port A of CH342
+const uint8_t gpioExpanderNumSwitches = 8;
+
+bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved from CH34x to LoRa
+
+//----------------------------------------
+// Peripherals
+//----------------------------------------
+
+#include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
+#include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU
+#include <SparkFun_LG290P_GNSS.h> //http://librarymanager/All#SparkFun_LG290P
+#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS
+#include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
+#include <Wire.h>
+
+TwoWire * i2c_0;
+TwoWire * i2c_1;
+
+HardwareSerial *serialGNSS = nullptr;  // Don't instantiate until we know what gnssPlatform we're on
+HardwareSerial *serial2GNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
+HardwareSerial *uart2Serial; // Shared serial port between LoRa and Tilt
+
+#define SerialForLoRa uart2Serial
+#define SerialForTilt uart2Serial
+
+//----------------------------------------
+// Time measurement
+//----------------------------------------
+
+#define HOURS_IN_A_DAY 24L
+#define MINUTES_IN_AN_HOUR 60L
+#define SECONDS_IN_A_MINUTE 60L
+#define MILLISECONDS_IN_A_SECOND 1000L
+#define MILLISECONDS_IN_A_MINUTE (SECONDS_IN_A_MINUTE * MILLISECONDS_IN_A_SECOND)
+#define MILLISECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * MILLISECONDS_IN_A_MINUTE)
+#define MILLISECONDS_IN_A_DAY (HOURS_IN_A_DAY * MILLISECONDS_IN_AN_HOUR)
+
+#define SECONDS_IN_AN_HOUR (MINUTES_IN_AN_HOUR * SECONDS_IN_A_MINUTE)
+#define SECONDS_IN_A_DAY (HOURS_IN_A_DAY * SECONDS_IN_AN_HOUR)
+
+//----------------------------------------
+// IM19 IMU
+//----------------------------------------
+
+enum Im19UpdateResult
+{
+    IM19_UPDATE_FAILED = 0,
+    IM19_UPDATE_SUCCESS,
+    IM19_UPDATE_RETRY, // IM19 reports lost frames - caller should re-request only those byte ranges and call again
+};
+
+//----------------------------------------
+// Over-The-Air (OTA) Updates
+//----------------------------------------
+
+#define OTA_DATA_TIMEOUT        (15 * MILLISECONDS_IN_A_SECOND)
+
+const char * otaEqualSigns = "==================================================";
+
+#define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
+
+// Constants to parse GitHub directory listings
+const char * otaRawHead = "/raw/refs/heads/main";
+const char * otaTree = "},\"tree";
+const char * otaFileTree = ":{\"fileTree\":{\"";
+const char * otaItems = "\":{\"items\":[";
+const char * otaListEnd = "]";
+const char * otaName = "\"name\":\"";
+const char * otaNameEnd = "\"";
+
+bool otaDebugVerbose;
+uint32_t otaFileBytes;
+
+// Firmware Update menu developer options, serial menu only (see OTA_REQUEST_* in OTA.h).
+// A plain global rather than a Settings member - it must never be sticky/NVM, always
+// starts disabled at boot so a forgotten 'Always update' override can't silently persist.
+bool otaDeveloperOptions = false;
+
 #endif // __SETTINGS_H__

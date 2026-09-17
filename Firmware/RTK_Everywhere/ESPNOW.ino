@@ -184,7 +184,12 @@ void espNowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
 
         // We've just received ESP-NOW data. We assume this is RTCM and push it directly to the GNSS.
         // Determine if ESPNOW is the correction source
-        if (correctionLastSeen(CORR_ESPNOW))
+        // This callback runs in the WiFi/ESP-NOW task context, independent of the main loop() -
+        // it can fire at any time, including while a firmware update is blocking loop() and using
+        // the same GNSS UART for its own reads/writes. Skip the push while that's happening so the
+        // two don't interleave and corrupt each other (tasksStopGnssUart() only stops the loop()-
+        // driven consumers/producers, not this async callback).
+        if (correctionLastSeen(CORR_ESPNOW) && (online.otaClient == false))
         {
             // Pass RTCM bytes (presumably) from ESP NOW out ESP32-UART to GNSS
             gnss->pushRawData((uint8_t *)incomingData, len);

@@ -225,8 +225,8 @@ sed -i 's|#define COMPILE_MQTT_CLIENT|//#define COMPILE_MQTT_CLIENT|' RTK_Everyw
 make
 git reset --hard --quiet  HEAD
 
-# OTA Auto
-sed -i 's|#define COMPILE_OTA_AUTO|//#define COMPILE_OTA_AUTO|' RTK_Everywhere.ino
+# Firmware Updates
+sed -i 's|#define COMPILE_FIRMWARE_UPDATE|//#define COMPILE_FIRMWARE_UPDATE|' RTK_Everywhere.ino
 make
 git reset --hard --quiet  HEAD
 

@@ -17,8 +17,15 @@ Developer.ino
 
 void lg290pHandler(uint8_t * buffer, int length) {}
 bool lg290pMessageEnabled(char *nmeaSentence, int sentenceLength)   {return false;}
+void lg290pProcessRTCMIS(uint8_t * buffer, int length) {}
+void lg290pVerifyTables() {}
+void lg290pPrintNavModes() {}
 
 #endif // COMPILE_LG290P
+
+#if !defined(COMPILE_LG290P) || !defined(COMPILE_WIFI)
+bool lg290pStreamFirmware() {return false;}
+#endif // COMPILE_LG290P / COMPILE_WIFI
 
 //----------------------------------------
 // mosaic-X5
@@ -70,8 +77,13 @@ void um980UnicoreHandler(uint8_t * buffer, int length) {}
 void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros) {
     systemPrintln("**Epoch not compiled** ZED not included so time will be invalid");
 }
+void zedVerifyTables() {}
 
 #endif // COMPILE_ZED
+
+#if !defined(COMPILE_ZED) || !defined(COMPILE_WIFI)
+bool x20pStreamFirmware() {return false;}
+#endif // COMPILE_ZED / COMPILE_WIFI
 
 //======================================================================
 // Network Hardware
@@ -112,6 +124,7 @@ const char * wifiSoftApGetSsid()                {return "";}
 bool wifiSoftApOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiSoftApOn(const char * fileName, uint32_t lineNumber) {return false;}
 void wifiStationDisplayData()                   {}
+bool wifiStationIsSsidSet()                     {return false;};
 bool wifiStationOff(const char * fileName, uint32_t lineNumber) {return true;}
 bool wifiStationOn(const char * fileName, uint32_t lineNumber) {return false;}
 void wifiStationUpdate()                        {}
@@ -130,6 +143,9 @@ void wifiVerifyTables()                         {}
 //----------------------------------------
 
 #ifndef COMPILE_NETWORK
+
+static const char *AWS_PUBLIC_CERT = "";
+static const char *GITHUB_RAW_PUBLIC_CERT = "";
 
 void menuTcpUdp() {systemPrint("**Network not compiled**");}
 void networkBegin() {}
@@ -163,20 +179,47 @@ void networkVerifyTables() {}
 #endif // COMPILE_NETWORK
 
 //----------------------------------------
-// Automatic Over-The-Air (OTA) firmware updates
+// Firmware updates
 //----------------------------------------
 
-#ifndef COMPILE_OTA_AUTO
+#ifndef COMPILE_FIRMWARE_UPDATE
 
+// dfu
+void beginBuffers() {}
+
+#define DEVICE_FIRMWARE_CTX     int
+#define DFU_BUFFER_DATA         int
+
+bool deviceFirmwareUpdate(uint32_t currentMsec) {return false;}
+bool deviceFirmwareUpdateBegin(bool doAll, bool debugVerbose, size_t saveDataLength) {return false;}
+void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx) {}
+void deviceFirmwareFileSort(int bufferIndex, int fileCount) {}
+void deviceFirmwareStateSet(DEVICE_FIRMWARE_CTX * ctx, int newState) {}
+
+void dfuNetworkCleanup(DEVICE_FIRMWARE_CTX * ctx, DFU_BUFFER_DATA * bufferData) {}
+ssize_t dfuNetworkRead(DEVICE_FIRMWARE_CTX * ctx, uint8_t * buffer, size_t bytesToRead) {return 0;}
+
+// microSD card
+void microSDMountThenUpdate(const char *firmwareFileName) {}
+void microSDScanForFirmware() {}
+void microSDUpdateFirmware(const char *firmwareFileName) {}
+
+// OTA
 void otaAutoUpdate() {}
-bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)    {return false;}
-void otaMenuDisplay(char * currentVersion) {}
-bool otaMenuProcessInput(byte incoming) {return false;}
+OTA_SUBSYSTEM_MASK otaGetProductSubsystemSupport() {return 0;}
+bool otaIsChipSupported(const char * subsystem, const char * chip) {return false;}
+void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
+                    bool * developerOptionsAddr,
+                    char *currentVersion) {}
+bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
+                         bool * developerOptionsAddr,
+                         byte incoming) {return false;}
 void otaUpdate() {}
 void otaUpdateStop() {}
+void otaRequestTypesLoad() {}
 void otaVerifyTables() {}
 
-#endif  // COMPILE_OTA_AUTO
+#endif  // COMPILE_FIRMWARE_UPDATE
 
 //----------------------------------------
 // HTTP Client
@@ -270,9 +313,9 @@ void tcpServerZeroTail() {}
 uint8_t tcpServerDataAvailable() {return 0;}
 uint8_t tcpServerRead() {return 0;}
 int tcpServerWrite(const uint8_t *buffer, int length) {return 0;}
-void tcpServerFlush() {}
 bool tcpServerInRemoteConfig() {return false;}
 void tcpServerDisableEndpoint() {}
+bool tcpServerNtripCasterActive() {return false;}
 
 #endif  // COMPILE_TCP_SERVER
 
@@ -323,15 +366,18 @@ bool webServerIsRunning() {return false;}
 
 #ifndef  COMPILE_IM19_IMU
 
+void imuBeginFirmwareUpdate() {}
+bool imuCheckPassthroughFile() {return false;}
+bool imuCreatePassthroughFile() {return false;}
 void menuTilt() {}
 void nmeaApplyCompensation(char *nmeaSentence, int arraySize) {}
 void tiltDetect() {systemPrintln("**Tilt Not Compiled**");}
+void tiltForceDetectionReboot() {}
 bool tiltIsCorrecting() {return(false);}
 void tiltRequestStop() {}
 void tiltSensorFactoryReset() {}
 void tiltStop() {}
 void tiltUpdate() {}
-
 #endif  // COMPILE_IM19_IMU
 
 //----------------------------------------
@@ -548,19 +594,19 @@ void espNowUpdate()                     {}
 //----------------------------------------
 
 #ifndef COMPILE_LORA
-void beginLoraFirmwareUpdate() {}
-bool checkUpdateLoraFirmware() {return false;}
-bool createLoRaPassthrough() {return false;}
-bool createLoraRxDirectFile() {return false;}
-bool createLoraTxDirectFile() {return false;}
+void loraBeginFirmwareUpdate() {}
+bool loraCheckPassthroughFile() {return false;}
+bool loraCreatePassthroughFile() {return false;}
+bool loraCreateRxDirectFile() {return false;}
+bool loraCreateTxDirectFile() {return false;}
 void loraGetVersion() {}
 void loraPowerOff() {}
 void loraProcessRTCM(uint8_t *rtcmData, uint16_t dataLength) {}
-bool loraRxDirectCheckFile() {return false;}
+bool loraCheckRxDirectFile() {return false;}
 void loraRxDirectConnect() {}
-bool loraTxDirectCheckFile() {return false;}
+bool loraCheckTxDirectFile() {return false;}
 void loraTxDirectConnect() {}
-void muxSelectUm980() {}
-void muxSelectUsb() {}
 void updateLora() {}
+bool stm32StreamFirmware(char *relativeFirmwareFileLocation) {return false;}
+bool loraIsTransmitting() {return false;}
 #endif  // COMPILE_LORA

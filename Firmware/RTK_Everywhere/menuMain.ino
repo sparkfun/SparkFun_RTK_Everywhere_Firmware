@@ -28,7 +28,7 @@ void menuMain()
     {
         systemPrintln();
         char versionString[21];
-        firmwareVersionGet(versionString, sizeof(versionString), true);
+        espFirmwareVersionGet(versionString, sizeof(versionString), true);
         systemPrintf("%s %s%s %s\r\n", getBrandAttributeFromProductVariant(productVariant)->name,
                      productVariantProperties->rtkPrefix ? "RTK " : "", platformPrefix, versionString);
         systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
@@ -104,15 +104,14 @@ void menuMain()
 
         systemPrintln("s) Configure System");
 
-        if (present.imu_im19)
-            systemPrintln("t) Configure Instrument Setup");
+        systemPrintln("t) Configure Instrument Setup");
 
         systemPrintln("u) Configure User Profiles");
 
         if (btPrintEcho || tcpServerInRemoteConfig())
             systemPrintln("b) Exit Remote Echo mode");
 
-        systemPrintln("+) Enter Command line mode");
+        systemPrintln("+) Enter Command Line Mode");
 
         systemPrintln("x) Exit");
 
@@ -148,7 +147,7 @@ void menuMain()
             menuRadio();
         else if (incoming == 's')
             menuSystem();
-        else if ((incoming == 't') && present.imu_im19)
+        else if (incoming == 't')
             menuInstrument();
         else if ((incoming == 'b') && (btPrintEcho == true || tcpServerInRemoteConfig() == true))
         {
@@ -230,24 +229,25 @@ void menuUserProfiles()
             systemPrintln();
         }
 
-        systemPrintf("%d) Edit profile name: %s\r\n", MAX_PROFILE_COUNT + 1, profileNames[profileNumber]);
+        systemPrintf("c) Copy current profile to next empty slot\r\n");
 
-        systemPrintf("%d) Set profile '%s' to factory defaults\r\n", MAX_PROFILE_COUNT + 2,
-                     profileNames[profileNumber]);
+        systemPrintf("d) Delete profile '%s'\r\n", profileNames[profileNumber]);
 
-        systemPrintf("%d) Delete profile '%s'\r\n", MAX_PROFILE_COUNT + 3, profileNames[profileNumber]);
+        systemPrintf("n) Edit profile name: %s\r\n", profileNames[profileNumber]);
 
-        systemPrintf("%d) Print profile\r\n", MAX_PROFILE_COUNT + 4);
+        systemPrintf("p) Print profile\r\n");
 
-        systemPrintln("x) Exit");
+        systemPrintf("r) Set profile '%s' to factory defaults\r\n", profileNames[profileNumber]);
 
-        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+        systemPrintf("x) Exit\r\n");
+
+        byte incoming = getUserInputCharacterNumber();
 
         if (incoming >= 1 && incoming <= MAX_PROFILE_COUNT)
         {
             changeProfileNumber(incoming - 1); // Align inputs to array
         }
-        else if (incoming == MAX_PROFILE_COUNT + 1)
+        else if (incoming == 'n')
         {
             systemPrint("Enter new profile name: ");
             getUserInputString(settings.profileName, sizeof(settings.profileName));
@@ -255,7 +255,7 @@ void menuUserProfiles()
                                     // again
             setProfileName(profileNumber);
         }
-        else if (incoming == MAX_PROFILE_COUNT + 2)
+        else if (incoming == 'r')
         {
             systemPrintf("\r\nReset profile '%s' to factory defaults. Press 'y' to confirm:",
                          profileNames[profileNumber]);
@@ -274,97 +274,13 @@ void menuUserProfiles()
             else
                 systemPrintln("Reset aborted");
         }
-        else if (incoming == MAX_PROFILE_COUNT + 3)
+        else if (incoming == 'd')
         {
             systemPrintf("\r\nDelete profile '%s'. Press 'y' to confirm:", profileNames[profileNumber]);
             byte bContinue = getUserInputCharacterNumber();
             if (bContinue == 'y')
             {
-                // Remove profile from LittleFS
-                if (LittleFS.exists(settingsFileName))
-                {
-                    if (LittleFS.remove(settingsFileName))
-                    {
-                        if (settings.debugSettings)
-                            systemPrintf("Deleted LFS file %s\r\n", settingsFileName);
-                    }
-                    else
-                    {
-                        if (settings.debugSettings)
-                            systemPrintf("Failed to deleted LFS file %s\r\n", settingsFileName);
-                    }
-                }
-                if (LittleFS.exists(stationCoordinateECEFFileName))
-                {
-                    if (LittleFS.remove(stationCoordinateECEFFileName))
-                    {
-                        if (settings.debugSettings)
-                            systemPrintf("Deleted LFS file %s\r\n", stationCoordinateECEFFileName);
-                    }
-                    else
-                    {
-                        if (settings.debugSettings)
-                            systemPrintf("Failed to deleted LFS file %s\r\n", stationCoordinateECEFFileName);
-                    }
-                }
-                if (LittleFS.exists(stationCoordinateGeodeticFileName))
-                {
-                    if (LittleFS.remove(stationCoordinateGeodeticFileName))
-                    {
-                        if (settings.debugSettings)
-                            systemPrintf("Deleted LFS file %s\r\n", stationCoordinateGeodeticFileName);
-                    }
-                    else
-                    {
-                        if (settings.debugSettings)
-                            systemPrintf("Failed to deleted LFS file %s\r\n", stationCoordinateGeodeticFileName);
-                    }
-                }
-
-                // Remove profile from SD if available
-                if (online.microSD == true)
-                {
-                    if (sd->exists(settingsFileName))
-                    {
-                        if (sd->remove(settingsFileName))
-                        {
-                            if (settings.debugSettings)
-                                systemPrintf("Deleted SD card file %s\r\n", settingsFileName);
-                        }
-                        else
-                        {
-                            if (settings.debugSettings)
-                                systemPrintf("Failed to deleted SD card file %s\r\n", settingsFileName);
-                        }
-                    }
-                    if (sd->exists(stationCoordinateECEFFileName))
-                    {
-                        if (sd->remove(stationCoordinateECEFFileName))
-                        {
-                            if (settings.debugSettings)
-                                systemPrintf("Deleted SD card file %s\r\n", stationCoordinateECEFFileName);
-                        }
-                        else
-                        {
-                            if (settings.debugSettings)
-                                systemPrintf("Failed to deleted SD card file %s\r\n", stationCoordinateECEFFileName);
-                        }
-                    }
-                    if (sd->exists(stationCoordinateGeodeticFileName))
-                    {
-                        if (sd->remove(stationCoordinateGeodeticFileName))
-                        {
-                            if (settings.debugSettings)
-                                systemPrintf("Deleted SD card file %s\r\n", stationCoordinateGeodeticFileName);
-                        }
-                        else
-                        {
-                            if (settings.debugSettings)
-                                systemPrintf("Failed to deleted SD card file %s\r\n",
-                                             stationCoordinateGeodeticFileName);
-                        }
-                    }
-                }
+                deleteProfileFiles(profileNumber, false); // We do not have the semaphore yet
 
                 // We need to load these settings from file so that we can
                 // record a profile name change correctly
@@ -376,7 +292,7 @@ void menuUserProfiles()
             else
                 systemPrintln("Delete aborted");
         }
-        else if (incoming == MAX_PROFILE_COUNT + 4)
+        else if (incoming == 'p')
         {
             // Print profile
             systemPrintf("Select the profile to be printed (1-%d): ", MAX_PROFILE_COUNT);
@@ -391,10 +307,127 @@ void menuUserProfiles()
                 printSystemSettingsFromFileLFS(printFileName);
             }
         }
+        else if (incoming == 'c')
+        {
+            int8_t destinationProfile = -1;
+            for (int offset = 1; offset < MAX_PROFILE_COUNT; offset++)
+            {
+                int8_t testProfile = (profileNumber + offset) % MAX_PROFILE_COUNT;
+                if ((activeProfiles & (1 << testProfile)) == 0)
+                {
+                    destinationProfile = testProfile;
+                    break;
+                }
+            }
 
-        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            if (destinationProfile < 0)
+            {
+                systemPrintln("No empty profile slots available");
+            }
+            else
+            {
+                // Settings is a large struct (message rate tables, NTRIP/WiFi arrays, etc).
+                // Pull it from PSRAM (falls back to RAM) rather than loopTask's stack.
+                struct Settings *sourceSettings =
+                    (struct Settings *)rtkMalloc(sizeof(*sourceSettings), "menuUserProfiles sourceSettings");
+                if (sourceSettings == nullptr)
+                {
+                    systemPrintln("ERROR: Failed to allocate sourceSettings, copy aborted");
+                    reportHeapNow(true);
+                    continue;
+                }
+
+                char sourceProfileName[sizeof(settings.profileName)];
+                char copiedProfileBase[sizeof(settings.profileName)];
+                char copiedProfileName[sizeof(settings.profileName)];
+                uint8_t sourceProfileNumber = profileNumber;
+
+                memcpy(sourceSettings, &settings, sizeof(*sourceSettings));
+                strncpy(sourceProfileName, profileNames[sourceProfileNumber], sizeof(sourceProfileName));
+                sourceProfileName[sizeof(sourceProfileName) - 1] = '\0';
+
+                strncpy(copiedProfileBase, sourceProfileName, sizeof(copiedProfileBase));
+                copiedProfileBase[sizeof(copiedProfileBase) - 1] = '\0';
+
+                int copyNumber = 1;
+                char *suffix = strstr(copiedProfileBase, "-Copy");
+                if (suffix != nullptr)
+                {
+                    bool validSuffix = true;
+                    int parsedNumber = 0;
+                    char *numberStart = suffix + 5;
+
+                    if (*numberStart == '\0')
+                    {
+                        copyNumber = 2;
+                    }
+                    else
+                    {
+                        for (char *ptr = numberStart; *ptr != '\0'; ptr++)
+                        {
+                            if (*ptr < '0' || *ptr > '9')
+                            {
+                                validSuffix = false;
+                                break;
+                            }
+                            parsedNumber *= 10;
+                            parsedNumber += *ptr - '0';
+                        }
+
+                        if (validSuffix)
+                            copyNumber = parsedNumber + 1;
+                    }
+
+                    if (validSuffix)
+                        *suffix = '\0';
+                }
+
+                bool copyNameInUse = false;
+                do
+                {
+                    if (copyNumber == 1)
+                        snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy", copiedProfileBase);
+                    else
+                        snprintf(copiedProfileName, sizeof(copiedProfileName), "%s-Copy%d", copiedProfileBase,
+                                 copyNumber);
+
+                    copyNameInUse = false;
+                    for (int x = 0; x < MAX_PROFILE_COUNT; x++)
+                    {
+                        if ((activeProfiles & (1 << x)) && (strcmp(profileNames[x], copiedProfileName) == 0))
+                        {
+                            copyNameInUse = true;
+                            break;
+                        }
+                    }
+                    copyNumber++;
+                } while (copyNameInUse && (copyNumber < 100));
+
+                changeProfileNumber(destinationProfile); // Saves source first, then switches to destination
+
+                memcpy(&settings, sourceSettings, sizeof(settings));
+                strncpy(settings.profileName, copiedProfileName, sizeof(settings.profileName));
+                settings.profileName[sizeof(settings.profileName) - 1] = '\0';
+
+                recordSystemSettings();
+                setProfileName(profileNumber);
+
+                changeProfileNumber(sourceProfileNumber, false);
+
+                activeProfiles = loadProfileNames();
+
+                systemPrintf("Copied profile '%s' to slot %d as '%s'\r\n", sourceProfileName,
+                             destinationProfile + 1, copiedProfileName);
+
+                rtkFree(sourceSettings, "menuUserProfiles sourceSettings");
+            }
+        }
+
+        else if (incoming == 'x')
             break;
-        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
             break;
         else
             printUnknown(incoming);
@@ -430,9 +463,17 @@ void menuRadio()
         systemPrintln();
         systemPrintln("Menu: Radios");
 
+        if (present.radio_lora == true)
+        {
+            if (strlen(loraFirmwareVersionStr) == 0)
+                systemPrintln("LoRa firmware: Unknown");
+            else
+                systemPrintf("LoRa firmware: %s\r\n", loraFirmwareVersionStr);
+        }
+
 #ifndef COMPILE_ESPNOW
         systemPrintln("1) **ESP-NOW Not Compiled**");
-#else  // COMPILE_ESPNOW
+#else // COMPILE_ESPNOW
         if (settings.enableEspNow == false)
             systemPrintln("1) ESP-NOW Radio: Disabled");
 
@@ -469,8 +510,6 @@ void menuRadio()
 
             systemPrintln("3) Forget all radios");
 
-            systemPrintf("4) Current channel: %d\r\n", wifiChannel);
-
             if (settings.debugEspNow == true)
             {
                 systemPrintln("5) Add dummy radio");
@@ -478,6 +517,7 @@ void menuRadio()
                 systemPrintln("7) Broadcast dummy data");
             }
         }
+
 #endif // COMPILE_ESPNOW
 
         if (present.radio_lora == true)
@@ -488,28 +528,19 @@ void menuRadio()
             }
             else
             {
-                // Allow state machine to run to get version number
-                for (int x = 0; x < 4; x++)
-                    updateLora();
-
-                if (strlen(loraFirmwareVersion) < 3)
-                {
-                    strncpy(loraFirmwareVersion, "Unknown", sizeof(loraFirmwareVersion));
-                    systemPrintf("10) LoRa Radio: Enabled - Firmware Unknown\r\n");
-                }
-                else
-                    systemPrintf("10) LoRa Radio: Enabled - Firmware v%s\r\n", loraFirmwareVersion);
-
+                systemPrintln("10) LoRa Radio: Enabled");
                 systemPrintf("11) LoRa Coordination Frequency: %0.3f\r\n", settings.loraCoordinationFrequency);
                 systemPrintf("12) LoRa Transmit Gain: %ddB\r\n", settings.loraTransmitGain_dB);
                 systemPrintf("13) LoRa Save Settings to Flash: %s\r\n",
-                              settings.loraSaveSettingsToFlash ? "Enabled" : "Disabled");
+                             settings.loraSaveSettingsToFlash ? "Enabled" : "Disabled");
                 if (present.loraDedicatedUart == false)
                     systemPrintf("14) Seconds without user serial that must elapse before LoRa radio goes "
                                  "into dedicated listening mode: %d\r\n",
                                  settings.loraSerialInteractionTimeout_s);
             }
         }
+
+        systemPrintf("20) Set default WiFi channel: %d\r\n", wifiChannel);
 
         // Display Bluetooth menu
         mmDisplayBluetoothRadioMenu('b', bluetoothUserChoice);
@@ -581,28 +612,6 @@ void menuRadio()
                 systemPrintln("Radios forgotten");
             }
         }
-        else if (settings.enableEspNow == true && incoming == 4)
-        {
-            if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
-                              &settings.wifiChannel) == INPUT_RESPONSE_VALID)
-            {
-                wifiEspNowChannelSet(settings.wifiChannel);
-                if (settings.wifiChannel)
-                {
-                    if (settings.wifiChannel == wifiChannel)
-                        systemPrintf("WiFi is already on channel %d.", settings.wifiChannel);
-                    else
-                    {
-                        if (wifiSoftApRunning || wifiStationRunning)
-                            systemPrintf("Restart WiFi to use channel %d.", settings.wifiChannel);
-                        else if (wifiEspNowRunning)
-                            systemPrintf("Restart ESP-NOW to use channel %d.", settings.wifiChannel);
-                        else
-                            systemPrintf("Please start ESP-NOW to use channel %d.", settings.wifiChannel);
-                    }
-                }
-            }
-        }
         else if (settings.enableEspNow == true && incoming == 5 && settings.debugEspNow == true)
         {
             if (wifiEspNowRunning == false)
@@ -658,7 +667,10 @@ void menuRadio()
         {
             settings.enableLora ^= 1;
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // We may need to enable / disable NMEA
-            gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS); // We may need to enable RTCM input
+            gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_OTHER); // Make sure PQTMRTCMIS is enabled on LG290P
+            gnssConfigure(GNSS_CONFIG_EXT_CORRECTIONS);   // We may need to enable RTCM input
+            // Setting the GNSS baud rate for LoRa is handled by the loraState machine
+
         }
         else if (present.radio_lora == true && settings.enableLora == true && incoming == 11)
         {
@@ -667,17 +679,35 @@ void menuRadio()
         }
         else if (present.radio_lora == true && settings.enableLora == true && incoming == 12)
         {
-            getNewSetting("Enter the transmit gain in dB",
-                          0, 13, &settings.loraTransmitGain_dB);
+            getNewSetting("Enter the transmit gain in dB", 0, 13, &settings.loraTransmitGain_dB);
         }
         else if (present.radio_lora == true && settings.enableLora == true && incoming == 13)
             settings.loraSaveSettingsToFlash ^= 1;
-        else if (present.radio_lora == true && settings.enableLora == true 
-                 && present.loraDedicatedUart == false && incoming == 14)
+        else if (present.radio_lora == true && settings.enableLora == true && present.loraDedicatedUart == false &&
+                 incoming == 14)
         {
             getNewSetting("Enter the number of seconds without user serial that must elapse before LoRa radio goes "
                           "into dedicated listening mode",
                           10, 600, &settings.loraSerialInteractionTimeout_s);
+        }
+
+        // Set the default WiFi channel
+        else if (incoming == 20)
+        {
+            if (getNewSetting("Enter the default WiFi channel", 1, 14, &settings.wifiChannel) == INPUT_RESPONSE_VALID)
+            {
+                if (settings.wifiChannel == wifiChannel)
+                    systemPrintf("WiFi is already on channel %d.", settings.wifiChannel);
+                else
+                {
+                    if (wifiSoftApRunning || wifiStationRunning)
+                        systemPrintf("Restart WiFi to use channel %d.", settings.wifiChannel);
+                    else if (wifiEspNowRunning)
+                        systemPrintf("Restart ESP-NOW to use channel %d.", settings.wifiChannel);
+                    else
+                        systemPrintf("Please start ESP-NOW to use channel %d.", settings.wifiChannel);
+                }
+            }
         }
 
         else if (incoming == 'x')

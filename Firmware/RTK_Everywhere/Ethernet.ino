@@ -183,6 +183,8 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
             systemPrintf("ETH Got IP: '%s'\r\n", ETH.localIP().toString().c_str());
 
+        networkPriorityForDisplay = NETWORK_NONE; // Make displayFullIPAddress update the address
+
         networkInterfaceEventInternetAvailable((NetIndex_t)NETWORK_ETHERNET);
 
         if (settings.ethernetDHCP)
@@ -279,10 +281,6 @@ void ethernetRestart()
 //----------------------------------------
 void ethernetStart()
 {
-    // Set the static IP address if necessary
-    if (!settings.ethernetDHCP)
-        ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);
-
     // Restart the Ethernet controller
     ETH.begin(ETH_PHY_W5500,          // ETH_PHY_TYPE
               0,                      // ETH_PHY_ADDR
@@ -290,6 +288,13 @@ void ethernetStart()
               pin_Ethernet_Interrupt, // IRQ pin
               -1,                     // RST pin
               SPI);                   // SPIClass &
+
+    // Set the static IP address if necessary - AFTER begin - see #1006
+    if (!settings.ethernetDHCP)
+    {
+        delay(500);
+        ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);
+    }
 }
 
 #endif // COMPILE_ETHERNET

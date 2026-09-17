@@ -802,7 +802,6 @@ void ntpServerUpdate()
 {
     bool enabled;
     bool connected;
-    char ntpDiag[768]; // Char array to hold diagnostic messages
 
     if (present.ethernet_ws5500 == false)
         return;
@@ -860,9 +859,17 @@ void ntpServerUpdate()
         break;
 
     case NTP_STATE_SERVER_RUNNING:
+    {
+        const size_t ntpDiagSize = 768;
+        char *ntpDiag = (char *)rtkMalloc(ntpDiagSize, "ntpDiag");
+        if (!ntpDiag)
+        {
+            systemPrintln("ERROR: Failed to allocate ntpDiag");
+            break;
+        }
         // Check for new NTP requests - if the time has been sync'd
         bool processed = ntpProcessOneRequest(systemState == STATE_NTPSERVER_SYNC, (const timeval *)&ethernetNtpTv,
-                                              (const timeval *)&gnssSyncTv, ntpDiag, sizeof(ntpDiag));
+                                              (const timeval *)&gnssSyncTv, ntpDiag, ntpDiagSize);
 
         // Print the diagnostics - if enabled
         if ((settings.debugNtp || PERIODIC_DISPLAY(PD_NTP_SERVER_DATA)) && (strlen(ntpDiag) > 0) && (!inMainMenu))
@@ -958,7 +965,9 @@ void ntpServerUpdate()
 
         if ((millis() - lastLoggedNTPRequest) > 5000)
             ntpLogIncreasing = false;
+        rtkFree(ntpDiag, "ntpDiag");
         break;
+    }
     }
 
     // Periodically display the NTP server state

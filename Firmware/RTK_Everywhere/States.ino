@@ -527,8 +527,10 @@ void stateUpdate()
 
                     webServerParseIncomingSettings();
 
-                    gnssConfigureDefaults(); // Set all bits in the request bitfield to cause the GNSS receiver to go
-                                             // through a full (re)configuration
+                    // Each setting update requests any required GNSS reconfiguration via
+                    // its per-setting callback. Avoid forcing a full defaults request here,
+                    // which can trigger unrelated GNSS config churn.
+                    //gnssConfigureDefaults(); // Cause full reconfiguration
 
                     recordSystemSettings(); // Record these settings to unit
 
@@ -850,28 +852,28 @@ const char *stateToRtkMode(SystemState state)
 
 bool inRoverMode()
 {
-    if (systemState >= STATE_ROVER_NOT_STARTED && systemState <= STATE_ROVER_RTK_FIX)
+    if ((systemState >= STATE_ROVER_NOT_STARTED) && (systemState <= STATE_ROVER_RTK_FIX))
         return (true);
     return (false);
 }
 
 bool inBaseMode()
 {
-    if (systemState >= STATE_BASE_CASTER_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING)
+    if ((systemState >= STATE_BASE_CASTER_NOT_STARTED) && (systemState <= STATE_BASE_FIXED_TRANSMITTING))
         return (true);
     return (false);
 }
 
 bool inWebConfigMode()
 {
-    if (systemState >= STATE_WEB_CONFIG_NOT_STARTED && systemState <= STATE_WEB_CONFIG)
+    if ((systemState >= STATE_WEB_CONFIG_NOT_STARTED) && (systemState <= STATE_WEB_CONFIG))
         return (true);
     return (false);
 }
 
 bool inNtpMode()
 {
-    if (systemState >= STATE_NTPSERVER_NOT_STARTED && systemState <= STATE_NTPSERVER_SYNC)
+    if ((systemState >= STATE_NTPSERVER_NOT_STARTED) && (systemState <= STATE_NTPSERVER_SYNC))
         return (true);
     return (false);
 }
