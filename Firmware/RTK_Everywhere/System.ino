@@ -778,7 +778,7 @@ void rtkValidateHeap(const char *string)
         heap_caps_check_integrity(MALLOC_CAP_INTERNAL, true);
         systemPrintf("Checking PSRAM heap\r\n");
         heap_caps_check_integrity(MALLOC_CAP_SPIRAM, true);
-        reportFatalError("Corrupt heap!");
+        reportCorruptHeap("Corrupt heap!");
     }
 }
 
@@ -1669,7 +1669,10 @@ void systemReset()
 }
 
 //----------------------------------------
-// Print the error message every 15 seconds
+// Print the error message every 15 seconds. Used for all fatal errors except
+// heap corruption (see reportCorruptHeap below) - these are "should never
+// happen" conditions (bad pin config, table mismatches, etc) where we'd
+// rather freeze for inspection than reboot into an unknown state.
 //----------------------------------------
 void reportFatalError(const char *errorMsg)
 {
@@ -1699,6 +1702,91 @@ void reportFatalError(const char *errorMsg)
         if (Serial.available() && (Serial.read() == '\r'))
             systemReset();
     }
+}
+
+//----------------------------------------
+// RTC memory survives ESP.restart() (a software reboot) but is cleared by a
+// power-cycle or brownout. Used to notice when the unit keeps hitting heap
+// corruption before ever finishing setup() - a boot loop - so we can stop
+// rebooting into the same corrupt state and factory reset instead.
+//----------------------------------------
+#define HEAP_ERROR_BOOT_LOOP_MAGIC 0x52544B31 // 'RTK1' - marks the RTC fields below as valid
+#define HEAP_ERROR_BOOT_LOOP_LIMIT 3          // Consecutive heap-corruption halts before we auto factory reset
+#define HEAP_ERROR_REBOOT_SECONDS 5           // Seconds to show the halt message before auto-rebooting
+
+RTC_NOINIT_ATTR uint32_t heapErrorBootLoopMagic;
+RTC_NOINIT_ATTR uint32_t heapErrorBootLoopCount;
+
+//----------------------------------------
+// Call once setup() completes successfully so only heap corruption that
+// keeps recurring before we get that far is treated as a boot loop
+//----------------------------------------
+void fatalErrorBootLoopClear()
+{
+    heapErrorBootLoopMagic = HEAP_ERROR_BOOT_LOOP_MAGIC;
+    heapErrorBootLoopCount = 0;
+}
+
+//----------------------------------------
+// Heap corruption is unlike the other fatal errors above: continuing to run
+// risks further corruption, but freezing forever bricks an unattended unit,
+// and a corrupt heap is often a symptom of corrupt settings/LFS that will
+// reproduce on every boot. So: display the error, give a connected user a
+// few seconds to intervene over serial, then auto-reboot. If we keep
+// landing back here without a clean boot in between, factory reset instead
+// of looping on the same failure forever.
+//----------------------------------------
+void reportCorruptHeap(const char *errorMsg)
+{
+    displayHalt();
+
+    // Empty the FIFO of any incoming data
+    serialInputClear(&Serial);
+
+    // Uninitialized RTC memory (power-on/brownout) looks random - only trust
+    // the counter when our marker is present
+    if (heapErrorBootLoopMagic != HEAP_ERROR_BOOT_LOOP_MAGIC)
+    {
+        heapErrorBootLoopMagic = HEAP_ERROR_BOOT_LOOP_MAGIC;
+        heapErrorBootLoopCount = 0;
+    }
+    heapErrorBootLoopCount++;
+
+    systemPrintf("HALTED: %s\r\n", errorMsg);
+
+    // Repeated heap corruption with no successful boot in between points to
+    // corrupt settings/LFS rather than a one-off glitch
+    if (heapErrorBootLoopCount >= HEAP_ERROR_BOOT_LOOP_LIMIT)
+    {
+        systemPrintf("Corrupt heap %d times in a row without a successful boot - factory resetting\r\n",
+                     heapErrorBootLoopCount);
+        factoryReset(false); // Erases settings and reboots - does not return
+    }
+
+    systemPrintf("Rebooting in %d seconds. Press any key to pause, then 'f' to factory reset.\r\n",
+                 HEAP_ERROR_REBOOT_SECONDS);
+
+    // Countdown to auto-reboot, but let a connected user pause and choose a factory reset
+    uint32_t countdownStartMsec = millis();
+    while ((millis() - countdownStartMsec) < (HEAP_ERROR_REBOOT_SECONDS * MILLISECONDS_IN_A_SECOND))
+    {
+        if (Serial.available())
+        {
+            Serial.read(); // Consume the key that paused the countdown
+            systemPrintln("Paused. Press 'f' to factory reset, or any other key to reboot now.");
+
+            while (!Serial.available())
+                delay(10); // Wait for the user's decision
+
+            if (Serial.read() == 'f')
+                factoryReset(false); // Does not return
+
+            break; // Any other key: stop waiting and reboot below
+        }
+        delay(10);
+    }
+
+    systemReset(); // Soft reboot
 }
 
 //----------------------------------------

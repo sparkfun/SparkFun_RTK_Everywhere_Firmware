@@ -1401,6 +1401,9 @@ void setup()
     DMW_b("finishDisplay");
     finishDisplay(); // Continue showing display until time threshold
 
+    // setup() made it to the end - clear the fatal error boot-loop counter
+    fatalErrorBootLoopClear();
+
     // Save the time we transfer into loop
     bootTime[bootTimeIndex] = millis();
     bootTimeString[bootTimeIndex] = "End of Setup";
