@@ -58,6 +58,14 @@
 
 const char *_spp_server_name = "ESP32SPP";
 
+// Provided by the main sketch (System.ino). rtkMalloc() prefers PSRAM over internal RAM
+// when PSRAM is available; rtkFree() is the matching release call. xQueueCreate() and
+// plain malloc()/free() always come from internal RAM regardless of PSRAM availability,
+// which is scarce when WiFi and Bluetooth are both active - route the SPP queue storage
+// and per-packet TX buffers through these instead.
+extern void *rtkMalloc(size_t sizeInBytes, const char *text);
+extern void rtkFree(void *data, const char *text);
+
 // #define RX_QUEUE_SIZE         512
 // #define TX_QUEUE_SIZE         32
 #define SPP_TX_QUEUE_TIMEOUT 1000
@@ -67,6 +75,18 @@ const char *_spp_server_name = "ESP32SPP";
 static uint32_t _spp_client = 0;
 static QueueHandle_t _spp_rx_queue = NULL;
 static QueueHandle_t _spp_tx_queue = NULL;
+
+// Static-queue storage buffers (PSRAM when available) and their control blocks (must stay
+// internal - small, fixed size). Cached/resized lazily in _init_bt() and intentionally left
+// allocated across start/stop cycles ("allocate and forget", same pattern used elsewhere in
+// this firmware) to avoid repeated PSRAM malloc/free churn on every BT connect/disconnect.
+static uint8_t *_spp_rx_queue_storage = NULL;
+static uint16_t _spp_rx_queue_storage_len = 0;
+static StaticQueue_t _spp_rx_queue_buffer;
+static uint8_t *_spp_tx_queue_storage = NULL;
+static uint16_t _spp_tx_queue_storage_len = 0;
+static StaticQueue_t _spp_tx_queue_buffer;
+
 static SemaphoreHandle_t _spp_tx_done = NULL;
 static TaskHandle_t _spp_task_handle = NULL;
 static EventGroupHandle_t _spp_event_group = NULL;
@@ -175,7 +195,7 @@ static esp_err_t _spp_queue_packet(uint8_t *data, size_t len)
         log_w("No data provided");
         return ESP_OK;
     }
-    spp_packet_t *packet = (spp_packet_t *)malloc(sizeof(spp_packet_t) + len);
+    spp_packet_t *packet = (spp_packet_t *)rtkMalloc(sizeof(spp_packet_t) + len, "BluetoothSerial SPP TX packet");
     if (!packet)
     {
         log_e("SPP TX Packet Malloc Failed!");
@@ -186,7 +206,7 @@ static esp_err_t _spp_queue_packet(uint8_t *data, size_t len)
     if (!_spp_tx_queue || xQueueSend(_spp_tx_queue, &packet, SPP_TX_QUEUE_TIMEOUT) != pdPASS)
     {
         log_e("SPP TX Queue Send Failed!");
-        free(packet);
+        rtkFree(packet, "BluetoothSerial SPP TX packet");
         return ESP_FAIL;
     }
     return ESP_OK;
@@ -238,7 +258,7 @@ static void _spp_tx_task(void *arg)
             {
                 memcpy(_spp_tx_buffer + _spp_tx_buffer_len, packet->data, packet->len);
                 _spp_tx_buffer_len += packet->len;
-                free(packet);
+                rtkFree(packet, "BluetoothSerial SPP TX packet");
                 packet = NULL;
                 if (SPP_TX_MAX == _spp_tx_buffer_len || uxQueueMessagesWaiting(_spp_tx_queue) == 0)
                 {
@@ -279,7 +299,7 @@ static void _spp_tx_task(void *arg)
                         _spp_send_buffer();
                     }
                 }
-                free(packet);
+                rtkFree(packet, "BluetoothSerial SPP TX packet");
                 packet = NULL;
             }
         }
@@ -806,8 +826,20 @@ static bool _init_bt(const char *deviceName, bt_mode mode, uint16_t rxQueueSize,
     }
     if (_spp_rx_queue == NULL)
     {
-        //_spp_rx_queue = xQueueCreate(RX_QUEUE_SIZE, sizeof(uint8_t));  //initialize the queue
-        _spp_rx_queue = xQueueCreate(rxQueueSize, sizeof(uint8_t)); // initialize the queue
+        // Queue storage lives in PSRAM (if available) instead of the internal FreeRTOS heap -
+        // xQueueCreate() always allocates internally, which is scarce when WiFi + BT are both
+        // active. Only the small, fixed-size StaticQueue_t control block stays internal.
+        if (_spp_rx_queue_storage == NULL || _spp_rx_queue_storage_len != rxQueueSize)
+        {
+            if (_spp_rx_queue_storage)
+                rtkFree(_spp_rx_queue_storage, "BluetoothSerial SPP RX queue storage");
+            _spp_rx_queue_storage =
+                (uint8_t *)rtkMalloc(rxQueueSize * sizeof(uint8_t), "BluetoothSerial SPP RX queue storage");
+            _spp_rx_queue_storage_len = _spp_rx_queue_storage ? rxQueueSize : 0;
+        }
+        if (_spp_rx_queue_storage)
+            _spp_rx_queue = xQueueCreateStatic(rxQueueSize, sizeof(uint8_t), _spp_rx_queue_storage,
+                                                &_spp_rx_queue_buffer); // initialize the queue
         if (_spp_rx_queue == NULL)
         {
             log_e("RX Queue Create Failed");
@@ -816,8 +848,18 @@ static bool _init_bt(const char *deviceName, bt_mode mode, uint16_t rxQueueSize,
     }
     if (_spp_tx_queue == NULL)
     {
-        //_spp_tx_queue = xQueueCreate(TX_QUEUE_SIZE, sizeof(spp_packet_t *));  //initialize the queue
-        _spp_tx_queue = xQueueCreate(txQueueSize, sizeof(spp_packet_t *)); // initialize the queue
+        // Same PSRAM-backed approach as the RX queue above.
+        if (_spp_tx_queue_storage == NULL || _spp_tx_queue_storage_len != txQueueSize)
+        {
+            if (_spp_tx_queue_storage)
+                rtkFree(_spp_tx_queue_storage, "BluetoothSerial SPP TX queue storage");
+            _spp_tx_queue_storage = (uint8_t *)rtkMalloc(txQueueSize * sizeof(spp_packet_t *),
+                                                          "BluetoothSerial SPP TX queue storage");
+            _spp_tx_queue_storage_len = _spp_tx_queue_storage ? txQueueSize : 0;
+        }
+        if (_spp_tx_queue_storage)
+            _spp_tx_queue = xQueueCreateStatic(txQueueSize, sizeof(spp_packet_t *), _spp_tx_queue_storage,
+                                                &_spp_tx_queue_buffer); // initialize the queue
         if (_spp_tx_queue == NULL)
         {
             log_e("TX Queue Create Failed");
@@ -985,7 +1027,7 @@ static bool _stop_bt()
         spp_packet_t *packet = NULL;
         while (xQueueReceive(_spp_tx_queue, &packet, 0) == pdTRUE)
         {
-            free(packet);
+            rtkFree(packet, "BluetoothSerial SPP TX packet");
         }
         vQueueDelete(_spp_tx_queue);
         _spp_tx_queue = NULL;
