@@ -69,9 +69,30 @@ static const uint32_t IM19_FRAME_PACING_MS = 100; // Works - 0.1% frame failure.
 static const uint32_t IM19_CPL_RESPONSE_TIMEOUT_MS = 1 * MILLISECONDS_IN_A_SECOND;
 static const int IM19_CPL_RESPONSE_RETRIES = 10; // up to IM19_CPL_RESPONSE_RETRIES * IM19_CPL_RESPONSE_TIMEOUT_MS total
 
-static uint8_t im19FrameMap[IM19_FRAME_MAP_SIZE]; // bit set = IM19 has confirmed receipt of that frame
+static uint8_t *im19FrameMap = nullptr; // bit set = IM19 has confirmed receipt of that frame
 static uint32_t im19TotalFrames;
 static uint32_t im19NextFrameID;
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+static void im19ReleaseBuffers()
+{
+    if (im19FrameMap != nullptr)
+    {
+        free(im19FrameMap);
+        im19FrameMap = nullptr;
+    }
+}
+
+static bool im19AllocateBuffers()
+{
+    im19ReleaseBuffers();
+
+    im19FrameMap = (uint8_t *)malloc(IM19_FRAME_MAP_SIZE);
+    if (im19FrameMap == nullptr)
+        return false;
+    return true;
+}
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -720,6 +741,13 @@ bool im19FirmwareUpdate(const char * subsystem,
     {
         success = false;
 
+        // Allocate the frame map buffer
+        if (im19AllocateBuffers() == false)
+        {
+            systemPrintln("ERROR: Failed to allocate the frame map buffer!");
+            break;
+        }
+
         // Verify that a URL was specified
         if(settings.debugFirmwareUpdate)
             systemPrintf("URL: %s\r\n", url ? url : "[nullptr]");
@@ -869,7 +897,9 @@ bool im19FirmwareUpdate(const char * subsystem,
     systemPrintln(otaEqualSigns);
 
     // Release the resources
+    im19ReleaseBuffers();
     http.end();
+
     return success;
 }
 
@@ -963,6 +993,13 @@ bool im19ArrayFlashUpdate(const char * subsystem,
     {
         success = false;
 
+        // Allocate the frame map buffer
+        if (im19AllocateBuffers() == false)
+        {
+            systemPrintln("ERROR: Failed to allocate the frame map buffer!");
+            break;
+        }
+
         // Initialize the UART communicating with the IM19
         im19InitUart();
 
@@ -1040,6 +1077,9 @@ bool im19ArrayFlashUpdate(const char * subsystem,
     // Attempt to display the IM19 firmware version
     im19GetVersionString(subsystem, chip);
     systemPrintln(otaEqualSigns);
+
+    // Release the resources
+    im19ReleaseBuffers();
 
     return success;
 }
