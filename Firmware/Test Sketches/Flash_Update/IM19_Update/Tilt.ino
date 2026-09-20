@@ -899,6 +899,7 @@ bool im19FirmwareUpdate(const char * subsystem,
     // Release the resources
     im19ReleaseBuffers();
     http.end();
+    client.stop();
 
     return success;
 }
