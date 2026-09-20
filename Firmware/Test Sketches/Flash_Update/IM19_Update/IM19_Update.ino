@@ -317,7 +317,4 @@ void flashUpdate(const char * url)
         systemPrint((int)(otaFileBytes / ((flashUpdateElapsed + 500) / 1000)));
         systemPrintln(" bytes/second");
     }
-
-    // Always reboot the system
-    ESP.restart();
 }
