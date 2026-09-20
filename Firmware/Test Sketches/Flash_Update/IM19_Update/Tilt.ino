@@ -954,8 +954,7 @@ bool im19GetVersionString(const char * subsystem, const char * chip)
 
         if (settings.debugFirmwareUpdate)
             systemPrintf("%s (%s) Full Version: %s\r\n", chip, subsystem, rawFirmwareVersionStr);
-        else
-            systemPrintf("%s (%s) firmware: %s\r\n", chip, subsystem, imuFirmwareVersionStr);
+        systemPrintf("%s (%s) firmware: %s\r\n", chip, subsystem, imuFirmwareVersionStr);
     } while (0);
     if (tiltSensor)
         delete tiltSensor;
