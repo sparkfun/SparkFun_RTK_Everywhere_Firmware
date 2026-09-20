@@ -707,12 +707,10 @@ bool im19FirmwareUpdate(const char * subsystem,
 {
     const char * cert;
     NetworkClientSecure client;
-    const char * errorMsg;
     size_t fileBytes;
     HTTPClient http;
     String ipAddressString;
     const char * ipAddress;
-    char msgBuffer[128];
     const char * server;
     String serverString;
     NetworkClient * stream;
@@ -721,14 +719,13 @@ bool im19FirmwareUpdate(const char * subsystem,
     do
     {
         success = false;
-        errorMsg = nullptr;
 
         // Verify that a URL was specified
         if(settings.debugFirmwareUpdate)
             systemPrintf("URL: %s\r\n", url ? url : "[nullptr]");
         if ((url == nullptr) || (strlen(url) == 0))
         {
-            errorMsg = "ERROR: No URL was specified!";
+            systemPrintln("ERROR: No URL was specified!");
             break;
         }
 
@@ -739,7 +736,7 @@ bool im19FirmwareUpdate(const char * subsystem,
         serverString = getServerFromUrl(url);
         if (serverString.length() == 0)
         {
-            errorMsg = "ERROR: Failed to find server name in URL string";
+            systemPrintln("ERROR: Failed to find server name in URL string");
             break;
         }
         server = serverString.c_str();
@@ -748,7 +745,7 @@ bool im19FirmwareUpdate(const char * subsystem,
         ipAddressString = getServerIpAddress(server);
         if (ipAddressString.length() == 0)
         {
-            errorMsg = "Failed to get the IP address for the server\r\n";
+            systemPrintln("Failed to get the IP address for the server");
             break;
         }
         ipAddress = ipAddressString.c_str();
@@ -765,17 +762,14 @@ bool im19FirmwareUpdate(const char * subsystem,
             // Verify the server using the certificate
             if (!securelyConnectToServer(url, client, cert))
             {
-                //                           1         2         3         4         5         6         7         8         9
-                //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-                sprintf(msgBuffer, "ERROR: Failed to securely connect to %s (%s)", server, ipAddress);
-                errorMsg = msgBuffer;
+                systemPrintf("ERROR: Failed to securely connect to %s (%s)\r\n", server, ipAddress);
                 break;
             }
 
             // Request the URL from the web server
             if (!http.begin(client, url))
             {
-                errorMsg = "ERROR: unable to begin HTTPS request.";
+                systemPrintln("ERROR: unable to begin HTTPS request.");
                 break;
             }
         }
@@ -783,7 +777,7 @@ bool im19FirmwareUpdate(const char * subsystem,
         // Request the URL from the web server
         else if (!http.begin(url))
         {
-            errorMsg = "ERROR: Unable to begin HTTP request.";
+            systemPrintln("ERROR: Unable to begin HTTP request.");
             break;
         }
 
@@ -791,10 +785,7 @@ bool im19FirmwareUpdate(const char * subsystem,
         int httpCode = http.GET();
         if (httpCode != HTTP_CODE_OK)
         {
-            //                           1         2         3         4         5         6         7         8         9
-            //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-            sprintf(msgBuffer, "ERROR: Update failed HTTP GET request, code: %d", httpCode);
-            errorMsg = msgBuffer;
+            systemPrintf("ERROR: Update failed HTTP GET request, code: %d\r\n", httpCode);
             break;
         }
 
@@ -804,7 +795,7 @@ bool im19FirmwareUpdate(const char * subsystem,
             systemPrintf("File size: %d (0x%08x) bytes\r\n", fileBytes, fileBytes);
         if (fileBytes <= 0)
         {
-            errorMsg = "ERROR: Web server did not report a file size.";
+            systemPrintln("ERROR: Web server did not report a file size.");
             break;
         }
         otaFileBytes = fileBytes;
@@ -812,20 +803,18 @@ bool im19FirmwareUpdate(const char * subsystem,
         // Get the connection to the file data
         stream = http.getStreamPtr();
 
-        if (!im19UpdateFirmwareBegin(fileBytes))
+        // Display the firmware update being attempted
+        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
+
+        // Erase the device and prepare it for a firmware update
+        if (im19UpdateFirmwareBegin(fileBytes) == false)
         {
-            //                           1         2         3         4         5         6         7         8         9
-            //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-            sprintf(msgBuffer, "ERROR: %s did not respond to the bootloader entry command.", chip);
-            errorMsg = msgBuffer;
+            systemPrintf("ERROR: %s did not respond to the bootloader entry command.\r\n", chip);
             break;
         }
 
         // Set the initial frame
         im19NextFrameID = 0;
-
-        // Display the firmware update being attempted
-        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
 
         // Start the firmware update and display any streaming errors
         if (im19StreamFirmware(subsystem,
@@ -839,26 +828,20 @@ bool im19FirmwareUpdate(const char * subsystem,
         }
 
         const int maxAttempts = 5;
-        //                           1         2         3         4         5         6         7         8         9
-        //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-        sprintf(msgBuffer, "ERROR: %s firmware update failed: too many retries.", chip);
-        errorMsg = msgBuffer;
-        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        int attempt;
+        for (attempt = 1; attempt <= maxAttempts; attempt++)
         {
+            // Let the device know that the firmware update is complete
             Im19UpdateResult result = im19UpdateFirmwareEnd();
             if (result == IM19_UPDATE_SUCCESS)
             {
-                // Indicate success by clearing the errorMsg
-                errorMsg = nullptr;
+                success = true;
                 break;
             }
 
             if (result == IM19_UPDATE_FAILED)
             {
-                //                           1         2         3         4         5         6         7         8         9
-                //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-                sprintf(msgBuffer, "ERROR: %s firmware update failed: no response from %s.", chip, chip);
-                errorMsg = msgBuffer;
+                systemPrintf("ERROR: %s firmware update failed: no response from %s.\r\n", chip, chip);
                 break;
             }
 
@@ -866,21 +849,13 @@ bool im19FirmwareUpdate(const char * subsystem,
             systemPrintf("Attempt %d: %s reports missing frames.\r\n", attempt, chip);
             if (!im19StreamMissingRanges(subsystem, chip, url, buffer, packetBytes))
             {
-                //                           1         2         3         4         5         6         7         8         9
-                //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-                sprintf(msgBuffer, "ERROR: %s firmware update failed while requesting missing frames.", chip);
-                errorMsg = msgBuffer;
+                systemPrintf("ERROR: %s firmware update failed while requesting missing frames.\r\n", chip);
                 break;
             }
         }
-        if (errorMsg)
-            break;
-        success = true;
+        if (attempt > maxAttempts)
+            systemPrintf("ERROR: %s firmware update failed: too many retries.\r\n", chip);
     } while (0);
-
-    // Display the remote connection error
-    if (errorMsg)
-        systemPrintf("%s\r\n", errorMsg);
 
     // Display the firmware update status
     systemPrintln(otaEqualSigns);
@@ -980,16 +955,13 @@ bool im19ArrayFlashUpdate(const char * subsystem,
                           uint8_t * buffer,
                           size_t packetBytes)
 {
-    const char * errorMsg;
     size_t fileBytes;
-    char msgBuffer[128];
     NetworkClient * stream;
     bool success;
 
     do
     {
         success = false;
-        errorMsg = nullptr;
 
         // Initialize the UART communicating with the IM19
         im19InitUart();
@@ -1004,20 +976,18 @@ bool im19ArrayFlashUpdate(const char * subsystem,
         // Get the connection to the file data
         stream = (NetworkClient *)&dataArray;
 
-        if (!im19UpdateFirmwareBegin(fileBytes))
+        // Display the firmware update being attempted
+        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
+
+        // Erase the device and prepare it for a firmware update
+        if (im19UpdateFirmwareBegin(fileBytes) == false)
         {
-            //                           1         2         3         4         5         6         7         8         9
-            //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-            sprintf(msgBuffer, "ERROR: %s did not respond to the bootloader entry command.", chip);
-            errorMsg = msgBuffer;
+            systemPrintf("ERROR: %s did not respond to the bootloader entry command.\r\n", chip);
             break;
         }
 
         // Set the initial frame
         im19NextFrameID = 0;
-
-        // Display the firmware update being attempted
-        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
 
         // Start the firmware update and display any streaming errors
         if (im19StreamFirmware(subsystem,
@@ -1031,26 +1001,20 @@ bool im19ArrayFlashUpdate(const char * subsystem,
         }
 
         const int maxAttempts = 5;
-        //                           1         2         3         4         5         6         7         8         9
-        //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-        sprintf(msgBuffer, "ERROR: %s firmware update failed: too many retries.", chip);
-        errorMsg = msgBuffer;
+        int attempt;
         for (int attempt = 1; attempt <= maxAttempts; attempt++)
         {
+            // Let the device know that the firmware update is complete
             Im19UpdateResult result = im19UpdateFirmwareEnd();
             if (result == IM19_UPDATE_SUCCESS)
             {
-                // Indicate success by clearing the errorMsg
-                errorMsg = nullptr;
+                success = true;
                 break;
             }
 
             if (result == IM19_UPDATE_FAILED)
             {
-                //                           1         2         3         4         5         6         7         8         9
-                //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-                sprintf(msgBuffer, "ERROR: %s firmware update failed: no response from %s.", chip, chip);
-                errorMsg = msgBuffer;
+                systemPrintf("ERROR: %s firmware update failed: no response from %s.\r\n", chip, chip);
                 break;
             }
 
@@ -1058,21 +1022,13 @@ bool im19ArrayFlashUpdate(const char * subsystem,
             systemPrintf("Attempt %d: %s reports missing frames.\r\n", attempt, chip);
             if (!im19StreamMissingRanges(subsystem, chip, nullptr, buffer, packetBytes))
             {
-                //                           1         2         3         4         5         6         7         8         9
-                //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-                sprintf(msgBuffer, "ERROR: %s firmware update failed while requesting missing frames.", chip);
-                errorMsg = msgBuffer;
+                systemPrintf("ERROR: %s firmware update failed while requesting missing frames.\r\n", chip);
                 break;
             }
         }
-        if (errorMsg)
-            break;
-        success = true;
+        if (attempt > maxAttempts)
+            systemPrintf("ERROR: %s firmware update failed: too many retries.\r\n", chip);
     } while (0);
-
-    // Display the remote connection error
-    if (errorMsg)
-        systemPrintf("%s\r\n", errorMsg);
 
     // Display the firmware update status
     systemPrintln(otaEqualSigns);
