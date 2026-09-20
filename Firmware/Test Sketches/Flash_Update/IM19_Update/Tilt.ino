@@ -72,6 +72,8 @@ static const int IM19_CPL_RESPONSE_RETRIES = 10; // up to IM19_CPL_RESPONSE_RETR
 static uint8_t *im19FrameMap = nullptr; // bit set = IM19 has confirmed receipt of that frame
 static uint32_t im19TotalFrames;
 static uint32_t im19NextFrameID;
+static size_t im19StartByte;
+static size_t im19LastByte;
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -238,7 +240,6 @@ bool im19UpdateFirmwareBegin(size_t fileBytes)
 
     memset(im19FrameMap, 0, IM19_FRAME_MAP_SIZE);
     im19TotalFrames = totalFrames;
-    otaFileBytes = fileBytes;
 
     for (int retry = 0; retry < 3; retry++)
     {
@@ -463,6 +464,20 @@ bool im19StreamFirmware(const char * subsystem,
 }
 
 //----------------------------------------
+// Add the range header to the HTTP request
+//----------------------------------------
+void im19AddRangeHeader(HTTPClient &https)
+{
+    char rangeHeader[48];
+    snprintf(rangeHeader, sizeof(rangeHeader), "bytes=%lu-%lu", im19StartByte, im19LastByte);
+    https.addHeader("Range", rangeHeader);
+
+    // Display the header
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        systemPrintf("Range: %s\r\n", rangeHeader);
+}
+
+//----------------------------------------
 // Re-downloads the range and streams it to the IM19.
 //----------------------------------------
 static bool im19StreamRange(const char * subsystem,
@@ -473,15 +488,11 @@ static bool im19StreamRange(const char * subsystem,
                             uint8_t * buffer,
                             size_t packetBytes)
 {
-    const char * cert;
-    NetworkClientSecure client;
-    HTTPClient http;
-    const char * ipAddress;
-    String ipAddressString;
-    const char * server;
-    String serverString;
+    HTTPClient https;
+    NetworkClientSecure secureClient;
     NetworkClient * stream;
     bool success;
+    NetworkClient unsecureClient;
 
     // Display the parameters
     if (settings.debugFirmwareUpdate && otaDebugVerbose)
@@ -490,85 +501,43 @@ static bool im19StreamRange(const char * subsystem,
         systemPrintf("numBytes: 0x%08x (%d)\r\n", numBytes, numBytes);
         systemPrintf("packetBytes: %d\r\n", packetBytes);
     }
-    do
+
+    success = true;
+    if (url)
     {
-        success = false;
-        if (url)
-        {
-            // Locate the server for this URL
-            serverString = getServerFromUrl(url);
-            if (serverString.length() == 0)
-            {
-                systemPrintf("%s firmware update failed to find server name in URL string\r\n", chip);
-                break;
-            }
-            server = serverString.c_str();
+        // Set the range bounds (inclusive)
+        im19StartByte = startByte;
+        im19LastByte = startByte + numBytes - 1;
 
-            // Translate the server name into an IP address
-            ipAddressString = getServerIpAddress(server);
-            if (ipAddressString.length() == 0)
-            {
-                systemPrintln("Failed to get the IP address for the server");
-                break;
-            }
-            ipAddress = ipAddressString.c_str();
+        // Connect to the web server and get the file size and stream
+        success = serverConnectUsingUrl(subsystem,
+                                        chip,
+                                        url,
+                                        secureClient,
+                                        unsecureClient,
+                                        stream,
+                                        https,
+                                        im19AddRangeHeader,
+                                        HTTP_CODE_PARTIAL_CONTENT,
+                                        numBytes);
+    }
+    else
+    {
+        stream = (NetworkClient *)&dataArray;
+        dataArray.init(startByte);
+    }
 
-            cert = getCertFromUrl(url);
-            if (cert)
-            {
-                if (!securelyConnectToServer(url, client, cert))
-                {
-                    systemPrintf("Failed to securely connect to %s (%s)", server, ipAddress);
-                    break;
-                }
+    // Stream the data
+    if (success)
+        success = im19StreamFirmware(subsystem,
+                                     chip,
+                                     stream,
+                                     numBytes,
+                                     buffer,
+                                     packetBytes);
 
-                if (!http.begin(client, url))
-                {
-                    systemPrintf("%s firmware update unable to begin HTTPS request.\r\n", chip);
-                    break;
-                }
-            }
-            else if (!http.begin(url))
-            {
-                systemPrintf("%s firmware update unable to begin HTTP request.\r\n", chip);
-                break;
-            }
-
-            char rangeHeader[48];
-            snprintf(rangeHeader, sizeof(rangeHeader), "bytes=%lu-%lu", startByte, startByte + numBytes - 1);
-            http.addHeader("Range", rangeHeader);
-
-            int httpCode = http.GET();
-            if (httpCode != HTTP_CODE_PARTIAL_CONTENT)
-            {
-                // A 200 here means the server ignored our Range request and is about to send
-                // the whole file from byte 0 - streaming that into this offset would corrupt
-                // the image, so bail rather than guess.
-                systemPrintf("HTTP range request failed, code: %d\r\n", httpCode);
-                break;
-            }
-
-            // Get the data stream
-            stream = http.getStreamPtr();
-            success = true;
-        }
-        else
-        {
-            stream = (NetworkClient *)&dataArray;
-            dataArray.init(startByte);
-            success = true;
-        }
-
-        // Stream the data
-        if (success)
-            success = im19StreamFirmware(subsystem,
-                                         chip,
-                                         stream,
-                                         numBytes,
-                                         buffer,
-                                         packetBytes);
-    } while (0);
-    http.end();
+    // Done with the web server
+    https.end();
     return success;
 }
 
@@ -726,16 +695,12 @@ bool im19FirmwareUpdate(const char * subsystem,
                         uint8_t * buffer,
                         size_t packetBytes)
 {
-    const char * cert;
-    NetworkClientSecure client;
+    NetworkClientSecure secureClient;
     size_t fileBytes;
-    HTTPClient http;
-    String ipAddressString;
-    const char * ipAddress;
-    const char * server;
-    String serverString;
+    HTTPClient https;
     NetworkClient * stream;
     bool success;
+    NetworkClient unsecureClient;
 
     do
     {
@@ -760,76 +725,21 @@ bool im19FirmwareUpdate(const char * subsystem,
         // Initialize the UART communicating with the IM19
         im19InitUart();
 
-        // Locate the server for this URL
-        serverString = getServerFromUrl(url);
-        if (serverString.length() == 0)
+        // Connect to the web server and get the file size and stream
+        if (serverConnectUsingUrl(subsystem,
+                                  chip,
+                                  url,
+                                  secureClient,
+                                  unsecureClient,
+                                  stream,
+                                  https,
+                                  nullptr,
+                                  HTTP_CODE_OK,
+                                  fileBytes) == false)
         {
-            systemPrintln("ERROR: Failed to find server name in URL string");
-            break;
-        }
-        server = serverString.c_str();
-
-        // Translate the server name into an IP address
-        ipAddressString = getServerIpAddress(server);
-        if (ipAddressString.length() == 0)
-        {
-            systemPrintln("Failed to get the IP address for the server");
-            break;
-        }
-        ipAddress = ipAddressString.c_str();
-
-        // Determine if the certificate is known for this server
-        cert = getCertFromUrl(url);
-        if(settings.debugFirmwareUpdate)
-            systemPrintf("Certificate: %s\r\n", cert ? "available" : "none");
-
-        // Use an encrypted and verified connection when possible
-        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-        if (cert)
-        {
-            // Verify the server using the certificate
-            if (!securelyConnectToServer(url, client, cert))
-            {
-                systemPrintf("ERROR: Failed to securely connect to %s (%s)\r\n", server, ipAddress);
-                break;
-            }
-
-            // Request the URL from the web server
-            if (!http.begin(client, url))
-            {
-                systemPrintln("ERROR: unable to begin HTTPS request.");
-                break;
-            }
-        }
-
-        // Request the URL from the web server
-        else if (!http.begin(url))
-        {
-            systemPrintln("ERROR: Unable to begin HTTP request.");
-            break;
-        }
-
-        // Get the web server's response
-        int httpCode = http.GET();
-        if (httpCode != HTTP_CODE_OK)
-        {
-            systemPrintf("ERROR: Update failed HTTP GET request, code: %d\r\n", httpCode);
-            break;
-        }
-
-        // Get the file size
-        fileBytes = http.getSize();
-        if (settings.debugFirmwareUpdate)
-            systemPrintf("File size: %d (0x%08x) bytes\r\n", fileBytes, fileBytes);
-        if (fileBytes <= 0)
-        {
-            systemPrintln("ERROR: Web server did not report a file size.");
             break;
         }
         otaFileBytes = fileBytes;
-
-        // Get the connection to the file data
-        stream = http.getStreamPtr();
 
         // Display the firmware update being attempted
         systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
@@ -898,8 +808,7 @@ bool im19FirmwareUpdate(const char * subsystem,
 
     // Release the resources
     im19ReleaseBuffers();
-    http.end();
-    client.stop();
+    https.end();
 
     return success;
 }
