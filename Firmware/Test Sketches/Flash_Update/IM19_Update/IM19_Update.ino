@@ -209,6 +209,7 @@ void displayMenu()
 
     // Common menu items
     systemPrintln("r) Reboot system");
+    systemPrintln("h) Display the heap");
     systemPrintf("d) Debug: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
     systemPrintf("v) Verbose output: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
     systemPrint("Make selection: ");
@@ -237,6 +238,8 @@ void loop()
             settings.debugFirmwareUpdate ^= 1;
             otaDebugVerbose = false;
         }
+        else if (incoming == 'h')
+            reportHeapNow(true);
         else if (incoming == 'v')
             otaDebugVerbose ^= 1;
 
