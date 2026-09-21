@@ -1945,13 +1945,15 @@ void im19InitUart()
 //      only those byte ranges (im19StreamMissingRanges) and ask again - up to a few
 //      attempts - rather than re-streaming the whole binary.
 //----------------------------------------
-bool im19FirmwareUpdate(const OTA_TARGET * target,
+bool im19FirmwareUpdate(const char * subsystem,
+                        const char * chip,
+                        const char * url,
+                        const OTA_TARGET * target,
                         const OTA_SUBSYSTEM_INFO * subsystemInfo,
                         uint8_t * buffer,
                         size_t packetBytes)
 {
     const char * cert;
-    const char * chip;
     NetworkClientSecure client;
     const char * errorMsg;
     size_t fileBytes;
@@ -1962,13 +1964,10 @@ bool im19FirmwareUpdate(const OTA_TARGET * target,
     const char * server;
     String serverString;
     NetworkClient * stream;
-    const char * url;
 
     do
     {
         errorMsg = nullptr;
-        chip = otaGetChipNameFromChipId(subsystemInfo->_chip);
-        url = target->_url;
 
         // Verify that a URL was specified
         if(settings.debugFirmwareUpdate)

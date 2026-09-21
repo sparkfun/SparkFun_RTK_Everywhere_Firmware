@@ -4167,7 +4167,12 @@ static void mosaicFinishUpdate(HardwareSerial &serialPort)
         mosaicFindCommandPrompt(serialPort);
 }
 
-bool mosaicFirmwareUpdate(const OTA_TARGET *target, const OTA_SUBSYSTEM_INFO *subsystemInfo, uint8_t *buffer,
+bool mosaicFirmwareUpdate(const char * subsystem,
+                          const char * chip,
+                          const char * url,
+                          const OTA_TARGET * target,
+                          const OTA_SUBSYSTEM_INFO * subsystemInfo,
+                          uint8_t * buffer,
                           size_t packetBytes)
 {
     (void)subsystemInfo;
@@ -4213,8 +4218,8 @@ bool mosaicFirmwareUpdate(const OTA_TARGET *target, const OTA_SUBSYSTEM_INFO *su
         systemPrintln("mosaic-X5 is in upgrade mode.");
         systemPrintf("Streaming .suf file at %lu baud...\r\n", (unsigned long)mosaicKnownBaud);
 
-        cert = getCertFromUrl(target->_url);
-        if (openUrl(target->_url, cert, server, https, &fileBytes, &stream, &secureClient, &startMsec,
+        cert = getCertFromUrl(url);
+        if (openUrl(url, cert, server, https, &fileBytes, &stream, &secureClient, &startMsec,
                     settings.debugFirmwareUpdate) == false)
             break;
 

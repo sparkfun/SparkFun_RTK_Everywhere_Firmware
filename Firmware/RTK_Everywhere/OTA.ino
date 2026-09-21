@@ -379,7 +379,13 @@ void otaReportVersionCheck()
 //----------------------------------------
 // Get the file from the web, and initiate firmware update
 //----------------------------------------
-bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * subsystemInfo)
+bool otaFirmwareUpdate(const char * subsystem,
+                       const char * chip,
+                       const char * url,
+                       const OTA_TARGET * target,
+                       const OTA_SUBSYSTEM_INFO * subsystemInfo,
+                       uint8_t * buffer,
+                       size_t packetBytes)
 {
     const char * cert;
     size_t fileBytes;
@@ -398,7 +404,7 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
         // Perform the update for the current target
         subsystemIndex = subsystemInfo->_subsystem;
 
-        systemPrintf("Getting %s firmware file\r\n", otaSubsystem[subsystemIndex]);
+        systemPrintf("Getting %s firmware file\r\n", subsystem);
         String server = getServerFromUrl(target->_url);
         cert = getCertFromUrl(target->_url);
         if (openUrl(target->_url,
@@ -413,7 +419,7 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
         {
             // Failed to open the URL
             systemPrintln(otaEqualSigns);
-            systemPrintf("%s firmware update failed!\r\n", otaSubsystem[subsystemIndex]);
+            systemPrintf("%s firmware update failed!\r\n", subsystem);
             systemPrintln(otaEqualSigns);
             break;
         }
@@ -434,7 +440,7 @@ bool otaFirmwareUpdate(const OTA_TARGET * target, const OTA_SUBSYSTEM_INFO * sub
 
         // Perform the update for the current target
         otaPrintUpdateStart(subsystemIndex, target);
-        success = subsystemInfo->_streamFirmware(otaChipName[subsystemInfo->_chip],
+        success = subsystemInfo->_streamFirmware(chip,
                                                  stream,
                                                  target->_fileBytes,
                                                  target->_crc,
@@ -1243,13 +1249,15 @@ void otaSetState(uint8_t newState)
 //----------------------------------------
 void otaStateFirmwareUpdate()
 {
+    bool allUpdatesSucceeded;
+    const char * chip;
     OTA_SUBSYSTEM_MASK mask;
     OTA_SUBSYSTEM_MASK productSubsystems;
+    const char * subsystem;
     int subsystemIndex;
+    bool subsystemSuccess;
     const OTA_SUBSYSTEM_INFO * subsystemInfo;
     const OTA_TARGET * target;
-    bool allUpdatesSucceeded;
-    bool subsystemSuccess;
     int updatesPerformed;
 
     do
@@ -1283,6 +1291,10 @@ void otaStateFirmwareUpdate()
             // Get the target and subsystemInfo
             target = &otaTarget[subsystemIndex];
             subsystemInfo = otaGetSubsystemInfo(subsystemIndex);
+            if (subsystemInfo == nullptr)
+                continue;
+            subsystem = otaSubsystem[subsystemInfo->_subsystem];
+            chip = otaGetChipNameFromChipId(subsystemInfo->_chip);
             mask = otaGetSubsystemMaskFromSubsystem(subsystemIndex);
 
             // Determine if the subsystem should be skipped
@@ -1290,15 +1302,16 @@ void otaStateFirmwareUpdate()
             {
                 if (settings.debugFirmwareUpdate && otaDebugVerbose)
                 {
-                    systemPrintf("%s is not implemented in this product\r\n",
-                                 otaSubsystem[subsystemIndex]);
+                    systemPrintf("%s (%s) is not implemented in this product\r\n",
+                                 chip, subsystem);
 
                     // Display the subsystemInfo table
                     for (int index = 0; index < otaSubsystemInfoTableEntries; index++)
                     {
                         subsystemInfo = &otaSubsystemInfoTable[index];
-                        systemPrintf("%s: variant: %d, directory: %s, present: %d\r\n",
-                                     otaSubsystem[subsystemInfo->_subsystem],
+                        systemPrintf("%s (%s): variant: %d, directory: %s, present: %d\r\n",
+                                     chip,
+                                     subsystem,
                                      productVariant,
                                      subsystemInfo->_directory,
                                      subsystemInfo->_present ? *subsystemInfo->_present : 1);
@@ -1311,7 +1324,7 @@ void otaStateFirmwareUpdate()
             if ((target->_requestType == OTA_REQUEST_SKIP_UPDATE)
                 || (target->_url == nullptr))
             {
-                systemPrintf("%s: nothing to update (%s)\r\n", otaSubsystem[subsystemIndex],
+                systemPrintf("%s (%s): nothing to update (%s)\r\n", chip, subsystem,
                              (target->_requestType == OTA_REQUEST_SKIP_UPDATE) ? "skip requested" : "no URL");
                 continue;
             }
@@ -1320,8 +1333,8 @@ void otaStateFirmwareUpdate()
             if ((subsystemInfo->_firmwareUpdate == nullptr)
                 && (subsystemInfo->_streamFirmware == nullptr))
             {
-                systemPrintf("WARNING: Need to implement firmwareUpdate or streamFirmware support for %s!\r\n",
-                             otaSubsystem[subsystemIndex]);
+                systemPrintf("WARNING: Need to implement firmwareUpdate or streamFirmware support for %s (%s)!\r\n",
+                             chip, subsystem);
                 otaFirmwareUpdateStatusWebsocket(subsystemIndex, "Not currently available");
                 continue;
             }
@@ -1331,21 +1344,31 @@ void otaStateFirmwareUpdate()
             if (subsystemInfo->_firmwareUpdate == nullptr)
             {
                 if (settings.debugFirmwareUpdate && otaDebugVerbose)
-                    systemPrintf("%s is using _streamFirmware\r\n",
-                                 otaSubsystem[subsystemIndex]);
-                subsystemSuccess = otaFirmwareUpdate(target, subsystemInfo);
+                    systemPrintf("%s (%s) is using _streamFirmware\r\n",
+                                 chip, subsystem);
+                subsystemSuccess = otaFirmwareUpdate(subsystem,
+                                                     chip,
+                                                     target->_url,
+                                                     target,
+                                                     subsystemInfo,
+                                                     otaFirmwareBuffer,
+                                                     subsystemInfo->_packetBytes);
             }
             else
             {
                 if (settings.debugFirmwareUpdate && otaDebugVerbose)
-                    systemPrintf("%s is calling _firmwareUpdate\r\n",
-                                 otaSubsystem[subsystemIndex]);
+                    systemPrintf("%s (%s) is calling _firmwareUpdate\r\n",
+                                 chip, subsystem);
                 uint32_t startMsec = millis();
                 otaPrintUpdateStart(subsystemIndex, target);
-                subsystemSuccess = subsystemInfo->_firmwareUpdate(target,
-                                                                 subsystemInfo,
-                                                                 otaFirmwareBuffer,
-                                                                 subsystemInfo->_packetBytes);
+                subsystemSuccess = subsystemInfo->_firmwareUpdate(subsystem,
+                                                                  chip,
+                                                                  target->_url,
+                                                                  target,
+                                                                  subsystemInfo,
+                                                                  otaFirmwareBuffer,
+                                                                  subsystemInfo->_packetBytes);
+
                 // Display the performance
                 if (subsystemSuccess)
                     otaDisplayPerformance(subsystemIndex,

@@ -66,7 +66,10 @@ char otaFirmwareCsvUrl[OTA_FIRMWARE_CSV_URL_LENGTH];
 // Subsystem support
 //----------------------------------------
 
-typedef bool (*OTA_FIRMWARE_UPDATE)(const struct _OTA_TARGET * target,
+typedef bool (*OTA_FIRMWARE_UPDATE)(const char * subsystem,
+                                    const char * chip,
+                                    const char * url,
+                                    const struct _OTA_TARGET * target,
                                     const struct _OTA_SUBSYSTEM_INFO * subsystemInfo,
                                     uint8_t * buffer,
                                     size_t bufferBytes);
