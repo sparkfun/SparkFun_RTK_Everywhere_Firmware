@@ -4177,16 +4177,15 @@ bool mosaicFirmwareUpdate(const char * subsystem,
 {
     (void)subsystemInfo;
 
-    const char *cert;
     uint32_t crc = 0;
     size_t fileBytes;
-    HTTPClient *https = nullptr;
-    NetworkClientSecure *secureClient = nullptr;
-    NetworkClient *stream = nullptr;
-    String server;
+    HTTPClient https;
+    NetworkClientSecure secureClient;
+    HardwareSerial *serialPort = mosaicFirmwareUpdatePort();
+    NetworkClient * stream;
     uint32_t startMsec;
     bool success = false;
-    HardwareSerial *serialPort = mosaicFirmwareUpdatePort();
+    NetworkClient unsecureClient;
 
     // mosaicFirmwareUpdatePort() returns nullptr for any platform the update sequence isn't
     // supported on - currently Facet mosaic (see its comment) plus anything else that isn't
@@ -4218,10 +4217,19 @@ bool mosaicFirmwareUpdate(const char * subsystem,
         systemPrintln("mosaic-X5 is in upgrade mode.");
         systemPrintf("Streaming .suf file at %lu baud...\r\n", (unsigned long)mosaicKnownBaud);
 
-        cert = getCertFromUrl(url);
-        if (openUrl(url, cert, server, https, &fileBytes, &stream, &secureClient, &startMsec,
-                    settings.debugFirmwareUpdate) == false)
+        if (serverConnectUsingUrl(subsystem,
+                                  chip,
+                                  url,
+                                  secureClient,
+                                  unsecureClient,
+                                  stream,
+                                  https,
+                                  nullptr,
+                                  HTTP_CODE_OK,
+                                  fileBytes) == false)
+        {
             break;
+        }
 
         if ((fileBytes != target->_fileBytes) && (fileBytes != (size_t)-1))
         {
@@ -4294,13 +4302,7 @@ bool mosaicFirmwareUpdate(const char * subsystem,
     } while (0);
 
     // Release the connection - previously leaked the secure client and its open socket
-    if (https)
-    {
-        https->end();
-        delete https;
-    }
-    if (secureClient)
-        delete secureClient;
+    https.end();
 
     systemPrintln(otaEqualSigns);
     if (success)

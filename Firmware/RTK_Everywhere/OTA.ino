@@ -393,38 +393,46 @@ bool otaFirmwareUpdate(const char * subsystem,
                        uint8_t * buffer,
                        size_t packetBytes)
 {
-    const char * cert;
     size_t fileBytes;
-    HTTPClient * https;
-    NetworkClientSecure * secureClient;
-    NetworkClient * stream;
+    HTTPClient https;
+    NetworkClientSecure secureClient;
     uint32_t startMsec;
+    NetworkClient * stream;
     bool success;
+    NetworkClient unsecureClient;
 
-    https = nullptr;
-    secureClient = nullptr;
-    success = false;
     do
     {
-        systemPrintf("Getting %s firmware file\r\n", subsystem);
-        String server = getServerFromUrl(target->_url);
-        cert = getCertFromUrl(target->_url);
-        if (openUrl(target->_url,
-                    cert,
-                    server,
-                    https,
-                    &fileBytes,
-                    &stream,
-                    &secureClient,
-                    &startMsec,
-                    settings.debugFirmwareUpdate) == false)
+        success = false;
+
+        // Verify that a URL was specified
+        if(settings.debugFirmwareUpdate)
+            systemPrintf("URL: %s\r\n", url ? url : "[nullptr]");
+        if ((url == nullptr) || (strlen(url) == 0))
         {
-            // Failed to open the URL
-            systemPrintln(otaEqualSigns);
-            systemPrintf("%s firmware update failed!\r\n", subsystem);
-            systemPrintln(otaEqualSigns);
+            systemPrintln("ERROR: No URL was specified!");
             break;
         }
+
+        // Connect to the web server and get the file size and stream
+        startMsec = millis();
+        if (serverConnectUsingUrl(subsystem,
+                                  chip,
+                                  url,
+                                  secureClient,
+                                  unsecureClient,
+                                  stream,
+                                  https,
+                                  nullptr,
+                                  HTTP_CODE_OK,
+                                  fileBytes) == false)
+        {
+            break;
+        }
+        otaFileBytes = fileBytes;
+
+        // Display the firmware update being attempted
+        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
 
         // Verify the file size
         if ((fileBytes != target->_fileBytes) && (fileBytes != (size_t)-1))
@@ -456,15 +464,9 @@ bool otaFirmwareUpdate(const char * subsystem,
             otaDisplayPerformance(subsystem, chip, startMsec, millis(), fileBytes);
     } while (0);
 
-    // Release the connection - previously leaked on every call, eventually exhausting
-    // heap and LWIP sockets across a multi-subsystem update
-    if (https)
-    {
-        https->end();
-        delete https;
-    }
-    if (secureClient)
-        delete secureClient;
+    // Done with the web server.  The NetworkClient* and HTTPClient objects are
+    // released automatically as the routine exits since they are stack local variables.
+    https.end();
     return success;
 }
 
