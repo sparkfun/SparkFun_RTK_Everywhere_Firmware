@@ -173,65 +173,6 @@ String getServerIpAddress(const char * server)
 }
 
 //----------------------------------------
-// Returns true if we successfully establish a secure connection to the
-// server or false upon failure.
-//----------------------------------------
-bool securelyConnectToServer(const char * url,
-                             NetworkClientSecure &client,
-                             const char * cert)
-{
-    if (settings.debugFirmwareUpdate && otaDebugVerbose)
-    {
-        systemPrintf("url: %p (%s)\r\n", url, url ? url : "");
-        systemPrintf("cert: %p\r\n", cert);
-    }
-
-    // Verify a certificate is available
-    if ((cert == nullptr) || (strlen(cert) == 0))
-    {
-        systemPrintf("No certificate specified!\r\n");
-        return false;
-    }
-
-    // Allocate space to assemble the final URL
-    size_t length = strlen(url);
-    char urlString[length + 15 + 1];
-
-    // Locate the server
-    String serverString = getServerFromUrl(url);
-    const char * server = serverString.c_str();
-    if (settings.debugFirmwareUpdate && otaDebugVerbose)
-        systemPrintf("server: %s\r\n", server);
-
-    // Translate the server name into an IP address
-    String ipAddressString = getServerIpAddress(server);
-    const char * ipAddress = ipAddressString.c_str();
-    if (settings.debugFirmwareUpdate && otaDebugVerbose)
-        systemPrintf("ipAddress: %s\r\n", ipAddress);
-
-    // Use the certificate for the connection to the server
-    if (settings.debugFirmwareUpdate)
-        systemPrintf("Using TLS certificate: %s\r\n", getCertName(cert));
-    client.setCACert(cert);
-
-    // Preflight TLS handshake using the expected host name.
-    // With CA configured, connect() fails if certificate validation fails.
-    if (settings.debugFirmwareUpdate)
-        systemPrintf("Checking TLS connection to %s (%s:443)\r\n",
-                     server, ipAddress);
-    if (!client.connect(server, 443))
-    {
-        systemPrintln("TLS socket connect failed");
-        return false;
-    }
-
-    systemPrintf("TLS certificate verified for %s (%s)\r\n", server, ipAddress);
-
-    client.stop();
-    return true;
-}
-
-//----------------------------------------
 // Connect to the remote web server specified by the URL.
 // Return the file length if possible.
 //----------------------------------------
@@ -299,12 +240,19 @@ bool serverConnectUsingUrl(const char * subsystem,
         // Verify the server using the certificate
         if (cert)
         {
-            ((NetworkClientSecure *)stream)->setHandshakeTimeout(15); // seconds: TLS handshake
-            if (!securelyConnectToServer(url, *((NetworkClientSecure *)stream), cert))
-            {
-                systemPrintf("ERROR: Failed to securely connect to %s (%s)\r\n", server, ipAddress);
-                break;
-            }
+            secureClient.setHandshakeTimeout(15); // seconds: TLS handshake
+
+            // Set the certificate
+            secureClient.setCACert(cert);
+
+            // Hand the not-yet-connected client straight to HTTPClient rather than
+            // preflighting a connect() here: HTTPClient::begin() unconditionally
+            // stops any already-connected socket it's handed (beginInternal() in
+            // arduino-esp32's HTTPClient.cpp forces _canReuse = false and calls
+            // disconnect() the first time a client is bound), so a separate
+            // connect-then-stop pass here would just pay for the TLS handshake
+            // twice. The GET retry loop below performs the (single) real connect
+            // and already retries 3x on failure.
         }
 
         // Retry the connection up to 3 times
