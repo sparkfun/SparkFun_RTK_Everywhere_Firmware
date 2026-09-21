@@ -167,7 +167,8 @@ int otaCompareVersions(int localMajor, int localMinor, int localPatch, int local
 //----------------------------------------
 // Display the firmware update performance
 //----------------------------------------
-void otaDisplayPerformance(uint8_t subsystemIndex,
+void otaDisplayPerformance(const char * subsystem,
+                           const char * chip,
                            uint32_t startMsec,
                            uint32_t endMsec,
                            size_t fileBytes)
@@ -180,8 +181,9 @@ void otaDisplayPerformance(uint8_t subsystemIndex,
     bytesPerSecond = 1000ull * fileBytes / milliseconds;
     seconds = milliseconds / MILLISECONDS_IN_A_SECOND;
     milliseconds -= seconds * MILLISECONDS_IN_A_SECOND;
-    systemPrintf("%s updated %d bytes in %d.%03d seconds with a rate of %lld bytes/second\r\n",
-                 otaSubsystem[subsystemIndex],
+    systemPrintf("%s (%s) updated %d bytes in %d.%03d seconds with a rate of %lld bytes/second\r\n",
+                 chip,
+                 subsystem,
                  fileBytes,
                  seconds, milliseconds,
                  bytesPerSecond);
@@ -208,7 +210,11 @@ void otaFormatVersion(const int * version,
                  version[4] ? " (debug build)" : "");
 }
 
-void otaPrintUpdateStart(uint8_t subsystemIndex,
+//----------------------------------------
+// Display the firmware update that is being attempted
+//----------------------------------------
+void otaPrintUpdateStart(const char * subsystem,
+                         const char * chip,
                          const OTA_TARGET * target)
 {
     char localVersion[32];
@@ -216,8 +222,8 @@ void otaPrintUpdateStart(uint8_t subsystemIndex,
 
     otaFormatVersion(target->_localVersion, localVersion, sizeof(localVersion));
     otaFormatVersion(target->_remoteVersion, remoteVersion, sizeof(remoteVersion));
-    systemPrintf("Updating %s from %s to %s\r\n",
-                 otaSubsystem[subsystemIndex], localVersion, remoteVersion);
+    systemPrintf("Updating %s (%s) from %s to %s\r\n",
+                 chip, subsystem, localVersion, remoteVersion);
 }
 
 //----------------------------------------
@@ -393,7 +399,6 @@ bool otaFirmwareUpdate(const char * subsystem,
     NetworkClientSecure * secureClient;
     NetworkClient * stream;
     uint32_t startMsec;
-    int subsystemIndex;
     bool success;
 
     https = nullptr;
@@ -401,9 +406,6 @@ bool otaFirmwareUpdate(const char * subsystem,
     success = false;
     do
     {
-        // Perform the update for the current target
-        subsystemIndex = subsystemInfo->_subsystem;
-
         systemPrintf("Getting %s firmware file\r\n", subsystem);
         String server = getServerFromUrl(target->_url);
         cert = getCertFromUrl(target->_url);
@@ -438,8 +440,10 @@ bool otaFirmwareUpdate(const char * subsystem,
         // Initialize the progress bar
         firmwareUpdateProgressReset(target->_fileBytes);
 
-        // Perform the update for the current target
-        otaPrintUpdateStart(subsystemIndex, target);
+        // Display the firmware update being attempted
+        otaPrintUpdateStart(subsystem, chip, target);
+
+        // Start the firmware update and display any streaming errors
         success = subsystemInfo->_streamFirmware(chip,
                                                  stream,
                                                  target->_fileBytes,
@@ -449,7 +453,7 @@ bool otaFirmwareUpdate(const char * subsystem,
 
         // Display the performance
         if (success)
-            otaDisplayPerformance(subsystemIndex, startMsec, millis(), fileBytes);
+            otaDisplayPerformance(subsystem, chip, startMsec, millis(), fileBytes);
     } while (0);
 
     // Release the connection - previously leaked on every call, eventually exhausting
@@ -1358,7 +1362,7 @@ void otaStateFirmwareUpdate()
                     systemPrintf("%s (%s) is calling _firmwareUpdate\r\n",
                                  chip, subsystem);
                 uint32_t startMsec = millis();
-                otaPrintUpdateStart(subsystemIndex, target);
+                otaPrintUpdateStart(subsystem, chip, target);
                 subsystemSuccess = subsystemInfo->_firmwareUpdate(subsystem,
                                                                   chip,
                                                                   target->_url,
@@ -1369,7 +1373,8 @@ void otaStateFirmwareUpdate()
 
                 // Display the performance
                 if (subsystemSuccess)
-                    otaDisplayPerformance(subsystemIndex,
+                    otaDisplayPerformance(subsystem,
+                                          chip,
                                           startMsec,
                                           millis(),
                                           target->_fileBytes);
