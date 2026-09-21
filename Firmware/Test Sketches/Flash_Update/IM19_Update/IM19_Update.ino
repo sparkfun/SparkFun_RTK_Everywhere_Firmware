@@ -212,6 +212,12 @@ void displayMenu()
     systemPrintln("h) Display the heap");
     systemPrintf("d) Debug: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
     systemPrintf("v) Verbose output: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
+
+    // Discard any type ahead
+    while (Serial.available())
+        Serial.read();
+
+    // Request user input
     systemPrint("Make selection: ");
 }
 
