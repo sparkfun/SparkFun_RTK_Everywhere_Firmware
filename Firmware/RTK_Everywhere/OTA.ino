@@ -446,8 +446,6 @@ bool otaFirmwareUpdate(const char * subsystem,
                                                  target->_crc,
                                                  otaFirmwareBuffer,
                                                  subsystemInfo->_packetBytes);
-        if ((success == false) && (subsystemIndex == OTA_SUBSYSTEM_ESP32))
-            commandSendExecuteErrorResponse((char *)"SPEXE", (char *)"UPDATEFIRMWARE", (char *)"OTA Error");
 
         // Display the performance
         if (success)
