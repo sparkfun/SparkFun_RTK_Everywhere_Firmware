@@ -615,19 +615,19 @@ static bool im19StreamMissingRanges(const char * subsystem,
             while (frame < im19TotalFrames && !(im19FrameMap[frame / 8] & (0x01 << (frame % 8))))
                 frame++;
 
-            size_t fileBytes = (frame - runStart) * IM19_FRAME_PAYLOAD_SIZE;
+            uint32_t startByte = runStart * IM19_FRAME_PAYLOAD_SIZE;
+            uint32_t endByte = min(frame * IM19_FRAME_PAYLOAD_SIZE, otaFileBytes);
+            size_t fileBytes = endByte - startByte;
             systemPrintf("Requesting frames %lu-%lu (%lu bytes) from source\r\n",
                          runStart, (frame - 1), fileBytes);
 
             // Send the firmware data to the IM19
             im19NextFrameID = runStart;
-            uint32_t startByte = runStart * IM19_FRAME_PAYLOAD_SIZE;
-            uint32_t endByte = min(frame * IM19_FRAME_PAYLOAD_SIZE, otaFileBytes);
             success = im19StreamRange(subsystem,
                                       chip,
                                       url,
                                       startByte,
-                                      endByte - startByte,
+                                      fileBytes,
                                       buffer,
                                       packetBytes);
 
