@@ -66,8 +66,8 @@ static const uint32_t IM19_FRAME_PACING_MS = 100; // Works - 0.1% frame failure.
 // How long to wait for the IM19 to reply after CPL. After the last frame lands, the
 // IM19 still has to finish flashing it and scan every received frame to build its
 // reply bitmap.
-static const uint32_t IM19_CPL_RESPONSE_TIMEOUT_MS = 1 * MILLISECONDS_IN_A_SECOND;
-static const int IM19_CPL_RESPONSE_RETRIES = 10; // up to IM19_CPL_RESPONSE_RETRIES * IM19_CPL_RESPONSE_TIMEOUT_MS total
+static const uint32_t IM19_CPL_RESPONSE_TIMEOUT_MS = 500;
+static const int IM19_CPL_RESPONSE_RETRIES = 30; // up to IM19_CPL_RESPONSE_RETRIES * IM19_CPL_RESPONSE_TIMEOUT_MS total
 
 static uint8_t *im19FrameMap = nullptr; // bit set = IM19 has confirmed receipt of that frame
 static uint32_t im19TotalFrames;
