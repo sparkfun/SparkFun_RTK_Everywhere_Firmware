@@ -3759,7 +3759,7 @@ void printAvailableSettings()
 
 void createCommandTypesJson(String &output)
 {
-    JsonDocument doc;
+    JsonDocument doc(&jsonPsramAllocator);
 
     JsonArray command_types = doc["command types"].to<JsonArray>();
 

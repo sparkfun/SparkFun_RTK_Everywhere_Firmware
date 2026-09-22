@@ -798,7 +798,7 @@ void createZtpRequest(String &str)
     }
 
     // Build the JSON request
-    JsonDocument json;
+    JsonDocument json(&jsonPsramAllocator);
     json["tags"][0] = "ztp";
     json["token"] = tokenString;
     json["hardwareId"] = printDeviceId();
