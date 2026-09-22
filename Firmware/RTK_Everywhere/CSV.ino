@@ -391,31 +391,35 @@ bool csvOpenCsvFile(const char * url,
                     bool verbose)
 {
     ssize_t bytesRead;
-    NetworkClient * client;
-    NetworkClientSecure * secureClient;
+    NetworkClientSecure secureClient;
     uint8_t * data;
     uint8_t * dataEnd;
-    HTTPClient * https;
-    String server;
+    HTTPClient https;
     uint32_t startMsec;
+    NetworkClient * stream;
+    bool success;
+    NetworkClient unsecureClient;
 
     do
     {
-        client = nullptr;
-        secureClient = nullptr;
+        success = false;
         *fileData = nullptr;
 
         // Open the CSV file web page
-        if (openUrl(url,
-                    cert,
-                    server,
-                    https,
-                    fileBytes,
-                    &client,
-                    &secureClient,
-                    &startMsec,
-                    settings.debugFirmwareUpdate) == false)
-            return false;
+        startMsec = millis();
+        if (serverConnectUsingUrl("All",
+                                  "All",
+                                  url,
+                                  secureClient,
+                                  unsecureClient,
+                                  stream,
+                                  https,
+                                  nullptr,
+                                  HTTP_CODE_OK,
+                                  *fileBytes) == false)
+        {
+            break;
+        }
 
         // Allocate space for the CSV file
         if (settings.debugFirmwareUpdate)
@@ -432,10 +436,11 @@ bool csvOpenCsvFile(const char * url,
         dataEnd = &data[*fileBytes];
         while (data < dataEnd)
         {
-            bytesRead = client->read(data, dataEnd - data);
+            bytesRead = stream->read(data, dataEnd - data);
             if (bytesRead < 0)
             {
-                systemPrintf("ERROR: Failed to read CSV file from %s!\r\n", server.c_str());
+                systemPrintf("ERROR: Failed to read CSV file from %s!\r\n",
+                             getServerFromUrl(url).c_str());
                 break;
             }
             data += bytesRead;
@@ -458,30 +463,16 @@ bool csvOpenCsvFile(const char * url,
         if (settings.debugFirmwareUpdate)
             csvDisplay(*(const char **)fileData, *fieldCount, *lineCount, debug, verbose);
 
-        // Done with the HTTP client - avoid leaking the TLS client and its open socket
-        https->end();
-        delete https;
-        if (secureClient)
-            delete secureClient;
-        return true;
+        success = true;
     } while (0);
 
     // Cleanup upon failure
     *fieldCount = 0;
     *lineCount = 0;
 
-    // Done with the file data
-    csvCleanup(fileData);
-
     // Done with the HTTP client
-    if (https)
-    {
-        https->end();
-        delete https;
-    }
-    if (secureClient)
-        delete secureClient;
-    return false;
+    https.end();
+    return success;
 }
 #endif // COMPILE_NETWORK
 
