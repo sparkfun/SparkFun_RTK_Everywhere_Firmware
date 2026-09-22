@@ -795,11 +795,13 @@ bool im19FirmwareUpdate(const char * subsystem,
         systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
 
         // Erase the device and prepare it for a firmware update
+        systemPrintf("Entering the %s bootloader\r\n", chip);
         if (im19UpdateFirmwareBegin(fileBytes) == false)
         {
             systemPrintf("ERROR: %s did not respond to the bootloader entry command.\r\n", chip);
             break;
         }
+        systemPrintf("%s is in bootloader mode.\r\n", chip);
 
         // Set the initial frame
         im19NextFrameID = 0;

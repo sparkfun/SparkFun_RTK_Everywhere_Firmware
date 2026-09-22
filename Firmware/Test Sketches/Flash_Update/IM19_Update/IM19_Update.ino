@@ -262,6 +262,8 @@ void loop()
         }
         else if (incoming == 'L')
         {
+            systemPrintln("Getting the list of files");
+
             // Get the SparkFun directory page
             urlString = serverSelectFileNameFromDirectoryListing(urlDirectory,
                                                                  otaFileTree,
