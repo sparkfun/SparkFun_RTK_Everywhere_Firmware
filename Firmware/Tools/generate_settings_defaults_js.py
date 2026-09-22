@@ -86,13 +86,17 @@ INDEXED_SUFFIX_TYPES = {
     "tEspNowPr",
 }
 
-# Settings whose compiled struct-literal default is a sentinel (e.g. 254) resolved at
-# runtime by checkGNSSArrayDefaults() based on the detected GNSS receiver (and, for
-# enableExtCorrRadio on LG290P, the receiver's firmware version). The browser cannot
-# precompute these, so their default is forced to null here - which keeps them out of
-# webConfigOptimizedSettings.h's allowlist, so the firmware always sends them in full
-# (see settingHasKnownWebConfigDefault() in Firmware/RTK_Everywhere/menuCommands.ino).
-ALWAYS_SENT_NAMES = {"dynamicModel", "enableExtCorrRadio"}
+# Settings whose compiled struct-literal default is a sentinel (e.g. 254), or is
+# otherwise not the real firmware default, resolved at runtime by
+# checkGNSSArrayDefaults() based on the detected GNSS receiver (and, for
+# enableExtCorrRadio on LG290P, the receiver's firmware version) or the detected
+# product variant (antennaPhaseCenter - see productHousingPropertiesTable in
+# settings.h and its use at the end of checkGNSSArrayDefaults() in menuSupport.ino).
+# The browser cannot precompute these, so their default is forced to null here -
+# which keeps them out of webConfigOptimizedSettings.h's allowlist, so the firmware
+# always sends them in full (see settingHasKnownWebConfigDefault() in
+# Firmware/RTK_Everywhere/menuCommands.ino).
+ALWAYS_SENT_NAMES = {"dynamicModel", "enableExtCorrRadio", "antennaPhaseCenter"}
 
 ALL_MODELS = ["EVK", "FacetX5", "Torch", "Postcard", "TX2", "FPM", "FPL", "FPX"]
 

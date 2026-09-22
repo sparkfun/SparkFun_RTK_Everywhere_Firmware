@@ -5,7 +5,6 @@ static const char *const webConfigKnownDefaultNames[] = {
     "ARPLoggingInterval",
     "alignedLogFiles",
     "antennaHeight",
-    "antennaPhaseCenter",
     "autoFirmwareCheckMinutes",
     "bluetoothRadioType",
     "coordinateInputType",

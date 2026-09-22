@@ -51,7 +51,7 @@ const SETTINGS_DEFAULTS = {
     ]
   },
   "antennaPhaseCenter": {
-    "default": 0.0,
+    "default": null,
     "platforms": [
       "EVK",
       "FPL",
