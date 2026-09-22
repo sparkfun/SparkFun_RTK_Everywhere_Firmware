@@ -572,4 +572,19 @@ const char * otaNameEnd = "\"";
 bool otaDebugVerbose;
 uint32_t otaFileBytes;
 
+//----------------------------------------
+// Declare forward routines
+//----------------------------------------
+
+bool serverConnectUsingUrl(const char * subsystem,
+                           const char * chip,
+                           const char * url,
+                           NetworkClientSecure &secureClient,
+                           NetworkClient &unsecureClient,
+                           NetworkClient * &stream,
+                           HTTPClient &https,
+                           void (*addHeaders)(HTTPClient &https),
+                           t_http_codes expectedResponseCode,
+                           size_t &fileBytes);
+
 #endif // __SETTINGS_H__
