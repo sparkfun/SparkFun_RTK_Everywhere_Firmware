@@ -696,6 +696,8 @@ bool x20pFirmwareUpdateBegin()
     if (x20pEnterBootloaderMode() == false)
         return false;
 
+    // Start writing from the beginning of the firmware area
+    x20pCurrentAddress = FW_BASE_ADDR;
     return true;
 }
 
@@ -776,6 +778,7 @@ bool x20pStreamFirmware(const char * subsystem,
         // 30+ seconds; opening the HTTPS GET first and leaving it idle that long risked
         // the connection going stale (and a stalled TLS read blocking forever) before a
         // single body byte was ever consumed.
+        systemPrintf("Entering the %s bootloader\r\n", chip);
         if (x20pFirmwareUpdateBegin() == false)
         {
             systemPrintf("ERROR: %s failed to enter bootloader mode.\r\n", chip);
@@ -870,6 +873,13 @@ bool x20pStreamFirmware(const char * subsystem,
 // Owns the full update sequence: enters bootloader mode, streams the image
 // over WiFi, then verifies/reboots - callers only need to call this one
 // function and do not need to know about Begin()/End().
+//
+// Structure:
+//   1. Verify the URL
+//   2. Connect to the web server
+//   3. Get the file size
+//   4. Stream the file to the chip
+//   5. Display the final firmware update status
 //----------------------------------------
 bool x20pFirmwareUpdate(const char * subsystem,
                         const char * chip,
@@ -877,109 +887,41 @@ bool x20pFirmwareUpdate(const char * subsystem,
                         uint8_t * buffer,
                         size_t packetBytes)
 {
-    const char * cert;
-    NetworkClientSecure client;
-    const char * errorMsg;
     size_t fileBytes;
-    HTTPClient http;
-    String ipAddressString;
-    const char * ipAddress;
-    char msgBuffer[128];
-    const char * server;
-    String serverString;
+    HTTPClient https;
+    NetworkClientSecure secureClient;
     NetworkClient * stream;
     bool success;
+    NetworkClient unsecureClient;
 
     do
     {
         success = false;
-        errorMsg = nullptr;
 
         // Verify that a URL was specified
         if(settings.debugFirmwareUpdate)
             systemPrintf("URL: %s\r\n", url ? url : "[nullptr]");
         if ((url == nullptr) || (strlen(url) == 0))
         {
-            errorMsg = "ERROR: No URL was specified!";
+            systemPrintln("ERROR: No URL was specified!");
             break;
         }
 
-        // Locate the server for this URL
-        serverString = getServerFromUrl(url);
-        if (serverString.length() == 0)
+        // Connect to the web server and get the file size and stream
+        if (serverConnectUsingUrl(subsystem,
+                                  chip,
+                                  url,
+                                  secureClient,
+                                  unsecureClient,
+                                  stream,
+                                  https,
+                                  nullptr,
+                                  HTTP_CODE_OK,
+                                  fileBytes) == false)
         {
-            errorMsg = "ERROR: Failed to find server name in URL string";
-            break;
-        }
-        server = serverString.c_str();
-
-        // Translate the server name into an IP address
-        ipAddressString = getServerIpAddress(server);
-        if (ipAddressString.length() == 0)
-        {
-            errorMsg = "Failed to get the IP address for the server\r\n";
-            break;
-        }
-        ipAddress = ipAddressString.c_str();
-
-        // Determine if the certificate is known for this server
-        cert = getCertFromUrl(url);
-        if(settings.debugFirmwareUpdate)
-            systemPrintf("Certificate: %s\r\n", cert ? "available" : "none");
-
-        // Use an encrypted and verified connection when possible
-        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-        if (cert)
-        {
-            // Verify the server using the certificate
-            if (!securelyConnectToServer(url, client, cert))
-            {
-                //                           1         2         3         4         5         6         7         8         9
-                //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-                sprintf(msgBuffer, "ERROR: Failed to securely connect to %s (%s)", server, ipAddress);
-                errorMsg = msgBuffer;
-                break;
-            }
-
-            // Request the URL from the web server
-            if (!http.begin(client, url))
-            {
-                errorMsg = "ERROR: unable to begin HTTPS request.";
-                break;
-            }
-        }
-
-        // Request the URL from the web server
-        else if (!http.begin(url))
-        {
-            errorMsg = "ERROR: Unable to begin HTTP request.";
-            break;
-        }
-
-        // Get the web server's response
-        int httpCode = http.GET();
-        if (httpCode != HTTP_CODE_OK)
-        {
-            //                           1         2         3         4         5         6         7         8         9
-            //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-            sprintf(msgBuffer, "ERROR: Update failed HTTP GET request, code: %d", httpCode);
-            errorMsg = msgBuffer;
-            break;
-        }
-
-        // Get the file size
-        fileBytes = http.getSize();
-        if (settings.debugFirmwareUpdate)
-            systemPrintf("File size: %d (0x%08x) bytes\r\n", fileBytes, fileBytes);
-        if (fileBytes <= 0)
-        {
-            errorMsg = "ERROR: Web server did not report a file size.";
             break;
         }
         otaFileBytes = fileBytes;
-
-        // Get the connection to the file data
-        stream = http.getStreamPtr();
 
         // Display the firmware update being attempted
         systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
@@ -994,13 +936,8 @@ bool x20pFirmwareUpdate(const char * subsystem,
         {
             break;
         }
-
         success = true;
     } while (0);
-
-    // Display the remote connection error
-    if (errorMsg)
-        systemPrintf("%s\r\n", errorMsg);
 
     // Display the firmware update status
     systemPrintln(otaEqualSigns);
@@ -1009,13 +946,12 @@ bool x20pFirmwareUpdate(const char * subsystem,
     else
         systemPrintf("%s (%s) firmware update failed!\r\n", chip, subsystem);
 
-    // Display the version number
-    if (success)
-        x20pDisplayVersion(subsystem, chip);
+    // Attempt to display the IM19 firmware version
+    x20pDisplayVersion(subsystem, chip);
     systemPrintln(otaEqualSigns);
 
     // Release the resources
-    http.end();
+    https.end();
     return success;
 }
 
@@ -1042,6 +978,13 @@ void x20pDisplayVersion(const char * subsystem, const char * chip)
 
 //----------------------------------------
 // Perform the flash update using an array
+//
+// Structure:
+//   1. Initialize the array
+//   2. Get the file size
+//   3. Get the stream for the file data
+//   4. Stream the file to the chip
+//   5. Display the final firmware update status
 //----------------------------------------
 bool x20pArrayFlashUpdate(const char * subsystem,
                           const char * chip,
@@ -1090,9 +1033,8 @@ bool x20pArrayFlashUpdate(const char * subsystem,
     else
         systemPrintf("%s (%s) firmware update failed!\r\n", chip, subsystem);
 
-    // Display the version number
-    if (success)
-        x20pDisplayVersion(subsystem, chip);
+    // Attempt to display the IM19 firmware version
+    x20pDisplayVersion(subsystem, chip);
     systemPrintln(otaEqualSigns);
 
     return success;
