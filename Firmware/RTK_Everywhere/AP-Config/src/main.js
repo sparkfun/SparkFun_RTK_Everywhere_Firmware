@@ -368,6 +368,8 @@ function parseIncoming(msg) {
                 select.options.length = 0; //Remove all from list
                 newOption = new Option('9600', '9600');
                 select.add(newOption, undefined);
+                newOption = new Option('57600', '57600');
+                select.add(newOption, undefined);
                 newOption = new Option('115200', '115200');
                 select.add(newOption, undefined);
                 newOption = new Option('230400', '230400');
@@ -376,6 +378,7 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('921600', '921600');
                 select.add(newOption, undefined);
+                select.value = '57600'; // Firmware default; ESP32 omits this field from the CSV when unchanged
 
                 select = ge("dataPortBaud");
                 select.options.length = 0; //Remove all from list
@@ -389,6 +392,7 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('921600', '921600');
                 select.add(newOption, undefined);
+                select.value = '230400'; // Firmware default; ESP32 omits this field from the CSV when unchanged
 
                 // nav mode - added at firmware v2.01
                 select = ge("dynamicModel");
@@ -519,6 +523,8 @@ function parseIncoming(msg) {
                 select.options.length = 0; //Remove all from list
                 newOption = new Option('9600', '9600');
                 select.add(newOption, undefined);
+                newOption = new Option('57600', '57600');
+                select.add(newOption, undefined);
                 newOption = new Option('115200', '115200');
                 select.add(newOption, undefined);
                 newOption = new Option('230400', '230400');
@@ -527,6 +533,7 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('921600', '921600');
                 select.add(newOption, undefined);
+                select.value = '57600'; // Firmware default; ESP32 omits this field from the CSV when unchanged
 
                 select = ge("dataPortBaud");
                 select.options.length = 0; //Remove all from list
@@ -540,6 +547,7 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('921600', '921600');
                 select.add(newOption, undefined);
+                select.value = '230400'; // Firmware default; ESP32 omits this field from the CSV when unchanged
 
                 // nav mode - added at firmware v2.01
                 select = ge("dynamicModel");
@@ -2298,6 +2306,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
             else if (platformPrefix == "EVK") {
                 ge("antennaPhaseCenter").value = 42.0; //Average of L1/L2
+            }
+            else if (platformPrefix == "Postcard") {
+                ge("antennaPhaseCenter").value = 37.5; //Average of L1/L2
             }
             else if (platformPrefix.substring(0, 2) == "FP") {
                 ge("antennaPhaseCenter").value = 58.3; //Average of L1/L2
