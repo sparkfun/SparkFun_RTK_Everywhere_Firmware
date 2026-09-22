@@ -215,8 +215,15 @@ void displayMenu()
 
     // Common menu items
     systemPrintln("r) Reboot system");
+    systemPrintln("h) Display the heap");
     systemPrintf("d) Debug: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
     systemPrintf("v) Verbose output: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
+
+    // Discard any type ahead
+    while (Serial.available())
+        Serial.read();
+
+    // Request user input
     systemPrint("Make selection: ");
 }
 
@@ -243,6 +250,8 @@ void loop()
             settings.debugFirmwareUpdate ^= 1;
             otaDebugVerbose = false;
         }
+        else if (incoming == 'h')
+            reportHeapNow(true);
         else if (incoming == 'v')
             otaDebugVerbose ^= 1;
 
@@ -261,6 +270,8 @@ void loop()
         }
         else if (incoming == 'L')
         {
+            systemPrintln("Getting the list of files");
+
             // Get the SparkFun directory page
             urlString = serverSelectFileNameFromDirectoryListing(urlDirectory,
                                                                  otaFileTree,
@@ -317,7 +328,4 @@ void flashUpdate(const char * url)
         systemPrint((int)(otaFileBytes / ((flashUpdateElapsed + 500) / 1000)));
         systemPrintln(" bytes/second");
     }
-
-    // Always reboot the system
-    ESP.restart();
 }
