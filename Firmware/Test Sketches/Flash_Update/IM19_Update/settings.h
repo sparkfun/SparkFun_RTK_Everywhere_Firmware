@@ -572,6 +572,11 @@ const char * otaNameEnd = "\"";
 bool otaDebugVerbose;
 uint32_t otaFileBytes;
 
+// Firmware Update menu developer options, serial menu only (see OTA_REQUEST_* in OTA.h).
+// A plain global rather than a Settings member - it must never be sticky/NVM, always
+// starts disabled at boot so a forgotten 'Always update' override can't silently persist.
+bool otaDeveloperOptions = false;
+
 //----------------------------------------
 // Declare forward routines
 //----------------------------------------
