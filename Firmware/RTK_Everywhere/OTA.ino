@@ -70,10 +70,6 @@ void otaCleanup(bool keepTargets)
 {
     OTA_TARGET * target;
 
-    // The targets hold their own copy of the URL, file size and CRC, so the
-    // CSV file data is never needed again
-    csvCleanup(&otaCsvFileData);
-
     // Keep the targets for configuration (web, serial, ...)
     if (keepTargets == false)
     {
@@ -1474,6 +1470,10 @@ void otaStateGetSystemsToUpdate()
 
         otaSetState(OTA_STATE_UPDATE_FIRMWARE);
     } while (0);
+
+    // The targets hold their own copy of the URL, file size and CRC, so the
+    // CSV file data is never needed again
+    csvCleanup(&otaCsvFileData);
 }
 
 //----------------------------------------

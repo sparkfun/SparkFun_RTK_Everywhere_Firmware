@@ -470,9 +470,6 @@ bool csvOpenCsvFile(const char * url,
     *fieldCount = 0;
     *lineCount = 0;
 
-    // Done with the file data
-    csvCleanup(fileData);
-
     // Done with the HTTP client
     if (https)
     {
