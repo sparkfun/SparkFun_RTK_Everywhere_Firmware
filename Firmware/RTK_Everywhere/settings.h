@@ -1670,7 +1670,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.handleGnssDataTaskCore, "handleGnssDataTaskCore", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.handleGnssDataTaskPriority, "handleGnssDataTaskPriority", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.i2cInterruptsCore, "i2cInterruptsCore", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.measurementScale, "measurementScale", nullptr, }, //Don't show on Config
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.measurementScale, "measurementScale", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printBootTimes, "printBootTimes", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printPartitionTable, "printPartitionTable", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printTaskStartStop, "printTaskStartStop", nullptr, },
