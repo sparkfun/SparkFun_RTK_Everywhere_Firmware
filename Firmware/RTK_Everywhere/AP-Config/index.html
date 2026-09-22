@@ -2667,10 +2667,8 @@
                 </table>
 
                 <br>
-                <label class="btn btn-primary">
-                    <input type="file" name="file1" id="file1" onchange="uploadFile()" />
-                    Upload
-                </label>
+                <button type="button" class="btn btn-primary" onclick="ge('file1').click()">Upload</button>
+                <input type="file" name="file1" id="file1" onchange="uploadFile()" />
                 <center><progress id="progressBar" value="0" max="100" style="width:300px;"></progress></center>
                 <p id="uploadStatus"></p>
 
@@ -2695,6 +2693,7 @@
             </div>
         </div>
     </div>
+    <script src="src/settingsDefaults.js"></script>
     <script src="src/main.js"></script>
     </div>
     <script>

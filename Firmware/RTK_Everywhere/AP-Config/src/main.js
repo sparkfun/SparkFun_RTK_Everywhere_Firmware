@@ -86,6 +86,12 @@ var initialSettings = {};
 
 var receivedSettings = [];
 
+// Set by applyPlatformModel() as soon as the "platformModel" field arrives (see
+// settingsDefaults.js). Used by showHideDivs() below so that a setting's wrapper div
+// still shows correctly even when the ESP32 omitted that setting from the CSV because
+// it's sitting at its default value.
+var platformModel = "";
+
 var divTables = {
     lg290pGnssSettings: ["useMSM7", "rtcmMinElev"],
     rtcmMinElevConfig: ["rtcmMinElev"],
@@ -119,6 +125,13 @@ function showHideDivs() {
                         showMe = true;
                     }
                 }
+                // A setting the ESP32 omitted (because it's at its default value) won't
+                // be in receivedSettings above - fall back to the generated platform
+                // table so the div still shows correctly on platforms that support it.
+                if (typeof SETTINGS_DEFAULTS !== 'undefined' && SETTINGS_DEFAULTS[settings[j]] &&
+                    SETTINGS_DEFAULTS[settings[j]].platforms.includes(platformModel)) {
+                    showMe = true;
+                }
             }
             if (showMe == true) {
                 //console.log("showing: " + key);
@@ -142,6 +155,64 @@ function initializeArrays() {
     correctionsSourceNames.length = 0;
     correctionsSourcePriorities.length = 0;
     receivedSettings.length = 0;
+
+    // Seed corrections priorities with their firmware default (identity) order, since
+    // the priority list UI is built entirely from received correctionsPriority_* CSV
+    // entries with no static markup to fall back on - if the ESP32 omits all of them
+    // (every priority is at default), this is what keeps the list correct instead of
+    // empty. Any real entries that do arrive update these in place - see the
+    // "correctionsPriority" branch in parseIncoming(). Defined in settingsDefaults.js.
+    if (typeof CORRECTIONS_SOURCE_DEFAULT_ORDER !== 'undefined') {
+        for (let i = 0; i < CORRECTIONS_SOURCE_DEFAULT_ORDER.length; i++) {
+            correctionsSourceNames.push(CORRECTIONS_SOURCE_DEFAULT_ORDER[i]);
+            correctionsSourcePriorities.push(i);
+        }
+    }
+
+    // Pre-fill each profile label with its default "N: " (empty name) text. The ESP32
+    // now omits an unused profile slot's profileXName entry entirely (see
+    // createSettingsString() in menuCommands.ino), so without this the label would be
+    // left showing whatever placeholder text is baked into index.html instead of the
+    // correct empty-slot format.
+    for (let i = 0; i < 8; i++) { // Must match MAX_PROFILE_COUNT in RTK_Everywhere.ino
+        var profileLabel = ge("profile" + i + "Name");
+        if (profileLabel)
+            profileLabel.innerHTML = (i + 1) + ": ";
+    }
+}
+
+// Runs as soon as the "platformModel" field arrives - always the first field in the
+// dump, ahead of every other setting. Uses the generated SETTINGS_DEFAULTS table
+// (src/settingsDefaults.js, built from settings.h by
+// Firmware/Tools/generate_settings_defaults_js.py) to hide controls this platform
+// doesn't support and pre-fill the rest with their firmware default, so that a
+// setting the ESP32 omits from the CSV (because it's already at default) still shows
+// the correct value. Runs before the rest of parseIncoming() so later, more specific
+// per-platform handling (e.g. rebuilding dynamicModel's option list) still wins where
+// both touch the same element.
+function applyPlatformModel(model) {
+    platformModel = model;
+
+    if (typeof SETTINGS_DEFAULTS === 'undefined')
+        return;
+
+    for (const key in SETTINGS_DEFAULTS) {
+        const entry = SETTINGS_DEFAULTS[key];
+        const el = ge(key);
+        if (!el)
+            continue;
+
+        const wrapper = el.closest('.form-check, .mb-2, .form-group') || el;
+        const visible = entry.platforms.includes(model);
+        wrapper.style.display = visible ? "" : "none";
+
+        if (visible && entry.default !== null) {
+            if (el.type == "checkbox" || el.type == "radio")
+                el.checked = !!entry.default;
+            else
+                el.value = String(entry.default);
+        }
+    }
 }
 
 function parseIncoming(msg) {
@@ -156,7 +227,10 @@ function parseIncoming(msg) {
         receivedSettings.push(id);
 
         //Special commands
-        if (id.includes("sdMounted")) {
+        if (id == "platformModel") {
+            applyPlatformModel(val);
+        }
+        else if (id.includes("sdMounted")) {
             //Turn on/off SD area
             if (val == "false") {
                 hide("fileManager");
@@ -814,7 +888,15 @@ function parseIncoming(msg) {
             var correctionData = correctionName.split('_');
             var correctionNameLabel = correctionData[1];
 
-            if (correctionsSourceNames.length < numCorrectionsSources) {
+            // initializeArrays() may have already pre-seeded these with the default
+            // order (see CORRECTIONS_SOURCE_DEFAULT_ORDER) - update that entry in
+            // place rather than appending, so a received priority always wins over
+            // the pre-seeded default for the same source.
+            var existingIndex = correctionsSourceNames.indexOf(correctionNameLabel);
+            if (existingIndex >= 0) {
+                correctionsSourcePriorities[existingIndex] = correctionPriority;
+            }
+            else if (correctionsSourceNames.length < numCorrectionsSources) {
                 correctionsSourceNames.push(correctionNameLabel);
                 correctionsSourcePriorities.push(correctionPriority);
             }
@@ -1169,6 +1251,7 @@ function clearMsg(id) {
 }
 
 var errorCount = 0;
+var erroredFields = []; // Field IDs that failed validation - reset and logged in validateFields()
 
 function checkMessageValueUBX(id) {
     checkElementValue(id, 0, 255, "Must be between 0 and 255", "collapseGNSSConfigMsg");
@@ -1223,6 +1306,7 @@ function validateFields() {
     collapseSection("collapseFileManager", "fileManagerCaret");
 
     errorCount = 0;
+    erroredFields = [];
 
     //Profile Config
     checkElementString("profileNameSelected", 1, 49, "Must be 1 to 49 characters", "collapseProfileConfig");
@@ -1355,8 +1439,8 @@ function validateFields() {
             checkLatLong(); //Verify Lat/Long input type
             checkElementValue("fixedAltitude", -11034, 8849, "Must be -11034 to 8849", "collapseBaseConfig");
 
-            checkElementValue("antennaHeightM", -15, 15, "Must be -15 to 15", "collapseBaseConfig");
-            checkElementValue("antennaPhaseCenter", -200.0, 200.0, "Must be -200.0 to 200.0", "collapseBaseConfig");
+            checkElementValue("antennaHeightM", -15, 15, "Must be -15 to 15", "collapseInstrumentConfig");
+            checkElementValue("antennaPhaseCenter", -200.0, 200.0, "Must be -200.0 to 200.0", "collapseInstrumentConfig");
         }
     }
 
@@ -1430,8 +1514,8 @@ function validateFields() {
     checkElementValue("correctionsSourcesLifetime", 5, 120, "Must be 5 to 120", "collapseCorrectionsPriorityConfig");
 
     //Instrument Config
-    checkElementValue("antennaHeightM", -15, 15, "Must be -15 to 15", "collapseBaseConfig");
-    checkElementValue("antennaPhaseCenter", -200.0, 200.0, "Must be -200.0 to 200.0", "collapseBaseConfig");
+    checkElementValue("antennaHeightM", -15, 15, "Must be -15 to 15", "collapseInstrumentConfig");
+    checkElementValue("antennaPhaseCenter", -200.0, 200.0, "Must be -200.0 to 200.0", "collapseInstrumentConfig");
 
     //System Config
     if (ge("enableLogging").checked == true) {
@@ -1471,6 +1555,10 @@ function validateFields() {
         checkElementValue("ntpRootDelay", 0, 10000000, "Must be 0 to 10,000,000", "collapseNTPConfig");
         checkElementValue("ntpRootDispersion", 0, 10000000, "Must be 0 to 10,000,000", "collapseNTPConfig");
         checkElementString("ntpReferenceId", 1, 4, "Must be 1 to 4 chars", "collapseNTPConfig");
+    }
+
+    if (errorCount > 0) {
+        console.log("validateFields: " + errorCount + " error(s) found in field(s): " + erroredFields.join(", "));
     }
 }
 
@@ -1565,6 +1653,7 @@ function checkConstellations() {
         ge("collapseGNSSConfig").classList.add('show');
         showError('gnssConstellations', "Please choose one constellation");
         errorCount++;
+        erroredFields.push("gnssConstellations");
     }
     else
         clearError("gnssConstellations");
@@ -1577,6 +1666,7 @@ function checkBitMapValue(id, min, max, bitMap, errorText, collapseID) {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
         errorCount++;
+        erroredFields.push(id);
     }
     else {
         clearError(id);
@@ -1595,12 +1685,14 @@ function checkLatLong() {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
         errorCount++;
+        erroredFields.push(id);
     }
     else if ((convertedCoordinate < -180) || (convertedCoordinate > 180)) {
         var errorText = "Must be -180 to 180";
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
         errorCount++;
+        erroredFields.push(id);
     }
     else
         clearError(id);
@@ -1612,12 +1704,14 @@ function checkLatLong() {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
         errorCount++;
+        erroredFields.push(id);
     }
     else if ((convertedCoordinate < -180) || (convertedCoordinate > 180)) {
         var errorText = "Must be -180 to 180";
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
         errorCount++;
+        erroredFields.push(id);
     }
     else
         clearError(id);
@@ -1627,6 +1721,7 @@ function checkLatLong() {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
         errorCount++;
+        erroredFields.push(id);
         ge("detectedFormatText").innerHTML = printableInputType(CoordinateTypes.COORDINATE_INPUT_TYPE_INVALID_UNKNOWN);
     }
     else
@@ -1652,6 +1747,7 @@ function checkElementValue(id, min, max, errorText, collapseID) {
             ge("collapseBaseConfig").classList.add('show');
         }
         errorCount++;
+        erroredFields.push(id);
     }
     else
         clearError(id);
@@ -1684,6 +1780,7 @@ function checkElementString(id, min, max, errorText, collapseID) {
         else
             ge(collapseID).classList.add('show');
         errorCount++;
+        erroredFields.push(id);
     }
     else
         clearError(id);
@@ -1697,6 +1794,7 @@ function checkElementStringSpacesNoCommas(id, min, max, errorText, collapseID) {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
         errorCount++;
+        erroredFields.push(id);
     }
     else
         clearError(id);
@@ -1713,6 +1811,7 @@ function checkElementIPAddress(id, errorText, collapseID) {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
         errorCount++;
+        erroredFields.push(id);
     }
     else
         clearError(id);
@@ -1725,6 +1824,7 @@ function checkElementCasterUser(host, user, url, errorText, collapseID) {
             ge(user + 'Error').innerHTML = 'Error: ' + errorText;
             ge(collapseID).classList.add('show');
             errorCount++;
+            erroredFields.push(user);
         }
         else
             clearError(user);
@@ -1739,6 +1839,7 @@ function checkCheckboxMutex(id1, id2, errorText, collapseID) {
         ge(id2 + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
         errorCount++;
+        erroredFields.push(id1, id2);
     }
     else {
         clearError(id1);
@@ -2566,8 +2667,8 @@ function addGeodetic() {
     checkElementString("nicknameGeodetic", 1, 49, "Must be 1 to 49 characters", "collapseBaseConfig");
     checkLatLong();
     checkElementValue("fixedAltitude", -11034, 8849, "Must be -11034 to 8849", "collapseBaseConfig");
-    checkElementValue("antennaHeightM", -15, 15, "Must be -15 to 15", "collapseBaseConfig");
-    checkElementValue("antennaPhaseCenter", -200.0, 200.0, "Must be -200.0 to 200.0", "collapseBaseConfig");
+    checkElementValue("antennaHeightM", -15, 15, "Must be -15 to 15", "collapseInstrumentConfig");
+    checkElementValue("antennaPhaseCenter", -200.0, 200.0, "Must be -200.0 to 200.0", "collapseInstrumentConfig");
 
     if (errorCount == 0) {
         //Check name against the list
