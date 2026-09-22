@@ -173,62 +173,161 @@ String getServerIpAddress(const char * server)
 }
 
 //----------------------------------------
-// Returns true if we successfully establish a secure connection to the
-// server or false upon failure.
+// Connect to the remote web server specified by the URL.
+// Return the file length if possible.
 //----------------------------------------
-bool securelyConnectToServer(const char * url,
-                             NetworkClientSecure &client,
-                             const char * cert)
+bool serverConnectUsingUrl(const char * subsystem,
+                           const char * chip,
+                           const char * url,
+                           NetworkClientSecure &secureClient,
+                           NetworkClient &unsecureClient,
+                           NetworkClient * &stream,
+                           HTTPClient &https,
+                           void (*addHeaders)(HTTPClient &https),
+                           t_http_codes expectedResponseCode,
+                           size_t &fileBytes)
 {
-    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+    int attempt;
+    int httpResponseCode;
+    bool success;
+
+    do
     {
-        systemPrintf("url: %p (%s)\r\n", url, url ? url : "");
-        systemPrintf("cert: %p\r\n", cert);
-    }
+        success = false;
+        stream = nullptr;
+        fileBytes = 0;
 
-    // Verify a certificate is available
-    if ((cert == nullptr) || (strlen(cert) == 0))
-    {
-        systemPrintf("No certificate specified!\r\n");
-        return false;
-    }
+        // Verify that a URL was specified
+        if(settings.debugFirmwareUpdate)
+            systemPrintf("URL: %s\r\n", url ? url : "[nullptr]");
+        if ((url == nullptr) || (strlen(url) == 0))
+        {
+            systemPrintln("ERROR: No URL was specified!");
+            break;
+        }
 
-    // Allocate space to assemble the final URL
-    size_t length = strlen(url);
-    char urlString[length + 15 + 1];
+        // Locate the server for this URL
+        String serverString = getServerFromUrl(url);
+        if (serverString.length() == 0)
+        {
+            systemPrintln("ERROR: Failed to find server name in URL string");
+            break;
+        }
+        const char * server = serverString.c_str();
 
-    // Locate the server
-    String serverString = getServerFromUrl(url);
-    const char * server = serverString.c_str();
-    if (settings.debugFirmwareUpdate && otaDebugVerbose)
-        systemPrintf("server: %s\r\n", server);
+        // Translate the server name into an IP address
+        String ipAddressString = getServerIpAddress(server);
+        if (ipAddressString.length() == 0)
+        {
+            systemPrintln("Failed to get the IP address for the server");
+            break;
+        }
+        const char * ipAddress = ipAddressString.c_str();
 
-    // Translate the server name into an IP address
-    String ipAddressString = getServerIpAddress(server);
-    const char * ipAddress = ipAddressString.c_str();
-    if (settings.debugFirmwareUpdate && otaDebugVerbose)
-        systemPrintf("ipAddress: %s\r\n", ipAddress);
+        // Determine if the certificate is known for this server
+        const char * cert = getCertFromUrl(url);
+        if(settings.debugFirmwareUpdate)
+            systemPrintf("Certificate: %s\r\n", cert ? "available" : "none");
 
-    // Use the certificate for the connection to the server
-    if (settings.debugFirmwareUpdate)
-        systemPrintf("Using TLS certificate: %s\r\n", getCertName(cert));
-    client.setCACert(cert);
+        // Select the network connection depending upon the presents of the certificate
+        stream = cert ? &secureClient : &unsecureClient;
 
-    // Preflight TLS handshake using the expected host name.
-    // With CA configured, connect() fails if certificate validation fails.
-    if (settings.debugFirmwareUpdate)
-        systemPrintf("Checking TLS connection to %s (%s:443)\r\n",
-                     server, ipAddress);
-    if (!client.connect(server, 443))
-    {
-        systemPrintln("TLS socket connect failed");
-        return false;
-    }
+        // Bound the connect/read/write and TLS handshake time. HTTPClient's
+        // defaults (30 s socket / 120 s handshake) mean a stalled server can
+        // block a single attempt for up to two minutes, times 3 retries below.
+        stream->setTimeout(10000);   // milliseconds: TCP connect + socket read/write
 
-    systemPrintf("TLS certificate verified for %s (%s)\r\n", server, ipAddress);
+        // Verify the server using the certificate
+        if (cert)
+        {
+            secureClient.setHandshakeTimeout(15); // seconds: TLS handshake
 
-    client.stop();
-    return true;
+            // Set the certificate
+            secureClient.setCACert(cert);
+
+            // Hand the not-yet-connected client straight to HTTPClient rather than
+            // preflighting a connect() here: HTTPClient::begin() unconditionally
+            // stops any already-connected socket it's handed (beginInternal() in
+            // arduino-esp32's HTTPClient.cpp forces _canReuse = false and calls
+            // disconnect() the first time a client is bound), so a separate
+            // connect-then-stop pass here would just pay for the TLS handshake
+            // twice. The GET retry loop below performs the (single) real connect
+            // and already retries 3x on failure.
+        }
+
+        // Retry the connection up to 3 times
+        const int attemptMax = 3;
+        for (int attempt = 1; attempt <= attemptMax; attempt++)
+        {
+            // Build the request for the web server
+            if (https.begin(*stream, url) == false)
+            {
+                systemPrintln("ERROR: Failed to set the URL for the web server!\r\n");
+                break;
+            }
+
+            // Tell the HTTP layer to follow redirect links returned by the web server
+            https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+
+            // Add additional request headers
+            if (addHeaders)
+                addHeaders(https);
+
+            // Send the request to the web server and get the web server's response
+            httpResponseCode = https.GET();
+            if (httpResponseCode >= 0)
+                break;
+
+            // Display the error message
+            if (settings.debugFirmwareUpdate)
+            {
+                systemPrintf("ERROR: HTTP GET failed, attempt %d of 3: %d (%s)\r\n",
+                             attempt, httpResponseCode,
+                             https.errorToString(httpResponseCode).c_str());
+                if (attempt < 3)
+                    delay(500);
+            }
+
+            // Handle the error
+            https.end();
+            stream->stop();
+        }
+        if (attempt > attemptMax)
+            break;
+
+        // Display the error
+        if ((httpResponseCode == expectedResponseCode) && settings.debugFirmwareUpdate)
+            systemPrintf("HTTP Response code: %d (%s)\r\n", httpResponseCode,
+                         https.errorToString(httpResponseCode).c_str());
+
+        // Handle the error from the web server
+        if (httpResponseCode != expectedResponseCode)
+        {
+            systemPrintf("Web server response %d: %s\r\n", httpResponseCode,
+                         https.errorToString(httpResponseCode).c_str());
+            if (httpResponseCode == HTTP_CODE_OK)
+                // A 200 here means the server ignored our Range request and is about to send
+                // the whole file from byte 0 - streaming that into this offset would corrupt
+                // the image, so bail rather than guess.
+                systemPrintf("HTTP range request failed, code: %d, fileBytes: %d\r\n",
+                             httpResponseCode, https.getSize());
+            break;
+        }
+
+        // Get the file size
+        fileBytes = https.getSize();
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("File size: %d (0x%08x) bytes\r\n", fileBytes, fileBytes);
+        if (fileBytes <= 0)
+        {
+            systemPrintln("ERROR: Web server did not report a file size.");
+            break;
+        }
+
+        success = true;
+    } while (0);
+
+    return success;
 }
 
 //----------------------------------------
