@@ -12,12 +12,13 @@ SHELL=/bin/bash
 ##########
 
 EXECUTABLES  = Compare
+EXECUTABLES += File_CRC
+EXECUTABLES += File_to_Hex_Data_Array
 EXECUTABLES += NMEA_Client
 EXECUTABLES += Read_Map_File
 EXECUTABLES += RTK_Reset
 EXECUTABLES += Split_Messages
 EXECUTABLES += X.509_crt_bundle_bin_to_c
-EXECUTABLES += File_to_Hex_Data_Array
 
 INCLUDES  = crc24q.h
 
