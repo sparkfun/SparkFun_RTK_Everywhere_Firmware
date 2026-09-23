@@ -4150,6 +4150,10 @@ void paintEspNowPaired()
 {
     displayMessage("ESP-NOW Paired", 2000);
 }
+void paintEspNowPairingTimeout()
+{
+    displayMessage("ESP-NOW Timeout", 2000);
+}
 
 void paintMosaicBooting()
 {

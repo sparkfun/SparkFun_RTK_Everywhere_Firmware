@@ -508,7 +508,8 @@ void menuRadio()
                     systemPrintln("2) Pairing stopped");
             }
 
-            systemPrintln("3) Forget all radios");
+            if (settings.espnowPeerCount > 0)
+                systemPrintln("3) Forget all paired radios");
 
             if (settings.debugEspNow == true)
             {
@@ -588,6 +589,18 @@ void menuRadio()
             if (espNowIsBroadcasting() == true || espNowIsPaired() == true)
             {
                 espnowRequestPair ^= 1;
+
+                if (espnowRequestPair == true)
+                {
+                    // Drive the system state machine the same way the display's E-Pair
+                    // button does, so the display reflects "ESP-NOW Pairing" (instead of
+                    // staying on whatever was running) once we exit this menu - stateUpdate()
+                    // doesn't run while the menu is open, so this takes effect on exit. The
+                    // shared 30s pairing timeout (ESPNOW.ino's ESPNOW_PAIRING case) applies
+                    // here the same as it does for the display and Web Config.
+                    lastSystemState = systemState; // Remember this state to return to once pairing ends
+                    requestChangeState(STATE_ESPNOW_PAIRING_NOT_STARTED);
+                }
             }
             else if (espNowIsPairing() == true)
             {
@@ -609,6 +622,7 @@ void menuRadio()
                     espNowStart(); // Restart ESP-NOW to enable broadcastMAC
                 }
                 settings.espnowPeerCount = 0;
+                memset(settings.espnowPeers, 0, sizeof(settings.espnowPeers)); // Clear stored MACs, not just the count
                 systemPrintln("Radios forgotten");
             }
         }

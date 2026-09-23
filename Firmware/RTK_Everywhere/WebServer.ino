@@ -432,6 +432,42 @@ void webServerCreateDynamicDataString(char *csvList)
         stringRecord(csvList, "batteryPercent", batteryPercent);
     }
 
+    // Report ESP-NOW pairing status - but only once, right when a pairing attempt just
+    // concluded (espnowNewPeerPaired, set by ESPNOW.ino's ESPNOW_MAC_RECEIVED case), not
+    // on every periodic tick. Web Config's "Pair Radios" button treats any espnowPeer_
+    // entry it receives while a pairing attempt from that page is active as success (see
+    // pairingSucceeded() in main.js); a device that already has a paired peer from a
+    // previous session would otherwise falsely report an immediate "success" on the very
+    // next 1Hz update after the button is pressed, even though nothing new was found.
+    if (espnowNewPeerPaired && settings.espnowPeerCount > 0)
+    {
+        espnowNewPeerPaired = false;
+
+        stringRecord(csvList, "espnowPeerCount", (int)settings.espnowPeerCount);
+        for (int x = 0; x < ESPNOW_MAX_PEERS; x++)
+        {
+            bool peerIsUnset = true;
+            for (int y = 0; y < 6; y++)
+            {
+                if (settings.espnowPeers[x][y] != 0)
+                {
+                    peerIsUnset = false;
+                    break;
+                }
+            }
+            if (peerIsUnset)
+                continue;
+
+            char peerId[20];
+            snprintf(peerId, sizeof(peerId), "espnowPeer_%d", x);
+            char peerMac[18];
+            snprintf(peerMac, sizeof(peerMac), "%02X:%02X:%02X:%02X:%02X:%02X", settings.espnowPeers[x][0],
+                     settings.espnowPeers[x][1], settings.espnowPeers[x][2], settings.espnowPeers[x][3],
+                     settings.espnowPeers[x][4], settings.espnowPeers[x][5]);
+            stringRecord(csvList, peerId, peerMac);
+        }
+    }
+
     strcat(csvList, "\0");
 }
 

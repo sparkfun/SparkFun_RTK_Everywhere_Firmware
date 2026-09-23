@@ -1914,11 +1914,13 @@
                     <div class="form-group row">
                         <div style="margin-bottom:5px;">
                             <button type="button" id="btnPairRadios" class="btn btn-primary box-margin20 col-sm-3"
-                                onClick="pairRadios()" disabled="true">Pair Radios</button>
+                                onClick="pairRadios()">Pair Radios</button>
                             <span class="tt" data-bs-placement="right"
-                                title="To connect two devices, exit AP Config mode, and press setup button until 'Pair' is seen. Units will swap MAC addresses and begin communicating at next power on.">
+                                title="Puts this device into pairing mode and waits up to 30 seconds for another nearby unit to also be put into pairing mode (from its own Web Config page, or by pressing its setup button until 'E-Pair' is seen). Units will swap MAC addresses and begin communicating.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
+                            <p id="btnPairRadiosSuccess" class="inlineSuccess"></p>
+                            <p id="btnPairRadiosError" class="inlineError"></p>
                         </div>
                     </div>
 

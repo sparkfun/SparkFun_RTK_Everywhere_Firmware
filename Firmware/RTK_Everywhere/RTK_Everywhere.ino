@@ -628,6 +628,20 @@ float lBandEBNO; // Used on system status menu
 bool espNowIncomingRTCM;
 bool espNowOutgoingRTCM;
 bool espnowRequestPair = false; // Modified by states.ino, menuRadio, or CLI
+// Remembers settings.enableEspNow's value from just before Web Config forced ESP-NOW
+// off on entry (see STATE_WEB_CONFIG_NOT_STARTED in States.ino), so that a Web Config
+// pairing attempt that doesn't succeed can turn ESP-NOW back off instead of leaving it
+// silently enabled for the rest of the session - see ESPNOW.ino's ESPNOW_PAIRING case.
+bool espNowEnabledBeforeWebConfig = false;
+// One-shot flag: set when a pairing attempt concludes with a confirmed peer, cleared once
+// WebServer.ino's webServerCreateDynamicDataString() reports it - see ESPNOW.ino's
+// ESPNOW_MAC_RECEIVED case.
+bool espnowNewPeerPaired = false;
+// Set (unconditionally, regardless of whether pairing was requested from the display,
+// serial menu, or Web Config) by espNowBeginPairing() when a pairing attempt starts.
+// ESPNOW.ino's ESPNOW_PAIRING case uses this to give every attempt the same 30s window
+// to find a peer before giving up, so all three UIs behave identically.
+unsigned long espNowPairingStartTime = 0;
 int espNowRSSI;
 const uint8_t espNowBroadcastAddr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 

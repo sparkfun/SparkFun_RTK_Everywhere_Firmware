@@ -1423,6 +1423,13 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         espnowRequestPair = true;
         knownSetting = true;
     }
+    else if (strcmp(settingName, "espnowCancelPair") == 0)
+    {
+        // Web Config's "Pair Radios" button gave up (timed out, or the user navigated
+        // away) - let the ESP-NOW state machine know to stop scanning for a peer.
+        espnowRequestPair = false;
+        knownSetting = true;
+    }
     else if (strcmp(settingName, "exitAndReset") == 0)
     {
         // Confirm receipt
@@ -1709,6 +1716,10 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         for (int x = 0; x < settings.espnowPeerCount; x++)
             espNowRemovePeer(settings.espnowPeers[x]);
         settings.espnowPeerCount = 0;
+        // Also clear the stored MAC addresses, not just the count - otherwise each slot
+        // still compares as non-default and Web Config's next settings dump (createSettingsString's
+        // tEspNowPr case) re-sends the "forgotten" peers, making them reappear on refresh
+        memset(settings.espnowPeers, 0, sizeof(settings.espnowPeers));
         knownSetting = true;
     }
     else if (strcmp(settingName, "startNewLog") == 0)

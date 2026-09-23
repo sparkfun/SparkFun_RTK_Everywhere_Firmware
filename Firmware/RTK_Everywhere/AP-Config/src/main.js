@@ -155,6 +155,7 @@ function initializeArrays() {
     correctionsSourceNames.length = 0;
     correctionsSourcePriorities.length = 0;
     receivedSettings.length = 0;
+    pairedPeerMacs.length = 0;
 
     // Seed corrections priorities with their firmware default (identity) order, since
     // the priority list UI is built entirely from received correctionsPriority_* CSV
@@ -740,14 +741,24 @@ function parseIncoming(msg) {
             ge(id).innerHTML = val;
         }
         else if (id.includes("espnowPeerCount")) {
-            if (val > 0) {
-                ge("peerMACs").innerHTML = "";
+            if (val > 0)
                 show("forgetRadiosSection");
-            }
+            else
+                pairedPeerMacs.length = 0; // All peers forgotten - clear any stale entries
+            renderPairedPeerMacs();
         }
         else if (id.includes("espnowPeer_")) {
             if (val[0] != "0" && val[1] != "0") {
-                ge("peerMACs").innerHTML += val + "<br>";
+                // Index into pairedPeerMacs by slot so a re-send (the periodic Web Config
+                // update re-transmits every paired peer each time) updates in place rather
+                // than appending a duplicate, and so peers received out of order relative to
+                // espnowPeerCount above still render without leaving the static "None"
+                // placeholder concatenated with a real MAC address.
+                var slot = parseInt(id.substring("espnowPeer_".length), 10);
+                pairedPeerMacs[slot] = val;
+                show("forgetRadiosSection");
+                renderPairedPeerMacs();
+                pairingSucceeded(); // No-op unless a pairing attempt from this page is in progress
             }
         }
         else if (id.includes("stationECEF")) {
@@ -2226,6 +2237,66 @@ function forgetPairedRadios() {
     ge("btnForgetRadiosMsg").innerHTML = "All radios forgotten.";
     ge("peerMACs").innerHTML = "None";
     websocket.send("forgetEspNowPeers,1,");
+}
+
+// ESP-NOW pairing: the ESP32 turns ESP-NOW off while Web Config is open (see
+// STATE_WEB_CONFIG_NOT_STARTED in States.ino) other than to support pairing from this
+// button - requesting a pair (espnowRequestPair,1,) makes the firmware turn ESP-NOW
+// back on for the attempt (see ESPNOW.ino), broadcast this unit's MAC, and wait for a
+// remote unit to do the same. There's no dedicated "pairing done" message - a newly
+// paired MAC just shows up as a regular espnowPeer_ entry in the periodic settings
+// refresh Web Config already receives every second, which is what pairingSucceeded()
+// below watches for.
+var espnowPairingActive = false;
+var espnowPairingTimeoutHandle;
+
+// Sparse array indexed by peer slot (espnowPeer_0, espnowPeer_1, ...) - see the
+// espnowPeer_ branch in parseIncoming(). Rendered into #peerMACs by renderPairedPeerMacs().
+var pairedPeerMacs = [];
+
+function renderPairedPeerMacs() {
+    var macList = pairedPeerMacs.filter(function (mac) { return mac; });
+    ge("peerMACs").innerHTML = macList.length ? macList.join("<br>") : "None";
+}
+
+function pairRadios() {
+    if (espnowPairingActive)
+        return;
+
+    espnowPairingActive = true;
+    clearError('btnPairRadios');
+    clearSuccess('btnPairRadios');
+    ge("btnPairRadios").disabled = true;
+    ge("btnPairRadios").textContent = "Pairing...";
+
+    websocket.send("espnowRequestPair,1,");
+
+    // Give up after 30s so a unit with no partner nearby doesn't leave ESP-NOW
+    // enabled (and this button stuck) for the rest of the session - matches the
+    // ESP-NOW state machine's own broadcast-and-wait pairing window.
+    espnowPairingTimeoutHandle = setTimeout(pairingTimedOut, 30000);
+}
+
+function pairingTimedOut() {
+    if (!espnowPairingActive)
+        return;
+
+    websocket.send("espnowCancelPair,1,");
+    espnowPairingActive = false;
+    ge("btnPairRadios").disabled = false;
+    ge("btnPairRadios").textContent = "Pair Radios";
+    showError('btnPairRadios', "No radio found within 30 seconds. Put the other unit into pairing mode too, then try again.");
+}
+
+function pairingSucceeded() {
+    if (!espnowPairingActive)
+        return;
+
+    clearTimeout(espnowPairingTimeoutHandle);
+    espnowPairingActive = false;
+    ge("btnPairRadios").disabled = false;
+    ge("btnPairRadios").textContent = "Pair Radios";
+    showSuccess('btnPairRadios', "Paired!");
 }
 
 function btnResetProfile() {
