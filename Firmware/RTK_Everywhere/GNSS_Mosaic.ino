@@ -4289,7 +4289,7 @@ bool mosaicFirmwareUpdate(const char * subsystem,
                 break;
             }
 
-            firmwareUpdateProgressCallback("Mosaic-X5", (uint16_t)validData);
+            firmwareUpdateProgressCallback(subsystem, chip, (uint16_t)validData);
 
             remainingBytes -= validData;
             lastDataTime = millis();

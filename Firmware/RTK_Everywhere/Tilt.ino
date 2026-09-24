@@ -1632,7 +1632,7 @@ static bool im19StreamFirmware(const char * subsystem,
             }
 
             // Display the progress
-            firmwareUpdateProgressCallback(chip, validData);
+            firmwareUpdateProgressCallback(subsystem, chip, validData);
 
             // Account for this data
             fileBytes -= validData;

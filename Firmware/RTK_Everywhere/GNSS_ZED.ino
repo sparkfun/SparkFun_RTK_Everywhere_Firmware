@@ -4410,7 +4410,7 @@ bool x20pStreamFirmware(const char * subsystem,
         }
 
         // Display the progress
-        firmwareUpdateProgressCallback("X20P", validData);
+        firmwareUpdateProgressCallback(subsystem, chip, validData);
 
         // Account for this data
         fileBytes -= validData;

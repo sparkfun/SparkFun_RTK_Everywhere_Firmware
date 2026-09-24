@@ -3946,7 +3946,7 @@ bool lg290pStreamFirmware(const char * subsystem,
 
         // Account for this data
         fileBytes -= validData;
-        firmwareUpdateProgressCallback("LG290P", (uint16_t)validData);
+        firmwareUpdateProgressCallback(subsystem, chip, (uint16_t)validData);
         lastDataTime = millis();
         validData = 0;
     }
