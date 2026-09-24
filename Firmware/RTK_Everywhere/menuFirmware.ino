@@ -630,7 +630,8 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 // 4) Call the updateFirmwareEnd function to complete the flash write operation
 // 5) Display the flash write status
 //----------------------------------------
-bool otaEsp32StreamFirmware(const char * chip,
+bool otaEsp32StreamFirmware(const char * subsystem,
+                            const char * chip,
                             NetworkClient * stream,
                             size_t fileBytes,
                             uint32_t expectedCrc,

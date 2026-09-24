@@ -445,7 +445,8 @@ bool otaFirmwareUpdate(const char * subsystem,
         otaPrintUpdateStart(subsystem, chip, target);
 
         // Start the firmware update and display any streaming errors
-        success = subsystemInfo->_streamFirmware(chip,
+        success = subsystemInfo->_streamFirmware(subsystem,
+                                                 chip,
                                                  stream,
                                                  target->_fileBytes,
                                                  target->_crc,

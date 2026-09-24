@@ -1550,7 +1550,8 @@ Im19UpdateResult im19UpdateFirmwareEnd(const OTA_TARGET * target)
 //    write status is displayed by the im19FirmwareUpdate routine
 // 5) im19ArrayFlashUpdate is a stripped down version of im19FirmwareUpdate
 //----------------------------------------
-static bool im19StreamFirmware(const char * chip,
+static bool im19StreamFirmware(const char * subsystem,
+                               const char * chip,
                                NetworkClient * stream,
                                size_t fileBytes,
                                uint8_t * buffer,
@@ -1651,7 +1652,8 @@ static bool im19StreamFirmware(const char * chip,
 //----------------------------------------
 // Re-downloads the range and streams it to the IM19.
 //----------------------------------------
-static bool im19StreamRange(const char * chip,
+static bool im19StreamRange(const char * subsystem,
+                            const char * chip,
                             const char * url,
                             size_t startByte,
                             size_t numBytes,
@@ -1740,7 +1742,8 @@ static bool im19StreamRange(const char * chip,
 
         // Stream the data
         if (success)
-            success = im19StreamFirmware(chip,
+            success = im19StreamFirmware(subsystem,
+                                         chip,
                                          stream,
                                          numBytes,
                                          buffer,
@@ -1754,7 +1757,8 @@ static bool im19StreamRange(const char * chip,
 // Walks im19FrameMap for runs of missing frames and re-requests just those byte
 // ranges from the source URL, instead of re-streaming the entire firmware image.
 //----------------------------------------
-static bool im19StreamMissingRanges(const char * chip,
+static bool im19StreamMissingRanges(const char * subsystem,
+                                    const char * chip,
                                     const char * url,
                                     uint8_t * buffer,
                                     size_t packetBytes)
@@ -1831,7 +1835,8 @@ static bool im19StreamMissingRanges(const char * chip,
 
             // Send the firmware data to the IM19
             im19UpdateFirmwareSeek(startByte);
-            success = im19StreamRange(chip,
+            success = im19StreamRange(subsystem,
+                                      chip,
                                       url,
                                       startByte,
                                       endByte - startByte,
@@ -2086,7 +2091,8 @@ bool im19FirmwareUpdate(const char * subsystem,
 
         // Start the firmware update
         im19NextFrameID = 0;
-        if (im19StreamFirmware(chip,
+        if (im19StreamFirmware(subsystem,
+                               chip,
                                stream,
                                fileBytes,
                                buffer,
@@ -2138,7 +2144,7 @@ bool im19FirmwareUpdate(const char * subsystem,
 
             // IM19_UPDATE_RETRY - the IM19 told us exactly which frames it's missing.
             systemPrintf("Attempt %d: %s reports missing frames.\r\n", attempt, chip);
-            if (!im19StreamMissingRanges(chip, url, buffer, packetBytes))
+            if (!im19StreamMissingRanges(subsystem, chip, url, buffer, packetBytes))
             {
                 //                           1         2         3         4         5         6         7         8         9
                 //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
