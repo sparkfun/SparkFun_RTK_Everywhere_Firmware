@@ -280,7 +280,8 @@ void otaDisplayTarget(OTA_TARGET * target)
                      target->_remoteVersion[2], target->_remoteVersion[3],
                      target->_remoteVersion[4] ? " (debug build)" : "");
     systemPrintln();
-    systemPrintf("URL: %s\r\n", target->_url ? target->_url : "None");
+    if (target->_url)
+        systemPrintf("URL: %s\r\n", target->_url ? target->_url : "None");
     if ((target->_requestType != OTA_REQUEST_SKIP_UPDATE) && target->_url)
     {
         systemPrintf("File bytes: %d (0x%08x)\r\n", target->_fileBytes, target->_fileBytes);
@@ -317,11 +318,9 @@ void otaDisplayTargets()
 
         // Skip over invalid entries
         target = &otaTarget[subsystem];
-        if ((target->_url == nullptr) && (target->_requestType != OTA_REQUEST_SKIP_UPDATE))
-            continue;
 
         // Display the firmware update status for this subsystem
-        otaDisplayTarget(&otaTarget[subsystem]);
+        otaDisplayTarget(target);
         displayed = true;
     }
 
