@@ -1000,7 +1000,7 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
 
     systemPrintf("d) %s developer options\r\n", developerOptions ? "Disable" : "Enable");
     if (developerOptions)
-        systemPrintf("D) %s firmware debugging\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
+        systemPrintf("D) Firmware debugging: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
 
     if (developerOptions && (dfuEsp32AreFirmwareWritesSupported()))
         systemPrintf("E) ESP32: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_ESP32));
@@ -1036,7 +1036,7 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
                      otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
 
     if (developerOptions && settings.debugFirmwareUpdate)
-            systemPrintf("V) %s verbose firmware debugging\r\n", otaDebugVerbose ? "Disable" : "Enable");
+            systemPrintf("V) Verbose firmware debugging: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
 }
 
 //----------------------------------------
