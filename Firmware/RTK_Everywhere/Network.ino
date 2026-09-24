@@ -1102,8 +1102,10 @@ IPAddress networkGetIpAddress()
     IPAddress ip;
 
     // NETIF doesn't capture the IP address of a soft AP
+#ifdef COMPILE_WIFI
     if (wifiSoftApRunning == true && wifiStationRunning == false)
         return WiFi.softAPIP();
+#endif // COMPILE_WIFI
 
     // Get the networkInterfaceTable index
     index = networkPriority;

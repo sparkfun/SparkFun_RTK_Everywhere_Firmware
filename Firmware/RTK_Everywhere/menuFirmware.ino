@@ -801,7 +801,7 @@ char *otaGetGithubFileLocation(const char *relativeFirmwareFileLocation)
 }
 
 // Returns true if we successfully establish a secure connection to GitHub.
-bool otaSecurelyConnectGitHub(WiFiClientSecure &client)
+bool otaSecurelyConnectGitHub(NetworkClientSecure &client)
 {
     client.setCACert(GITHUB_RAW_PUBLIC_CERT);
 
