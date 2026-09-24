@@ -46,6 +46,16 @@ static const int otaChipNameEntries = sizeof(otaChipName) / sizeof(otaChipName[0
 static const char * const otaSubsystem[] = {"SOC", "GNSS", "LoRa", "IMU"};
 static const int otaSubsystemEntries = sizeof(otaSubsystem) / sizeof(otaSubsystem[0]);
 
+static const char * otaRequestTypeName[] =
+{
+    "OTA_REQUEST_PRODUCT_RELEASE",  // 0
+    "OTA_REQUEST_SKIP_UPDATE",      // 1
+    "OTA_REQUEST_LATEST_VERSION",   // 2
+    "OTA_REQUEST_USE_RC",           // 3
+    "OTA_REQUEST_ALWAYS_UPDATE",    // 4
+};
+static const int otaRequestTypeNameEntries = sizeof(otaRequestTypeName) / sizeof(otaRequestTypeName[0]);
+
 #define OTA_BUFFER_BYTES        (16 * 1024)
 
 const char * otaGhRawCert = GITHUB_RAW_PUBLIC_CERT;
@@ -530,6 +540,17 @@ uint8_t otaGetRequestTypeFromSubsystem(uint8_t subsystem)
         return 0;
     }
     return otaTarget[subsystem]._requestType;
+}
+
+//----------------------------------------
+// Get the request type name from the request type
+//----------------------------------------
+const char * otaGetRequestTypeName(uint8_t requestType)
+{
+    if (requestType < OTA_REQUEST_MAX)
+        return otaRequestTypeName[requestType];
+    else
+        return "Unknown request type";
 }
 
 //----------------------------------------
@@ -1687,6 +1708,8 @@ void otaVerifyTables()
     // Verify the request type name "table"
     for (uint8_t index= 0; index < OTA_REQUEST_MAX; index++)
         otaGetRequestNameFromRequestType(index);
+    if (otaRequestTypeNameEntries != OTA_REQUEST_MAX)
+        reportFatalError("Fix otaRequestTypeName table to match OTA_REQUEST_MAX");
 }
 
 //----------------------------------------
