@@ -38,7 +38,7 @@ static const char * const otaChipName[] =
     "UM980",        // 3
     "ZED-F9P",      // 4
     "ZED-X20P",     // 5
-    "LoRa-STM32WL", // 6
+    "STM32WL",      // 6
     "IM19",         // 7
 };
 static const int otaChipNameEntries = sizeof(otaChipName) / sizeof(otaChipName[0]);
