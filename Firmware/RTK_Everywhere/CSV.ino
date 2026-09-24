@@ -403,6 +403,8 @@ bool csvOpenCsvFile(const char * url,
     {
         success = false;
         *fileData = nullptr;
+        *fieldCount = 0;
+        *lineCount = 0;
 
         // Open the CSV file web page
         startMsec = millis();
@@ -465,8 +467,11 @@ bool csvOpenCsvFile(const char * url,
     } while (0);
 
     // Cleanup upon failure
-    *fieldCount = 0;
-    *lineCount = 0;
+    if (success == false)
+    {
+        *fieldCount = 0;
+        *lineCount = 0;
+    }
 
     // Done with the HTTP client
     https.end();
