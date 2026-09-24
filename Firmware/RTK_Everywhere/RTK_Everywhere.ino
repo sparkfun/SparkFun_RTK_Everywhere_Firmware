@@ -856,6 +856,12 @@ uint32_t triggerAccEst;    // Global copy - Accuracy estimate in nanoseconds
 
 unsigned long splashStart; // Controls how long the splash is displayed for. Currently min of 2s.
 
+// 184x88 e-paper only: icons queued here draw at 2x (each source pixel becomes a 2x2 block) instead
+// of native size - see displayBitmap2x() in Display.ino. icons.h still only has 1x bitmap data
+// (epaper_update.md Section 11.4/11.10: scale existing art rather than author new 2x bitmaps), so
+// this is a second queue alongside the existing 1x iconPropertyList, drawn in the same pass.
+std::vector<iconPropertyBlinking> iconPropertyList2x;
+
 unsigned long startTime;             // Used for checking longest-running functions
 bool lbandCorrectionsReceived;       // Used to display L-Band SIV icon when corrections are successfully decrypted
 unsigned long lastLBandDecryption;   // Timestamp of last successfully decrypted message

@@ -634,7 +634,10 @@ void beginDisplay(TwoWire *i2cBus)
 
             x = (theDisplay->getWidth() - logoWidth) / 2;
             y = (theDisplay->getHeight() - logoHeight) / 2;
-            displayBitmap(x, y, logoWidth, logoHeight, logoPointer);
+            if ((brandAttribute->brand == BRAND_SPARKPNT) && (present.display_type == DISPLAY_184x88))
+                paintBootLogo184x88(); // The powered-off screen's full-width logo, alone
+            else
+                displayBitmap(x, y, logoWidth, logoHeight, logoPointer);
             theDisplay->displaySplash();
             splashStart = millis();
             return;
@@ -668,11 +671,37 @@ void displayUpdate()
 
             theDisplay->erase();
 
-            iconPropertyList.clear(); // Redundant?
+            // DisplayTest.ino boot screens replace the status screen entirely
+            if (dtActive() && (dtScenario()->screen == DT_SCREEN_BOOT_LOGO))
+            {
+                paintBootLogo184x88();
+                theDisplay->displayRegular();
+                return;
+            }
+            if (dtActive() && (dtScenario()->screen == DT_SCREEN_BOOT_INFO))
+            {
+                paintBootInfo184x88(displayName);
+                theDisplay->displayRegular();
+                return;
+            }
+            if (dtActive() && (dtScenario()->screen == DT_SCREEN_POWERED_OFF))
+            {
+                paintPoweredOff184x88();
+                theDisplay->displayRegular();
+                return;
+            }
+            if (dtActive() && (dtScenario()->screen == DT_SCREEN_SHUTDOWN))
+            {
+                displayShutdown(); // Draws and pushes on its own
+                return;
+            }
+
+            iconPropertyList.clear();   // Redundant?
+            iconPropertyList2x.clear(); // 184x88 only - see displayBitmap2x()
 
             bool textToPrint = false;
 
-            switch (systemState)
+            switch (dtSystemState()) // Real state, or a DisplayTest.ino scenario
             {
 
                 /*
@@ -761,7 +790,7 @@ void displayUpdate()
             case (STATE_ROVER_FIX):
 
                 //LG290P will be in Rover Fix while PPP is converging
-                if(gnss->isPppConverging() == true)
+                if(dtPppConverging() == true)
                     displayRTKAccuracy(&iconPropertyList, &CrossHairPppConvergedProperties, false); // Crosshair with P, blink
                 else
                     displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, 0b11111111); // Single crosshair, no blink
@@ -778,9 +807,9 @@ void displayUpdate()
                 //                           0b01010101); // Dual crosshair, blink
                 
                 //LG290P will be in RTK 'Float' once PPP is converged
-                if(gnss->isPppConverged() == true)
+                if(dtPppConverged() == true)
                     displayRTKAccuracy(&iconPropertyList, &CrossHairPppConvergedProperties, true); // Crosshair with P, no blink
-                else if(gnss->isPppConverging() == true)
+                else if(dtPppConverging() == true)
                     displayRTKAccuracy(&iconPropertyList, &CrossHairPppConvergedProperties, false); // Crosshair with P, blink
                 else
                     displayRTKAccuracy(&iconPropertyList, &CrossHairDualProperties, false); // Dual crosshair, blink
@@ -831,28 +860,33 @@ void displayUpdate()
                 paintBaseTempSurveyStarted(&iconPropertyList);
                 displayBaseSiv(&iconPropertyList); // 128x64 / 184x88 only
                 break;
-            case (STATE_BASE_TEMP_TRANSMITTING):
+            case (STATE_BASE_TEMP_TRANSMITTING): {
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 / 184x88 only
                 setRadioIcons(&iconPropertyList);
-                paintRTCM(&iconPropertyList);
-                displayBaseSiv(&iconPropertyList); // 128x64 / 184x88 only
-                break;
+                // SIV before RTCM: on 184x88, paintRTCM()'s merged status line centers itself
+                // against where the SIV text ends (rule 4) - it needs that x first.
+                uint8_t sivEndX = displayBaseSiv(&iconPropertyList); // 128x64 / 184x88 only
+                paintRTCM(&iconPropertyList, sivEndX);
+            }
+            break;
             case (STATE_BASE_FIXED_NOT_STARTED):
                 displayBaseSuccess(0); // Show 'Base Started' while the system configures the Base
                 // displayBatteryVsEthernet(&iconPropertyList); // Top right
                 // displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 / 184x88 only
                 // setRadioIcons(&iconPropertyList);
                 break;
-            case (STATE_BASE_FIXED_TRANSMITTING):
+            case (STATE_BASE_FIXED_TRANSMITTING): {
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 / 184x88 only
                 setRadioIcons(&iconPropertyList);
-                paintRTCM(&iconPropertyList);
-                displayBaseSiv(&iconPropertyList); // 128x64 / 184x88 only
-                break;
+                // SIV before RTCM - see the STATE_BASE_TEMP_TRANSMITTING case above.
+                uint8_t sivEndX = displayBaseSiv(&iconPropertyList); // 128x64 / 184x88 only
+                paintRTCM(&iconPropertyList, sivEndX);
+            }
+            break;
 
             case (STATE_NTPSERVER_NOT_STARTED):
             case (STATE_NTPSERVER_NO_SYNC): {
@@ -938,7 +972,7 @@ void displayUpdate()
             blinkState <<= 1;
             if (blinkState == 0)
                 blinkState = 0b00000001;
-            if ((iconPropertyList.begin() != iconPropertyList.end()) || textToPrint) // Check there is something to display
+            if ((iconPropertyList.begin() != iconPropertyList.end()) || (iconPropertyList2x.begin() != iconPropertyList2x.end()) || textToPrint) // Check there is something to display
             {
                 for (auto it = iconPropertyList.begin(); it != iconPropertyList.end(); it = std::next(it))
                 {
@@ -946,6 +980,16 @@ void displayUpdate()
                         displayBitmap(it->icon.xPos, it->icon.yPos, it->icon.width, it->icon.height,
                                     (const uint8_t *)it->icon.bitmap);
                 }
+
+                for (auto it = iconPropertyList2x.begin(); it != iconPropertyList2x.end(); it = std::next(it))
+                {
+                    if ((it->duty & blinkState) > 0)
+                        displayBitmap2x(it->icon.xPos, it->icon.yPos, (const uint8_t *)it->icon.bitmap,
+                                        it->icon.width, it->icon.height);
+                }
+
+                if (dtActive() && (dtScenario()->screen == DT_SCREEN_BORDER))
+                    drawFrame(); // DisplayTest.ino: mark the panel's outermost pixels
 
                 theDisplay->displayRegular(); // Push internal buffer to display
             }
@@ -998,6 +1042,15 @@ void displaySplashCommon(bool nameKnown)
 
         theDisplay->erase();
 
+        if (present.display_type == DISPLAY_184x88)
+        {
+            paintBootInfo184x88(nameKnown ? displayName : productVariantProperties->name);
+            theDisplay->displaySplash();
+            if (!nameKnown)
+                splashStart = millis();
+            return;
+        }
+
         int fontHeight = 8;
         int numLines = productVariantProperties->rtkPrefix ? 4 : 3;
         int yPos = (theDisplay->getHeight() - ((fontHeight * 4) + 2 + 5 + 7)) / 2;
@@ -1029,9 +1082,70 @@ void displaySplashCommon(bool nameKnown)
     }
 }
 
+// 184x88 boot logo: the powered-off screen's 170x24 SparkPNT logo, alone, centered on the panel
+void paintBootLogo184x88()
+{
+    displayBitmap((theDisplay->getWidth() - SparkPNT_PoweredOff_Logo_Width) / 2,
+                  (theDisplay->getHeight() - SparkPNT_PoweredOff_Logo_Height) / 2, SparkPNT_PoweredOff_Logo_Width,
+                  SparkPNT_PoweredOff_Logo_Height, SparkPNT_PoweredOff_Logo);
+}
+
+// 184x88 boot screen: the SparkPNT logo, model and firmware version as three centered lines.
+// Heights: logo 24 px, 31x48 capitals 37 px, 8x16 13 px with descenders - 74 px, leaving
+// 3-4 px gaps above, between and below.
+void paintBootInfo184x88(const char *model)
+{
+    // Logo (the one generated from the SparkPNT SVG), rows 3-26
+    displayBitmap((theDisplay->getWidth() - SparkPNT_PoweredOff_Logo_Width) / 2, 3, SparkPNT_PoweredOff_Logo_Width,
+                  SparkPNT_PoweredOff_Logo_Height, SparkPNT_PoweredOff_Logo);
+
+    // Model - as large as fits: 31x48 (ink rows 31-67), else 10x20 centered in the same band
+    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_31X48);
+    if (printedTextWidth(model) <= theDisplay->getWidth())
+        printTextCenter(model, 31, QW_FONT_8X16, QW_EP_FONT_31X48, 1, false);
+    else
+        printTextCenter(model, 40, QW_FONT_8X16, QW_EP_FONT_10X20, 1, false);
+
+    // Firmware version, ink rows 71-83
+    char unitFirmware[50];
+    espFirmwareVersionGet(unitFirmware, sizeof(unitFirmware), false);
+    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
+    if (printedTextWidth(unitFirmware) <= theDisplay->getWidth())
+        printTextCenter(unitFirmware, 70, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);
+    else
+        printTextCenter(unitFirmware, 74, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
+}
+
 void displayShutdown()
 {
     displayMessage("Shutting Down...", 0);
+}
+
+// Draw the SparkPNT logo and model name, then hand off to displayNothing() to push it to the
+// panel. E-paper is bistable - whatever is drawn here stays visible with zero power while the
+// unit is off, unlike displayShutdown()'s "Shutting Down..." message which only shows briefly
+// before power is actually cut. 184x88 e-paper only: the OLEDs have no meaningful "powered off"
+// image and this would just waste a partial-update cycle on them.
+void displayPoweredOff()
+{
+    if (present.display_type != DISPLAY_184x88)
+        return;
+    if (online.display == false)
+        return;
+
+    theDisplay->erase();
+    paintPoweredOff184x88();
+    theDisplay->displayNothing();
+}
+
+void paintPoweredOff184x88()
+{
+    uint8_t logoX = (theDisplay->getWidth() - SparkPNT_PoweredOff_Logo_Width) / 2;
+    displayBitmap(logoX, 8, SparkPNT_PoweredOff_Logo_Width, SparkPNT_PoweredOff_Logo_Height, SparkPNT_PoweredOff_Logo);
+
+    // Logo is vertically centered in the top half (rows 0-43); the model name is vertically
+    // centered in the bottom half (rows 44-87) using the largest available font (31x48).
+    printTextCenter(displayName, 48, QW_FONT_8X16, QW_EP_FONT_31X48, 1, false); // Ink rows 48-84
 }
 
 // Displays a small error message then hard freeze
@@ -1081,7 +1195,7 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
     if (online.display == true)
     {
         // Current battery charge level
-        int batteryFraction = batteryLevelPercent / 25;
+        int batteryFraction = dtBatteryPercent() / 25;
         if (batteryFraction >= BATTERY_CHARGE_STATES)
             batteryFraction = BATTERY_CHARGE_STATES - 1;
         if (batteryFraction < 0)
@@ -1090,7 +1204,16 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
         iconPropertyBlinking prop;
         prop.icon = BatteryProperties.iconDisplay[batteryFraction][present.display_type];
         prop.duty = (batteryFraction == 0) ? 0b01010101 : 0b11111111;
-        iconList->push_back(prop);
+
+        if (present.display_type == DISPLAY_184x88)
+        {
+            // Fixed, right-anchored at 2x - the one top-row element that isn't part of the
+            // dynamic pack in setRadioIcons() (rule 1).
+            prop.icon.xPos = theDisplay->getWidth() - (2 * prop.icon.width);
+            pushIcon2x(prop);
+        }
+        else
+            iconList->push_back(prop);
     }
 }
 
@@ -1209,24 +1332,44 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
 // Used both to size the icon zone and to know how much room is left for the IP address text.
 uint16_t baseBroadcastIconsTotalWidth()
 {
-    if (!inBaseMode())
+    if (!dtInBaseMode())
         return 0;
 
     static const BCAST_ID_T priority[BCAST_NUM] = {BCAST_ESPNOW, BCAST_RADIO_LORA, BCAST_NTRIP_SERVER,
                                                     BCAST_NTRIP_CASTER};
     const uint8_t iconGap = 2;
+    // 184x88 draws these icons at 2x (displayBitmap2x()); 64x48/128x64 stay native.
+    uint8_t scale = (present.display_type == DISPLAY_184x88) ? 2 : 1;
 
     uint16_t width = 0;
     for (uint8_t i = 0; i < BCAST_NUM; i++)
-        if (baseBroadcastIsActive(priority[i]))
-            width += broadcastIconAttributes[priority[i]].width + iconGap;
+        if (dtBroadcastIsActive(priority[i]))
+            width += (scale * broadcastIconAttributes[priority[i]].width) + iconGap;
     return width;
+}
+
+// Total pixel width needed to show the rover's correction-source icon, if any. Mirrors
+// baseBroadcastIconsTotalWidth() above so displayFullIPAddress() can reserve room for whichever
+// of the two (rover correction icon or base broadcast icons) actually applies - only one is ever
+// non-zero at a time, since a display is either in rover or base mode.
+uint16_t correctionIconTotalWidth()
+{
+    if (!dtInRoverMode())
+        return 0;
+
+    CORRECTION_ID_T correctionSource = dtCorrectionSource();
+    if (correctionSource >= CORR_NUM)
+        return 0;
+
+    const uint8_t iconGap = 2;
+    uint8_t scale = (present.display_type == DISPLAY_184x88) ? 2 : 1;
+    return (scale * correctionIconAttributes[correctionSource].width) + iconGap;
 }
 
 // Show which method(s) are currently being used to broadcast corrections out (Base mode only)
 // Icons pack right-to-left, using each icon's real width (not a fixed nominal box) plus a small
 // gap, so multiple active icons fit in the tight zone available. If there isn't enough
-// horizontal room, the lowest priority icons are dropped.
+// horizontal room, the lowest priority icons are dropped. Draws at 2x on 184x88.
 void paintBaseBroadcastIcons(std::vector<iconPropertyBlinking> *iconList, uint8_t zoneRightEdge,
                               uint8_t zoneLeftEdge, uint8_t rowBottomEdge)
 {
@@ -1238,17 +1381,18 @@ void paintBaseBroadcastIcons(std::vector<iconPropertyBlinking> *iconList, uint8_
                                                     BCAST_NTRIP_CASTER};
 
     const uint8_t iconGap = 2; // Buffer between the Logging icon and stacked icons, and between each other
+    uint8_t scale = (present.display_type == DISPLAY_184x88) ? 2 : 1;
 
     uint8_t cellRight = zoneRightEdge;
     for (uint8_t i = 0; i < BCAST_NUM; i++)
     {
         BCAST_ID_T id = priority[i];
-        if (!baseBroadcastIsActive(id))
+        if (!dtBroadcastIsActive(id))
             continue;
 
         const correctionIconAttribute *attr = &broadcastIconAttributes[id];
 
-        int16_t cellLeft = (int16_t)cellRight - attr->width - iconGap;
+        int16_t cellLeft = (int16_t)cellRight - (scale * attr->width) - iconGap;
         if (cellLeft < zoneLeftEdge)
             break; // Out of horizontal room - drop the remaining (lower priority) icons
 
@@ -1256,8 +1400,11 @@ void paintBaseBroadcastIcons(std::vector<iconPropertyBlinking> *iconList, uint8_
         prop.icon.width = attr->width;
         prop.icon.height = attr->height;
         prop.icon.xPos = cellLeft;
-        prop.icon.yPos = rowBottomEdge - attr->height;
-        iconList->push_back(prop);
+        prop.icon.yPos = rowBottomEdge - (scale * attr->height);
+        if (scale == 2)
+            pushIcon2x(prop);
+        else
+            iconList->push_back(prop);
 
         cellRight = cellLeft; // Next icon goes immediately to the left, minus the gap
     }
@@ -1540,7 +1687,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             case (STATE_ROVER_FIX):
             case (STATE_ROVER_RTK_FLOAT):
             case (STATE_ROVER_RTK_FIX):
-                paintDynamicModel(iconList);
+                paintDynamicModel(iconList, -1);
                 break;
             case (STATE_BASE_TEMP_SETTLE):
             case (STATE_BASE_TEMP_SURVEY_STARTED): {
@@ -1606,35 +1753,54 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
         }
         else if (present.display_type == DISPLAY_184x88)
         {
-            paintSerial6digit(0, 0); // Columns 0 to 59 (font 10x20)
+            // Top row: every icon here draws at 2x (see displayBitmap2x()) and is packed left to
+            // right immediately after whatever's to its left, reserving space only for icons that
+            // are actually active (epaper_update.md Section 9/11, rule 1) - replacing the old fixed
+            // per-icon columns, which assumed one specific combination of active icons and broke
+            // (silently overlapped) whenever a different combination showed up. Only Battery stays
+            // fixed, anchored to the right edge.
+            const uint8_t iconGap = 4; // gap between packed icons, at 2x
 
-            // Bluetooth indicated when connected: Columns 64 to 70 . TODO don't count if BT radio type is OFF.
-            if (bluetoothGetState() == BT_CONNECTED)
+            // The icons are queued at provisional x positions (one per slot), then re-packed by
+            // their inked columns once the serial number's width is known - see the end of the
+            // pack (rule 2)
+            const size_t firstPackedIcon = iconPropertyList2x.size();
+            uint8_t packX = 0;
+
+            // Bluetooth indicated when connected. TODO don't count if BT radio type is OFF.
+            if (dtBtConnected())
             {
                 prop.duty = 0b11111111;
                 prop.icon = BTSymbol184x88;
-                iconList->push_back(prop);
+                prop.icon.xPos = packX;
+                pushIcon2x(prop);
+                packX += (2 * prop.icon.width) + iconGap;
             }
 
-            // WiFi : Columns 75 - 87
-            if (wifiStationRunning && networkInterfaceHasInternet(NETWORK_WIFI_STATION))
+            // WiFi
+            if (dtWifiStationRunning() && dtWifiStationInternet())
             {
                 // Display solid icon based on RSSI
                 displayWiFiIcon(iconList, prop, ICON_POSITION_184x88, 0b11111111);
+                iconPropertyList2x.back().icon.xPos = packX;
+                packX += (2 * iconPropertyList2x.back().icon.width) + iconGap;
             }
-            else if (wifiStationRunning && (networkInterfaceHasInternet(NETWORK_WIFI_STATION) == false))
+            else if (dtWifiStationRunning() && (dtWifiStationInternet() == false))
             {
                 // We are not connected, no blink on e-paper
                 displayWiFiNotConnectedIcon(iconList, prop, ICON_POSITION_184x88, 0b11111111);
+                iconPropertyList2x.back().icon.xPos = packX;
+                packX += (2 * iconPropertyList2x.back().icon.width) + iconGap;
             }
-            else if (wifiSoftApRunning)
+            else if (dtWifiSoftApRunning())
             {
                 // We are in AP mode, solid WiFi icon
                 displayWiFiIcon(iconList, prop, ICON_POSITION_184x88, 0b11111111);
+                iconPropertyList2x.back().icon.xPos = packX;
+                packX += (2 * iconPropertyList2x.back().icon.width) + iconGap;
             }
 
 #ifdef COMPILE_CELLULAR
-            // Cellular : Columns 92 - 104
             // From the LARA_R6 AT Command Reference AT+CSQ, RSSI can be 0-31:
             // 0 RSSI of the network <= -113 dBm
             // 1 -111 dBm
@@ -1654,148 +1820,291 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 else
                     prop.icon = CellularSymbol0184x88;
                 if (prop.icon.bitmap != nullptr)
-                    iconList->push_back(prop);
+                {
+                    prop.icon.xPos = packX;
+                    pushIcon2x(prop);
+                    packX += (2 * prop.icon.width) + iconGap;
+                }
             }
 #endif // /COMPILE_CELLULAR
 
-            if (espNowIsPaired()) // ESPNOW : Columns 109 - 116
+            if (dtEspNowPaired()) // ESPNOW
             {
                 iconPropertyBlinking prop;
                 prop.duty = 0b11111111;
                 prop.icon.bitmap = nullptr;
                 // Based on RSSI, select icon
-                if (espNowRSSI >= -40)
+                if (dtEspNowRssi() >= -40)
                     prop.icon = ESPNowSymbol3184x88;
-                else if (espNowRSSI >= -60)
+                else if (dtEspNowRssi() >= -60)
                     prop.icon = ESPNowSymbol2184x88;
-                else if (espNowRSSI >= -80)
+                else if (dtEspNowRssi() >= -80)
                     prop.icon = ESPNowSymbol1184x88;
-                else if (espNowRSSI > -255)
+                else if (dtEspNowRssi() > -255)
                     prop.icon = ESPNowSymbol0184x88;
                 // Don't display a symbol if RSSI == -255
                 if (prop.icon.bitmap != nullptr)
-                    iconList->push_back(prop);
-            }
-
-            if (bluetoothGetState() == BT_CONNECTED)
-            {
-                if (bluetoothIncomingRTCM == true) // Download : Columns 121 - 128
                 {
-                    prop.icon = DownloadArrow184x88;
-                    prop.duty = 0b11111111;
-                    iconList->push_back(prop);
-                    bluetoothIncomingRTCM = false;
-                }
-                if (bluetoothOutgoingRTCM == true) // Upload : Columns 132 - 139
-                {
-                    prop.icon = UploadArrow184x88;
-                    prop.duty = 0b11111111;
-                    iconList->push_back(prop);
-                    bluetoothOutgoingRTCM = false;
+                    prop.icon.xPos = packX;
+                    pushIcon2x(prop);
+                    packX += (2 * prop.icon.width) + iconGap;
                 }
             }
 
-            if (espNowIsPaired())
-            {
-                if (espNowIncomingRTCM == true) // Download : Columns 121 - 128
-                {
-                    prop.icon = DownloadArrow184x88;
-                    prop.duty = 0b11111111;
-                    iconList->push_back(prop);
-                    espNowIncomingRTCM = false;
-                }
-                if (espNowOutgoingRTCM == true) // Upload : Columns 132 - 139
-                {
-                    prop.icon = UploadArrow184x88;
-                    prop.duty = 0b11111111;
-                    iconList->push_back(prop);
-                    espNowOutgoingRTCM = false;
-                }
-            }
+            // Every active source pushes its own arrow icon at the same (x, y). The panel draws
+            // in XOR, so two pushes of the same icon at the same spot cancel each other out and
+            // the arrow silently disappears - e.g. a base casting over NTRIP while also
+            // broadcasting over ESP-NOW would show no up arrow at all. Push each direction's
+            // arrow at most once per refresh, regardless of how many sources are driving it. The
+            // per-source flags are still individually cleared below - that bookkeeping ("this
+            // source's pending data has been shown") is separate from "has the icon already been
+            // drawn this frame."
+            // Arrows and the mode icon are the fixed right-hand group - positioned at the end
+            const size_t firstFixedIcon = iconPropertyList2x.size();
+            bool downloadArrowShown = false;
+            bool uploadArrowShown = false;
 
-            if (usbSerialIncomingRtcm)
+            if (dtActive())
             {
-                // Download : Columns 121 - 128
-                prop.icon = DownloadArrow184x88;
+                // DisplayTest.ino scenario - arrows come from the scenario, not live RTCM traffic
                 prop.duty = 0b11111111;
-                iconList->push_back(prop);
-                usbSerialIncomingRtcm = false;
-            }
-
-            bool networkHasInternet = false;
-
-#ifdef COMPILE_ETHERNET
-            if (networkInterfaceHasInternet(NETWORK_ETHERNET))
-                networkHasInternet = true;
-#endif // COMPILE_ETHERNET
-
-#ifdef COMPILE_WIFI
-            if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
-                networkHasInternet = true;
-#endif // COMPILE_WIFI
-
-#ifdef COMPILE_CELLULAR
-            if (networkInterfaceHasInternet(NETWORK_CELLULAR))
-                networkHasInternet = true;
-#endif // COMPILE_CELLULAR
-
-            if (networkHasInternet)
-            {
-                if (netIncomingRTCM == true) // Download : Columns 121 - 128
+                if (dtScenario()->arrowDown)
                 {
                     prop.icon = DownloadArrow184x88;
-                    prop.duty = 0b11111111;
-                    iconList->push_back(prop);
-                    netIncomingRTCM = false;
+                    prop.icon.xPos = packX;
+                    pushIcon2x(prop);
+                    downloadArrowShown = true;
                 }
-                if (mqttClientDataReceived == true) // Download : Columns 121 - 128
-                {
-                    prop.icon = DownloadArrow184x88;
-                    prop.duty = 0b11111111;
-                    iconList->push_back(prop);
-                    mqttClientDataReceived = false;
-                }
-                if (netOutgoingRTCM == true) // Upload : Columns 132 - 139
+                if (dtScenario()->arrowUp)
                 {
                     prop.icon = UploadArrow184x88;
-                    prop.duty = 0b11111111;
-                    iconList->push_back(prop);
-                    netOutgoingRTCM = false;
+                    prop.icon.xPos = packX;
+                    pushIcon2x(prop);
+                    uploadArrowShown = true;
+                }
+            }
+            else
+            {
+                if (dtBtConnected())
+                {
+                    if (bluetoothIncomingRTCM == true) // Download
+                    {
+                        if (!downloadArrowShown)
+                        {
+                            prop.icon = DownloadArrow184x88;
+                            prop.duty = 0b11111111;
+                            prop.icon.xPos = packX;
+                            pushIcon2x(prop);
+                            downloadArrowShown = true;
+                        }
+                        bluetoothIncomingRTCM = false;
+                    }
+                    if (bluetoothOutgoingRTCM == true) // Upload
+                    {
+                        if (!uploadArrowShown)
+                        {
+                            prop.icon = UploadArrow184x88;
+                            prop.duty = 0b11111111;
+                            prop.icon.xPos = packX;
+                            pushIcon2x(prop);
+                            uploadArrowShown = true;
+                        }
+                        bluetoothOutgoingRTCM = false;
+                    }
+                }
+
+                if (espNowIsPaired())
+                {
+                    if (espNowIncomingRTCM == true) // Download
+                    {
+                        if (!downloadArrowShown)
+                        {
+                            prop.icon = DownloadArrow184x88;
+                            prop.duty = 0b11111111;
+                            prop.icon.xPos = packX;
+                            pushIcon2x(prop);
+                            downloadArrowShown = true;
+                        }
+                        espNowIncomingRTCM = false;
+                    }
+                    if (espNowOutgoingRTCM == true) // Upload
+                    {
+                        if (!uploadArrowShown)
+                        {
+                            prop.icon = UploadArrow184x88;
+                            prop.duty = 0b11111111;
+                            prop.icon.xPos = packX;
+                            pushIcon2x(prop);
+                            uploadArrowShown = true;
+                        }
+                        espNowOutgoingRTCM = false;
+                    }
+                }
+
+                if (usbSerialIncomingRtcm)
+                {
+                    // Download
+                    if (!downloadArrowShown)
+                    {
+                        prop.icon = DownloadArrow184x88;
+                        prop.duty = 0b11111111;
+                        prop.icon.xPos = packX;
+                        pushIcon2x(prop);
+                        downloadArrowShown = true;
+                    }
+                    usbSerialIncomingRtcm = false;
+                }
+
+                bool networkHasInternet = false;
+
+    #ifdef COMPILE_ETHERNET
+                if (networkInterfaceHasInternet(NETWORK_ETHERNET))
+                    networkHasInternet = true;
+    #endif // COMPILE_ETHERNET
+
+    #ifdef COMPILE_WIFI
+                if (networkInterfaceHasInternet(NETWORK_WIFI_STATION))
+                    networkHasInternet = true;
+    #endif // COMPILE_WIFI
+
+    #ifdef COMPILE_CELLULAR
+                if (networkInterfaceHasInternet(NETWORK_CELLULAR))
+                    networkHasInternet = true;
+    #endif // COMPILE_CELLULAR
+
+                if (networkHasInternet)
+                {
+                    if (netIncomingRTCM == true) // Download
+                    {
+                        if (!downloadArrowShown)
+                        {
+                            prop.icon = DownloadArrow184x88;
+                            prop.duty = 0b11111111;
+                            prop.icon.xPos = packX;
+                            pushIcon2x(prop);
+                            downloadArrowShown = true;
+                        }
+                        netIncomingRTCM = false;
+                    }
+                    if (mqttClientDataReceived == true) // Download
+                    {
+                        if (!downloadArrowShown)
+                        {
+                            prop.icon = DownloadArrow184x88;
+                            prop.duty = 0b11111111;
+                            prop.icon.xPos = packX;
+                            pushIcon2x(prop);
+                            downloadArrowShown = true;
+                        }
+                        mqttClientDataReceived = false;
+                    }
+                    if (netOutgoingRTCM == true) // Upload
+                    {
+                        if (!uploadArrowShown)
+                        {
+                            prop.icon = UploadArrow184x88;
+                            prop.duty = 0b11111111;
+                            prop.icon.xPos = packX;
+                            pushIcon2x(prop);
+                            uploadArrowShown = true;
+                        }
+                        netOutgoingRTCM = false;
+                    }
                 }
             }
 
-            switch (systemState) // Dynamic Model / Base : Columns 143 - 157
+            // Both directions share one slot in the pack sequence (only one arrow bitmap is ever
+            // queued per direction per refresh, per the dedup above) - advance packX by whichever
+            // arrow(s) actually got shown.
+            if (downloadArrowShown || uploadArrowShown)
+                packX += (2 * DownloadArrow184x88.width) + iconGap;
+
+            switch (dtSystemState()) // Dynamic Model / Base - last in the pack, before Battery
             {
             case (STATE_ROVER_NO_FIX):
             case (STATE_ROVER_FIX):
             case (STATE_ROVER_RTK_FLOAT):
             case (STATE_ROVER_RTK_FIX):
-                paintDynamicModel(iconList);
+                paintDynamicModel(iconList, packX);
                 break;
             case (STATE_BASE_TEMP_SETTLE):
             case (STATE_BASE_TEMP_SURVEY_STARTED): {
                 prop.duty = 0b11111111;
                 prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
-                iconList->push_back(prop);
+                prop.icon.xPos = packX;
+                pushIcon2x(prop);
             }
             break;
             case (STATE_BASE_TEMP_TRANSMITTING): {
                 prop.duty = 0b11111111;
                 prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
-                iconList->push_back(prop);
+                prop.icon.xPos = packX;
+                pushIcon2x(prop);
             }
             break;
             case (STATE_BASE_FIXED_TRANSMITTING): {
                 prop.duty = 0b11111111;
                 prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
-                iconList->push_back(prop);
+                prop.icon.xPos = packX;
+                pushIcon2x(prop);
             }
             break;
             default:
                 break;
             }
 
-            // On 184x88: put the corrections source icon on the bottom, hugging the Logging icon
+            // Fixed right-hand group, never moves: the mode icon (dynamic model / base type) sits
+            // against the battery, and the arrow slot sits just left of it. The arrow slot is
+            // reserved even while no arrow shows, so the left group doesn't reflow (and the serial
+            // number doesn't change length) as the arrows blink with RTCM traffic.
+            const uint8_t batteryLeftX = theDisplay->getWidth() - (2 * Battery_Width);
+            const uint8_t modeWidth = dtInBaseMode() ? BaseTemporary_Width : DynamicModel_Width;
+            const int16_t modeX = batteryLeftX - iconGap - (2 * modeWidth);
+            const int16_t roverModeNudge = 2; // Dynamic model icons sit 2 px right of the base icons
+            const int16_t arrowNudge = 4;     // Arrows sit 4 px right of the plain iconGap spacing
+            uint8_t inkFirst = 0;
+            uint8_t inkLast = DownloadArrow_Width - 1;
+            iconInkColumns(DownloadArrow184x88, inkFirst, inkLast);
+            const int16_t fixedLeftX = modeX - iconGap - (2 * (inkLast + 1)) + (2 * inkFirst) + arrowNudge;
+            for (size_t i = firstFixedIcon; i < iconPropertyList2x.size(); i++)
+            {
+                iconProperty &icon = iconPropertyList2x[i].icon;
+                if ((icon.bitmap == DownloadArrow184x88.bitmap) || (icon.bitmap == UploadArrow184x88.bitmap))
+                {
+                    // Right-align the arrow's ink against the mode icon
+                    if (iconInkColumns(icon, inkFirst, inkLast))
+                        icon.xPos = modeX - iconGap - (2 * (inkLast + 1)) + arrowNudge;
+                }
+                else
+                    icon.xPos = modeX + (dtInBaseMode() ? 0 : roverModeNudge);
+            }
+
+            // Rule 2: pack the left group (BT, WiFi, cellular, ESP-NOW) by their inked columns
+            // (many bitmaps have blank columns inside their cell), fit the serial number into
+            // whatever is left before the fixed group, and only if even the smallest serial
+            // doesn't fit, tighten the gaps
+            const uint8_t tightGap = 2;
+            uint8_t gap = iconGap;
+            int16_t packWidth = packTopRowIcons(firstPackedIcon, firstFixedIcon, 0, gap, false);
+            int16_t serialMaxWidth = fixedLeftX - packWidth - (2 * gap);
+            if (serialMaxWidth < serialNumberMinWidth())
+            {
+                gap = tightGap;
+                packWidth = packTopRowIcons(firstPackedIcon, firstFixedIcon, 0, gap, false);
+                serialMaxWidth = fixedLeftX - packWidth - (2 * gap);
+            }
+            if (serialMaxWidth < 0)
+                serialMaxWidth = 0;
+            uint8_t serialWidth = paintSerial6digit(serialMaxWidth);
+            packTopRowIcons(firstPackedIcon, firstFixedIcon, serialWidth + gap, gap, true);
+
+            // Battery: fixed, right-anchored - the one top-row element that isn't part of the pack.
+            // (Pushed by displayBatteryVsEthernet()/paintBatteryLevel(), called after setRadioIcons()
+            // in displayUpdate() - see those functions for the 2x + right-anchor treatment.)
+
+            // On 184x88: put the corrections source icon on the bottom, hugging the Logging icon.
+            // Drawn at 2x (displayBitmap2x()), so every dimension below is doubled - width, height,
+            // and yOffset (yOffset is a within-cell offset, part of the same doubled icon).
             static bool correctionsIconPosCalculated = false;
             static uint8_t correctionsIconYPos = 88;
             // Calculate the highest (lowest!) Y position for the corrections icon
@@ -1803,16 +2112,16 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             if (!correctionsIconPosCalculated)
             {
                 for (int i = 0; i < CORR_NUM; i++)
-                    if ((88 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height)) <
+                    if ((88 - (2 * (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height))) <
                         correctionsIconYPos)
                         correctionsIconYPos =
-                            88 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height);
+                            88 - (2 * (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height));
                 correctionsIconPosCalculated = true;
             }
 
-            if (inRoverMode() == true)
+            if (dtInRoverMode() == true)
             {
-                CORRECTION_ID_T correctionSource = correctionGetSource();
+                CORRECTION_ID_T correctionSource = dtCorrectionSource();
                 if (correctionSource < CORR_NUM)
                 {
                     // Gap is measured from the icon's real pixels, not its nominal cell, so narrow
@@ -1822,12 +2131,13 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                     prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
                     prop.icon.width = correctionIconAttributes[correctionSource].width;
                     prop.icon.height = correctionIconAttributes[correctionSource].height;
-                    prop.icon.xPos = LoggingIconXPos184x88 - iconGap - correctionIconAttributes[correctionSource].width;
-                    prop.icon.yPos = correctionsIconYPos + correctionIconAttributes[correctionSource].yOffset;
-                    iconList->push_back(prop);
+                    prop.icon.xPos =
+                        LoggingIconXPos184x88 - iconGap - (2 * correctionIconAttributes[correctionSource].width);
+                    prop.icon.yPos = correctionsIconYPos + (2 * correctionIconAttributes[correctionSource].yOffset);
+                    pushIcon2x(prop);
                 }
             }
-            else if (inBaseMode() == true)
+            else if (dtInBaseMode() == true)
             {
                 // Size the icon zone exactly to fit every active broadcast icon so none are dropped
                 uint8_t zoneLeftEdge = LoggingIconXPos184x88 - baseBroadcastIconsTotalWidth();
@@ -2130,16 +2440,16 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
     case (STATE_ROVER_CONFIG_WAIT):
         break;
     case (STATE_ROVER_NO_FIX):
-        paintDynamicModel(iconList);
+        paintDynamicModel(iconList, -1);
         break;
     case (STATE_ROVER_FIX):
-        paintDynamicModel(iconList);
+        paintDynamicModel(iconList, -1);
         break;
     case (STATE_ROVER_RTK_FLOAT):
-        paintDynamicModel(iconList);
+        paintDynamicModel(iconList, -1);
         break;
     case (STATE_ROVER_RTK_FIX):
-        paintDynamicModel(iconList);
+        paintDynamicModel(iconList, -1);
         break;
 
     case (STATE_BASE_CASTER_NOT_STARTED):
@@ -2215,12 +2525,31 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
 // Display horizontal accuracy
 void paintHorizontalAccuracy(displayCoords textCoords)
 {
+    if (present.display_type == DISPLAY_184x88)
+    {
+        // Build the text so printColonText() can drop everything but the colon
+        char hpaText[12];
+        float hpa = dtHorizontalAccuracy();
+        if (dtOnlineGnss() == false)
+            snprintf(hpaText, sizeof(hpaText), ":N/A");
+        else if (hpa > 30.0)
+            snprintf(hpaText, sizeof(hpaText), ":>30m");
+        else if (hpa >= 10.0)
+            snprintf(hpaText, sizeof(hpaText), ":%.1f", hpa); // Down to decimeter
+        else if (hpa >= 1.0)
+            snprintf(hpaText, sizeof(hpaText), ":%.2f", hpa); // Down to centimeter
+        else
+            snprintf(hpaText, sizeof(hpaText), ":.%03d", (int)(hpa * 1000)); // Millimeter, no leading zero
+        printColonText(textCoords.x, textCoords.y, hpaText);
+        return;
+    }
+
     theDisplay->setCursor(textCoords.x, textCoords.y); // x, y
     theDisplay->print(":");
 
-    float hpa = gnss->getHorizontalAccuracy();
+    float hpa = dtHorizontalAccuracy();
 
-    if (online.gnss == false)
+    if (dtOnlineGnss() == false)
     {
         theDisplay->print("N/A");
     }
@@ -2335,8 +2664,22 @@ void paintClockAccuracy(displayCoords textCoords)
 */
 
 // Draw the rover icon depending on screen
-void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
+// xOverride >= 0 repositions the icon (184x88's dynamic top-row pack, rule 1); pass -1 to keep the
+// icon's own baked-in position (used as-is by the 64x48/128x64 callers).
+void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList, int16_t xOverride)
 {
+    // DisplayTest.ino scenario - use its dynamic model icon instead of the GNSS setting
+    const iconProperties *testModel = dtDynamicModel();
+    if ((testModel != nullptr) && (xOverride >= 0))
+    {
+        iconPropertyBlinking prop;
+        prop.icon = testModel->iconDisplay[present.display_type];
+        prop.icon.xPos = (uint8_t)xOverride;
+        prop.duty = 0b11111111;
+        pushIcon2x(prop);
+        return;
+    }
+
     if (present.dynamicModel && online.gnss)
     {
         iconPropertyBlinking prop;
@@ -2470,13 +2813,21 @@ void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
         }
 
         if (prop.icon.bitmap)
-            iconList->push_back(prop);
+        {
+            if (xOverride >= 0)
+            {
+                prop.icon.xPos = (uint8_t)xOverride;
+                pushIcon2x(prop);
+            }
+            else
+                iconList->push_back(prop);
+        }
     }
 }
 
 void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (online.batteryFuelGauge) // Product has a battery
+    if (dtHasBattery()) // Product has a battery
         paintBatteryLevel(iconList);
 #ifdef COMPILE_ETHERNET
     else // if (present.ethernet_ws5500 == true)
@@ -2494,7 +2845,7 @@ void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
 
 void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (gnss->supportsAntennaShortOpen() == false)
+    if (dtSupportsAntennaShortOpen() == false)
     {
         displayCoords textCoords = paintSIVIcon(iconList, nullptr, 0b11111111);
         paintSIVText(textCoords);
@@ -2503,11 +2854,11 @@ void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
     {
         displayCoords textCoords;
 
-        if (gnss->isAntennaShorted())
+        if (dtAntennaShorted())
         {
             textCoords = paintSIVIcon(iconList, &ShortIconProperties, 0b01010101);
         }
-        else if (gnss->isAntennaOpen())
+        else if (dtAntennaOpen())
         {
             textCoords = paintSIVIcon(iconList, &OpenIconProperties, 0b01010101);
         }
@@ -2520,15 +2871,26 @@ void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
     }
 }
 
-void displayBaseSiv(std::vector<iconPropertyBlinking> *iconList)
+// Returns the x just past the SIV count (128x64: undefined/unused; 184x88: see paintRTCM() rule 4).
+uint8_t displayBaseSiv(std::vector<iconPropertyBlinking> *iconList)
 {
     // Display SIV during Base - but only on 128x64 / 184x88 displays. 64x48 has no room.
     // No support for short / open.
     if ((present.display_type == DISPLAY_128x64) || (present.display_type == DISPLAY_184x88))
     {
         displayCoords textCoords = paintSIVIcon(iconList, &BaseSIVIconProperties, 0b11111111);
-        paintSIVText(textCoords);
+        return paintSIVText(textCoords);
     }
+    return 0;
+}
+
+// 184x88: top Y for a 2x middle-band icon (crosshair, SIV, tilt) whose 1x height is
+// iconHeight, centering it on the 10x20 text row (y=34..53) the HPA and SIV counts use.
+// The icons.h Y constants are the text row, and are shared with the survey-in labels.
+uint8_t middleBandIconY184x88(uint8_t iconHeight)
+{
+    const uint8_t middleBandCenter = 44;
+    return middleBandCenter - iconHeight; // Half of the 2x height
 }
 
 void displayTiltIcon(std::vector<iconPropertyBlinking> *iconList)
@@ -2537,13 +2899,20 @@ void displayTiltIcon(std::vector<iconPropertyBlinking> *iconList)
     // Display tilt icon - but only on 128x64 / 184x88 displays. 64x48 has no room.
     if ((present.display_type == DISPLAY_128x64) || (present.display_type == DISPLAY_184x88))
     {
-        if ((present.imu_im19 == true) && (settings.enableTiltCompensation == true) && (tiltState == TILT_CORRECTING))
+        if (dtTiltCorrecting())
         {
             const iconProperties *icon = &TiltIconProperties;
             iconPropertyBlinking prop;
             prop.icon = icon->iconDisplay[present.display_type];
             prop.duty = 0b11111111;
-            iconList->push_back(prop);
+            if (present.display_type == DISPLAY_184x88)
+            {
+                // X is already 2x-correct - see TiltIconXPos184x88 (icons.h)
+                prop.icon.yPos = middleBandIconY184x88(prop.icon.height);
+                pushIcon2x(prop);
+            }
+            else
+                iconList->push_back(prop);
         }
     }
 #endif
@@ -2554,19 +2923,22 @@ void displayHorizontalAccuracy(std::vector<iconPropertyBlinking> *iconList, cons
     iconPropertyBlinking prop;
     prop.icon = icon->iconDisplay[present.display_type];
     prop.duty = duty;
-    iconList->push_back(prop);
 
     displayCoords textCoords;
-    textCoords.x = prop.icon.xPos + 16;
 
     if (present.display_type == DISPLAY_184x88)
     {
+        textCoords.x = prop.icon.xPos + (2 * prop.icon.width) + 2;
         textCoords.y = prop.icon.yPos - 2;
+        prop.icon.yPos = middleBandIconY184x88(prop.icon.height);
+        pushIcon2x(prop);
 
         theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10X20); // Set font to 10x20
     }
     else
     {
+        iconList->push_back(prop);
+        textCoords.x = prop.icon.xPos + 16;
         textCoords.y = prop.icon.yPos + 2;
 
         theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16); // Set font to type 1: 8x16
@@ -2617,19 +2989,21 @@ void displayRTKAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconP
         }
     }
 
-    iconList->push_back(prop);
-
     displayCoords textCoords;
-    textCoords.x = prop.icon.xPos + 16;
 
     if (present.display_type == DISPLAY_184x88)
     {
+        textCoords.x = prop.icon.xPos + (2 * prop.icon.width) + 2;
         textCoords.y = prop.icon.yPos - 2;
+        prop.icon.yPos = middleBandIconY184x88(prop.icon.height);
+        pushIcon2x(prop);
 
         theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10X20); // Set font to 10x20
     }
     else
     {
+        iconList->push_back(prop);
+        textCoords.x = prop.icon.xPos + 16;
         textCoords.y = prop.icon.yPos + 2;
 
         theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16); // Set font to type 1: 8x16
@@ -2663,25 +3037,25 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
 {
     if (icon == nullptr) // Not short or open, so decide which icon to use
     {
-        if (online.gnss)
+        if (dtOnlineGnss())
         {
             // Determine which icon to display
-            if (present.pppCapable && (settings.pppMode != PPP_MODE_DISABLE))
+            if (dtPppIcon())
                 icon = &PppIconProperties;
-            else if (lbandCorrectionsReceived || spartnCorrectionsReceived)
+            else if (dtLbandIcon())
                 icon = &LBandIconProperties;
             else
                 icon = &SIVIconProperties;
 
             // if in base mode, don't blink
-            if (inBaseMode() == true)
+            if (dtInBaseMode() == true)
             {
                 // override duty - solid satellite dish icon regardless of fix state
                 duty = 0b11111111;
             }
 
             // Determine if there is a fix
-            else if (gnss->isFixed() == false)
+            else if (dtIsFixed() == false)
             {
                 // override duty - blink satellite dish icon if we don't have a fix
                 duty = 0b01010101;
@@ -2694,12 +3068,46 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
     }
 
     displayCoords textCoords;
-    textCoords.x = icon->iconDisplay[present.display_type].xPos + icon->iconDisplay[present.display_type].width + 2;
-    textCoords.y = icon->iconDisplay[present.display_type].yPos + 1;
+
+    if ((present.display_type == DISPLAY_184x88) && (icon == &BaseSIVIconProperties))
+    {
+        // Base SIV moves to the far left (x=0) and draws at 2x, on the same row rover's SIV icon
+        // uses (SIVIconYPos184x88) rather than the old shifted-down position - that shift existed
+        // to clear the two-line "Xmitting" + "RTCM:nnn" text, which paintRTCM() no longer draws
+        // (merged into one line on this same row - epaper_update.md Section 9/11, rules 3-4).
+        iconPropertyBlinking prop;
+        prop.icon = icon->iconDisplay[present.display_type];
+        prop.icon.xPos = 0;
+        prop.icon.yPos = middleBandIconY184x88(prop.icon.height);
+        prop.duty = duty;
+        pushIcon2x(prop);
+
+        textCoords.x = (2 * prop.icon.width) + 2;
+        textCoords.y = SIVIconYPos184x88 + 1;
+        return textCoords;
+    }
 
     iconPropertyBlinking prop;
     prop.icon = icon->iconDisplay[present.display_type];
     prop.duty = duty;
+
+    if (present.display_type == DISPLAY_184x88)
+    {
+        // Rover SIV/PPP/L-Band/Short/Open icon, drawn at 2x. Nudged 5px left of its baked-in
+        // icons.h position (SIVIconXPos184x88) so the 2x ":nn" text after it doesn't touch the
+        // 2x, right-anchored Tilt icon - done here rather than changing SIVIconXPos184x88 itself,
+        // since that constant is shared with paintBaseTempSurveyStarted()'s "Time:" label, which
+        // stays exactly as it is (untouched by this round of changes).
+        prop.icon.xPos -= 5;
+        textCoords.x = prop.icon.xPos + (2 * prop.icon.width) + 2;
+        textCoords.y = prop.icon.yPos + 1;
+        prop.icon.yPos = middleBandIconY184x88(prop.icon.height);
+        pushIcon2x(prop);
+        return textCoords;
+    }
+
+    textCoords.x = icon->iconDisplay[present.display_type].xPos + icon->iconDisplay[present.display_type].width + 2;
+    textCoords.y = icon->iconDisplay[present.display_type].yPos + 1;
     iconList->push_back(prop);
 
     return textCoords;
@@ -2731,7 +3139,9 @@ void nudgeAndPrintSIV(displayCoords textCoords, uint8_t siv)
     }
 }
 
-void paintSIVText(displayCoords textCoords)
+// Returns the x just past the last printed character, so paintRTCM() can center the merged base
+// status line in whatever room is left to the right of it (epaper_update.md Section 9/11, rule 4).
+uint8_t paintSIVText(displayCoords textCoords)
 {
     if (present.display_type == DISPLAY_184x88)
     {
@@ -2745,31 +3155,86 @@ void paintSIVText(displayCoords textCoords)
     }
     theDisplay->setCursor(textCoords.x, textCoords.y); // x, y
 
-    uint8_t siv = gnss->getSatellitesInView();
+    uint8_t siv = dtSatellitesInView();
     if (siv > 99)
     {
         theDisplay->print(">");
         siv = 99; // Limit SIV to two digits
     }
     else
+    {
+        // 184x88: colon 2 px left of the text x, clear of the 2x SIV icon's text gap
+        if (present.display_type == DISPLAY_184x88)
+            theDisplay->setCursor(textCoords.x - 2, textCoords.y);
         theDisplay->print(":");
+    }
 
     textCoords.x += 8;
-
-    if (online.gnss)
+    if (present.display_type == DISPLAY_184x88)
     {
-        if (inBaseMode() == true)
-            nudgeAndPrintSIV(textCoords, siv);
-        else if (gnss->isFixed() == false)
-            nudgeAndPrintSIV(textCoords, 0);
-        else
-            nudgeAndPrintSIV(textCoords, siv);
+        // The colon stays put - the digits drop so the colon's dots bisect them
+        textCoords.y += colonTextDrop();
+        theDisplay->setCursor(textCoords.x, textCoords.y);
+    }
+
+    char printedDigits[4] = "X"; // Matches the !online.gnss case below
+    if (dtOnlineGnss())
+    {
+        uint8_t displayedSiv = siv;
+        if (dtInBaseMode() == true)
+            displayedSiv = siv;
+        else if (dtIsFixed() == false)
+            displayedSiv = 0;
+        nudgeAndPrintSIV(textCoords, displayedSiv);
+        snprintf(printedDigits, sizeof(printedDigits), "%d", displayedSiv);
 
         paintResets();
     } // End gnss online
     else
     {
         theDisplay->print("X");
+    }
+
+    return textCoords.x + printedTextWidth(printedDigits);
+}
+
+// Width in pixels that print() actually covers with the current font. getStringWidth() counts
+// only the glyph widths, but the e-paper print() advances one extra (kerning) pixel per
+// character, so getStringWidth() comes up one pixel short per character - and a string it says
+// fits can still reach the right edge, where print() wraps the rest onto the next line.
+uint8_t printedTextWidth(const char *text)
+{
+    size_t length = strlen(text);
+    if (length == 0)
+        return 0;
+    if (present.display_type == DISPLAY_184x88)
+        return theDisplay->getStringWidth(text) + length - 1; // Kerning between characters
+    return theDisplay->getStringWidth(text);
+}
+
+// 184x88: pixels to drop text below its colon's cursor row so the line between the colon's two
+// dots divides the text's height equally. 10x20: dots on glyph rows 8-9 and 14-15 (midline 11.5),
+// digits and capitals on rows 3-15 (center 9). 8x16: dots rows 4-10 (midline 7), text rows 1-10.
+uint8_t colonTextDrop()
+{
+    if (theDisplay->getStringWidth("0") == 10) // QW_EP_FONT_10X20
+        return 3;
+    return 2; // QW_EP_FONT_8X16
+}
+
+// 184x88: print text at (x, y) with every ':' on row y and everything else dropped by
+// colonTextDrop(). Advances exactly as print() would.
+void printColonText(uint8_t x, uint8_t y, const char *text)
+{
+    const uint8_t pitch = theDisplay->getStringWidth("0") + 1; // print() adds a kerning pixel
+    const uint8_t drop = colonTextDrop();
+    char character[2] = {0, 0};
+    for (size_t i = 0; text[i]; i++)
+    {
+        character[0] = text[i];
+        theDisplay->setCursor(x, (text[i] == ':') ? y : y + drop);
+        theDisplay->print(character);
+        x += pitch;
     }
 }
 
@@ -2805,8 +3270,13 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
     prop.icon.bitmap = nullptr;
     prop.duty = 0b11111111;
 
+    const iconProperty *testIcon = dtLoggingIcon(); // DisplayTest.ino scenario, if one is active
+    if (testIcon != nullptr)
+    {
+        prop.icon = *testIcon;
+    }
     // If any logging is taking place, display the logging icon
-    if (((online.logging == true) && (logIncreasing || ntpLogIncreasing))
+    else if (((online.logging == true) && (logIncreasing || ntpLogIncreasing))
         || (present.mosaicMicroSd && logMosaicIncreasing))
     {
         if (NTP)
@@ -2833,16 +3303,24 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
     }
 
     if (prop.icon.bitmap)
-        iconList->push_back(prop);
+    {
+        // Position is already the 2x-correct one - LoggingIconXPos184x88/YPos184x88 (icons.h) are
+        // themselves defined for the doubled icon size.
+        if (present.display_type == DISPLAY_184x88)
+            pushIcon2x(prop);
+        else
+            iconList->push_back(prop);
+    }
 }
 
 const paintBaseStats_t paintBaseStats[] = {
     { DISPLAY_64x48, "Mean:", AccuracyIconXPos64x48, AccuracyIconYPos64x48 - 1, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos64x48 + 29, AccuracyIconYPos64x48 - 4, QW_FONT_8X16, QW_EP_FONT_10X20, },
     { DISPLAY_128x64, "Mean:", AccuracyIconXPos128x64, AccuracyIconYPos128x64 - 1, QW_FONT_5X7, QW_EP_FONT_10X20, AccuracyIconXPos128x64 + 29, AccuracyIconYPos128x64 - 4, QW_FONT_8X16, QW_EP_FONT_10X20, },
-    { DISPLAY_184x88, "Mean:", AccuracyIconXPos184x88, AccuracyIconYPos184x88 - 4, QW_FONT_5X7, QW_EP_FONT_8X16, AccuracyIconXPos184x88 + 42, AccuracyIconYPos184x88 - 8, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    // 184x88: Mean: over Time: to the right of the 2x base SIV (x=0), in two 10x20 lines
+    { DISPLAY_184x88, "Mean:", 64, 25, QW_FONT_8X16, QW_EP_FONT_10X20, 64 + (5 * 11), 25, QW_FONT_8X16, QW_EP_FONT_10X20, },
     { DISPLAY_64x48, "Time:", SIVIconXPos64x48 - 2, SIVIconYPos64x48 - 2, QW_FONT_5X7, QW_EP_FONT_10X20, SIVIconXPos64x48 + 28, SIVIconYPos64x48 - 5, QW_FONT_8X16, QW_EP_FONT_10X20, },
     { DISPLAY_128x64, "Time:", SIVIconXPos128x64 - 2, SIVIconYPos128x64 - 2, QW_FONT_5X7, QW_EP_FONT_10X20, SIVIconXPos128x64 + 28, SIVIconYPos128x64 - 5, QW_FONT_8X16, QW_EP_FONT_10X20, },
-    { DISPLAY_184x88, "Time:", SIVIconXPos184x88 - 2, SIVIconYPos184x88 - 4, QW_FONT_5X7, QW_EP_FONT_8X16, SIVIconXPos184x88 + 42, SIVIconYPos184x88 - 8, QW_FONT_8X16, QW_EP_FONT_10X20, },
+    { DISPLAY_184x88, "Time:", 64, 43, QW_FONT_8X16, QW_EP_FONT_10X20, 64 + (5 * 11), 43, QW_FONT_8X16, QW_EP_FONT_10X20, },
     // 128x64 and 184x88 sit the status word on the RTCM row, one space character to its left.
     // Kerned character pitch is 6 px on 128x64 and 11 px on the 184x88 ePaper. The 8 character
     // words do not leave room for a full space on the 184x88, so they start hard left instead.
@@ -2887,14 +3365,14 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
 
     theDisplay->setCursor(baseStats->xPosOfData, baseStats->yPosOfData); // x, y
     theDisplay->setFont(baseStats->theFontOfData, baseStats->theEpFontOfData);
-    if (gnss->getSurveyInMeanAccuracy() < 10.0) // Error check
-        theDisplay->print(gnss->getSurveyInMeanAccuracy(), 2);
+    if (dtSurveyInMeanAccuracy() < 10.0) // Error check
+        theDisplay->print(dtSurveyInMeanAccuracy(), 2);
     else
         theDisplay->print(">10");
 
     baseStats = getPaintBaseStats("Time:");
 
-    if (gnss->supportsAntennaShortOpen() == false)
+    if (dtSupportsAntennaShortOpen() == false)
     {
         theDisplay->setCursor(baseStats->xPos, baseStats->yPos); // x, y
         theDisplay->setFont(baseStats->theFont, baseStats->theEpFont);
@@ -2902,11 +3380,11 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
     }
     else
     {
-        if (gnss->isAntennaShorted())
+        if (dtAntennaShorted())
         {
             paintSIVIcon(iconList, &ShortIconProperties, 0b01010101);
         }
-        else if (gnss->isAntennaOpen())
+        else if (dtAntennaOpen())
         {
             paintSIVIcon(iconList, &OpenIconProperties, 0b01010101);
         }
@@ -2920,8 +3398,8 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
 
     theDisplay->setCursor(baseStats->xPosOfData, baseStats->yPosOfData); // x, y
     theDisplay->setFont(baseStats->theFontOfData, baseStats->theEpFontOfData);
-    if (gnss->getSurveyInObservationTime() < 1000) // Error check
-        theDisplay->print(gnss->getSurveyInObservationTime());
+    if (dtSurveyInObservationTime() < 1000) // Error check
+        theDisplay->print(dtSurveyInObservationTime());
     else
         theDisplay->print("0");
 }
@@ -2951,14 +3429,66 @@ void printRtcmLabel(const paintBaseStats_t *baseStats)
     }
 }
 
-// Show transmission of RTCM correction data packets to NTRIP caster
-void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
+// Show transmission of RTCM correction data packets to NTRIP caster.
+// sivEndX (184x88 only): x just past the base SIV text, from displayBaseSiv() - the merged status
+// line below centers itself in the room to the right of it (rule 4). Unused on 64x48/128x64.
+void paintRTCM(std::vector<iconPropertyBlinking> *iconList, uint8_t sivEndX)
 {
     // Determine if the NTRIP Server is casting
-    bool casting = false;
-    for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-        casting |= online.ntripServer[serverIndex];
+    bool casting = dtNtripCasting();
 
+    if (present.display_type == DISPLAY_184x88)
+    {
+        // No separate "RTCM:" label - the status word and the count are one string
+        // ("Cast:123" / "Xmit:123" / "BaseCast:123"), on the same row as the SIV text instead of
+        // its own line (rules 3-4). paintBaseTempSurveyStarted()'s Mean:/Time: display is separate
+        // and untouched.
+        if (dtSupportsAntennaShortOpen() && dtAntennaShorted())
+        {
+            paintSIVIcon(iconList, &ShortIconProperties, 0b01010101);
+            return; // Matches the old behavior: the antenna warning icon takes this text's place
+        }
+        if (dtSupportsAntennaShortOpen() && dtAntennaOpen())
+        {
+            paintSIVIcon(iconList, &OpenIconProperties, 0b01010101);
+            return;
+        }
+
+        const char *prefix;
+        if (dtBaseCasterOverride() == true)
+            prefix = "B-Cast"; // Shortened from BaseCast so it fits in 10x20
+        else if (casting)
+            prefix = "Cast";
+        else
+            prefix = "Xmit";
+
+        char statusText[16];
+        snprintf(statusText, sizeof(statusText), "%s:%d", prefix, dtRtcmPacketsSent());
+
+        // Try 10x20 (matches the SIV count next to it) first; fall back to 8x16 only if it doesn't
+        // fit in the room to the right of the SIV text (rule 3 - shrink the font before letting
+        // text overlap or wrap).
+        theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10X20);
+        uint8_t textWidth = printedTextWidth(statusText);
+        // Same row as the base SIV colon (paintSIVText(): SIVIconYPos184x88 + 1 - 2), so the two
+        // colons line up
+        uint8_t yPos = SIVIconYPos184x88 - 1;
+        if ((sivEndX + textWidth) > theDisplay->getWidth())
+        {
+            theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
+            textWidth = printedTextWidth(statusText);
+            yPos += 4; // 8x16 colon dot midline (row 7) onto the 10x20 one (row 11.5)
+        }
+
+        uint8_t zoneWidth = theDisplay->getWidth() - sivEndX;
+        uint8_t xPos = sivEndX + ((zoneWidth > textWidth) ? ((zoneWidth - textWidth) / 2) : 0);
+
+        printColonText(xPos, yPos, statusText);
+        paintResets();
+        return;
+    }
+
+    // 64x48 / 128x64: unchanged two-line label + count layout.
     const paintBaseStats_t *baseStats;
 
     if (settings.baseCasterOverride == true)
@@ -2999,11 +3529,9 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
         }
     }
 
-    // 64x48 left justifies the count, the others shuffle it right of the colon
+    // 64x48 left justifies the count, 128x64 shuffles it right of the colon
     uint8_t xAdjust = 0;
-    if (present.display_type == DISPLAY_184x88)
-        xAdjust = 5;
-    else if (present.display_type == DISPLAY_128x64)
+    if (present.display_type == DISPLAY_128x64)
         xAdjust = 2;
 
     if (rtcmPacketsSent < 100)
@@ -3011,7 +3539,7 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
         theDisplay->setCursor(baseStats->xPosOfData + xAdjust, baseStats->yPosOfData);
     else
         // x, y - Push towards colon to make room for log icon
-        theDisplay->setCursor(baseStats->xPosOfData, baseStats->yPosOfData); 
+        theDisplay->setCursor(baseStats->xPosOfData, baseStats->yPosOfData);
 
     theDisplay->setFont(baseStats->theFontOfData, baseStats->theEpFontOfData);  // Set font
     theDisplay->print(rtcmPacketsSent); // rtcmPacketsSent is controlled in processRTCM()
@@ -3163,8 +3691,11 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
     else if (present.display_type == DISPLAY_184x88)
     {
         char myAddress[16];
+        bool haveAddress = false;
 
-        if (networkHasInternet() || wifiSoftApRunning)
+        if (dtActive())
+            haveAddress = dtIpAddress(myAddress, sizeof(myAddress)); // DisplayTest.ino scenario
+        else if (networkHasInternet() || wifiSoftApRunning)
         {
             // Reduce calls to networkGetIpAddress
             priority = networkGetPriority();
@@ -3178,23 +3709,137 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
             if (ipAddress != IPAddress((uint32_t)0))
             {
                 snprintf(myAddress, sizeof(myAddress), "%s", ipAddress.toString().c_str());
-
-                theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10X20);
-                uint16_t iconZoneWidth = baseBroadcastIconsTotalWidth();
-                uint8_t maxWidthPixels =
-                    (LoggingIconXPos184x88 > iconZoneWidth) ? (LoggingIconXPos184x88 - iconZoneWidth) : 0;
-                printFittedText(myAddress, 0, 68, 8, maxWidthPixels); // 8 pixels per character
+                haveAddress = true;
             }
+        }
+
+        if (haveAddress)
+        {
+            theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10X20);
+            // Reserve room for whichever icon zone actually applies - base broadcast icons
+            // (base mode) or the correction-source icon (rover mode). Only one is ever
+            // non-zero. Previously only the base case was reserved, so a rover's correction
+            // icon (e.g. the NTRIP client icon) could get overdrawn by the IP address.
+            uint16_t iconZoneWidth = baseBroadcastIconsTotalWidth() + correctionIconTotalWidth();
+            uint8_t maxWidthPixels =
+                (LoggingIconXPos184x88 > iconZoneWidth) ? (LoggingIconXPos184x88 - iconZoneWidth) : 0;
+            // 11 pixels per character: the QW_EP_FONT_10X20 print() pitch (10 + 1 kerning),
+            // not the 8x16 OLED companion font's width - the epaper font is what's actually
+            // measured here since present.display_type == DISPLAY_184x88. At the old value of
+            // 8, printFittedText() overestimated how many characters fit and never shuttled a
+            // long IP address, letting it run into the icons to its right.
+            printFittedText(myAddress, 0, 68, 11, maxWidthPixels);
         }
     }
 }
 
-void paintSerial6digit(uint8_t xPos, uint8_t yPos) // 184x88 e-paper only
+// Returns the printed width in pixels, so setRadioIcons() can pack the top-row icons immediately
+// after it (epaper_update.md Section 9/11 rule 1).
+// Inked column range of a native-size bitmap: firstColumn..lastColumn inclusive.
+// Returns false if the bitmap is blank.
+bool iconInkColumns(const iconProperty &icon, uint8_t &firstColumn, uint8_t &lastColumn)
 {
-    // Print six character serial number
+    const uint8_t *bitmap = (const uint8_t *)icon.bitmap;
+    uint8_t rowBytes = (icon.height + 7) / 8;
+    bool found = false;
+    for (uint8_t col = 0; col < icon.width; col++)
+    {
+        for (uint8_t rowByte = 0; rowByte < rowBytes; rowByte++)
+        {
+            if (bitmap[col + (rowByte * icon.width)])
+            {
+                if (!found)
+                    firstColumn = col;
+                lastColumn = col;
+                found = true;
+                break;
+            }
+        }
+    }
+    return found;
+}
+
+// 184x88 top row: lay out iconPropertyList2x[firstIcon..endIcon) left to right starting at startX,
+// butting each icon's inked columns gap pixels from the previous icon's. Icons queued at the same
+// x (the up and down arrows) share one slot. When apply is false, only measures. Returns the x
+// just past the last inked column.
+int16_t packTopRowIcons(size_t firstIcon, size_t endIcon, int16_t startX, uint8_t gap, bool apply)
+{
+    int16_t inkX = startX;
+    int16_t inkEndX = startX;
+    size_t i = firstIcon;
+    while (i < endIcon)
+    {
+        // Find the icons in this slot, and the slot's combined ink extent at 2x
+        size_t slotEnd = i;
+        uint8_t slotX = iconPropertyList2x[i].icon.xPos;
+        int16_t slotFirst = 255;
+        int16_t slotLast = -1;
+        while ((slotEnd < endIcon) && (iconPropertyList2x[slotEnd].icon.xPos == slotX))
+        {
+            uint8_t first;
+            uint8_t last;
+            if (iconInkColumns(iconPropertyList2x[slotEnd].icon, first, last))
+            {
+                if ((2 * first) < slotFirst)
+                    slotFirst = 2 * first;
+                if (((2 * last) + 1) > slotLast)
+                    slotLast = (2 * last) + 1;
+            }
+            slotEnd++;
+        }
+        if (slotLast < 0) // Blank bitmap(s) - take up no room
+        {
+            slotFirst = 0;
+            slotLast = -1;
+        }
+
+        int16_t xPos = inkX - slotFirst;
+        if (apply)
+            for (size_t j = i; j < slotEnd; j++)
+                iconPropertyList2x[j].icon.xPos = xPos;
+        inkEndX = xPos + slotLast + 1;
+        inkX = inkEndX + gap;
+        i = slotEnd;
+    }
+    return inkEndX;
+}
+
+// Smallest width paintSerial6digit() can print the serial number at
+uint8_t serialNumberMinWidth()
+{
+    char shortSerial[5];
+    snprintf(shortSerial, sizeof(shortSerial), "%.4s", serialNumber);
+    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
+    return printedTextWidth(shortSerial);
+}
+
+// Print the serial number in the top left corner, as large as fits in maxWidth pixels.
+// Returns the width printed. (epaper_update.md Section 11, rule 2)
+//   1. All six digits, 10x20 - unless BT is connected, whose icon stands in for the last two
+//   2. First four digits, 10x20
+//   3. First four digits, 8x16 - printed even if it still doesn't fit
+uint8_t paintSerial6digit(uint8_t maxWidth) // 184x88 e-paper only
+{
+    char shortSerial[5];
+    snprintf(shortSerial, sizeof(shortSerial), "%.4s", serialNumber);
+
     theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10X20);
-    theDisplay->setCursor(xPos, yPos);
-    theDisplay->print(serialNumber);
+    const char *text = serialNumber;
+    uint8_t yPos = 2; // Centered on the 2x icons, set from hardware photos
+    if (dtBtConnected() || (printedTextWidth(serialNumber) > maxWidth))
+    {
+        text = shortSerial;
+        if (printedTextWidth(shortSerial) > maxWidth)
+        {
+            theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
+            yPos = 6; // Keep the smaller text centered on the 2x icons
+        }
+    }
+
+    theDisplay->setCursor(0, yPos);
+    theDisplay->print(text);
+    return printedTextWidth(text);
 }
 void paintMACAddress4digit(uint8_t xPos, uint8_t yPos)
 {
@@ -3360,13 +4005,23 @@ void displaySDFail(uint16_t displayTime)
     displayMessage("Format\nSD Card", displayTime);
 }
 
+// Push to the 2x queue on 184x88 e-paper, the normal 1x queue everywhere else (OLEDs). Shared by
+// the WiFi icon helpers below, which are called from all three display types.
+void pushRadioIcon(std::vector<iconPropertyBlinking> *iconList, iconPropertyBlinking prop)
+{
+    if (present.display_type == DISPLAY_184x88)
+        pushIcon2x(prop);
+    else
+        iconList->push_back(prop);
+}
+
 // Display the full WiFi icon
 void displayWiFiFullIcon(std::vector<iconPropertyBlinking> *iconList, iconPropertyBlinking prop, uint8_t position,
                          uint8_t dutyCycle)
 {
     prop.duty = dutyCycle;
     prop.icon = *wifiIconTable[position][3];
-    iconList->push_back(prop);
+    pushRadioIcon(iconList, prop);
 }
 
 // Display the not connected WiFi icon
@@ -3375,18 +4030,14 @@ void displayWiFiNotConnectedIcon(std::vector<iconPropertyBlinking> *iconList, ic
 {
     prop.duty = dutyCycle;
     prop.icon = *wifiIconTable[position][4];
-    iconList->push_back(prop);
+    pushRadioIcon(iconList, prop);
 }
 
 // Display the WiFi icon based upon RSSI value
 void displayWiFiIcon(std::vector<iconPropertyBlinking> *iconList, iconPropertyBlinking prop, uint8_t position,
                      uint8_t dutyCycle)
 {
-#ifdef COMPILE_WIFI
-    int wifiRSSI = WiFi.RSSI();
-#else  // COMPILE_WIFI
-    int wifiRSSI = -40; // Dummy
-#endif // COMPILE_WIFI
+    int wifiRSSI = dtWifiRssi(); // Real RSSI, or a DisplayTest.ino scenario
 
     prop.duty = dutyCycle;
     // Based on RSSI, select icon
@@ -3398,7 +4049,7 @@ void displayWiFiIcon(std::vector<iconPropertyBlinking> *iconList, iconPropertyBl
         prop.icon = *wifiIconTable[position][1];
     else
         prop.icon = *wifiIconTable[position][0];
-    iconList->push_back(prop);
+    pushRadioIcon(iconList, prop);
 }
 
 // Draw a frame at outside edge
@@ -4003,6 +4654,60 @@ void paintResets()
 void displayBitmap(uint8_t x, uint8_t y, uint8_t imageWidth, uint8_t imageHeight, const uint8_t *imageData)
 {
     theDisplay->bitmap(x, y, (uint8_t *)imageData, imageWidth, imageHeight);
+}
+
+// Draws a 1x icons.h bitmap doubled to 2x (each source pixel becomes a 2x2 block). Used on the
+// 184x88 e-paper only, until dedicated 2x bitmap art exists - icons.h stays 1x for now
+// (epaper_update.md Section 11.4/11.10).
+//
+// This pixel-doubles into a scratch buffer and draws it through the normal displayBitmap() path,
+// rather than plotting individual pixels: COLOR_BLACK/COLOR_WHITE (OLED library) and
+// COLOR_ON/COLOR_OFF (e-paper library) are opposite polarities for the same numeric value (e-paper:
+// 1 = on/black, OLED: 1 = white), and HYBRID_DISPLAY::pixel() forwards the raw color byte to
+// whichever backend without translating between them. Reusing bitmap() - already correct for both
+// backends everywhere else in this file - sidesteps that trap entirely.
+void displayBitmap2x(uint8_t x0, uint8_t y0, const uint8_t *bitmap, uint8_t width, uint8_t height)
+{
+    uint8_t width2x = width * 2;
+    uint8_t height2x = height * 2;
+    uint8_t rows2x = (height2x + 7) / 8;
+
+    // Largest 184x88 icon today is 19x15 (Battery) -> doubled, 38 columns x 4 row-bytes = 152 bytes.
+    // 256 leaves headroom without a large stack/static allocation.
+    static uint8_t scratch[256];
+    if (((uint16_t)width2x * rows2x) > sizeof(scratch))
+        return; // Icon too large for the scratch buffer - shouldn't happen for any 184x88 icon
+    memset(scratch, 0, (size_t)width2x * rows2x);
+
+    for (uint8_t col = 0; col < width; col++)
+    {
+        for (uint8_t row = 0; row < height; row++)
+        {
+            uint8_t srcByte = bitmap[col + (row / 8) * width];
+            if ((srcByte & (1 << (row % 8))) == 0)
+                continue; // Source pixel is off - scratch already zeroed
+
+            for (uint8_t dx = 0; dx < 2; dx++)
+            {
+                uint8_t dstCol = col * 2 + dx;
+                for (uint8_t dy = 0; dy < 2; dy++)
+                {
+                    uint8_t dstRow = row * 2 + dy;
+                    scratch[dstCol + (dstRow / 8) * width2x] |= (1 << (dstRow % 8));
+                }
+            }
+        }
+    }
+
+    displayBitmap(x0, y0, width2x, height2x, scratch);
+}
+
+// Queues an icon to draw at 2x instead of native size (184x88 e-paper only - see
+// displayBitmap2x()). Mirrors push_back(prop) on the normal iconList, but the 2x queue is drawn
+// through a separate loop in displayUpdate() so its bitmaps get pixel-doubled at draw time.
+void pushIcon2x(iconPropertyBlinking prop)
+{
+    iconPropertyList2x.push_back(prop);
 }
 
 void displayKeysUpdated()

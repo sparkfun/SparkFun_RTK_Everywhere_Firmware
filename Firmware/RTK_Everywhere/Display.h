@@ -150,4 +150,63 @@ typedef struct {
     QwiicEpFont &theEpFontOfData;
 } paintBaseStats_t;
 
+// Display test mode scenarios - see DisplayTest.ino
+enum
+{
+    DT_WIFI_OFF = 0,
+    DT_WIFI_INTERNET, // Station with internet
+    DT_WIFI_NO_INTERNET,
+};
+
+enum
+{
+    DT_LOG_PULSE = 0,
+    DT_LOG_STANDARD,
+    DT_LOG_PPP,
+    DT_LOG_CUSTOM,
+};
+
+#define DT_BCAST(id) (1 << (id))
+#define DT_NO_CORRECTION 0xFF
+
+typedef struct
+{
+    const char *name;
+    SystemState state;
+    bool btConnected;
+    uint8_t wifi;
+    int8_t wifiRssi;
+    bool espNowPaired;
+    int16_t espNowRssi;
+    bool arrowDown;
+    bool arrowUp;
+    const iconProperties *dynamicModel;
+    uint8_t batteryPercent;
+    float hpa;
+    uint8_t siv;
+    bool pppIcon;
+    bool pppConverging;
+    bool pppConverged;
+    bool antennaShorted;
+    bool tilt;
+    const char *ip;
+    uint8_t correctionSource; // CORRECTION_ID_T or DT_NO_CORRECTION
+    uint8_t broadcasts;       // DT_BCAST() mask
+    bool ntripCasting;
+    bool baseCasterOverride;
+    uint16_t rtcmPackets;
+    uint8_t logging;
+    float surveyMean;
+    uint16_t surveyTime;
+    uint8_t screen; // DT_SCREEN_* - left out (0) on the normal status screens
+} displayTestScenario_t;
+
+// displayTestScenario_t.screen
+#define DT_SCREEN_STATUS 0    // The normal displayUpdate() status screen
+#define DT_SCREEN_BORDER 1    // Status screen plus a 1 px frame on the panel's outermost pixels
+#define DT_SCREEN_BOOT_LOGO 2 // paintBootLogo184x88()
+#define DT_SCREEN_BOOT_INFO 3 // paintBootInfo184x88()
+#define DT_SCREEN_POWERED_OFF 4 // paintPoweredOff184x88()
+#define DT_SCREEN_SHUTDOWN 5    // displayShutdown()
+
 #endif // __DISPLAY_H__

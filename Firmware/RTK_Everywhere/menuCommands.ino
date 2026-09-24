@@ -485,6 +485,16 @@ t_cliResult processCommand(char *cmdBuffer)
             }
         }
     }
+    else if ((strcmp(tokens[0], "SPEXE") == 0) && (tokenCount == 3) && (strcmp(tokens[1], "DISPLAYTEST") == 0))
+    {
+        // Force the 184x88 display into a canned test scenario (DisplayTest.ino)
+        if (displayTestCommand(tokens[2]) == false)
+            return (CLI_OK); // LIST or bad argument - stay in command mode
+
+        commandSendExecuteOkResponse(tokens[0], tokens[1]);
+        forceMenuExit = true; // Leave the menus so displayUpdate() runs
+        return (CLI_EXIT);
+    }
     else if (strcmp(tokens[0], "SPEXE") == 0)
     {
         if (tokenCount != 2)

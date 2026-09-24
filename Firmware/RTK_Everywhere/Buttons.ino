@@ -43,7 +43,7 @@ void powerDown(bool displayInfo)
     if (present.display_type == DISPLAY_184x88)
     {
         theDisplay->reset(true); // Ensure epaper memory is clear
-        theDisplay->displayNothing();
+        displayPoweredOff();     // Logo + model name - held on the panel with zero power
         while (theDisplay->isBusy())
             ; // Do nothing
         theDisplay->deepSleep();
