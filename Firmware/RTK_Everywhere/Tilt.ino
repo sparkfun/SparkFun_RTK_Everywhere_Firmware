@@ -1174,8 +1174,8 @@ static uint8_t *im19FrameMap = nullptr; // bit set = IM19 has confirmed receipt 
 static uint32_t im19TotalFrames = 0;
 static uint32_t im19FileSize = 0;
 static uint32_t im19NextFrameID = 0;
-static uint8_t *im19FrameAssembly = nullptr;
-static uint32_t im19FrameAssemblyLen = 0;
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 static void im19ReleaseBuffers()
 {
@@ -1183,12 +1183,6 @@ static void im19ReleaseBuffers()
     {
         free(im19FrameMap);
         im19FrameMap = nullptr;
-    }
-
-    if (im19FrameAssembly != nullptr)
-    {
-        free(im19FrameAssembly);
-        im19FrameAssembly = nullptr;
     }
 }
 
@@ -1199,14 +1193,6 @@ static bool im19AllocateBuffers()
     im19FrameMap = (uint8_t *)malloc(IM19_FRAME_MAP_SIZE);
     if (im19FrameMap == nullptr)
         return false;
-
-    im19FrameAssembly = (uint8_t *)malloc(IM19_FRAME_PAYLOAD_SIZE);
-    if (im19FrameAssembly == nullptr)
-    {
-        im19ReleaseBuffers();
-        return false;
-    }
-
     return true;
 }
 
@@ -1303,8 +1289,6 @@ static int im19CheckResponse(uint8_t *frameMap, uint32_t timeoutMs)
         switch (im19BufToUint16(p + 2))
         {
         case IM19_FRAME_TYPE_REQ:
-            if (frameMap == nullptr)
-                return -1;
             memcpy(frameMap, p + 12, IM19_FRAME_MAP_SIZE);
             return IM19_FRAME_TYPE_REQ;
         case IM19_FRAME_TYPE_RDY:
@@ -1319,9 +1303,6 @@ static int im19CheckResponse(uint8_t *frameMap, uint32_t timeoutMs)
 // True if every frame in [0, totalFrame) is marked present in frameMap.
 static bool im19AllFramesPresent(const uint8_t *frameMap, uint32_t totalFrame)
 {
-    if (frameMap == nullptr)
-        return false;
-
     for (uint32_t frame = 0; frame < totalFrame; frame++)
     {
         uint8_t bit = 0x01 << (frame % 8);
@@ -1399,17 +1380,10 @@ bool im19UpdateFirmwareBegin(size_t fileBytes)
         return false;
     }
 
-    if (!im19AllocateBuffers())
-    {
-        systemPrintln("Unable to allocate IM19 update buffers.");
-        return false;
-    }
-
     memset(im19FrameMap, 0, IM19_FRAME_MAP_SIZE);
     im19TotalFrames = totalFrames;
     im19FileSize = fileBytes;
     otaFileBytes = fileBytes;
-    im19FrameAssemblyLen = 0;
     im19NextFrameID = 0;
 
     for (int retry = 0; retry < 3; retry++)
@@ -1421,7 +1395,6 @@ bool im19UpdateFirmwareBegin(size_t fileBytes)
         if (im19SendATCommand("AT+UPDATE_APP\r\n", "OK", 5))
             return true;
     }
-    im19ReleaseBuffers();
     return false;
 }
 
@@ -1430,36 +1403,27 @@ bool im19UpdateFirmwareBegin(size_t fileBytes)
 void im19UpdateFirmwareSeek(uint32_t byteOffset)
 {
     im19NextFrameID = byteOffset / IM19_FRAME_PAYLOAD_SIZE;
-    im19FrameAssemblyLen = 0;
 }
 
 // Feeds a chunk of firmware bytes (any length, any alignment) to the IM19. Internally
 // groups them into 256 byte protocol frames and sends each as it fills.
 bool im19UpdateFirmware(const uint8_t * data, uint32_t numBytes)
 {
-    if (im19FrameAssembly == nullptr)
-        return false;
+    uint8_t frame[IM19_FRAME_TOTAL_SIZE] = {0};
 
-    uint32_t consumed = 0;
-    while (consumed < numBytes)
-    {
-        uint32_t copyLength = numBytes - consumed;
-        uint32_t space = IM19_FRAME_PAYLOAD_SIZE - im19FrameAssemblyLen;
-        if (copyLength > space)
-            copyLength = space;
+    // Add the payload to the frame
+    memcpy(&frame[12], data, numBytes);
+    if (numBytes < IM19_FRAME_PAYLOAD_SIZE)
+        memset(&frame[12 + numBytes], 0, IM19_FRAME_PAYLOAD_SIZE - numBytes);
+    im19BuildFrame(IM19_FRAME_TYPE_BIN, im19NextFrameID, frame);
 
-        memcpy(im19FrameAssembly + im19FrameAssemblyLen, data + consumed, copyLength);
-        im19FrameAssemblyLen += copyLength;
-        consumed += copyLength;
+    // Send the firmware bytes to the IM19
+    SerialForTilt->write(frame, sizeof(frame));
+    SerialForTilt->flush(); // Block until the frame is actually on the wire, not just queued
+    delay(IM19_FRAME_PACING_MS);
 
-        if (im19FrameAssemblyLen == IM19_FRAME_PAYLOAD_SIZE)
-        {
-            if (!im19SendOneFrame(im19NextFrameID, im19FrameAssembly))
-                return false;
-            im19NextFrameID++;
-            im19FrameAssemblyLen = 0;
-        }
-    }
+    // Account for this frame
+    im19NextFrameID++;
     return true;
 }
 
@@ -1469,22 +1433,6 @@ bool im19UpdateFirmware(const uint8_t * data, uint32_t numBytes)
 // or FAILED if the IM19 never responds.
 Im19UpdateResult im19UpdateFirmwareEnd(const OTA_TARGET * target)
 {
-    if ((im19FrameMap == nullptr) || (im19FrameAssembly == nullptr))
-        return IM19_UPDATE_FAILED;
-
-    // The last frame of the file is usually short - zero-pad and send it now.
-    if (im19FrameAssemblyLen > 0)
-    {
-        memset(im19FrameAssembly + im19FrameAssemblyLen, 0, IM19_FRAME_PAYLOAD_SIZE - im19FrameAssemblyLen);
-        if (!im19SendOneFrame(im19NextFrameID, im19FrameAssembly))
-        {
-            im19ReleaseBuffers();
-            return IM19_UPDATE_FAILED;
-        }
-        im19NextFrameID++;
-        im19FrameAssemblyLen = 0;
-    }
-
     im19SendCmdFrame(IM19_FRAME_TYPE_CPL, im19TotalFrames);
 
     int retry = IM19_CPL_RESPONSE_RETRIES;
@@ -1495,7 +1443,6 @@ Im19UpdateResult im19UpdateFirmwareEnd(const OTA_TARGET * target)
         if (response == IM19_FRAME_TYPE_RDY)
         {
             Im19UpdateResult result = im19VerifyFirmwareRunning() ? IM19_UPDATE_SUCCESS : IM19_UPDATE_FAILED;
-            im19ReleaseBuffers();
             return result;
         }
 
@@ -1505,7 +1452,6 @@ Im19UpdateResult im19UpdateFirmwareEnd(const OTA_TARGET * target)
             {
                 im19SendCmdFrame(IM19_FRAME_TYPE_RDY, im19TotalFrames);
                 Im19UpdateResult result = im19VerifyFirmwareRunning() ? IM19_UPDATE_SUCCESS : IM19_UPDATE_FAILED;
-                im19ReleaseBuffers();
                 return result;
             }
             return IM19_UPDATE_RETRY;
@@ -1516,7 +1462,6 @@ Im19UpdateResult im19UpdateFirmwareEnd(const OTA_TARGET * target)
     // and rebooted - the flash write can outlast our response timeout. Check the
     // running version before declaring failure.
     Im19UpdateResult result = im19VerifyFirmwareVersion(target) ? IM19_UPDATE_SUCCESS : IM19_UPDATE_FAILED;
-    im19ReleaseBuffers();
     return result;
 }
 
@@ -1969,10 +1914,19 @@ bool im19FirmwareUpdate(const char * subsystem,
     const char * server;
     String serverString;
     NetworkClient * stream;
+    bool success;
 
     do
     {
         errorMsg = nullptr;
+        success = false;
+
+        // Allocate the frame map buffer
+        if (im19AllocateBuffers() == false)
+        {
+            systemPrintln("ERROR: Failed to allocate the frame map buffer!");
+            break;
+        }
 
         // Verify that a URL was specified
         if(settings.debugFirmwareUpdate)
@@ -2131,6 +2085,7 @@ bool im19FirmwareUpdate(const char * subsystem,
                 {
                     systemPrintf("%s firmware update validated by firmware version check.\r\n", chip);
                     errorMsg = nullptr;
+                    success = true;
                 }
                 else
                 {
@@ -2156,7 +2111,6 @@ bool im19FirmwareUpdate(const char * subsystem,
     } while (0);
 
     // Display the firmware update status
-    bool success = (errorMsg == nullptr);
     systemPrintln(otaEqualSigns);
     if (success)
         systemPrintf("%s firmware update completed successfully\r\n", chip);
@@ -2168,9 +2122,8 @@ bool im19FirmwareUpdate(const char * subsystem,
     systemPrintln(otaEqualSigns);
 
     // Release the resources
+    im19ReleaseBuffers();
     http.end();
-    if (success == false)
-        im19ReleaseBuffers();
     return success;
 }
 
