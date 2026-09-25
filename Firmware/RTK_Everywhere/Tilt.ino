@@ -1171,9 +1171,9 @@ static const uint32_t IM19_CPL_RESPONSE_TIMEOUT_MS = 500;
 static const int IM19_CPL_RESPONSE_RETRIES = 30; // up to IM19_CPL_RESPONSE_RETRIES * IM19_CPL_RESPONSE_TIMEOUT_MS total
 
 static uint8_t *im19FrameMap = nullptr; // bit set = IM19 has confirmed receipt of that frame
-static uint32_t im19TotalFrames = 0;
-static uint32_t im19FileSize = 0;
-static uint32_t im19NextFrameID = 0;
+static uint32_t im19TotalFrames;
+static uint32_t im19NextFrameID;
+static uint32_t im19FileSize;
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1372,7 +1372,6 @@ bool im19UpdateFirmwareBegin(size_t fileBytes)
     im19TotalFrames = totalFrames;
     im19FileSize = fileBytes;
     otaFileBytes = fileBytes;
-    im19NextFrameID = 0;
 
     for (int retry = 0; retry < 3; retry++)
     {
@@ -1384,13 +1383,6 @@ bool im19UpdateFirmwareBegin(size_t fileBytes)
             return true;
     }
     return false;
-}
-
-// Repositions the frame-assembly cursor to a frame-aligned byte offset. Used before
-// streaming a retry range so its bytes land in the right frame IDs.
-void im19UpdateFirmwareSeek(uint32_t byteOffset)
-{
-    im19NextFrameID = byteOffset / IM19_FRAME_PAYLOAD_SIZE;
 }
 
 // Feeds a chunk of firmware bytes (any length, any alignment) to the IM19. Internally
@@ -1767,7 +1759,7 @@ static bool im19StreamMissingRanges(const char * subsystem,
                          runStart, (frame - 1), fileBytes);
 
             // Send the firmware data to the IM19
-            im19UpdateFirmwareSeek(startByte);
+            im19NextFrameID = runStart;
             success = im19StreamRange(subsystem,
                                       chip,
                                       url,
@@ -2031,8 +2023,10 @@ bool im19FirmwareUpdate(const char * subsystem,
         // Initialize the CRC to be computed over the entire firmware image
         tiltCrc = 0;
 
-        // Start the firmware update
+        // Set the initial frame
         im19NextFrameID = 0;
+
+        // Start the firmware update
         if (im19StreamFirmware(subsystem,
                                chip,
                                stream,
