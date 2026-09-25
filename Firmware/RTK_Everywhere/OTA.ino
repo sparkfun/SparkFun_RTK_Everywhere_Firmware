@@ -215,8 +215,8 @@ void otaPrintUpdateStart(const char * subsystem,
 
     otaFormatVersion(target->_localVersion, localVersion, sizeof(localVersion));
     otaFormatVersion(target->_remoteVersion, remoteVersion, sizeof(remoteVersion));
-    systemPrintf("Updating %s (%s) from %s to %s\r\n",
-                 chip, subsystem, localVersion, remoteVersion);
+    systemPrintf("%s (%s) updating from %s to %s\r\n",
+                 subsystem, chip, localVersion, remoteVersion);
 }
 
 //----------------------------------------
@@ -388,7 +388,6 @@ bool otaFirmwareUpdate(const char * subsystem,
     size_t fileBytes;
     HTTPClient https;
     NetworkClientSecure secureClient;
-    uint32_t startMsec;
     NetworkClient * stream;
     bool success;
 
@@ -405,11 +404,11 @@ bool otaFirmwareUpdate(const char * subsystem,
             break;
         }
 
-        // Display the firmware update start
+        // Display the firmware update being attempted
+        otaPrintUpdateStart(subsystem, chip, target);
         displayFirmwareStartUpdate(subsystem);
 
         // Connect to the web server and get the file size and stream
-        startMsec = millis();
         if (serverConnectUsingUrl(subsystem,
                                   chip,
                                   url,
@@ -424,9 +423,6 @@ bool otaFirmwareUpdate(const char * subsystem,
         }
         otaFileBytes = fileBytes;
 
-        // Display the firmware update being attempted
-        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
-
         // Verify the file size
         if ((fileBytes != target->_fileBytes) && (fileBytes != (size_t)-1))
         {
@@ -439,24 +435,29 @@ bool otaFirmwareUpdate(const char * subsystem,
         }
 
         // Initialize the progress bar
-        firmwareUpdateProgressReset(target->_fileBytes);
-
-        // Display the firmware update being attempted
-        otaPrintUpdateStart(subsystem, chip, target);
+        firmwareUpdateProgressReset(fileBytes);
 
         // Start the firmware update and display any streaming errors
-        success = subsystemInfo->_streamFirmware(subsystem,
-                                                 chip,
-                                                 stream,
-                                                 target->_fileBytes,
-                                                 target->_crc,
-                                                 otaFirmwareBuffer,
-                                                 subsystemInfo->_packetBytes);
-
-        // Display the performance
-        if (success)
-            otaDisplayPerformance(subsystem, chip, startMsec, millis(), fileBytes);
+        if (subsystemInfo->_streamFirmware(subsystem,
+                                           chip,
+                                           stream,
+                                           fileBytes,
+                                           target->_crc,
+                                           buffer,
+                                           packetBytes) == false)
+        {
+            break;
+        }
+        success = true;
     } while (0);
+
+    // Display the firmware update status
+    systemPrintln(otaEqualSigns);
+    if (success)
+        systemPrintf("%s (%s) firmware update completed successfully\r\n", subsystem, chip);
+    else
+        systemPrintf("%s (%s) firmware update failed!\r\n", subsystem, chip);
+    systemPrintln(otaEqualSigns);
 
     // Done with the web server.  The NetworkClient* and HTTPClient objects are
     // released automatically as the routine exits since they are stack local variables.
@@ -1312,7 +1313,7 @@ void otaStateFirmwareUpdate()
                 if (settings.debugFirmwareUpdate && otaDebugVerbose)
                 {
                     systemPrintf("%s (%s) is not implemented in this product\r\n",
-                                 chip, subsystem);
+                                 subsystem, chip);
 
                     // Display the subsystemInfo table
                     for (int index = 0; index < otaSubsystemInfoTableEntries; index++)
@@ -1333,7 +1334,7 @@ void otaStateFirmwareUpdate()
             if ((target->_requestType == OTA_REQUEST_SKIP_UPDATE)
                 || (target->_url == nullptr))
             {
-                systemPrintf("%s (%s): nothing to update (%s)\r\n", chip, subsystem,
+                systemPrintf("%s (%s): nothing to update (%s)\r\n", subsystem, chip,
                              (target->_requestType == OTA_REQUEST_SKIP_UPDATE) ? "skip requested" : "no URL");
                 continue;
             }
@@ -1343,18 +1344,19 @@ void otaStateFirmwareUpdate()
                 && (subsystemInfo->_streamFirmware == nullptr))
             {
                 systemPrintf("WARNING: Need to implement firmwareUpdate or streamFirmware support for %s (%s)!\r\n",
-                             chip, subsystem);
+                             subsystem, chip);
                 otaFirmwareUpdateStatusWebsocket(subsystemIndex, "Not currently available");
                 continue;
             }
 
             // Perform the update for the current target
             updatesPerformed += 1;
+            uint32_t startMsec = millis();
             if (subsystemInfo->_firmwareUpdate == nullptr)
             {
                 if (settings.debugFirmwareUpdate && otaDebugVerbose)
                     systemPrintf("%s (%s) is using _streamFirmware\r\n",
-                                 chip, subsystem);
+                                 subsystem, chip);
                 subsystemSuccess = otaFirmwareUpdate(subsystem,
                                                      chip,
                                                      target->_url,
@@ -1367,9 +1369,7 @@ void otaStateFirmwareUpdate()
             {
                 if (settings.debugFirmwareUpdate && otaDebugVerbose)
                     systemPrintf("%s (%s) is calling _firmwareUpdate\r\n",
-                                 chip, subsystem);
-                uint32_t startMsec = millis();
-                otaPrintUpdateStart(subsystem, chip, target);
+                                 subsystem, chip);
                 subsystemSuccess = subsystemInfo->_firmwareUpdate(subsystem,
                                                                   chip,
                                                                   target->_url,
@@ -1377,17 +1377,16 @@ void otaStateFirmwareUpdate()
                                                                   subsystemInfo,
                                                                   otaFirmwareBuffer,
                                                                   subsystemInfo->_packetBytes);
-
-                // Display the performance
-                if (subsystemSuccess)
-                    otaDisplayPerformance(subsystem,
-                                          chip,
-                                          startMsec,
-                                          millis(),
-                                          target->_fileBytes);
             }
 
-            if (subsystemSuccess == false)
+            // Display the performance
+            if (subsystemSuccess)
+                otaDisplayPerformance(subsystem,
+                                      chip,
+                                      startMsec,
+                                      millis(),
+                                      target->_fileBytes);
+            else
             {
                 allUpdatesSucceeded = false;
                 otaFirmwareUpdateStatusWebsocket(subsystemIndex,
