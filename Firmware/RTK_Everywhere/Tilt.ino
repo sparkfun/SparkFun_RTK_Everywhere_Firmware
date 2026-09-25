@@ -1238,18 +1238,6 @@ static void im19BuildFrame(uint16_t type, uint32_t id, uint8_t *frame)
     frame[7] = (check >> 24) & 0xFF;
 }
 
-// Sends one 256 byte firmware chunk as frame 'frameID'.
-static bool im19SendOneFrame(uint32_t frameID, const uint8_t *payload)
-{
-    uint8_t frame[IM19_FRAME_TOTAL_SIZE] = {0};
-    memcpy(&frame[12], payload, IM19_FRAME_PAYLOAD_SIZE);
-    im19BuildFrame(IM19_FRAME_TYPE_BIN, frameID, frame);
-    SerialForTilt->write(frame, sizeof(frame));
-    SerialForTilt->flush(); // Block until the frame is actually on the wire, not just queued
-    delay(IM19_FRAME_PACING_MS);
-    return true;
-}
-
 // Sends a command frame (CPL to ask what's missing, or RDY to tell the IM19 to boot).
 static void im19SendCmdFrame(uint16_t cmd, uint32_t frameTotal)
 {
