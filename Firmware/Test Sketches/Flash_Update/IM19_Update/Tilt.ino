@@ -494,7 +494,6 @@ static bool im19StreamRange(const char * subsystem,
     NetworkClientSecure secureClient;
     NetworkClient * stream;
     bool success;
-    NetworkClient unsecureClient;
 
     // Display the parameters
     if (settings.debugFirmwareUpdate && otaDebugVerbose)
@@ -516,7 +515,6 @@ static bool im19StreamRange(const char * subsystem,
                                         chip,
                                         url,
                                         secureClient,
-                                        unsecureClient,
                                         stream,
                                         https,
                                         im19AddRangeHeader,
@@ -750,7 +748,6 @@ bool im19FirmwareUpdate(const char * subsystem,
     NetworkClientSecure secureClient;
     NetworkClient * stream;
     bool success;
-    NetworkClient unsecureClient;
 
     do
     {
@@ -780,7 +777,6 @@ bool im19FirmwareUpdate(const char * subsystem,
                                   chip,
                                   url,
                                   secureClient,
-                                  unsecureClient,
                                   stream,
                                   https,
                                   nullptr,

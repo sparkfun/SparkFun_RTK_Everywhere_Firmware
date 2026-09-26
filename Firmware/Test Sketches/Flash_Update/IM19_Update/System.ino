@@ -180,7 +180,6 @@ bool serverConnectUsingUrl(const char * subsystem,
                            const char * chip,
                            const char * url,
                            NetworkClientSecure &secureClient,
-                           NetworkClient &unsecureClient,
                            NetworkClient * &stream,
                            HTTPClient &https,
                            void (*addHeaders)(HTTPClient &https),
@@ -229,17 +228,13 @@ bool serverConnectUsingUrl(const char * subsystem,
         if(settings.debugFirmwareUpdate)
             systemPrintf("Certificate: %s\r\n", cert ? "available" : "none");
 
-        // Select the network connection depending upon the presents of the certificate
-        stream = cert ? &secureClient : &unsecureClient;
-
-        // Bound the connect/read/write and TLS handshake time. HTTPClient's
-        // defaults (30 s socket / 120 s handshake) mean a stalled server can
-        // block a single attempt for up to two minutes, times 3 retries below.
-        stream->setTimeout(10000);   // milliseconds: TCP connect + socket read/write
-
         // Verify the server using the certificate
         if (cert)
         {
+            // Bound the connect/read/write and TLS handshake time. HTTPClient's
+            // defaults (30 s socket / 120 s handshake) mean a stalled server can
+            // block a single attempt for up to two minutes, times 3 retries below.
+            secureClient.setTimeout(10000);       // milliseconds: TCP connect + socket read/write
             secureClient.setHandshakeTimeout(15); // seconds: TLS handshake
 
             // Set the certificate
@@ -259,8 +254,11 @@ bool serverConnectUsingUrl(const char * subsystem,
         const int attemptMax = 3;
         for (int attempt = 1; attempt <= attemptMax; attempt++)
         {
+            bool beginSuccess;
+
             // Build the request for the web server
-            if (https.begin(*stream, url) == false)
+            beginSuccess = cert ? https.begin(secureClient, url) : https.begin(url);
+            if (beginSuccess == false)
             {
                 systemPrintln("ERROR: Failed to set the URL for the web server!\r\n");
                 break;
@@ -290,7 +288,7 @@ bool serverConnectUsingUrl(const char * subsystem,
 
             // Handle the error
             https.end();
-            stream->stop();
+            secureClient.stop();
         }
         if (attempt > attemptMax)
             break;
@@ -324,6 +322,8 @@ bool serverConnectUsingUrl(const char * subsystem,
             break;
         }
 
+        // Get the stream
+        stream = https.getStreamPtr();
         success = true;
     } while (0);
 
