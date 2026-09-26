@@ -1176,6 +1176,8 @@ static uint32_t im19NextFrameID;
 static size_t im19StartByte;
 static size_t im19LastByte;
 
+static const int im19MaxAttempts = 10;
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 static void im19ReleaseBuffers()
@@ -1837,6 +1839,65 @@ void im19InitUart()
 }
 
 //----------------------------------------
+// Retransmit missing frames
+//----------------------------------------
+bool im19RetransmitMissingFrames(const char * subsystem,
+                                 const char * chip,
+                                 const char * url,
+                                 const OTA_TARGET * target,
+                                 uint8_t * buffer,
+                                 size_t packetBytes)
+{
+    bool success;
+
+    // Attempt to retransmit missing frames
+    success = false;
+    for (int attempt = 1; attempt <= im19MaxAttempts; attempt++)
+    {
+        // Let the device know that the firmware update is complete and get
+        // the list of missing frames
+        Im19UpdateResult result = im19UpdateFirmwareEnd(target);
+        if (result == IM19_UPDATE_SUCCESS)
+        {
+            // No frames missing, firmware successfully sent to chip
+            success = true;
+            break;
+        }
+
+        // Determine if something worse than missing frames has occurred
+        if (result == IM19_UPDATE_FAILED)
+        {
+            if (im19VerifyFirmwareVersion(target))
+            {
+                systemPrintf("%s (%s) firmware update validated by firmware version check.\r\n",
+                             subsystem, chip);
+                success = true;
+            }
+            else
+                systemPrintf("ERROR: %s (%s) firmware update failed: no response from %s.\r\n",
+                             subsystem, chip, chip);
+            break;
+        }
+
+        // IM19_UPDATE_RETRY - the IM19 told us exactly which frames it's missing.
+        systemPrintf("Attempt %d: %s (%s) reports missing frames.\r\n",
+                     attempt, subsystem, chip);
+        if (!im19StreamMissingRanges(subsystem, chip, url, buffer, packetBytes))
+        {
+            systemPrintf("ERROR: %s (%s) firmware update failed while requesting missing frames.\r\n",
+                         subsystem, chip);
+            break;
+        }
+    }
+
+    // Determine if the retry attempts were exhausted
+    if (success == false)
+        systemPrintf("ERROR: %s (%s) firmware update failed: too many retries.\r\n",
+                     subsystem, chip);
+    return success;
+}
+
+//----------------------------------------
 // Updates the IM19 module firmware from the given URL over WiFi.
 //
 // Structure (see the header comment at the top of the .ino for the general pattern):
@@ -1954,44 +2015,10 @@ bool im19FirmwareUpdate(const char * subsystem,
             break;
         }
 
-        const int maxAttempts = 5;
-        int attempt;
-        for (attempt = 1; attempt <= maxAttempts; attempt++)
-        {
-            Im19UpdateResult result = im19UpdateFirmwareEnd(target);
-            if (result == IM19_UPDATE_SUCCESS)
-            {
-                success = true;
-                break;
-            }
-
-            if (result == IM19_UPDATE_FAILED)
-            {
-                if (im19VerifyFirmwareVersion(target))
-                {
-                    systemPrintf("%s (%s) firmware update validated by firmware version check.\r\n",
-                                 subsystem, chip);
-                    success = true;
-                }
-                else
-                    systemPrintf("ERROR: %s (%s) firmware update failed: no response from IM19.\r\n",
-                                 subsystem, chip, chip);
-                break;
-            }
-
-            // IM19_UPDATE_RETRY - the IM19 told us exactly which frames it's missing.
-            systemPrintf("Attempt %d: %s (%s) reports missing frames.\r\n",
-                         attempt, subsystem, chip);
-            if (!im19StreamMissingRanges(subsystem, chip, url, buffer, packetBytes))
-            {
-                systemPrintf("ERROR: %s (%s) firmware update failed while requesting missing frames.\r\n",
-                             subsystem, chip);
-                break;
-            }
-        }
-        if (attempt > maxAttempts)
-            systemPrintf("ERROR: %s (%s) firmware update failed: too many retries.\r\n",
-                         subsystem, chip);
+        // Attempt to retransmit missing frames
+        if (im19RetransmitMissingFrames(subsystem, chip, url, target, buffer, packetBytes) == false)
+            break;
+        success = true;
     } while (0);
 
     // Attempt to display the firmware version
