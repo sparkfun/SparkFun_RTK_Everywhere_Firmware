@@ -4185,7 +4185,6 @@ bool mosaicFirmwareUpdate(const char * subsystem,
     NetworkClient * stream;
     uint32_t startMsec;
     bool success = false;
-    NetworkClient unsecureClient;
 
     // mosaicFirmwareUpdatePort() returns nullptr for any platform the update sequence isn't
     // supported on - currently Facet mosaic (see its comment) plus anything else that isn't
@@ -4221,7 +4220,6 @@ bool mosaicFirmwareUpdate(const char * subsystem,
                                   chip,
                                   url,
                                   secureClient,
-                                  unsecureClient,
                                   stream,
                                   https,
                                   nullptr,

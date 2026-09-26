@@ -399,7 +399,6 @@ bool otaFirmwareUpdate(const char * subsystem,
     uint32_t startMsec;
     NetworkClient * stream;
     bool success;
-    NetworkClient unsecureClient;
 
     do
     {
@@ -423,7 +422,6 @@ bool otaFirmwareUpdate(const char * subsystem,
                                   chip,
                                   url,
                                   secureClient,
-                                  unsecureClient,
                                   stream,
                                   https,
                                   nullptr,

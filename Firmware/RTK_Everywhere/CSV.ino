@@ -398,7 +398,6 @@ bool csvOpenCsvFile(const char * url,
     uint32_t startMsec;
     NetworkClient * stream;
     bool success;
-    NetworkClient unsecureClient;
 
     do
     {
@@ -411,7 +410,6 @@ bool csvOpenCsvFile(const char * url,
                                   "All",
                                   url,
                                   secureClient,
-                                  unsecureClient,
                                   stream,
                                   https,
                                   nullptr,
