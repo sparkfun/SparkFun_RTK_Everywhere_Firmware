@@ -414,7 +414,7 @@ bool im19StreamFirmware(const char * subsystem,
                 // Check for network timeout
                 if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
                 {
-                    systemPrintf("ERROR: Timed out waiting for data\r\n");
+                    systemPrintln("ERROR: Timed out waiting for data");
                     break;
                 }
                 yield();
@@ -680,7 +680,6 @@ bool im19RetransmitMissingFrames(const char * subsystem,
                                  uint8_t * buffer,
                                  size_t packetBytes)
 {
-    int attempt;
     bool success;
 
     // Attempt to retransmit missing frames
@@ -700,22 +699,26 @@ bool im19RetransmitMissingFrames(const char * subsystem,
         // Determine if something worse than missing frames has occurred
         if (result == IM19_UPDATE_FAILED)
         {
-            systemPrintf("ERROR: %s firmware update failed: no response from %s.\r\n", chip, chip);
+            systemPrintf("ERROR: %s (%s) firmware update failed: no response from %s.\r\n",
+                         subsystem, chip, chip);
             break;
         }
 
         // IM19_UPDATE_RETRY - the IM19 told us exactly which frames it's missing.
-        systemPrintf("Attempt %d: %s reports missing frames.\r\n", attempt, chip);
+        systemPrintf("Attempt %d: %s (%s) reports missing frames.\r\n",
+                     attempt, subsystem, chip);
         if (!im19StreamMissingRanges(subsystem, chip, url, buffer, packetBytes))
         {
-            systemPrintf("ERROR: %s firmware update failed while requesting missing frames.\r\n", chip);
+            systemPrintf("ERROR: %s (%s) firmware update failed while requesting missing frames.\r\n",
+                         subsystem, chip);
             break;
         }
     }
 
     // Determine if the retry attempts were exhausted
     if (success == false)
-        systemPrintf("ERROR: %s firmware update failed: too many retries.\r\n", chip);
+        systemPrintf("ERROR: %s (%s) firmware update failed: too many retries.\r\n",
+                     subsystem, chip);
     return success;
 }
 
@@ -769,6 +772,9 @@ bool im19FirmwareUpdate(const char * subsystem,
             break;
         }
 
+        // Display the firmware update being attempted
+        systemPrintf("Updating %s (%s)\r\n", subsystem, chip);
+
         // Initialize the UART communicating with the IM19
         im19InitUart();
 
@@ -787,17 +793,15 @@ bool im19FirmwareUpdate(const char * subsystem,
         }
         otaFileBytes = fileBytes;
 
-        // Display the firmware update being attempted
-        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
-
         // Erase the device and prepare it for a firmware update
-        systemPrintf("Entering the %s bootloader\r\n", chip);
+        systemPrintf("%s (%s) entering bootloader mode...\r\n", subsystem, chip);
         if (im19UpdateFirmwareBegin(fileBytes) == false)
         {
-            systemPrintf("ERROR: %s did not respond to the bootloader entry command.\r\n", chip);
+            systemPrintf("ERROR: %s (%s) did not respond to the bootloader entry command.\r\n",
+                         subsystem, chip);
             break;
         }
-        systemPrintf("%s is in bootloader mode.\r\n", chip);
+        systemPrintf("%s (%s) is in bootloader mode.\r\n", subsystem, chip);
 
         // Set the initial frame
         im19NextFrameID = 0;
@@ -814,18 +818,20 @@ bool im19FirmwareUpdate(const char * subsystem,
         }
 
         // Attempt to retransmit missing frames
-        success = im19RetransmitMissingFrames(subsystem, chip, url, buffer, packetBytes);
+        if (im19RetransmitMissingFrames(subsystem, chip, url, buffer, packetBytes) == false)
+            break;
+        success = true;
     } while (0);
+
+    // Attempt to display the firmware version
+    im19GetVersionString(subsystem, chip);
 
     // Display the firmware update status
     systemPrintln(otaEqualSigns);
     if (success)
-        systemPrintf("%s (%s) firmware update completed successfully\r\n", chip, subsystem);
+        systemPrintf("%s (%s) firmware update completed successfully\r\n", subsystem, chip);
     else
-        systemPrintf("%s (%s) firmware update failed!\r\n", chip, subsystem);
-
-    // Attempt to display the IM19 firmware version
-    im19GetVersionString(subsystem, chip);
+        systemPrintf("%s (%s) firmware update failed!\r\n", subsystem, chip);
     systemPrintln(otaEqualSigns);
 
     // Release the resources
@@ -856,7 +862,8 @@ bool im19GetVersionString(const char * subsystem, const char * chip)
         tiltSensor = new IM19();
         if (tiltSensor == nullptr)
         {
-            systemPrintln("ERROR: IM19 firmware upload fail to allocate tiltSensor");
+            systemPrintf("ERROR: %s (%s) firmware upload fail to allocate tiltSensor\r\n",
+                         subsystem, chip);
             break;
         }
 
@@ -865,7 +872,7 @@ bool im19GetVersionString(const char * subsystem, const char * chip)
 
         if (tiltSensor->begin(*SerialForTilt) == false) // Give the serial port over to the library
         {
-            systemPrintln("IM19 firmware version not available");
+            systemPrintf("%s (%s) firmware version not available\r\n", subsystem, chip);
             break;
         }
 
@@ -880,13 +887,14 @@ bool im19GetVersionString(const char * subsystem, const char * chip)
             snprintf(imuFirmwareVersionStr, sizeof(imuFirmwareVersionStr), "%s", appVersionPtr + 1);
         else
         {
-            systemPrintln("IM19 App Version not found in full version string");
+            systemPrintf("IM19 App Version not found in full version string\r\n",
+                         subsystem, chip);
             imuFirmwareVersionStr[0] = '\0';
         }
 
         if (settings.debugFirmwareUpdate)
-            systemPrintf("%s (%s) Full Version: %s\r\n", chip, subsystem, rawFirmwareVersionStr);
-        systemPrintf("%s (%s) firmware: %s\r\n", chip, subsystem, imuFirmwareVersionStr);
+            systemPrintf("%s (%s) Full Version: %s\r\n", subsystem, chip, rawFirmwareVersionStr);
+        systemPrintf("%s (%s) firmware: %s\r\n", subsystem, chip, imuFirmwareVersionStr);
     } while (0);
     if (tiltSensor)
         delete tiltSensor;
@@ -945,12 +953,13 @@ bool im19ArrayFlashUpdate(const char * subsystem,
         stream = (NetworkClient *)&dataArray;
 
         // Display the firmware update being attempted
-        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
+        systemPrintf("Updating %s (%s)\r\n", subsystem, chip);
 
         // Erase the device and prepare it for a firmware update
         if (im19UpdateFirmwareBegin(fileBytes) == false)
         {
-            systemPrintf("ERROR: %s did not respond to the bootloader entry command.\r\n", chip);
+            systemPrintf("ERROR: %s (%s) did not respond to the bootloader entry command.\r\n",
+                         subsystem, chip);
             break;
         }
 
@@ -969,18 +978,20 @@ bool im19ArrayFlashUpdate(const char * subsystem,
         }
 
         // Attempt to retransmit missing frames
-        success = im19RetransmitMissingFrames(subsystem, chip, nullptr, buffer, packetBytes);
+        if (im19RetransmitMissingFrames(subsystem, chip, nullptr, buffer, packetBytes) == false)
+            break;
+        success = true;
     } while (0);
+
+    // Attempt to display the firmware version
+    im19GetVersionString(subsystem, chip);
 
     // Display the firmware update status
     systemPrintln(otaEqualSigns);
     if (success)
-        systemPrintf("%s (%s) firmware update completed successfully\r\n", chip, subsystem);
+        systemPrintf("%s (%s) firmware update completed successfully\r\n", subsystem, chip);
     else
-        systemPrintf("%s (%s) firmware update failed!\r\n", chip, subsystem);
-
-    // Attempt to display the IM19 firmware version
-    im19GetVersionString(subsystem, chip);
+        systemPrintf("%s (%s) firmware update failed!\r\n", subsystem, chip);
     systemPrintln(otaEqualSigns);
 
     // Release the resources

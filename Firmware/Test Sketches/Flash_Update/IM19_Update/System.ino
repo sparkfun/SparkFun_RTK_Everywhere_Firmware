@@ -57,7 +57,7 @@ void firmwareUpdateProgressCallback(const char * subsystem,
 
     firmwareUpdateLastPercent = progressPercent;
 
-    systemPrintf("%s (%s) Update Progress: [", chip, subsystem);
+    systemPrintf("%s (%s) Update Progress: [", subsystem, chip);
     for (uint8_t i = 0; i < progressBarWidth; i++)
         systemWrite(i < filled ? '#' : '-');
 
@@ -1004,15 +1004,19 @@ void muxSelectLoRaConfigure()
 //----------------------------------------
 // Display the MUX configuration
 //----------------------------------------
-void muxDisplayConfiguration()
+void muxDisplayConfiguration(int muxA, int muxB)
 {
-    int muxA = digitalRead(pin_muxA);
-    int muxB = digitalRead(pin_muxB);
-
     if (productVariant == RTK_TORCH)
     {
         const char * uart0;
         const char * uart1;
+
+        // Connect ESP32 UART 0 to the CH340 (USB)
+        if (muxB)
+        {
+            Serial.flush();
+            digitalWrite(pin_muxB, LOW);
+        }
 
         //                      MUX A
         //                    .--(1) <--> LoRa UART 1
@@ -1032,6 +1036,13 @@ void muxDisplayConfiguration()
         // Display the UART configuration
         systemPrintf("ESP32 UART 0: %s\r\n", uart0);
         systemPrintf("ESP32 UART 1: %s\r\n", uart1);
+
+        // Restore the ESP32 UART 0 connection
+        if (muxB)
+        {
+            Serial.flush();
+            digitalWrite(pin_muxB, muxB);
+        }
     }
     else if (productVariant == RTK_FACET_MOSAIC)
     {
@@ -1714,7 +1725,7 @@ void systemDisplayConfiguration()
         gpioExpanderDisplay();
 
     // Display the MUX configuration
-    muxDisplayConfiguration();
+    muxDisplayConfiguration(digitalRead(pin_muxA), digitalRead(pin_muxB));
 
     // Display the microSD support
     if (present.microSd)
