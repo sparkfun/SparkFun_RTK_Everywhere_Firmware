@@ -1840,12 +1840,19 @@ void im19InitUart()
 // Updates the IM19 module firmware from the given URL over WiFi.
 //
 // Structure (see the header comment at the top of the .ino for the general pattern):
-//   1. Connect to WiFi.
-//   2. im19UpdateFirmwareBegin() puts the IM19 into its bootloader.
-//   3. Stream the file once, feeding chunks to im19UpdateFirmware().
-//   4. im19UpdateFirmwareEnd() asks the IM19 what it's missing. If anything, re-request
-//      only those byte ranges (im19StreamMissingRanges) and ask again - up to a few
-//      attempts - rather than re-streaming the whole binary.
+//   1. Initialize the UART
+//   2. Connect to the web server
+//   3. Get the file size
+//   4. Get the stream for the file data
+//   5. im19UpdateFirmwareBegin() puts the IM19 into its bootloader
+//   6. Stream the file once, feeding chunks to im19UpdateFirmware()
+//   7. im19UpdateFirmwareEnd() asks the IM19 what it's missing
+//   8. If anything is missing:
+//      a. Re-request only those byte ranges (im19StreamMissingRanges) rather than
+//         re-streaming the whole binary file
+//      b. im19UpdateFirmwareEnd() asks the IM19 what it's missing
+//      c. Repeat as needed for a few attempts
+//   9. Display the final firmware update status
 //----------------------------------------
 bool im19FirmwareUpdate(const char * subsystem,
                         const char * chip,
@@ -1855,22 +1862,14 @@ bool im19FirmwareUpdate(const char * subsystem,
                         uint8_t * buffer,
                         size_t packetBytes)
 {
-    const char * cert;
-    NetworkClientSecure client;
-    const char * errorMsg;
     size_t fileBytes;
-    HTTPClient http;
-    String ipAddressString;
-    const char * ipAddress;
-    char msgBuffer[128];
-    const char * server;
-    String serverString;
+    HTTPClient https;
+    NetworkClientSecure secureClient;
     NetworkClient * stream;
     bool success;
 
     do
     {
-        errorMsg = nullptr;
         success = false;
 
         // Allocate the frame map buffer
@@ -1885,86 +1884,28 @@ bool im19FirmwareUpdate(const char * subsystem,
             systemPrintf("URL: %s\r\n", url ? url : "[nullptr]");
         if ((url == nullptr) || (strlen(url) == 0))
         {
-            errorMsg = "ERROR: No URL was specified!";
+            systemPrintln("ERROR: No URL was specified!");
             break;
         }
 
-        // Display the firmware update start
+        // Display the firmware update being attempted
         displayFirmwareStartUpdate(subsystem);
+        otaPrintUpdateStart(subsystem, chip, target);
 
         // Initialize the UART communicating with the IM19
         im19InitUart();
 
-        // Locate the server for this URL
-        serverString = getServerFromUrl(url);
-        if (serverString.length() == 0)
+        // Connect to the web server and get the file size and stream
+        if (serverConnectUsingUrl(subsystem,
+                                  chip,
+                                  url,
+                                  secureClient,
+                                  stream,
+                                  https,
+                                  nullptr,
+                                  HTTP_CODE_OK,
+                                  fileBytes) == false)
         {
-            errorMsg = "ERROR: Failed to find server name in URL string";
-            break;
-        }
-        server = serverString.c_str();
-
-        // Translate the server name into an IP address
-        ipAddressString = getServerIpAddress(server);
-        if (ipAddressString.length() == 0)
-        {
-            errorMsg = "Failed to get the IP address for the server\r\n";
-            break;
-        }
-        ipAddress = ipAddressString.c_str();
-
-        // Determine if the certificate is known for this server
-        cert = getCertFromUrl(url);
-        if(settings.debugFirmwareUpdate)
-            systemPrintf("Certificate: %s\r\n", cert ? "available" : "none");
-
-        // Use an encrypted and verified connection when possible
-        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-        if (cert)
-        {
-            // Verify the server using the certificate
-            if (!securelyConnectToServer(url, client, cert))
-            {
-                //                           1         2         3         4         5         6         7         8         9
-                //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-                sprintf(msgBuffer, "ERROR: Failed to securely connect to %s (%s)", server, ipAddress);
-                errorMsg = msgBuffer;
-                break;
-            }
-
-            // Request the URL from the web server
-            if (!http.begin(client, url))
-            {
-                errorMsg = "ERROR: unable to begin HTTPS request.";
-                break;
-            }
-        }
-
-        // Request the URL from the web server
-        else if (!http.begin(url))
-        {
-            errorMsg = "ERROR: Unable to begin HTTP request.";
-            break;
-        }
-
-        // Get the web server's response
-        int httpCode = http.GET();
-        if (httpCode != HTTP_CODE_OK)
-        {
-            //                           1         2         3         4         5         6         7         8         9
-            //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-            sprintf(msgBuffer, "ERROR: Update failed HTTP GET request, code: %d", httpCode);
-            errorMsg = msgBuffer;
-            break;
-        }
-
-        // Get the file size
-        fileBytes = http.getSize();
-        if (settings.debugFirmwareUpdate)
-            systemPrintf("File size: %d (0x%08x) bytes\r\n", fileBytes, fileBytes);
-        if (fileBytes <= 0)
-        {
-            errorMsg = "ERROR: Web server did not report a file size.";
             break;
         }
         otaFileBytes = fileBytes;
@@ -1972,25 +1913,20 @@ bool im19FirmwareUpdate(const char * subsystem,
         // Validate the file size
         if (fileBytes != target->_fileBytes)
         {
-            //                           1         2         3         4         5         6         7         8         9
-            //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-            sprintf(msgBuffer, "ERROR: File size has changed, expecting %d bytes, actual %d bytes",
-                    target->_fileBytes, fileBytes);
-            errorMsg = msgBuffer;
+            systemPrintf("ERROR: File size has changed, expecting %d bytes, actual %d bytes\r\n",
+                         target->_fileBytes, fileBytes);
             break;
         }
 
-        // Get the connection to the file data
-        stream = http.getStreamPtr();
-
-        if (!im19UpdateFirmwareBegin(fileBytes))
+        // Erase the device and prepare it for a firmware update
+        systemPrintf("%s (%s) entering bootloader mode...\r\n", subsystem, chip);
+        if (im19UpdateFirmwareBegin(fileBytes) == false)
         {
-            //                           1         2         3         4         5         6         7         8         9
-            //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-            sprintf(msgBuffer, "ERROR: %s did not respond to the bootloader entry command.", chip);
-            errorMsg = msgBuffer;
+            systemPrintf("ERROR: %s (%s) did not respond to the bootloader entry command.\r\n",
+                         subsystem, chip);
             break;
         }
+        systemPrintf("%s (%s) is in bootloader mode.\r\n", subsystem, chip);
 
         // Initialize the CRC to be computed over the entire firmware image
         tiltCrc = 0;
@@ -1998,7 +1934,7 @@ bool im19FirmwareUpdate(const char * subsystem,
         // Set the initial frame
         im19NextFrameID = 0;
 
-        // Start the firmware update
+        // Start the firmware update and display any streaming errors
         if (im19StreamFirmware(subsystem,
                                chip,
                                stream,
@@ -2006,7 +1942,6 @@ bool im19FirmwareUpdate(const char * subsystem,
                                buffer,
                                packetBytes) == false)
         {
-            errorMsg = "ERROR: Failed to stream firmware to the device.";
             break;
         }
 
@@ -2015,21 +1950,18 @@ bool im19FirmwareUpdate(const char * subsystem,
         {
             systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n",
                          target->_crc, tiltCrc);
-            errorMsg = "ERROR: File has changed, CRC does not match!";
+            systemPrintln("ERROR: File has changed, CRC does not match!");
             break;
         }
 
         const int maxAttempts = 5;
-        //                           1         2         3         4         5         6         7         8         9
-        //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-        sprintf(msgBuffer, "ERROR: %s firmware update failed: too many retries.", chip);
-        errorMsg = msgBuffer;
-        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        int attempt;
+        for (attempt = 1; attempt <= maxAttempts; attempt++)
         {
             Im19UpdateResult result = im19UpdateFirmwareEnd(target);
             if (result == IM19_UPDATE_SUCCESS)
             {
-                errorMsg = nullptr;
+                success = true;
                 break;
             }
 
@@ -2037,47 +1969,46 @@ bool im19FirmwareUpdate(const char * subsystem,
             {
                 if (im19VerifyFirmwareVersion(target))
                 {
-                    systemPrintf("%s firmware update validated by firmware version check.\r\n", chip);
-                    errorMsg = nullptr;
+                    systemPrintf("%s (%s) firmware update validated by firmware version check.\r\n",
+                                 subsystem, chip);
                     success = true;
                 }
                 else
-                {
-                    //                           1         2         3         4         5         6         7         8         9
-                    //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-                    sprintf(msgBuffer, "ERROR: %s firmware update failed: no response from IM19.", chip, chip);
-                    errorMsg = msgBuffer;
-                }
+                    systemPrintf("ERROR: %s (%s) firmware update failed: no response from IM19.\r\n",
+                                 subsystem, chip, chip);
                 break;
             }
 
             // IM19_UPDATE_RETRY - the IM19 told us exactly which frames it's missing.
-            systemPrintf("Attempt %d: %s reports missing frames.\r\n", attempt, chip);
+            systemPrintf("Attempt %d: %s (%s) reports missing frames.\r\n",
+                         attempt, subsystem, chip);
             if (!im19StreamMissingRanges(subsystem, chip, url, buffer, packetBytes))
             {
-                //                           1         2         3         4         5         6         7         8         9
-                //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-                sprintf(msgBuffer, "ERROR: %s firmware update failed while requesting missing frames.", chip);
-                errorMsg = msgBuffer;
+                systemPrintf("ERROR: %s (%s) firmware update failed while requesting missing frames.\r\n",
+                             subsystem, chip);
                 break;
             }
         }
+        if (attempt > maxAttempts)
+            systemPrintf("ERROR: %s (%s) firmware update failed: too many retries.\r\n",
+                         subsystem, chip);
     } while (0);
+
+    // Attempt to display the firmware version
+    im19GetVersionString();
 
     // Display the firmware update status
     systemPrintln(otaEqualSigns);
     if (success)
-        systemPrintf("%s firmware update completed successfully\r\n", chip);
+        systemPrintf("%s (%s) firmware update completed successfully\r\n", subsystem, chip);
     else
-        systemPrintf("%s\r\n", errorMsg);
-
-    // Attempt to display the IM19 firmware version
-    im19GetVersionString();
+        systemPrintf("%s (%s) firmware update failed!\r\n", subsystem, chip);
     systemPrintln(otaEqualSigns);
 
     // Release the resources
     im19ReleaseBuffers();
-    http.end();
+    https.end();
+
     return success;
 }
 
