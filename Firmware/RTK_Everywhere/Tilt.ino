@@ -1995,7 +1995,7 @@ bool im19FirmwareUpdate(const char * subsystem,
     } while (0);
 
     // Attempt to display the firmware version
-    im19GetVersionString();
+    im19GetVersionString(subsystem, chip);
 
     // Display the firmware update status
     systemPrintln(otaEqualSigns);
@@ -2016,8 +2016,10 @@ bool im19FirmwareUpdate(const char * subsystem,
 // Sends AT+VERSION and copies the returned "Version:" line into imuFirmwareVersionStr.
 // Returns true if "Version:" is seen in the response
 //----------------------------------------
-bool im19GetVersionString()
+bool im19GetVersionString(const char * subsystem, const char * chip)
 {
+    int imuFirmwareVersionInt;
+    char imuFirmwareVersionStr[32];    // Ex: IM19_H2_B2.2_A11.4.1
     bool success = false;
     IM19 * tiltSensor = nullptr;
     do
@@ -2031,7 +2033,8 @@ bool im19GetVersionString()
         tiltSensor = new IM19();
         if (tiltSensor == nullptr)
         {
-            systemPrintln("ERROR: IM19 firmware upload fail to allocate tiltSensor");
+            systemPrintf("ERROR: %s (%s) firmware upload fail to allocate tiltSensor\r\n",
+                         subsystem, chip);
             break;
         }
 
@@ -2040,7 +2043,7 @@ bool im19GetVersionString()
 
         if (tiltSensor->begin(*SerialForTilt) == false) // Give the serial port over to the library
         {
-            systemPrintln("IM19 firmware version not available");
+            systemPrintf("%s (%s) firmware version not available\r\n", subsystem, chip);
             break;
         }
 
@@ -2055,14 +2058,14 @@ bool im19GetVersionString()
             snprintf(imuFirmwareVersionStr, sizeof(imuFirmwareVersionStr), "%s", appVersionPtr + 1);
         else
         {
-            systemPrintln("IM19 App Version not found in full version string");
+            systemPrintf("IM19 App Version not found in full version string\r\n",
+                         subsystem, chip);
             imuFirmwareVersionStr[0] = '\0';
         }
 
         if (settings.debugFirmwareUpdate)
-            systemPrintf("IM19 Full Version: %s\r\n", rawFirmwareVersionStr);
-        else
-            systemPrintf("IMU firmware: %s\r\n", imuFirmwareVersionStr);
+            systemPrintf("%s (%s) Full Version: %s\r\n", subsystem, chip, rawFirmwareVersionStr);
+        systemPrintf("%s (%s) firmware: %s\r\n", subsystem, chip, imuFirmwareVersionStr);
     } while (0);
     if (tiltSensor)
         delete tiltSensor;
