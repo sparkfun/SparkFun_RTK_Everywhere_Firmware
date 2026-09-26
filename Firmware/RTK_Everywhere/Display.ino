@@ -4172,6 +4172,13 @@ void displayForcedFirmwareUpdate()
     displayMessage("Forced Update", 0);
 }
 
+void displayFirmwareStartUpdate(const char * subsystemName)
+{
+    char temp[32];
+    snprintf(temp, sizeof(temp), "Updating\n%s\nFirmware", subsystemName);
+    displayMessage(temp, 100); // Push internal buffer to display
+}
+
 void displayFirmwareUpdateProgress(const char * subsystemName, int percentComplete)
 {
     char temp[50];
