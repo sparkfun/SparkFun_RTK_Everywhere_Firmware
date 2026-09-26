@@ -1462,12 +1462,17 @@ Im19UpdateResult im19UpdateFirmwareEnd(const OTA_TARGET * target)
 // 3) Loop reading firmware from the stream and writing it to the device, call
 //    firmwareUpdateProgressCallback to update the progress bar
 // 4) Call the updateFirmwareEnd function to complete the flash write operation
-// 5) Display the flash write status
+// 5) Display any error message
+// 6) Return the flash update success status (true/false) to the flash update
+//    routine
+// 7) The flash update routine display the final flash update operation status
 //
 // The IM19 differs because it supports a block retry mechansim, the differences
 // are:
 // 1) The updateFirmwareBegin routine is called in the im19FirmwareUpdate routine
+//    instead of in im19StreamFirmware
 // 2) The updateFirmwareEnd routine is called in the im19FirmwareUpdate routine
+//    instead of in im19StreamFirmware
 // 3) After calling updateFirmwareEnd, the code determines if any blocks are
 //    missing.  If so, im19FirmwareUpdate calls im19StreamMissingRanges to send
 //    the missing blocks.
@@ -1475,12 +1480,12 @@ Im19UpdateResult im19UpdateFirmwareEnd(const OTA_TARGET * target)
 //    write status is displayed by the im19FirmwareUpdate routine
 // 5) im19ArrayFlashUpdate is a stripped down version of im19FirmwareUpdate
 //----------------------------------------
-static bool im19StreamFirmware(const char * subsystem,
-                               const char * chip,
-                               NetworkClient * stream,
-                               size_t fileBytes,
-                               uint8_t * buffer,
-                               size_t packetBytes)
+bool im19StreamFirmware(const char * subsystem,
+                        const char * chip,
+                        NetworkClient * stream,
+                        size_t fileBytes,
+                        uint8_t * buffer,
+                        size_t packetBytes)
 {
     bool success;
 
@@ -1521,7 +1526,7 @@ static bool im19StreamFirmware(const char * subsystem,
                 // Check for network timeout
                 if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
                 {
-                    systemPrintf("ERROR: Timed out waiting for data\r\n");
+                    systemPrintln("ERROR: Timed out waiting for data");
                     break;
                 }
                 yield();
@@ -1569,6 +1574,7 @@ static bool im19StreamFirmware(const char * subsystem,
         success = true;
     } while (0);
 
+    // Display the number of bytes remaining
     if (fileBytes && settings.debugFirmwareUpdate)
         systemPrintf("fileBytes: %d\r\n", fileBytes);
     return success;
