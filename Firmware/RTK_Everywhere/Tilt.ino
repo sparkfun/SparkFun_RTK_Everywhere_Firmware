@@ -1175,7 +1175,6 @@ static uint32_t im19TotalFrames;
 static uint32_t im19NextFrameID;
 static size_t im19StartByte;
 static size_t im19LastByte;
-static uint32_t im19FileSize;
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1372,8 +1371,6 @@ bool im19UpdateFirmwareBegin(size_t fileBytes)
 
     memset(im19FrameMap, 0, IM19_FRAME_MAP_SIZE);
     im19TotalFrames = totalFrames;
-    im19FileSize = fileBytes;
-    otaFileBytes = fileBytes;
 
     for (int retry = 0; retry < 3; retry++)
     {
@@ -1728,7 +1725,7 @@ static bool im19StreamMissingRanges(const char * subsystem,
                 frame++;
 
             uint32_t startByte = runStart * IM19_FRAME_PAYLOAD_SIZE;
-            uint32_t endByte = min(frame * IM19_FRAME_PAYLOAD_SIZE, im19FileSize);
+            uint32_t endByte = min(frame * IM19_FRAME_PAYLOAD_SIZE, otaFileBytes);
             size_t fileBytes = endByte - startByte;
             systemPrintf("Requesting frames %lu-%lu (%lu bytes) from source\r\n",
                          runStart, (frame - 1), fileBytes);
@@ -1739,7 +1736,7 @@ static bool im19StreamMissingRanges(const char * subsystem,
                                       chip,
                                       url,
                                       startByte,
-                                      endByte - startByte,
+                                      fileBytes,
                                       buffer,
                                       packetBytes);
 
