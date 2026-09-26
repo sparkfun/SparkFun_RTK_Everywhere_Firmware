@@ -4175,9 +4175,26 @@ void displayForcedFirmwareUpdate()
 void displayFirmwareUpdateProgress(const char * subsystemName, int percentComplete)
 {
     char temp[50];
-    snprintf(temp, sizeof(temp), "%s\nUpdate\n%d%%", subsystemName, percentComplete);
+    if (present.display_type == DISPLAY_64x48)
+    {
+        snprintf(temp, sizeof(temp), "%s\nUpdate\n%d%%", subsystemName, percentComplete);
+        displayMessage(temp, 100); // Push internal buffer to display
+    }
+    else if (online.display == true)
+    {
+        theDisplay->erase();
 
-    displayMessage(temp, 100); // Push internal buffer to display
+        int yPos = 0;
+        int fontHeight = 16;
+        snprintf(temp, sizeof(temp), "%s FW %%", subsystemName);
+        printTextCenter(temp, yPos, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+
+        yPos += fontHeight + 1;
+        snprintf(temp, sizeof(temp), "%d", percentComplete);
+        printTextCenter(temp, yPos, QW_FONT_LARGENUM, QW_EP_FONT_LARGENUM, 1, false); // text, y, font type, kerning, inverted
+
+        theDisplay->displayMessage(); // Push internal buffer to display
+    }
 }
 
 void displayFirmwareUpdateProgress(int percentComplete)
