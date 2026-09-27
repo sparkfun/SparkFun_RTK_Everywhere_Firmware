@@ -17,242 +17,327 @@
     Put the target into bootload mode and malloc any necessary buffers xxxUpdateFirmwareBegin()
     Grab chunks of bytes over WiFi and throw at xxxUpdateFirmware(*data, length)
     When done, call xxxUpdateFirmwareEnd() to free buffers and exit the bootloader mode or reset the target
+
+    Test procedure commands (Verifies all command URLs, HTTP, HTTPS and array:
+    1) a    ?.?.? --> 3.0.1 Verify 'a' command and URL
+    2) e    3.0.1 --> 1.0.2 Verify 'e' command and HTTP, connect to somewhere
+                            other than raw.githubusercontent.com using http://
+    3) e    1.0.2 --> 3.0.1 Verify HTTPS without CERT, connect to somewhere other
+                            than raw.githubusercontent.com using https://
+    4) o    3.0.1 --> 0.0.5 Verify 'o' command, URL and HTTPS with CERT
+    5) p    3.0.1 --> 1.0.2 Verify 'p' command and URL
+    6) u    1.0.2 --> 3.0.1 Verify 'u' command and URL
+    7) L                    Verify 'L' command and directory listing
+       0    3.0.1 --> ?.?.? Leave at highest revision
+
+    Test procedure commands (Verifies HTTP, HTTPS and array):
+    1) a    ?.?.? --> 3.0.1 Verify array
+    2) o    3.0.1 --> 0.0.5 Verify 'p' command, HTTPS with CERT
+    3) e    0.0.5 --> 1.0.2 Verify HTTP, connect to somewhere other than
+                            raw.githubusercontent.com using http://
+    4) e    1.0.2 --> 3.0.1 Verify HTTPS, no CERT, connect to somewhere
+                            other than raw.githubusercontent.com using https://
+    5) L                    Verify directory listing
+       0    3.0.1 --> ?.?.? Leave at highest revision
 */
+
+//----------------------------------------
+// Common declarations
+//----------------------------------------
 
 bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local BT TLS patch
 
-#include "settings.h"
-
-#include "secrets.h"
+#include <arpa/inet.h>
 #include <HTTPClient.h>
+#include <netdb.h>
+#include <Network.h>
+#include <NetworkClientSecure.h>
+#include <sys/socket.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 
-char firmwareURL[64] = "/lora/stm32wl/SparkPNT_LoRa_3.0.1.bin"; // Default: v3.0.1
-const char *firmwareVersion = "v3.0.1";
+#ifndef ENABLE_DEVELOPER
+#define ENABLE_DEVELOPER            true
+#endif   // ENABLE_DEVELOPER
+#define DMW_if if (0)
 
-#define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
+const uint8_t logoSparkFun[] = {0};
+#define logoSparkFun_Height         1
+#define logoSparkFun_Width          1
 
-bool setFirmwareURLForSelection(char selection)
+const uint8_t logoSparkPNT[] = {0};
+#define logoSparkPNT_Height         1
+#define logoSparkPNT_Width          1
+
+#include "Firmware_Data_Stream.h"
+#include "secrets.h"
+#include "settings.h"
+#define COMPILE_ALL_FIRMWARE
+#include "TheData.h"
+
+#define rtkMalloc(bytes, description)       malloc(bytes)
+#define rtkFree(buffer, description)        free(buffer)
+
+//----------------------------------------
+// Test specific declarations
+//----------------------------------------
+
+Firmware_Data_Stream dataArray(firmwareData, sizeof(firmwareData));
+
+const char * subsystem = "LoRa";
+const char * chip = "STM32WL";
+
+uint8_t rxBuffer[256];
+
+const char * urlDirectory = "https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/lora/stm32wl";
+
+const char * ulrFileServer = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/lora/stm32wl/";
+
+// 0.0.5
+const char * url_0_0_5 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/lora/stm32wl/SparkPNT_LoRa_0.0.5.bin";
+
+// 1.0.2
+const char * url_1_0_2 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/lora/stm32wl/SparkPNT_LoRa_1.0.2.bin";
+
+// 3.0.1
+const char * url_3_0_1 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/lora/stm32wl/SparkPNT_LoRa_3.0.1.bin"; // Default: v3.0.1
+
+HardwareSerial * loraSerial;
+
+bool useUart0ForLoRa = true;
+
+//----------------------------------------
+// Connects to the configured SSID and blocks until connected or the attempt times out.
+//----------------------------------------
+bool wifiConnect()
 {
-    switch (selection)
-    {
-        case '1':
-            strcpy(firmwareURL, "/lora/stm32wl/SparkPNT_LoRa_3.0.1.bin");
-            firmwareVersion = "v3.0.1";
-            return true;
-
-        case '2':
-            strcpy(firmwareURL, "/lora/stm32wl/SparkPNT_LoRa_1.0.2.bin");
-            firmwareVersion = "v1.0.2";
-            return true;
-
-        default:
-            return false;
-    }
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(wifiSSID, wifiPassword);
+    return wifiWaitUntilConnected();
 }
 
-bool readFirmwareVersionSelection(char *selectionBuffer, size_t maxLength)
+//----------------------------------------
+// Wait for the WiFi connection
+//----------------------------------------
+bool wifiWaitUntilConnected()
 {
-    size_t index = 0;
-
-    while (Serial.available() == 0)
-        delay(10);
-
-    while (Serial.available() > 0)
+    if (WiFi.status() != WL_CONNECTED)
     {
-        char c = Serial.read();
+        systemPrint("Connecting to WiFi SSID: ");
+        systemPrintln(wifiSSID);
 
-        if ((c == '\r') || (c == '\n'))
-            break;
-
-        if (index < (maxLength - 1))
+        unsigned long start = millis();
+        while (WiFi.status() != WL_CONNECTED)
         {
-            selectionBuffer[index++] = c;
+            if ((millis() - start) > 20000)
+            {
+                systemPrintln("WiFi connection timed out.");
+                return false;
+            }
+            delay(250);
+            systemPrint(".");
         }
-    }
 
-    selectionBuffer[index] = '\0';
-    return (index > 0);
+        systemPrint("WiFi connected, IP address: ");
+        systemPrintln(WiFi.localIP());
+    }
+    return true;
 }
 
-#include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
-SFE_PCA95XX io(PCA95XX_PCA9534); // Create a PCA9534
-SFE_PCA95XX *gpioExpanderSwitches = nullptr;
-
-int pin_SDA = 15;
-int pin_SCL = 4;
-
-const int gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
-const int gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
-const int gpioExpanderSwitch_S3 = 2; // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
-const int gpioExpanderSwitch_S4 = 3; // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
-const int gpioExpanderSwitch_LoraEnable = 4; // LoRa_EN
-const int gpioExpanderSwitch_GNSS_Reset = 5; // RST_GNSS
-const int gpioExpanderSwitch_LoraBoot = 6;   // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
-const int gpioExpanderSwitch_S5 = 7;         // Controls U61 switch 5: connect GNSS UART1 to Port A of CH342
-const int gpioExpanderNumSwitches = 8;
-
-// Communication Port
-HardwareSerial *uart2Serial = nullptr;
-
-#define SerialForLoRa uart2Serial
-
-int pin_muxA = -1;
-int pin_muxB = -1;
-int pin_IMU_TX = 17;
-int pin_IMU_RX = 14;
-int pin_loraRadio_power = -1;
-int pin_loraRadio_boot = -1;
-int pin_loraRadio_reset = -1;
-
-// Timer for firmware update duration
-unsigned long firmwareUpdateStartTime = 0;
-unsigned long firmwareUpdateElapsed = 0;
-
-// Global variables used by firmwareUpdateProgressCallback, called by all firmware update procedures
-uint32_t firmwareUpdateBytesToProcess = 0;
-uint32_t firmwareUpdateBytesProcessed = 0;
-
+//----------------------------------------
+// Test entry point
+//----------------------------------------
 void setup()
 {
+    // Common setup
     Serial.begin(115200);
     delay(250);
 
-    systemPrintln("STM32 bootloader test");
+    identifyBoard(); // Determine what hardware platform we are running on.
+    beginBoard();    // Set all pin numbers and pin initial states
+    beginMux();      // Must come before I2C activity to avoid external
+                     // devices from corrupting the bus. See issue 474
+                     //  https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
+    peripheralsOn(); // Enable power for the display, SD, etc
+    beginI2C();      // Requires settings and peripheral power (if applicable).
+    if (wifiConnect() == false)
+        reportFatalError("WiFi network not found!");
 
-    Wire.begin(pin_SDA, pin_SCL);
+    // Test specific setup
+    systemPrintln("STM32 firmware update example");
 
-    // Basic test to tell platform
-    if (i2cIsDevicePresent(0x21))
-    {
-        systemPrintln("FP detected");
-        productVariant = RTK_FACET_FP;
-    }
-    else
-    {
-        systemPrintln("Torch detected");
-        productVariant = RTK_TORCH;
-    }
-
+    // Configure the product
     if (productVariant == RTK_TORCH)
     {
-        pin_muxA = 18; // Controls U12 switch between ESP UART1 to UM980 UART3 or LoRa UART0
-        pin_muxB = 12; // Controls U18 switch between ESP UART0 to LoRa UART2 or UM980 UART1
-        pinMode(pin_muxA, OUTPUT);
-        pinMode(pin_muxB, OUTPUT);
+        // Get the MUX pin states
+        int muxA = digitalRead(pin_muxA);
+        int muxB = digitalRead(pin_muxB);
 
-        pin_loraRadio_power = 19; // LoRa_EN
-        pin_loraRadio_boot = 23;  // LoRa_BOOT0
-        pin_loraRadio_reset = 5;  // LoRa_NRST
+        // Test the MUX A pin
+        digitalWrite(pin_muxA, !muxA);
+        int tempA = digitalRead(pin_muxA);
+        digitalWrite(pin_muxA, muxA);
 
-        pinMode(pin_loraRadio_power, OUTPUT);
-        loraPowerOff(); // Keep LoRa powered down for now
+        // Test the MUX B pin
+        digitalWrite(pin_muxB, !muxB);
+        int tempB = digitalRead(pin_muxB);
+        digitalWrite(pin_muxB, muxB);
 
-        pinMode(pin_loraRadio_boot, OUTPUT);
-        digitalWrite(pin_loraRadio_boot, LOW); // Exit bootloader, run program
-
-        pinMode(pin_loraRadio_reset, OUTPUT);
-        digitalWrite(pin_loraRadio_reset, LOW); // Reset STM32/radio
+        // Verify that the tests passed
+        if ((tempA != !muxA) || (tempB != !muxB))
+        {
+            if (tempA != !muxA)
+                systemPrintf("pin_muxA stuck at %d\r\n", muxA);
+            if (tempB != !muxB)
+                systemPrintf("pin_muxB stuck at %d\r\n", muxB);
+            reportFatalError("ERROR: Stuck MUX pin or pins");
+        }
     }
     else if (productVariant == RTK_FACET_FP)
-    {
         beginGpioExpanderSwitches();
-
-        // Connect ESP32 UART2 to LoRa UART2 via SW3 for configuration and bootloading/firmware updates
-        gpioExpanderSelectLoraConfigure();
-    }
+    else if (present.radio_lora)
+        reportFatalError("Please add missing product configuration");
     else
-    {
-        Serial.println("Unknown product variant. Freezing...");
-        while (true)
-            delay(1000);
-    }
+        reportFatalError("A LoRa radio is not in this product");
 
-    loraGetVersion(); // Query the STM32 LoRa firmware version over AT+V?
-
-    wifiConnect();
+    // Display the current firmware version
+    loraGetVersion(loraSelectEsp32Uart(), subsystem, chip); // Query the STM32 LoRa firmware version over AT+V?
 
     displayMenu();
 }
 
+//----------------------------------------
+// Test serial menu
+//----------------------------------------
 void displayMenu()
 {
     systemPrintln();
     systemPrintln("Menu:");
-    systemPrintln("r) Reset");
-    systemPrintln("1) Update LoRa Firmware to v3.0.1");
-    systemPrintln("2) Update LoRa Firmware to v1.0.2");
+
+    // Test specific menu items
+    systemPrintf("a) Update %s (%s) Firmware to v3.0.1 from array\r\n", subsystem, chip);
+    systemPrintf("o) Update %s (%s) Firmware to v0.0.5\r\n", subsystem, chip);
+    systemPrintf("p) Update %s (%s) Firmware to v1.0.2\r\n", subsystem, chip);
+    systemPrintf("u) Update %s (%s) Firmware to v3.0.1\r\n", subsystem, chip);
+    systemPrintln("e) Enter URL");
+    systemPrintln("L) List all versions");
+    if (productVariant == RTK_TORCH)
+        systemPrintf("s) Switch ESP32 UART: UART %d\r\n", useUart0ForLoRa ? 0 : 1);
+
+    // Common menu items
+    systemPrintln("r) Reboot system");
+    systemPrintln("h) Display the heap");
+    systemPrintf("d) Debug: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
+    systemPrintf("v) Verbose output: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
+
+    // Discard any type ahead
+    while (Serial.available())
+        Serial.read();
+
+    // Request user input
     systemPrint("Make selection: ");
 }
 
+//----------------------------------------
+// Process user input
+//----------------------------------------
 void loop()
 {
+    String urlString;
+
+    // Loop common code
+    wifiWaitUntilConnected();
     if (Serial.available())
     {
         byte incoming = Serial.read();
         Serial.printf("%c\r\n", incoming);
+
+        // Process the menu item
         if (incoming == 'r')
-        {
             ESP.restart();
-        }
-        else if ((incoming == '1') || (incoming == '2'))
+        else if (incoming == 'd')
         {
-            if (setFirmwareURLForSelection((char)incoming) == false)
-            {
-                systemPrint("Invalid selection: ");
-                Serial.printf("%c\r\n", incoming);
-                systemPrintln("Use 1 for v3.0.1 or 2 for v1.0.2.");
-                displayMenu();
-                return;
-            }
-
-            systemPrint("Selected firmware version: ");
-            systemPrintln(firmwareVersion);
-            systemPrintln("Starting firmware update...");
-
-            // Start timer before erase
-            firmwareUpdateStartTime = millis();
-
-            bool updateSuccess = stm32StreamFirmware(firmwareURL);
-
-            muxSelectUsb(); // Mandatory for Torch. Reconnect USB to print to terminal
-
-            // Stop timer and print elapsed time
-            firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
-            systemPrint("Firmware update time: ");
-            systemPrint(firmwareUpdateElapsed / 1000.0, 3);
-            systemPrintln(" seconds");
-
-            if (updateSuccess)
-                loraGetVersion(); // Confirm the new firmware version took effect
+            settings.debugFirmwareUpdate ^= 1;
+            otaDebugVerbose = false;
         }
+        else if (incoming == 'h')
+            reportHeapNow(true);
+        else if (incoming == 'v')
+            otaDebugVerbose ^= 1;
+
+        // Test specific menu items
+        else if (incoming == 'a')
+            flashUpdate(nullptr);
+        else if (incoming == 'e')
+        {
+            // Get the URL
+            systemPrint("Enter URL: ");
+            urlString = systemGetStringFromUser();
+            if (urlString.length())
+                flashUpdate(urlString.c_str());
+        }
+        else if (incoming == 'L')
+        {
+            systemPrintln("Getting the list of files");
+
+            // Get the SparkFun directory page
+            urlString = serverSelectFileNameFromDirectoryListing(urlDirectory,
+                                                                 otaFileTree,
+                                                                 otaListEnd,
+                                                                 otaItems,
+                                                                 otaName,
+                                                                 otaNameEnd,
+                                                                 "SparkPNT_LoRa",
+                                                                 ".bin",
+                                                                 ulrFileServer);
+            if (urlString.length() != 0)
+            {
+                wifiWaitUntilConnected();
+                flashUpdate(urlString.c_str());
+            }
+        }
+        else if (incoming == 'o')
+            flashUpdate(url_0_0_5);
+        else if (incoming == 'p')
+            flashUpdate(url_1_0_2);
+        else if (incoming == 's')
+            useUart0ForLoRa ^= 1;
+        else if (incoming == 'u')
+            flashUpdate(url_3_0_1);
+
+        // Display the menu again
         displayMenu();
     }
 }
 
-// Connects to the configured SSID and blocks until connected or the attempt times out.
-bool wifiConnect()
+//----------------------------------------
+// Perform the flash update and display duration
+//----------------------------------------
+void flashUpdate(const char * url)
 {
-    systemPrint("Connecting to WiFi SSID: ");
-    systemPrintln(wifiSSID);
+    // Start timer before erase
+    uint32_t flashUpdateStartTime = millis();
 
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(wifiSSID, wifiPassword);
-
-    unsigned long start = millis();
-    while (WiFi.status() != WL_CONNECTED)
+    // Attempt to update the firmware
+    dataArray.init(0);
+    if (((url != nullptr) && (stm32FirmwareUpdate(subsystem,
+                                                  chip,
+                                                  url,
+                                                  rxBuffer,
+                                                  sizeof(rxBuffer)) == true))
+        || ((url == nullptr) && stm32ArrayFlashUpdate(subsystem,
+                                                      chip,
+                                                      rxBuffer,
+                                                      sizeof(rxBuffer))))
     {
-        if ((millis() - start) > 20000)
-        {
-            systemPrintln("WiFi connection timed out.");
-            return false;
-        }
-        delay(250);
-        systemPrint(".");
+        // Stop timer and print elapsed time
+        uint32_t flashUpdateElapsed = millis() - flashUpdateStartTime;
+        systemPrintf("%s (%s) firmware update time: ", chip, subsystem);
+        systemPrint(flashUpdateElapsed / 1000.0, 3);
+        systemPrint(" seconds, ");
+        systemPrint(otaFileBytes);
+        systemPrint(" bytes, ");
+        systemPrint((int)(otaFileBytes / ((flashUpdateElapsed + 500) / 1000)));
+        systemPrintln(" bytes/second");
     }
-
-    systemPrint("WiFi connected, IP address: ");
-    systemPrintln(WiFi.localIP());
-    return true;
 }
