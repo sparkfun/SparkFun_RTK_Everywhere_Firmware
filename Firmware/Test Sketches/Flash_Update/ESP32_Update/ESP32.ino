@@ -10,6 +10,9 @@
 //    firmwareUpdateProgressCallback to update the progress bar
 // 4) Call the updateFirmwareEnd function to complete the flash write operation
 // 5) Display any error message
+// 6) Return the flash update success status (true/false) to the flash update
+//    routine
+// 7) The flash update routine display the final flash update operation status
 //----------------------------------------
 bool esp32StreamFirmware(const char * subsystem,
                          const char * chip,
@@ -31,14 +34,14 @@ bool esp32StreamFirmware(const char * subsystem,
             systemPrintf("packetBytes: %d\r\n", packetBytes);
         }
 
-        // Enter the bootloader and erase flash before opening the GitHub connection.
-        systemPrintf("Entering the %s bootloader\r\n", chip);
+        // Enter the bootloader and erase flash
+        systemPrintf("%s (%s) entering bootloader mode...\r\n", subsystem, chip);
         if (Update.begin(fileBytes) == false)
         {
-            systemPrintf("ERROR: %s failed to enter bootloader mode.\r\n", chip);
+            systemPrintf("%s (%s) failed to enter bootloader mode.\r\n", subsystem, chip);
             break;
         }
-        systemPrintf("%s is in bootloader mode.\r\n", chip);
+        systemPrintf("%s (%s) is in bootloader mode.\r\n", subsystem, chip);
 
         // Initialize the progress bar
         firmwareUpdateProgressReset(fileBytes);
@@ -66,7 +69,7 @@ bool esp32StreamFirmware(const char * subsystem,
                 // Check for network timeout
                 if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
                 {
-                    systemPrintf("ERROR: Timed out waiting for data\r\n");
+                    systemPrintln("ERROR: Timed out waiting for data");
                     break;
                 }
                 yield();
@@ -109,17 +112,17 @@ bool esp32StreamFirmware(const char * subsystem,
         if (fileBytes)
             break;
 
-        // Complete the flash update transaction
+        // Notify the bootloader that the flash image is uploaded
         if (Update.end() == false)
         {
             systemPrintf("ERROR: %s (%s) update.end failed. Error #: %s\r\n",
-                         chip, subsystem, String(Update.getError()).c_str());
+                         subsystem, chip, String(Update.getError()).c_str());
             break;
         }
 
         if (Update.isFinished() == false)
         {
-            systemPrintf("ERROR: %s update not finished? Something went wrong!\r\n", chip);
+            systemPrintf("ERROR: %s (%s) update not finished? Something went wrong!\r\n", subsystem, chip);
             break;
         }
 
@@ -156,7 +159,6 @@ bool esp32FirmwareUpdate(const char * subsystem,
     NetworkClientSecure secureClient;
     NetworkClient * stream;
     bool success;
-    NetworkClient unsecureClient;
 
     do
     {
@@ -171,12 +173,14 @@ bool esp32FirmwareUpdate(const char * subsystem,
             break;
         }
 
+        // Display the firmware update being attempted
+        systemPrintf("Updating %s (%s)\r\n", subsystem, chip);
+
         // Connect to the web server and get the file size and stream
         if (serverConnectUsingUrl(subsystem,
                                   chip,
                                   url,
                                   secureClient,
-                                  unsecureClient,
                                   stream,
                                   https,
                                   nullptr,
@@ -186,9 +190,6 @@ bool esp32FirmwareUpdate(const char * subsystem,
             break;
         }
         otaFileBytes = fileBytes;
-
-        // Display the firmware update being attempted
-        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
 
         // Start the firmware update and display any streaming errors
         if (esp32StreamFirmware(subsystem,
@@ -206,13 +207,14 @@ bool esp32FirmwareUpdate(const char * subsystem,
     // Display the firmware update status
     systemPrintln(otaEqualSigns);
     if (success)
-        systemPrintf("%s (%s) firmware update completed successfully\r\n", chip, subsystem);
+        systemPrintf("%s (%s) firmware update completed successfully\r\n", subsystem, chip);
     else
-        systemPrintf("%s (%s) firmware update failed!\r\n", chip, subsystem);
+        systemPrintf("%s (%s) firmware update failed!\r\n", subsystem, chip);
     systemPrintln(otaEqualSigns);
 
     // Release the resources
     https.end();
+
     return success;
 }
 
