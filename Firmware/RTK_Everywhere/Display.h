@@ -201,6 +201,10 @@ typedef struct
     uint8_t screen; // DT_SCREEN_* - left out (0) on the normal status screens
 } displayTestScenario_t;
 
+// 184x88 big digits (fontBigDigits.h), placed after a 10x20 colon printed at cursor x: the colon's
+// ink ends at column 6, then two blank columns
+const uint8_t bigDigitsColonOffset = 9;
+
 // displayTestScenario_t.screen
 #define DT_SCREEN_STATUS 0    // The normal displayUpdate() status screen
 #define DT_SCREEN_BORDER 1    // Status screen plus a 1 px frame on the panel's outermost pixels

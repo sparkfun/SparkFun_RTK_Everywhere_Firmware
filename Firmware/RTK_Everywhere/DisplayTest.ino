@@ -9,6 +9,7 @@ DisplayTest.ino
       SPEXE,DISPLAYTEST,<n>     show scenario n (1..displayTestScenarioCount)
       SPEXE,DISPLAYTEST,0       return to the normal display
       SPEXE,DISPLAYTEST,LIST    list the scenarios
+      SPEXE,DISPLAYTEST,INVERT  white on black from now on (experiment), NORMAL to undo
   The command exits the menus so displayUpdate() runs again.
 
   Only the display reads the mocked values - every dt*() accessor below passes the real
@@ -93,6 +94,22 @@ const displayTestScenario_t displayTestScenarios[] = {
 const int displayTestScenarioCount = sizeof(displayTestScenarios) / sizeof(displayTestScenarios[0]);
 
 int displayTestScenarioNumber = 0; // 0 = off, else 1-based index into displayTestScenarios[]
+bool displayTestInvert = false;    // SPEXE,DISPLAYTEST,INVERT - white on black experiment
+
+bool dtInverted()
+{
+    return displayTestInvert;
+}
+
+// Invert the whole frame buffer (white on black) when DISPLAYTEST,INVERT is on. Called just before
+// each push to the panel.
+void dtInvertFrame()
+{
+    if ((displayTestInvert == false) || (present.display_type != DISPLAY_184x88))
+        return;
+    theDisplay->setDrawMode(grROPXOR, grEpROPXOR);
+    theDisplay->rectangleFill(0, 0, theDisplay->getWidth(), theDisplay->getHeight(), 1);
+}
 
 const displayTestScenario_t *dtScenario()
 {
@@ -109,6 +126,14 @@ bool dtActive()
 // Handle SPEXE,DISPLAYTEST,<arg>. Returns true if the menus should exit so the display runs.
 bool displayTestCommand(const char *arg)
 {
+    if ((strcmp(arg, "INVERT") == 0) || (strcmp(arg, "NORMAL") == 0))
+    {
+        displayTestInvert = (strcmp(arg, "INVERT") == 0);
+        systemPrintf("DISPLAYTEST: %s\r\n", displayTestInvert ? "inverted" : "normal");
+        forceDisplayUpdate = true;
+        return true;
+    }
+
     if (strcmp(arg, "LIST") == 0)
     {
         for (int i = 0; i < displayTestScenarioCount; i++)

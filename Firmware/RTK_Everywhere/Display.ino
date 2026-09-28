@@ -675,24 +675,32 @@ void displayUpdate()
             if (dtActive() && (dtScenario()->screen == DT_SCREEN_BOOT_LOGO))
             {
                 paintBootLogo184x88();
+                dtInvertFrame();
                 theDisplay->displayRegular();
                 return;
             }
             if (dtActive() && (dtScenario()->screen == DT_SCREEN_BOOT_INFO))
             {
                 paintBootInfo184x88(displayName);
+                dtInvertFrame();
                 theDisplay->displayRegular();
                 return;
             }
             if (dtActive() && (dtScenario()->screen == DT_SCREEN_POWERED_OFF))
             {
                 paintPoweredOff184x88();
+                dtInvertFrame();
                 theDisplay->displayRegular();
                 return;
             }
             if (dtActive() && (dtScenario()->screen == DT_SCREEN_SHUTDOWN))
             {
                 displayShutdown(); // Draws and pushes on its own
+                if (dtInverted())
+                {
+                    dtInvertFrame(); // Then push the inverted copy
+                    theDisplay->displayRegular();
+                }
                 return;
             }
 
@@ -991,6 +999,7 @@ void displayUpdate()
                 if (dtActive() && (dtScenario()->screen == DT_SCREEN_BORDER))
                     drawFrame(); // DisplayTest.ino: mark the panel's outermost pixels
 
+                dtInvertFrame(); // DisplayTest.ino INVERT experiment
                 theDisplay->displayRegular(); // Push internal buffer to display
             }
         }
@@ -1140,12 +1149,18 @@ void displayPoweredOff()
 
 void paintPoweredOff184x88()
 {
-    uint8_t logoX = (theDisplay->getWidth() - SparkPNT_PoweredOff_Logo_Width) / 2;
-    displayBitmap(logoX, 8, SparkPNT_PoweredOff_Logo_Width, SparkPNT_PoweredOff_Logo_Height, SparkPNT_PoweredOff_Logo);
+    // Logo centered on the panel, rows 32-55
+    uint8_t logoY = (theDisplay->getHeight() - SparkPNT_PoweredOff_Logo_Height) / 2;
+    displayBitmap((theDisplay->getWidth() - SparkPNT_PoweredOff_Logo_Width) / 2, logoY,
+                  SparkPNT_PoweredOff_Logo_Width, SparkPNT_PoweredOff_Logo_Height, SparkPNT_PoweredOff_Logo);
 
-    // Logo is vertically centered in the top half (rows 0-43); the model name is vertically
-    // centered in the bottom half (rows 44-87) using the largest available font (31x48).
-    printTextCenter(displayName, 48, QW_FONT_8X16, QW_EP_FONT_31X48, 1, false); // Ink rows 48-84
+    // Model name small (8x16) just below the logo, right edge 25% of the width in from the right
+    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
+    theDisplay->setDrawMode(grROPXOR, grEpROPXOR);
+    uint8_t rightX = theDisplay->getWidth() - (theDisplay->getWidth() / 4);
+    uint8_t textWidth = printedTextWidth(displayName);
+    theDisplay->setCursor((textWidth < rightX) ? rightX - textWidth : 0, logoY + SparkPNT_PoweredOff_Logo_Height + 2);
+    theDisplay->print(displayName);
 }
 
 // Displays a small error message then hard freeze
@@ -2540,7 +2555,19 @@ void paintHorizontalAccuracy(displayCoords textCoords)
             snprintf(hpaText, sizeof(hpaText), ":%.2f", hpa); // Down to centimeter
         else
             snprintf(hpaText, sizeof(hpaText), ":.%03d", (int)(hpa * 1000)); // Millimeter, no leading zero
-        printColonText(textCoords.x, textCoords.y, hpaText);
+        // Colon in 10x20 as always; the value in big digits if they fit before the SIV icon
+        // (one blank column), else the whole thing in 10x20
+        uint8_t first;
+        uint8_t last;
+        iconProperty sivIcon = SIVIconProperties.iconDisplay[DISPLAY_184x88];
+        uint8_t maxX = sivIcon.xPos - 5 - 2; // paintSIVIcon() nudges the rover SIV icon 5 px left
+        if (iconInkColumns(sivIcon, first, last))
+            maxX += 2 * first;
+        theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10X20);
+        theDisplay->setCursor(textCoords.x, textCoords.y);
+        theDisplay->print(":");
+        if (printBigDigits(textCoords.x + bigDigitsColonOffset, textCoords.y, &hpaText[1], maxX) == 0)
+            printColonText(textCoords.x, textCoords.y, hpaText);
         return;
     }
 
@@ -3169,6 +3196,25 @@ uint8_t paintSIVText(displayCoords textCoords)
         theDisplay->print(":");
     }
 
+    if (present.display_type == DISPLAY_184x88)
+    {
+        // Big digits if they fit: before the tilt icon on a rover (one blank column), else the
+        // panel edge. Falls through to the 10x20 digits below if they don't (or for "X").
+        char digits[4] = "X";
+        if (dtOnlineGnss())
+            snprintf(digits, sizeof(digits), "%d", ((dtInBaseMode() == false) && (dtIsFixed() == false)) ? 0 : siv);
+        uint8_t maxX = theDisplay->getWidth() - 1;
+        if (dtInRoverMode() && dtTiltCorrecting())
+            maxX = TiltIconXPos184x88 - 2;
+        uint8_t endX = printBigDigits(textCoords.x - 2 + bigDigitsColonOffset, textCoords.y, digits, maxX);
+        if (endX)
+        {
+            if (dtOnlineGnss())
+                paintResets();
+            return endX;
+        }
+    }
+
     textCoords.x += 8;
     if (present.display_type == DISPLAY_184x88)
     {
@@ -3196,6 +3242,63 @@ uint8_t paintSIVText(displayCoords textCoords)
     }
 
     return textCoords.x + printedTextWidth(printedDigits);
+}
+
+// Width of text in a big digit set with the given gap between glyphs, 0 if a character isn't in it
+uint8_t bigDigitsWidth(const bigDigitFont_t *font, const char *text, uint8_t gap)
+{
+    uint16_t width = 0;
+    for (size_t i = 0; text[i]; i++)
+    {
+        const bigDigitGlyph_t *glyph = nullptr;
+        for (uint8_t g = 0; g < font->glyphCount; g++)
+            if (font->glyphs[g].character == text[i])
+                glyph = &font->glyphs[g];
+        if (glyph == nullptr)
+            return 0;
+        width += glyph->width + ((i > 0) ? gap : 0);
+    }
+    return (width > 255) ? 0 : width;
+}
+
+// 184x88: print text (digits, '.', ">30m", "N/A") in the largest big digit set that fits between x
+// and maxX inclusive, centered on the dot midline of the 10x20 colon printed at colonY. Terminus
+// Bold: tries 20 px (3, 2, then 1 px gaps), then 18 px (2, then 1 px gaps). Returns x just past
+// the last inked column, or 0 if none fits - the caller then prints in 10x20. The emulator mirrors
+// this order (bigtext_fonts.FIRMWARE_FIT).
+uint8_t printBigDigits(uint8_t x, uint8_t colonY, const char *text, uint8_t maxX)
+{
+    static const struct
+    {
+        const bigDigitFont_t *font;
+        uint8_t gap;
+    } choices[] = {{&bigDigits20, 3}, {&bigDigits20, 2}, {&bigDigits20, 1}, {&bigDigits18, 2}, {&bigDigits18, 1}};
+
+    for (auto &choice : choices)
+    {
+        uint8_t width = bigDigitsWidth(choice.font, text, choice.gap);
+        if ((width == 0) || ((x + width - 1) > maxX))
+            continue;
+
+        // 10x20 colon dots on glyph rows 8-9 and 14-15: midline 11.5 below colonY. Even heights
+        // center exactly (20 px: rows 2-21)
+        uint8_t top = colonY + ((24 - choice.font->height) / 2);
+        for (size_t i = 0; text[i]; i++)
+        {
+            for (uint8_t g = 0; g < choice.font->glyphCount; g++)
+            {
+                const bigDigitGlyph_t *glyph = &choice.font->glyphs[g];
+                if (glyph->character == text[i])
+                {
+                    displayBitmap(x, top, glyph->width, choice.font->height, glyph->bitmap);
+                    x += glyph->width + choice.gap;
+                    break;
+                }
+            }
+        }
+        return x - choice.gap;
+    }
+    return 0;
 }
 
 // Width in pixels that print() actually covers with the current font. getStringWidth() counts
