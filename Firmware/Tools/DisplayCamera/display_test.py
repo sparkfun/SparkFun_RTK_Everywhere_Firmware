@@ -11,6 +11,7 @@
 #   python display_test.py --port COM6 --scenarios 1 5 19
 #   python display_test.py --port COM6 --list          print the unit's scenario list
 #   python display_test.py --port COM6 --off           return the unit to its normal display
+#   python display_test.py --port COM6 --invert        every scenario, white on black
 #
 # Photos go to output/<run timestamp>/<nn>.png.
 #
@@ -74,7 +75,15 @@ def enter_command_mode(ser):
 
 def display_test(ser, argument):
     """Send SPEXE,DISPLAYTEST,<argument>. Returns the unit's response text."""
-    enter_command_mode(ser)
+    # The unit sometimes misses the first attempt (e.g. still settling after a flash) - retry
+    for attempt in range(3):
+        try:
+            enter_command_mode(ser)
+            break
+        except RuntimeError:
+            if attempt == 2:
+                raise
+            time.sleep(3)
     # CR only - a trailing LF is read as a second, empty command line and keeps the unit
     # in command mode instead of returning to its normal display
     ser.write(f"SPEXE,DISPLAYTEST,{argument}\r".encode())
@@ -129,6 +138,7 @@ def main():
     parser.add_argument("--settle", type=float, default=6.0, help="seconds to wait for the e-paper refresh")
     parser.add_argument("--list", action="store_true")
     parser.add_argument("--off", action="store_true")
+    parser.add_argument("--invert", action="store_true", help="white on black (DISPLAYTEST,INVERT) experiment")
     args = parser.parse_args()
 
     ser = open_port(args.port)
@@ -140,7 +150,9 @@ def main():
             print(display_test(ser, 0))
             return
 
-        out_dir = HERE / "output" / datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_dir = HERE / "output" / (datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ("_inverted" if args.invert else ""))
+        if args.invert:
+            display_test(ser, "INVERT")
         out_dir.mkdir(parents=True, exist_ok=True)
 
         scenarios = args.scenarios or list(range(1, args.count + 1))
@@ -154,6 +166,8 @@ def main():
             capture(path, args.camera)
             print(f"    -> {path}")
 
+        if args.invert:
+            display_test(ser, "NORMAL")
         display_test(ser, 0)
         print(f"Done. Display test off. Photos in {out_dir}")
     finally:

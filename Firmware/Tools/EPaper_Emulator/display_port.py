@@ -182,6 +182,7 @@ class Layout1x:
     logging_x = PROPS["LoggingIconProperties"][0]["x"]  # DisplayWidth - Logging_Width
     colon_raise = 0  # HPA / SIV colons print inline with the value
     digit_drop = 0  # extra rows the HPA / SIV digits sit below the text y
+    big_digits = False
     siv_colon_dx = 0  # SIV colon printed at the text x
     icon_swap = {}  # accuracy icon substitutions
     rtcm_x_adjust = 5  # paintRTCM(): nudge counts < 100 right
@@ -289,6 +290,29 @@ class Layout2x(Layout1x):
 
     def siv_x(self, state):
         return 92
+
+
+BIG_DIGITS_COLON_OFFSET = 9  # Display.ino bigDigitsColonOffset
+_BIG_DIGIT_SETS = {}
+
+
+def _print_big_digits(panel, x, colon_y, text, max_x):
+    """Display.ino printBigDigits(): Terminus Bold, trying bigtext_fonts.FIRMWARE_FIT in order
+    (20 px with 3, 2, then 1 px gaps, then 18 px with 2, then 1), centered on the 10x20 colon's
+    dot midline. Returns x past the last inked column, or 0 if none fits."""
+    import bigtext_fonts  # Here, not at the top: bigtext_fonts imports epaper_emulator too
+
+    for height, gap in bigtext_fonts.FIRMWARE_FIT:
+        if height not in _BIG_DIGIT_SETS:
+            _BIG_DIGIT_SETS[height] = bigtext_fonts.firmware_glyphs(height)
+        glyphs = _BIG_DIGIT_SETS[height]
+        if any(ch not in glyphs for ch in text):
+            return 0
+        width = bigtext_fonts.text_width(glyphs, text, gap)
+        if x + width - 1 > max_x:
+            continue
+        return bigtext_fonts.draw_text(panel, glyphs, x, colon_y + (24 - height) // 2, text, gap) + 1
+    return 0
 
 
 def _colon_raise(font, text_y, row_center):
@@ -402,6 +426,10 @@ class Layout2xV4(Layout2xV3):
     # drop 3 px so the colon's dot midline bisects them - i.e. digits sit 3 px below the
     # raised colon's y (34 - colon_raise 2 + 3).
     digit_drop = 1
+    big_digits = True  # printBigDigits(): HPA / SIV values in fontBigDigits.h when they fit
+
+    def siv_text(self, icon, base=False):
+        return (0 if base else 90) + 24 + 2, 34  # paintSIVIcon(): rover icon at SIVIconXPos184x88 - 5
     SERIAL_LARGE = "10X20"
     SERIAL_SMALL = "8X16"
     # Large "B4E7" inks to x 41, small "B4E706" to x 50, large "B4E706" to x 63
@@ -653,6 +681,22 @@ class Painter:
         else:
             value = "." + "%03d" % int(hpa * 1000)  # Remove leading zero
         p = self.panel
+        if self.L.big_digits:
+            colon_y = y - self.L.colon_raise
+            with p.element("HPA colon"):
+                p.set_font("10X20")
+                p.set_cursor(x, colon_y)
+                p.print(":")
+            # Right limit: one blank column before the rover SIV icon's ink
+            siv = PROPS["SIVIconProperties"]
+            max_x = siv["x"] - 5 + 2 * icon_ink_cols(siv["bitmap"])[0] - 2
+            with p.element("HPA"):
+                if _print_big_digits(p, x + BIG_DIGITS_COLON_OFFSET, colon_y, value, max_x):
+                    return
+                p.set_font("10X20")
+                p.set_cursor(x + p.font["width"] + 1, y + self.L.digit_drop)
+                p.print(value)
+            return
         with p.element("HPA"):
             p.set_font("10X20")
             p.set_cursor(x, y - self.L.colon_raise)
@@ -692,9 +736,17 @@ class Painter:
             else:
                 p.set_cursor(x + self.L.siv_colon_dx, y - self.L.colon_raise)
                 p.print(":")
-            x += 8
             if not s.base and not s.fixed:
                 siv = 0
+            if self.L.big_digits:
+                max_x = 183
+                if not s.base and s.tilt_correcting:
+                    max_x = PROPS["TiltIconProperties"]["x"] - 2
+                end = _print_big_digits(p, x - 2 + BIG_DIGITS_COLON_OFFSET, y - self.L.colon_raise, str(siv), max_x)
+                if end:
+                    self.siv_text_end_x = end
+                    return
+            x += 8
             p.set_cursor(x, y + self.L.digit_drop)  # nudgeAndPrintSIV(), non-64x48
             p.print(siv)
         self.siv_text_end_x = p.cursor_x  # base_cast_pos() centers against this
@@ -1051,13 +1103,17 @@ def render_boot_info(model, firmware):
 
 
 def render_powered_off_firmware(model):
-    """paintPoweredOff184x88() as the firmware draws it: the 1-bit logo bitmap at y=8 and the
-    model in 31x48 at y=48 (M53 is the anti-aliased SVG mockup of the same screen)."""
+    """paintPoweredOff184x88() as the firmware draws it: the 1-bit logo bitmap centered on the
+    panel, model in 8x16 just below it, right-aligned at 75% of the width (M53 is the older
+    anti-aliased SVG mockup of this screen)."""
     painter = Painter(State(system_state="MESSAGE"))
     icon = ICONS["SparkPNT_PoweredOff_Logo"]
+    logo_y = (88 - icon["height"]) // 2
     with painter.panel.element("logo"):
-        painter.panel.bitmap((184 - icon["width"]) // 2, 8, "SparkPNT_PoweredOff_Logo")
-    _print_text_center(painter, "model", model, 48, "31X48", kerning=1)
+        painter.panel.bitmap((184 - icon["width"]) // 2, logo_y, "SparkPNT_PoweredOff_Logo")
+    # Model small (8x16) below the logo, right edge 25% of the width in from the right
+    width = len(model) * (FONTS["8X16"]["width"] + 1) - 1
+    painter.text_element("model", "8X16", max(0, 184 - 184 // 4 - width), logo_y + icon["height"] + 2, model)
     return painter.panel, painter
 
 
