@@ -98,6 +98,48 @@ To get the current tilt sensor state, send:
 
 The receiver returns the numeric `TiltState` enum value. The response does not include the IM19 navigation-status bitfield.
 
+## Changing Modes
+
+To switch the device between Rover, Base, and the other modes without a reset, send:
+
+	$SPSET,setState,[mode]*FF<CR><LF>
+
+| Mode | Value |
+|------|-------|
+| Rover | 0 |
+| Base | 1 |
+| NTP Server (devices with Ethernet only) | 2 |
+| Base Caster | 3 |
+| Base Assist (fixed base at the current position) | 4 |
+
+The device starts the new mode right away and uses it again at the next power on. An unknown mode, or NTP on a device without Ethernet, returns an error.
+
+!!! example
+	Switch to Base mode:
+
+	Send:
+
+		$SPSET,setState,1*45<CR><LF>
+
+	Receive:
+
+		$SPSET,setState,1,OK*6D<CR><LF>
+
+	An unsupported mode:
+
+	Send:
+
+		$SPSET,setState,9*4D<CR><LF>
+
+	Receive:
+
+		$SPSET,setState,,ERROR,Unknown or unsupported state*5B<CR><LF>
+
+To read the current mode, send `$SPGET,setState*4C`. The receiver returns one of the values above, or -1 while in another mode (for example, Web Config or ESP-NOW pairing). For example, `$SPGET,setState,1*51` means Base. Base Assist is reported as 4 only briefly, and then as Base once the fixed base starts.
+
+!!! note
+	The `lastState` setting also selects Rover, Base, NTP, or Base Caster, but only takes effect after a reset. It is deprecated for changing modes; use `setState` instead.
+
 Send:
 
 	$SPGET,ntripClientCasterUserPW*35

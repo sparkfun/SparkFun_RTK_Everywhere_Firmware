@@ -224,6 +224,75 @@ void commandSendChangedSettings()
     commandSendValueOkResponse("SPGET", "changedSettings", countBuffer);
 }
 
+// setState modes, used by $SPSET,setState and $SPGET,setState. 0-3 match the lastState values.
+enum
+{
+    SET_STATE_ROVER = 0,
+    SET_STATE_BASE,
+    SET_STATE_NTP,
+    SET_STATE_BASE_CASTER,
+    SET_STATE_BASE_ASSIST,
+};
+
+// Handle $SPSET,setState,<mode>: change the system mode now, without a reset. The state machine
+// records the new mode in lastState once it starts, so it is also used at the next power on.
+// Returns false if the mode is unknown or not supported on this device.
+bool commandSetState(const char *value)
+{
+    char *end;
+    long mode = strtol(value, &end, 10);
+    if ((end == value) || (*end != '\0'))
+        return false;
+
+    SystemState newState;
+    switch (mode)
+    {
+    default:
+        return false;
+    case SET_STATE_ROVER:
+        newState = STATE_ROVER_NOT_STARTED;
+        break;
+    case SET_STATE_BASE:
+        newState = STATE_BASE_NOT_STARTED;
+        break;
+    case SET_STATE_NTP:
+        if (present.ethernet_ws5500 == false)
+            return false;
+        newState = STATE_NTPSERVER_NOT_STARTED;
+        break;
+    case SET_STATE_BASE_CASTER:
+        newState = STATE_BASE_CASTER_NOT_STARTED; // Enables the caster override
+        break;
+    case SET_STATE_BASE_ASSIST:
+        newState = STATE_BASE_ASSIST_NOT_STARTED;
+        break;
+    }
+
+    // Leave Caster mode unless going to it (Rover also does this when it starts)
+    if (mode != SET_STATE_BASE_CASTER)
+        baseCasterDisableOverride();
+
+    // processCommand() may run in the Bluetooth command task, so let stateUpdate() make the change
+    requestChangeState(newState);
+    forceSystemStateUpdate = true; // Immediately go to this new state
+    return true;
+}
+
+// Handle $SPGET,setState: the current mode, as a setState value, or -1 when in some other mode
+// (setup, web config, pairing, etc.)
+int commandGetState()
+{
+    if (inRoverMode())
+        return SET_STATE_ROVER;
+    if (systemState == STATE_BASE_ASSIST_NOT_STARTED)
+        return SET_STATE_BASE_ASSIST;
+    if (inBaseMode())
+        return (settings.baseCasterOverride ? SET_STATE_BASE_CASTER : SET_STATE_BASE);
+    if (inNtpMode())
+        return SET_STATE_NTP;
+    return -1;
+}
+
 // On Facet FP, ensure detectedGnssReceiver matches attached hardware before
 // building Web Config CSV output that depends on platform filtering.
 void normalizeDetectedGnssReceiverForFacetFp()
@@ -422,6 +491,14 @@ t_cliResult processCommand(char *cmdBuffer)
                 return (CLI_OK);
             }
 
+            // setState is not a setting: report the current mode
+            if (strcmp(field, "setState") == 0)
+            {
+                snprintf(valueBuffer, sizeof(valueBuffer), "%d", commandGetState());
+                commandSendValueResponse(tokens[0], field, valueBuffer);
+                return (CLI_OK);
+            }
+
             SettingValueResponse response = getSettingValue(false, field, valueBuffer);
 
             if (response == SETTING_KNOWN)
@@ -459,6 +536,18 @@ t_cliResult processCommand(char *cmdBuffer)
         {
             auto field = tokens[1];
             auto value = tokens[2];
+
+            // setState is not a setting: change the mode now, without a reset
+            if (strcmp(field, "setState") == 0)
+            {
+                if (commandSetState(value))
+                {
+                    commandSendValueOkResponse(tokens[0], field, value);
+                    return (CLI_OK);
+                }
+                commandSendErrorResponse(tokens[0], field, (char *)"Unknown or unsupported state");
+                return (CLI_BAD_FORMAT);
+            }
 
             SettingValueResponse response = updateSettingWithValue(true, field, value);
             if (response == SETTING_KNOWN)
@@ -1083,6 +1172,9 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             SystemState *ptr = (SystemState *)var;
             knownSetting = true;
 
+            // DEPRECATED for apps: setting lastState only takes effect after a reset. Use
+            // $SPSET,setState,<mode> instead - it changes the mode immediately and updates
+            // lastState on its own. Kept for Web Config and existing clients.
             // 0 = Rover, 1 = Base, 2 = NTP, 3 = Base Caster
             settings.lastState = STATE_ROVER_NOT_STARTED; // Default
             if (settingValue == 1)

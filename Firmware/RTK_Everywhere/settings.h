@@ -1112,7 +1112,7 @@ struct Settings
     // State
     bool enablePrintDuplicateStates = false;
     bool enablePrintStates = true;
-    SystemState lastState = STATE_NOT_SET; // Start unit in last known state
+    SystemState lastState = STATE_NOT_SET; // Start unit in last known state. Setting it from the CLI is deprecated, use setState
 
     // TCP Client
     bool debugTcpClient = false;
@@ -1788,6 +1788,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // State
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintDuplicateStates, "enablePrintDuplicateStates", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintStates, "enablePrintStates", nullptr, },
+    // DEPRECATED as a way to change modes over the CLI: it only takes effect after a reset.
+    // Apps should use $SPSET,setState,<mode>, which changes modes without a reset (menuCommands.ino)
     { 0, 1, 0, 1, 1, 1, 1, ALL, 1, tSysState, 0, & settings.lastState, "lastState", nullptr, }, // Not inWebConfig - must be changed to 0:3 by createSettingsString
 
     // TCP Client
