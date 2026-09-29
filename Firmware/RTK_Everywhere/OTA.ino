@@ -38,12 +38,12 @@ static const char * const otaChipName[] =
     "UM980",        // 3
     "ZED-F9P",      // 4
     "ZED-X20P",     // 5
-    "LoRa-STM32WL", // 6
+    "STM32WL",      // 6
     "IM19",         // 7
 };
 static const int otaChipNameEntries = sizeof(otaChipName) / sizeof(otaChipName[0]);
 
-static const char * const otaSubsystem[] = {"ESP32", "GNSS", "LoRa", "IMU"};
+static const char * const otaSubsystem[] = {"SOC", "GNSS", "LoRa", "IMU"};
 static const int otaSubsystemEntries = sizeof(otaSubsystem) / sizeof(otaSubsystem[0]);
 
 #define OTA_BUFFER_BYTES        (16 * 1024)
@@ -1725,7 +1725,7 @@ void otaVerifyTables()
 extern const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[] =
 {
     // Variant      subsystem               chip                present                 getVersion          firmwareUpdate          streamFirmware          packetBytes         rcSupport   directory          server          branch
-    {RTK_ALL,       OTA_SUBSYSTEM_ESP32,    OTA_CHIP_ESP32,     nullptr,                otaEsp32GetVersion, nullptr,                otaEsp32StreamFirmware, OTA_BUFFER_BYTES,   true,       "",                otaGithubRaw,   otaRawBranch},
+    {RTK_ALL,       OTA_SUBSYSTEM_ESP32,    OTA_CHIP_ESP32,     nullptr,                otaEsp32GetVersion, nullptr,                otaEsp32StreamFirmware, OTA_BUFFER_BYTES,   true,       "/soc/esp32",      otaGithubRaw,   otaRawBranch},
 
     // GNSS devices
 #ifdef  COMPILE_LG290P
