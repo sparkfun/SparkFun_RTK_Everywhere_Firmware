@@ -216,6 +216,12 @@ bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
                          byte incoming) {return false;}
 void otaUpdate() {}
 void otaUpdateStop() {}
+
+// OTA_Local
+bool otaLocalExecute(char **tokens, int tokenCount, t_cliResult &result) {return false;}
+bool otaLocalGet(const char *command, const char *field) {return false;}
+void otaLocalProgress(int percent) {}
+void otaLocalUpdate() {}
 void otaRequestTypesLoad() {}
 void otaVerifyTables() {}
 

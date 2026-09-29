@@ -189,7 +189,10 @@ void otaFormatVersion(const int * version,
                       char * buffer,
                       size_t bufferBytes)
 {
-    if (version[3])
+    // A subsystem that is offline (ie, LoRa not responding) reports 0.0.0.0
+    if ((version[0] == 0) && (version[1] == 0) && (version[2] == 0) && (version[3] == 0))
+        snprintf(buffer, bufferBytes, "Unknown%s", version[4] ? " (debug build)" : "");
+    else if (version[3])
         snprintf(buffer, bufferBytes, "v%d.%d.%d.%d%s",
                  version[0], version[1], version[2], version[3],
                  version[4] ? " (debug build)" : "");
@@ -1351,6 +1354,7 @@ void otaStateFirmwareUpdate()
 
             // Perform the update for the current target
             updatesPerformed += 1;
+            otaLocalSubsystemStart(subsystem);
             uint32_t startMsec = millis();
             if (subsystemInfo->_firmwareUpdate == nullptr)
             {
@@ -1389,6 +1393,7 @@ void otaStateFirmwareUpdate()
             else
             {
                 allUpdatesSucceeded = false;
+                otaLocalSubsystemFailed(subsystem, "Update failed");
                 otaFirmwareUpdateStatusWebsocket(subsystemIndex,
                                                  "Update failed. Please restart the device and try again.");
             }
@@ -1579,8 +1584,10 @@ void otaUpdate()
     connected = networkConsumerIsConnected(NETCONSUMER_OTA_CLIENT);
 
     // networkConsumerIsConnected returns false once each time the default network
-    // interface changes, so go back to waiting rather than failing the update
+    // interface changes, so go back to waiting rather than failing the update.
+    // Local updates (OTA_Local.ino) download over the soft AP, which has no internet.
     if ((!connected)
+        && (otaLocalUpdateRunning() == false)
         && ((otaState == OTA_STATE_GET_SYSTEMS_TO_UPDATE)
             || (otaState == OTA_STATE_UPDATE_FIRMWARE)))
     {
@@ -1647,6 +1654,7 @@ void otaUpdate()
                 webServerSendString("firmwareUpdateComplete,1,");
                 delay(500); // Allow websocket delivery before rebooting
             }
+            otaLocalComplete(); // Give $SPGET,updateStatus polls a chance to see COMPLETE
             dfuEsp32Reboot();
             break;
         }

@@ -119,6 +119,7 @@ static const char *networkConsumerTable[] = {
     "UDP_SERVER",
     "WEB_CONFIG",
     "DEVICE_OTA",
+    "LOCAL_UPDATE",
 };
 
 static const int networkConsumerTableEntries = sizeof(networkConsumerTable) / sizeof(networkConsumerTable[0]);

@@ -221,6 +221,88 @@ Receive:
 
 *ntripClientCasterUserPW* set to: `a55G"e,e#`
 
+## Local Firmware Update
+
+A phone app can update the device's subsystems (ESP32, GNSS, LoRa, IMU) without the device having internet access. The app downloads the firmware files, the device starts a Wi-Fi access point for the phone to join, and the device then downloads the files from a small HTTP server run by the app. Any version can be installed, older or newer than the current one.
+
+### 1. Read the current versions
+
+	$SPGET,subsystemVersions*31<CR><LF>
+
+The device replies with `subsystem:chip:version` for each subsystem it has, separated by semicolons:
+
+	$SPGET,subsystemVersions,"ESP32:ESP32:3.1.0.0;GNSS:LG290P:2.1.0.0;LoRa:LoRa-STM32WL:1.2.0.0"*25<CR><LF>
+
+A debug build adds `-rc` to the version, and `unknown` means the chip did not report a version. Use the chip name to pick the firmware file.
+
+### 2. Start the access point
+
+	$SPEXE,UPDATEAP*77<CR><LF>
+
+The device creates a WPA2 access point with a new SSID and password for this session, and replies with both:
+
+	$SPEXE,UPDATEAP,"RTK Update B4E706-9F3A","q7Hk2mPz8xLw4RtN",OK*36<CR><LF>
+
+Sending `UPDATEAP` again returns the same SSID and password. Only one device (the phone) can join. The request is refused with `Soft AP in use` while another feature has an access point running (Web Config, the TCP or UDP server over the access point, or Base Caster mode); switch to Rover first.
+
+### 3. Wait for the access point, then join it
+
+Poll the status until it reports `AP_READY`, then join the network from the phone:
+
+	$SPGET,updateStatus*5C<CR><LF>
+	$SPGET,updateStatus,"AP_READY,,0,"*69<CR><LF>
+
+The status is `state,subsystem,percent,message`:
+
+| State | Meaning |
+|-------|---------|
+| IDLE | No update access point. The message says why it stopped (`Canceled`, `Timed out`, ...) |
+| AP_STARTING | The access point is starting |
+| AP_READY | Ready for `UPDATEFILE` and `UPDATESTART` |
+| UPDATING | Downloading and programming `subsystem`, `percent` complete |
+| FAILED | The update of `subsystem` failed. The access point is still running, so the app can retry with `UPDATESTART` or send `UPDATECANCEL` |
+| COMPLETE | Every file was programmed. The device reboots a moment later |
+
+### 4. Queue the files
+
+Serve each file over HTTP from the phone, then send one command per subsystem:
+
+	$SPEXE,UPDATEFILE,[subsystem],[chip],[url],[file bytes],[CRC32]*FF<CR><LF>
+
+!!! example
+	Send:
+
+		$SPEXE,UPDATEFILE,GNSS,LG290P,http://192.168.4.2:8080/LG290P.pkg,6291456,0x1A2B3C4D*7E<CR><LF>
+
+	Receive:
+
+		$SPEXE,UPDATEFILE,OK*48<CR><LF>
+
+* **subsystem** and **chip** must match `subsystemVersions`. A mismatched chip is refused, for example `$SPEXE,UPDATEFILE,ERROR,Device has LG290P*1A`.
+* **url** must be `http://` and use the phone's address on the device's access point.
+* **file bytes** and **CRC32** (the CRC-32 of the whole file, in decimal or `0x` hex) are checked during the download. Both are listed in the firmware manifest in the binaries repository.
+
+Files stay queued until the update finishes or is canceled; sending a subsystem again replaces its file.
+
+### 5. Start the update
+
+	$SPEXE,UPDATESTART*26<CR><LF>
+	$SPEXE,UPDATESTART,OK*0E<CR><LF>
+
+The phone must be connected to the access point. Keep polling `updateStatus`:
+
+	$SPGET,updateStatus,"UPDATING,GNSS,47,"*42<CR><LF>
+
+The ESP32 is always programmed last. When every file succeeds, the status shows `COMPLETE` and the device reboots, which drops the Bluetooth connection. Reconnect and check `subsystemVersions`. If a file fails, the status shows `FAILED` with the subsystem:
+
+	$SPGET,updateStatus,"FAILED,GNSS,12,Update failed"*47<CR><LF>
+
+### Canceling
+
+	$SPEXE,UPDATECANCEL*60<CR><LF>
+
+This stops the access point and forgets the queued files. It is refused while an update is running. The access point also stops on its own after 5 minutes without any of these commands.
+
 ## Receiver Actions
 
 The $SPEXE command can be used to execute various actions on the receiver.

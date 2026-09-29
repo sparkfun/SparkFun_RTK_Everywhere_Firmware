@@ -350,6 +350,11 @@ bool wifiStationRunning;        // False: stopped, True: starting, running, stop
 const char *wifiSoftApSsid = "RTK Config";
 const char *wifiSoftApPassword = nullptr;
 
+// Local firmware update soft AP (OTA_Local.ino): unique SSID and WPA2 password for each session
+bool otaLocalApActive;          // Set while the soft AP uses the local update SSID and password
+char otaLocalApSsid[SSID_LENGTH];
+char otaLocalApPassword[17];    // 16 characters + zero termination
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // MQTT support
@@ -1554,6 +1559,9 @@ void loop()
     DMW_l("otaUpdate");
     otaUpdate(); // Initiate firmware version checks, scheduled automatic updates, or requested firmware over-the-air
                  // updates
+
+    DMW_l("otaLocalUpdate");
+    otaLocalUpdate(); // Soft AP and firmware updates from files served by a phone app
 
     DMW_l("correctionUpdateSource");
     correctionUpdateSource(); // Retire expired sources

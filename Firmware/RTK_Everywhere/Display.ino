@@ -1100,29 +1100,38 @@ void paintBootLogo184x88()
 }
 
 // 184x88 boot screen: the SparkPNT logo, model and firmware version as three centered lines.
-// Heights: logo 24 px, 31x48 capitals 37 px, 8x16 13 px with descenders - 74 px, leaving
-// 3-4 px gaps above, between and below.
+// Logo in rows 3-26, then the model and firmware version in 10x20, each in a 20 px band
+// (rows 34-53 and 60-79), leaving 6-8 px gaps between the lines.
 void paintBootInfo184x88(const char *model)
 {
     // Logo (the one generated from the SparkPNT SVG), rows 3-26
     displayBitmap((theDisplay->getWidth() - SparkPNT_PoweredOff_Logo_Width) / 2, 3, SparkPNT_PoweredOff_Logo_Width,
                   SparkPNT_PoweredOff_Logo_Height, SparkPNT_PoweredOff_Logo);
 
-    // Model - as large as fits: 31x48 (ink rows 31-67), else 10x20 centered in the same band
-    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_31X48);
+    // Model - 10x20 (rows 34-53), else 8x16 centered in the same band
+    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10X20);
     if (printedTextWidth(model) <= theDisplay->getWidth())
-        printTextCenter(model, 31, QW_FONT_8X16, QW_EP_FONT_31X48, 1, false);
+        printTextCenter(model, 34, QW_FONT_8X16, QW_EP_FONT_10X20, 1, false);
     else
-        printTextCenter(model, 40, QW_FONT_8X16, QW_EP_FONT_10X20, 1, false);
+        printTextCenter(model, 36, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);
 
-    // Firmware version, ink rows 71-83
+    // Firmware version - 10x20 (rows 60-79), else 10x20 without kerning (fits 18 characters,
+    // ie: "v3.10-Sep 29 2026"), else 8x16, else 5x7, centered in the same band
     char unitFirmware[50];
     espFirmwareVersionGet(unitFirmware, sizeof(unitFirmware), false);
-    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
+    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_10X20);
     if (printedTextWidth(unitFirmware) <= theDisplay->getWidth())
-        printTextCenter(unitFirmware, 70, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);
+        printTextCenter(unitFirmware, 60, QW_FONT_8X16, QW_EP_FONT_10X20, 1, false);
+    else if (theDisplay->getStringWidth(unitFirmware) <= theDisplay->getWidth())
+        printTextCenter(unitFirmware, 60, QW_FONT_8X16, QW_EP_FONT_10X20, 0, false);
     else
-        printTextCenter(unitFirmware, 74, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
+    {
+        theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
+        if (printedTextWidth(unitFirmware) <= theDisplay->getWidth())
+            printTextCenter(unitFirmware, 62, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);
+        else
+            printTextCenter(unitFirmware, 66, QW_FONT_5X7, QW_EP_FONT_5X7, 1, false);
+    }
 }
 
 void displayShutdown()
@@ -5138,8 +5147,11 @@ void displayWebConfig(std::vector<iconPropertyBlinking> &iconPropertyList)
     }
     else
     {
-        // 64x48 and e-paper: toggle between showing the first and last portion every 2s
-        if ((millis() - ssidDisplayTimer) > 2000)
+        // 64x48 and e-paper: toggle between showing the first and last portion every 2s.
+        // E-paper already redraws only every 2s (see displayUpdate()), so flip on every
+        // redraw. Comparing against a 2s timer there races the redraw interval (reset()
+        // can block on a busy panel), causing the toggle to skip frames.
+        if ((present.display_type == DISPLAY_184x88) || ((millis() - ssidDisplayTimer) > 2000))
         {
             ssidDisplayTimer = millis();
             ssidDisplayFirstHalf = !ssidDisplayFirstHalf;

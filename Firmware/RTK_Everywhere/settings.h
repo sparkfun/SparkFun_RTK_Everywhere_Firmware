@@ -759,8 +759,10 @@ enum
     NETCONSUMER_UDP_SERVER,
     NETCONSUMER_WEB_CONFIG,
     NETCONSUMER_DEVICE_OTA,
+    NETCONSUMER_LOCAL_UPDATE,
     // Add new consumers just before this line
     // Also add them to the networkConsumerTable
+    // NETCONSUMER_MASK_t is 16 bits: more than 16 consumers requires a wider mask
     NETCONSUMER_MAX
 };
 

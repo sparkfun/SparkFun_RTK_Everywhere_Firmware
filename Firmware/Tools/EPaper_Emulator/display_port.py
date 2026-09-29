@@ -1085,20 +1085,24 @@ def render_boot_logo():
 
 
 def render_boot_info(model, firmware):
-    """paintBootInfo184x88(): SparkPNT logo bitmap, model (31x48, else 10x20), firmware
-    version (8x16, else 5x7), centered, with 3-4 px of space above, between and below."""
+    """paintBootInfo184x88(): SparkPNT logo bitmap, model (10x20, else 8x16), firmware
+    version (10x20, else 10x20 unkerned, else 8x16, else 5x7), centered, with 6-8 px of space between lines."""
     painter = Painter(State(system_state="MESSAGE"))
     icon = ICONS["SparkPNT_PoweredOff_Logo"]
     with painter.panel.element("logo"):
         painter.panel.bitmap((184 - icon["width"]) // 2, 3, "SparkPNT_PoweredOff_Logo")
-    if len(model) * (FONTS["31X48"]["width"] + 1) - 1 <= 184:
-        _print_text_center(painter, "model", model, 31, "31X48", kerning=1)
+    if len(model) * (FONTS["10X20"]["width"] + 1) - 1 <= 184:
+        _print_text_center(painter, "model", model, 34, "10X20", kerning=1)
     else:
-        _print_text_center(painter, "model", model, 40, "10X20", kerning=1)
-    if len(firmware) * (FONTS["8X16"]["width"] + 1) - 1 <= 184:
-        _print_text_center(painter, "firmware", firmware, 70, "8X16", kerning=1)
+        _print_text_center(painter, "model", model, 36, "8X16", kerning=1)
+    if len(firmware) * (FONTS["10X20"]["width"] + 1) - 1 <= 184:
+        _print_text_center(painter, "firmware", firmware, 60, "10X20", kerning=1)
+    elif len(firmware) * FONTS["10X20"]["width"] <= 184:
+        _print_text_center(painter, "firmware", firmware, 60, "10X20", kerning=0)
+    elif len(firmware) * (FONTS["8X16"]["width"] + 1) - 1 <= 184:
+        _print_text_center(painter, "firmware", firmware, 62, "8X16", kerning=1)
     else:
-        _print_text_center(painter, "firmware", firmware, 74, "5X7", kerning=1)
+        _print_text_center(painter, "firmware", firmware, 66, "5X7", kerning=1)
     return painter.panel, painter
 
 
