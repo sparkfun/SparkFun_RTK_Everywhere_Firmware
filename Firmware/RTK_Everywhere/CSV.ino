@@ -47,9 +47,10 @@ void csvBuildLineArray(const char * buffer,
             buffer += length + 1;
         }
 
-        // Skip over the end of the line
-        while (*buffer == 0)
-            buffer += 1;
+        // Skip over the end of the line, but not past the end of the last line
+        if (line < (lineCount - 1))
+            while (*buffer == 0)
+                buffer += 1;
     }
 }
 
@@ -264,73 +265,12 @@ bool csvGetProductLines(char * fileData,
             // Determine if the line needs to be moved
             lineCount += 1;
             if (buffer == nextLine)
-                // No, in correct position
-                buffer = csvNextLine(buffer, bufferEnd, fieldCount);
-            else
             {
-                // Copy the line to the beginning of the buffer
-                for (fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++)
-                {
-                    strcpy(nextLine, buffer);
-                    nextLine += strlen(nextLine) + 1;
-                    buffer += strlen(buffer) + 1;
-                }
-                while (*buffer == 0)
-                {
-                    *nextLine++ = 0;
-                    buffer += 1;
-                }
-            }
-        }
-    }
-
-    // Update the CSV contents
-    if (lineCount > 1)
-    {
-        *lineCountAddr = lineCount;
-        *fileBytes = nextLine - fileData;
-    }
-    return (lineCount > 1);
-}
-
-//----------------------------------------
-// Reduce the lines to those for the current product
-//----------------------------------------
-bool csvGetRequiredUpdates(char * fileData,
-                           size_t * fileBytes,
-                           int fieldCount,
-                           int * lineCountAddr,
-                           bool debug,
-                           bool verbose)
-{
-    char * buffer;
-    char * bufferEnd;
-    int fieldIndex;
-    int lineCount;
-    int lineIndex;
-    const char * product;
-    char * nextLine;
-
-    // Skip over the header line
-    buffer = fileData;
-    bufferEnd = &buffer[*fileBytes];
-    buffer = csvNextLine(buffer, bufferEnd, fieldCount);
-    lineCount = 1;
-    nextLine = buffer;
-
-    // Locate the platform lines
-    for (lineIndex = 1; lineIndex < *lineCountAddr; lineIndex++)
-    {
-
-        if ((strcmp("*", buffer) != 0) && (strcmp(product, buffer) != 0))
-            buffer = csvNextLine(buffer, bufferEnd, fieldCount);
-        else
-        {
-            // Determine if the line needs to be moved
-            lineCount += 1;
-            if (buffer == nextLine)
-                // No, in correct position
+                // No, in correct position. Keep the line by moving nextLine past it,
+                // otherwise the next matching line is copied on top of this one
                 buffer = csvNextLine(buffer, bufferEnd, fieldCount);
+                nextLine = buffer;
+            }
             else
             {
                 // Copy the line to the beginning of the buffer
@@ -372,7 +312,7 @@ char * csvNextLine(const char * buffer,
     }
 
     // Skip over any extra zero's for \r or \n
-    while (*buffer == 0)
+    while ((buffer < bufferEnd) && (*buffer == 0))
         buffer += 1;
     return (char *)buffer;
 }
@@ -596,7 +536,7 @@ bool csvFileParse(uint8_t * fileData,
             {
                 // Display the error
                 systemPrintf("ERROR: CSV file line %d at offset 0x%08x has %d fields, expected %d fields!\r\n",
-                             *lineCount, buffer - lineStart, field, *fieldCount);
+                             *lineCount, lineStart - (char *)fileData, field, *fieldCount);
                 validFile = false;
             }
 
