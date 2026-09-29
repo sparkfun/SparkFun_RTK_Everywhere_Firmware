@@ -1,0 +1,91 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "RTK-Everywhere Compile and Upload",
+            "type": "shell",
+
+            // Postcard
+            // "command": "$portDevice = Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Caption -like '*SERIAL-A*' } | Select-Object -First 1; if ($portDevice -and $portDevice.Caption -match 'COM(\\d+)') { $port = 'COM' + $Matches[1]; arduino-cli --fqbn esp32:esp32:esp32:FlashSize=8M,PSRAM=enabled,DebugLevel=none,UploadSpeed=2000000 compile . --build-property upload.maximum_size=4055040 --build-property build.partitions=RTKEverywhere_8MB -p $port -u } else { Write-Error 'No SERIAL-A port detected' }",
+
+            // FP/TX2 standard - None level of error, no warnings, fast upload
+            "command": "$portDevice = Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Caption -like '*SERIAL-B*' } | Select-Object -First 1; if ($portDevice -and $portDevice.Caption -match 'COM(\\d+)') { $port = 'COM' + $Matches[1]; arduino-cli --fqbn esp32:esp32:esp32:FlashSize=8M,PSRAM=enabled,DebugLevel=none,UploadSpeed=2000000 compile . --build-property upload.maximum_size=4055040 --build-property build.partitions=RTKEverywhere_8MB -p $port -u } else { Write-Error 'No SERIAL-B port detected' }",
+
+            // Torch standard - Debug level of debug, no warnings, upload speed slow to Torch
+            // "command": "$portDevice = Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Caption -like '*SERIAL-B*' } | Select-Object -First 1; if ($portDevice -and $portDevice.Caption -match 'COM(\\d+)') { $port = 'COM' + $Matches[1]; arduino-cli --fqbn esp32:esp32:esp32:FlashSize=8M,PSRAM=enabled,DebugLevel=none,UploadSpeed=512000 compile . --build-property upload.maximum_size=4055040 --build-property build.partitions=RTKEverywhere_8MB -p $port -u } else { Write-Error 'No SERIAL-B port detected' }",
+
+            // "command": "$portDevice = Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Caption -like '*USB-SERIAL CH340*' } | Select-Object -First 1; if ($portDevice -and $portDevice.Caption -match 'COM(\\d+)') { $port = 'COM' + $Matches[1]; arduino-cli --fqbn esp32:esp32:esp32:FlashSize=8M,PSRAM=enabled,DebugLevel=none,UploadSpeed=2000000 compile . --build-property upload.maximum_size=4055040 --build-property build.partitions=RTKEverywhere_8MB -p $port -u } else { Write-Error 'No USB-SERIAL CH340 port detected' }",
+
+            // Old mosaic Facet / EVK
+            //    "command": "arduino-cli --fqbn esp32:esp32:esp32:FlashSize=8M,PSRAM=enabled,DebugLevel=none,UploadSpeed=921600 compile . --build-property upload.maximum_size=4055040 --build-property build.partitions=RTKEverywhere_8MB -p COM136 -u",
+            "options": {
+                "shell": {
+                    "executable": "powershell.exe",
+                    "args": [
+                        "-NoProfile",
+                        "-Command"
+                    ]
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "isBackground": false,
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "RTK-Everywhere Just Upload",
+            "type": "shell",
+
+            //Postcard - Upload normal speed to port A
+            // "command": "$portDevice = Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Caption -like '*SERIAL-A*' } | Select-Object -First 1; if ($portDevice -and $portDevice.Caption -match 'COM(\\d+)') { $port = 'COM' + $Matches[1]; arduino-cli upload -p $port --fqbn esp32:esp32:esp32:UploadSpeed=2000000,FlashSize=8M . } else { Write-Error 'No SERIAL-A port detected' }",
+
+            //FP, TX2 - upload normal speed to port B
+            "command": "$portDevice = Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Caption -like '*SERIAL-B*' } | Select-Object -First 1; if ($portDevice -and $portDevice.Caption -match 'COM(\\d+)') { $port = 'COM' + $Matches[1]; arduino-cli upload -p $port --fqbn esp32:esp32:esp32:UploadSpeed=2000000,FlashSize=8M . } else { Write-Error 'No SERIAL-B port detected' }",
+
+            //Torch - upload slow
+            //  "command": "$portDevice = Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Caption -like '*SERIAL-B*' } | Select-Object -First 1; if ($portDevice -and $portDevice.Caption -match 'COM(\\d+)') { $port = 'COM' + $Matches[1]; arduino-cli upload -p $port --fqbn esp32:esp32:esp32:UploadSpeed=512000,FlashSize=8M . } else { Write-Error 'No SERIAL-B port detected' }",
+
+            // Thing Plus
+            // "command": "$portDevice = Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Caption -like '*USB-SERIAL CH340*' } | Select-Object -First 1; if ($portDevice -and $portDevice.Caption -match 'COM(\\d+)') { $port = 'COM' + $Matches[1]; arduino-cli upload -p $port --fqbn esp32:esp32:esp32:UploadSpeed=2000000,FlashSize=8M . } else { Write-Error 'No USB-SERIAL CH340 port detected' }",
+
+            // Old mosaic Facet / EVK
+            //    "command": "arduino-cli upload -p COM136 --fqbn esp32:esp32:esp32:UploadSpeed=921600,FlashSize=8M .",
+
+            "options": {
+                "shell": {
+                    "executable": "powershell.exe",
+                    "args": [
+                        "-NoProfile",
+                        "-Command"
+                    ]
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "isBackground": false,
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}
