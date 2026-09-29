@@ -293,6 +293,35 @@ int commandGetState()
     return -1;
 }
 
+// Handle $SPGET,loggingState: is a microSD card present, and if logging, what type of messages
+LoggingState commandGetLoggingState()
+{
+    bool logging = online.logging;
+    bool sdPresent = online.microSD;
+
+    // The mosaic-X5 logs to its own internal microSD card
+    if (present.mosaicMicroSd)
+    {
+        logging |= logMosaicIncreasing;
+        sdPresent |= (mosaicSdCardSize > 0);
+    }
+
+    if (logging)
+    {
+        if (loggingType == LOGGING_STANDARD)
+            return LOGGING_STATE_DEFAULT;
+        if (loggingType == LOGGING_PPP)
+            return LOGGING_STATE_PPP;
+        if (loggingType == LOGGING_CUSTOM)
+            return LOGGING_STATE_CUSTOM;
+        return LOGGING_STATE_TYPE_UNKNOWN;
+    }
+
+    if (sdPresent)
+        return LOGGING_STATE_NOT_LOGGING;
+    return LOGGING_STATE_NO_SD;
+}
+
 // On Facet FP, ensure detectedGnssReceiver matches attached hardware before
 // building Web Config CSV output that depends on platform filtering.
 void normalizeDetectedGnssReceiverForFacetFp()
@@ -1931,7 +1960,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             "batteryLevelPercent",   "batteryVoltage", "batteryChargingPercentPerHour",
             "bluetoothId",           "deviceId",       "deviceName",
             "gnssModuleInfo",        "list",           "espFirmwareVersion",
-            "espNewFirmwareVersion", "tiltState",
+            "espNewFirmwareVersion", "tiltState",      "loggingState",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
@@ -3247,6 +3276,11 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         writeToString(settingValueStr, (int)tiltState);
         knownSetting = true;
     }
+    else if (strcmp(settingName, "loggingState") == 0)
+    {
+        writeToString(settingValueStr, (int)commandGetLoggingState());
+        knownSetting = true;
+    }
 
     // Unused variables - read to avoid errors
     // TODO: check this! Is this really what we want?
@@ -3659,6 +3693,10 @@ const char *commandGetName(int stringIndex, int rtkIndex)
     // Display the tilt sensor state
     else if (rtkIndex == COMMAND_TILT_STATE)
         return "tiltState";
+
+    // Display the microSD logging state
+    else if (rtkIndex == COMMAND_LOGGING_STATE)
+        return "loggingState";
 
     systemPrintf("commandGetName Error: Uncaught command type, stringIndex: %d, rtkIndex: %d\r\n", stringIndex,
                  rtkIndex);
@@ -4075,6 +4113,14 @@ void printAvailableSettings()
             char tiltStateString[4];
             snprintf(tiltStateString, sizeof(tiltStateString), "%d", (int)tiltState);
             commandSendExecuteListResponse("tiltState", "TiltState", tiltStateString);
+        }
+
+        // Display the microSD logging state
+        else if (commandIndex[i] == COMMAND_LOGGING_STATE)
+        {
+            char loggingStateString[4];
+            snprintf(loggingStateString, sizeof(loggingStateString), "%d", (int)commandGetLoggingState());
+            commandSendExecuteListResponse("loggingState", "LoggingState", loggingStateString);
         }
     }
 }

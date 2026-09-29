@@ -98,6 +98,25 @@ To get the current tilt sensor state, send:
 
 The receiver returns the numeric `TiltState` enum value. The response does not include the IM19 navigation-status bitfield.
 
+## Getting Logging State
+
+To get the current microSD logging state, send:
+
+	$SPGET,loggingState*FF<CR><LF>
+
+The receiver returns the numeric `LoggingState` enum value:
+
+| State | Value |
+|-------|-------|
+| No microSD card present | 0 |
+| microSD card present, not logging | 1 |
+| Logging default messages | 2 |
+| Logging PPP messages | 3 |
+| Logging custom messages | 4 |
+| Logging, message type not yet determined | 5 |
+
+On platforms with a mosaic-X5, logging to the internal mosaic microSD card is also reported.
+
 ## Changing Modes
 
 To switch the device between Rover, Base, and the other modes without a reset, send:

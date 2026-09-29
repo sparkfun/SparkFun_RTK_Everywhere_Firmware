@@ -264,6 +264,17 @@ typedef enum
     TILT_REQUEST_STOP,
 } TiltState;
 
+// Reported by $SPGET,loggingState. Values are part of the CLI API, only add to the end.
+typedef enum
+{
+    LOGGING_STATE_NO_SD = 0,         // No microSD card present or mounted
+    LOGGING_STATE_NOT_LOGGING,       // microSD card present, but not logging
+    LOGGING_STATE_DEFAULT,           // Logging the default messages
+    LOGGING_STATE_PPP,               // Logging messages for a PPP survey
+    LOGGING_STATE_CUSTOM,            // Logging a custom set of messages
+    LOGGING_STATE_TYPE_UNKNOWN,      // Logging, but the message type is not yet determined
+} LoggingState;
+
 // Product Properties Table
 // ========================
 // name is used to create the BT broadcast deviceName
@@ -1327,8 +1338,9 @@ typedef struct
 #define COMMAND_DEVICE_NAME                (COMMAND_BLUETOOTH_ID - 1)           // -17 - 1 = -18
 #define COMMAND_DEVICE_ID                  (COMMAND_DEVICE_NAME - 1)            // -18 - 1 = -19
 #define COMMAND_TILT_STATE                 (COMMAND_DEVICE_ID - 1)              // -19 - 1 = -20
-#define COMMAND_UNKNOWN                    (COMMAND_TILT_STATE - 1)              // -20 - 1 = -21
-#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN))                 // -21
+#define COMMAND_LOGGING_STATE              (COMMAND_TILT_STATE - 1)             // -20 - 1 = -21
+#define COMMAND_UNKNOWN                    (COMMAND_LOGGING_STATE - 1)          // -21 - 1 = -22
+#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN))                 // -22
 
 // Exit types for processCommand
 typedef enum
