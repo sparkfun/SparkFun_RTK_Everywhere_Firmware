@@ -35,11 +35,12 @@
 
     Test procedure commands (Verifies HTTP, HTTPS and array):
     1) a    ?.?? --> 2.02   Verify array
-    2) L                    Verify directory listing
-       0    2.02 --> 2.10   Verify HTTPS
-    2) e    2.10 --> 2.02   Verify HTTP, connect to somewhere other than
+    2) u    2.02 --> 2.10   Verify 'u' command, HTTPS with CERT
+    3) e    2.10 --> 2.02   Verify HTTP, connect to somewhere other than
                             raw.githubusercontent.com using http://
-    4) u    2.02 --> 2.10   Leave at highest revision
+    4) L                    Verify directory listing
+       0    2.02 --> 2.10   Verify HTTPS without CERT
+                            Leave at highest revision
 */
 
 //----------------------------------------
