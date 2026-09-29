@@ -5,9 +5,10 @@ OTA_Bootstrap.ino
 
   Load this small firmware, open the serial port at 115200, and press u.
   The bootstrap identifies the product and its GNSS, LoRa and IMU, joins the production
-  Wi-Fi network, downloads the product release firmware listed in the manifest
-  (RTK-Everywhere-Variants.csv) and updates every subsystem. The ESP32 is updated last
-  with the RTK Everywhere firmware, which replaces the bootstrap on the next boot.
+  Wi-Fi network, reads the product release firmware versions from the manifest
+  (RTK-Everywhere-Variants.csv) and updates each subsystem not already running that
+  version. The ESP32 is always updated last with the RTK Everywhere firmware, which
+  replaces the bootstrap on the next boot.
 
   The update code is copied from RTK_Everywhere. OTA_Bootstrap_Notes.md lists where every
   piece came from and how to keep it in step with the firmware.
@@ -41,6 +42,7 @@ void setup()
 
     beginBoard();
     detectSubsystems();
+    otaReadVersions();
 
     // Wi-Fi credentials: production defaults unless changed from the menu
     preferences.begin("otaBootstrap", false);
@@ -121,8 +123,12 @@ void printMenu()
     {
         const char *chip = subsystemChipName(subsystem);
         if (chip[0])
-            systemPrintf("    %-5s %s%s\r\n", otaSubsystem[subsystem], chip,
-                         otaGetSubsystemInfo(subsystem) ? "" : " (no update available)");
+        {
+            char version[24];
+            otaFormatLocalVersion(subsystem, version, sizeof(version));
+            systemPrintf("    %-5s %-13s %s%s\r\n", otaSubsystem[subsystem], chip, version,
+                         otaGetSubsystemInfo(subsystem) ? "" : "(no update available)");
+        }
     }
     systemPrintln();
     systemPrintln("u) Update all subsystems");

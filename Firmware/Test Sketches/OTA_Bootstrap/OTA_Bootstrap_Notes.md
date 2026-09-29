@@ -1,6 +1,6 @@
 # OTA Bootstrap - maintenance notes
 
-OTA_Bootstrap is a small ESP32 program for the production line. It identifies the RTK product it is running on, joins the production Wi-Fi network, and updates every subsystem (IMU, LoRa, GNSS, then the ESP32) to the product release firmware listed in the manifest. The ESP32 update installs the RTK Everywhere firmware, so the unit boots into it and the bootstrap is gone.
+OTA_Bootstrap is a small ESP32 program for the production line. It identifies the RTK product it is running on, joins the production Wi-Fi network, and brings every subsystem (IMU, LoRa, GNSS, then the ESP32) to the product release firmware listed in the manifest. Subsystems already running that version are skipped; the ESP32 is always updated. The ESP32 update installs the RTK Everywhere firmware, so the unit boots into it and the bootstrap is gone.
 
 Almost all of the update code is copied from `Firmware/RTK_Everywhere`. These notes say where each piece came from, what was changed, and how to keep the bootstrap in step as the firmware and the subsystem update code change.
 
@@ -9,7 +9,7 @@ The copies were taken from branch `addCliUpdate`, commit `3fe88d9f9` (2026-09-28
 ## Production use
 
 1. Load the bootstrap with the RTK Firmware Uploader. Use the uploader rather than the Arduino IDE: it writes the partition table that matches the unit's flash size (see [Partitions](#partitions)).
-2. Open the unit's serial port at 115200 baud. The bootstrap prints the product, the subsystems it found, and a menu.
+2. Open the unit's serial port at 115200 baud. The bootstrap prints the product, the subsystems it found with the firmware version each is running, and a menu. Reading the versions takes about 10 seconds after boot (longer on a Facet FP with a mosaic-X5 and IM19).
 3. Press `u`.
 4. Success: `All updates succeeded`, two short beeps (Torch, Torch X2, Facet FP), and the unit reboots into the RTK Everywhere firmware.
 5. Failure: `UPDATE FAILED` and one long beep. The ESP32 is not updated, so the bootstrap is still installed. Fix the cause shown above the message and press `u` again.
@@ -44,7 +44,18 @@ This follows the firmware's `otaSubsystemInfoTable` (`OTA.ino`): the same chips 
 
 The flow follows `otaStateGetSystemsToUpdate()` and `otaStateFirmwareUpdate()` in `OTA.ino`, with these deliberate differences:
 
-- **No version check.** Every subsystem is updated to the product release entry, even if it already runs that version. A unit leaving the line always has a known set of firmware, and the bootstrap never has to read versions from the chips.
+- **Version check, then update.** At boot, `otaReadVersions()` reads the running version of the IMU, LoRa and GNSS (in that order) into `otaLocalVersion[]`, and the menu shows them. When `u` is pressed and the manifest is downloaded, `otaCheckVersions()` skips each subsystem that runs exactly the product release version, as the firmware's `OTA_REQUEST_PRODUCT_RELEASE` rule does. A subsystem whose version could not be read (shown as `unknown`) is updated anyway. After a subsystem updates successfully its saved version becomes the manifest version, so pressing `u` again after a failure only retries what is still out of date. The ESP32 is always updated: it is running the bootstrap. The plan printed before the updates shows each subsystem's running and manifest versions, or `up to date`.
+- **Versions are read from the chips.** The firmware's `gnssGetVersion()`, `loraGetVersion()` and `tiltGetVersion()` return versions cached when each subsystem started. The bootstrap never starts them, so its `_getVersion` functions (`Versions.ino`) ask the chips at boot:
+
+  | Chip | How | Matches the firmware's |
+  |------|-----|------------------------|
+  | LG290P | Library `getFirmwareVersionMajor()/Minor()` | `GNSS_LG290P::getVersion()` |
+  | ZED-X20P | UBX MON-VER extension `FWVER=HPG 2.10` -> 2.10 (`ZED_Detect.ino`) | u-blox library `getFirmwareVersionHigh()/Low()` |
+  | mosaic-X5 | `sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate` (as `isPresent()` does; the escape sequence used to find the prompt leaves COM1 in command mode), then `esoc,COM1,ReceiverSetup`, then `RxVersion` from the SBF block (CRC checked, 5 s timeout) | `GNSS_MOSAIC::begin()`, `processSBFReceiverSetup()` |
+  | LoRa | Power up the radio, the firmware's `loraEnterCommandMode()` (`AT+V?`), power down | `loraGetVersion()` |
+  | IM19 | `im19GetVersionString()` (resets the IMU, ~5 s), then the firmware's parse | `tiltGetVersion()` |
+
+  The IM19 reset also resets the GNSS on the Torch and Facet FP, which is why the GNSS is read last. The mosaic-X5 check waits up to 30 seconds for the receiver to reboot at 460800.
 - **Product release only.** For each subsystem, the first manifest line for that subsystem whose chip is fitted and whose `release_candidate` is 0. That is the firmware's `OTA_REQUEST_PRODUCT_RELEASE` rule. Release candidates are never used.
 - **The ESP32 is skipped if anything else failed.** The firmware still updates the ESP32 after a failure, then declines to reboot. The bootstrap stops so it stays installed and the worker can press `u` again.
 - **No web, BLE or display reporting.** `firmwareUpdateStatusWebsocket()` does nothing, and progress goes to the serial port only.
@@ -87,9 +98,10 @@ Tilt (IM19) detection only runs once the GNSS is identified, as in the firmware.
 | `Bootstrap.h` | Types, pins, globals and print/malloc helpers, named as in the firmware so the copies compile | `settings.h`, `OTA.h`, `GNSS_ZED.h` (`UbxMsg`), `support.ino` |
 | `Certificates.h` | `GITHUB_RAW_PUBLIC_CERT` (ISRG Root X1) | `settings.h`, verbatim |
 | `Board.ino` | Identification, pins, mux and GPIO helpers, GPIO expander, Facet FP GNSS and tilt detection, beeper | Adapted from `Begin.ino`, `System.ino`, `GNSS.ino`, `Tilt.ino`, `support.ino` (see [Device detection](#device-detection)) |
-| `ZED_Detect.ino` | `zedDetectOnSerial()` | New. Must sort after `Update_X20P.ino` (uses its `#define`s) |
+| `ZED_Detect.ino` | `zedPollMonVer()`, `zedDetectOnSerial()`, `zedGetVersion()` | New. Must sort after `Update_X20P.ino` (uses its `#define`s) |
+| `Versions.ino` | `_getVersion` functions: `lg290pGetVersion()`, `mosaicGetVersion()`, `loraGetVersion()`, `tiltGetVersion()` | New, except `loraWaitForVersionResponse()` and `loraEnterCommandMode()` (`LoRa.ino`, verbatim), and `loraGetVersion()` (`LoRa.ino`) and `tiltGetVersion()` (`Tilt.ino`), which query the chip first. Must sort after `Update_Mosaic.ino` and `Update_IM19.ino` |
 | `Mosaic_Detect.ino` | `mosaicIsPresentOnFacetFP()`, `mosaicIsPresentOnSerial()`, `mosaicSendWithResponse()` | `GNSS_Mosaic.ino` `mosaicIsPresentOnFacetFP()`, `GNSS_MOSAIC::isPresentOnSerial()`, `GNSS_MOSAIC::sendWithResponse()`. Class methods made free functions; uses `serialGNSS` instead of a local UART2 on the same pins |
-| `Update.ino` | Subsystem table, manifest target selection, update loop, progress bar, `reportFatalError()` | Adapted from `OTA.ino` (`otaSubsystemInfoTable`, `otaGetSubsystemInfo()`, `otaIsChipSupported()`, `otaGetUrl()`, `otaGetRequiredUpdates()`, `otaFirmwareUpdate()`, `otaStateFirmwareUpdate()`, `otaCompareVersions()`, `otaFormatVersion()`), `System.ino` (`firmwareUpdateProgressReset()`, `firmwareUpdateProgressCallback()`) |
+| `Update.ino` | Subsystem table, manifest target selection, version read and check (`otaReadVersions()`, `otaCheckVersions()`), update loop, progress bar, `reportFatalError()` | Adapted from `OTA.ino` (`otaSubsystemInfoTable`, `otaGetSubsystemInfo()`, `otaIsChipSupported()`, `otaGetUrl()`, `otaGetRequiredUpdates()`, `otaFirmwareUpdate()`, `otaStateFirmwareUpdate()`, `otaCompareVersions()`, `otaFormatVersion()`), `System.ino` (`firmwareUpdateProgressReset()`, `firmwareUpdateProgressCallback()`) |
 | `Manifest.ino` | Download and parse the manifest | `CSV.ino`: `csvCleanup()`, `csvGetNumber()`, `csvGetProductLines()`, `csvNextLine()`, `csvOpenCsvFile()`, `csvGetField()`, `csvFileParse()`. Changes: display/dump calls removed; `csvNextLine()` bounded by `bufferEnd`; `csvOpenCsvFile()` clears the counts only on failure |
 | `Server.ino` | Certificate lookup, DNS, TLS pre-check, HTTP GET | `System.ino`: `getCertFromServer()` (GitHub only), `getCertFromUrl()`, `getCertName()`, `getServerIpAddress()`, `securelyConnectToServer()`, `serverConnectUsingUrl()`, `getServerFromUrl()` |
 | `CRC32.ino` | CRC-32 and CRC combine | `CRC32.ino`, whole file |
@@ -150,8 +162,9 @@ Product-specific lines are matched on `model` = `platformPrefix` (for example `T
 1. Add it to `OTA_CHIP` and `otaChipName[]` (or `OTA_SUBSYSTEM` and `otaSubsystem[]`) in `Bootstrap.h`. Names must match the manifest `chip` / `subsystem` columns.
 2. Copy its update code into a new `Update_<chip>.ino`.
 3. Add a `present.` flag, set it during detection, and add a row to `otaSubsystemInfoTable` in `Update.ino`, copying the firmware's row (packet size, directory).
-4. If it needs pins or power control, add them to `beginBoard()`.
-5. Update the tables in these notes.
+4. Add a `_getVersion` function to `Versions.ino` that asks the chip for its version, returning the same numbers as the manifest columns. Without one (`nullptr`), the chip is updated every time.
+5. If it needs pins or power control, add them to `beginBoard()`.
+6. Update the tables in these notes.
 
 ### A new product
 
@@ -169,7 +182,7 @@ Product-specific lines are matched on `model` = `platformPrefix` (for example `T
 - **Torch LoRa update output.** While the LoRa radio is being programmed, the USB serial port is shared with the STM32 bootloader, so the terminal shows some garbage and the progress lines come and go. This is the same in the firmware.
 - **LoRa and IM19 are assumed fitted** on the Torch and the Facet FP (LoRa), as in the firmware. A unit built without one fails that update, so the ESP32 update is skipped. If such builds exist, add a presence check before relying on the bootstrap for them.
 - **A failed update can leave a subsystem erased**, as with the firmware's OTA. Whether pressing `u` again recovers it depends on the chip. Chips entered through a hardware reset or ROM bootloader (LG290P on Torch X2 and Postcard, ZED-X20P, LoRa) can be retried. Chips reached through their running firmware cannot: the Facet FP LG290P (software reset only, and detection needs the running firmware) and the mosaic-X5 (needs its command prompt). Those need the manufacturer's recovery tools.
-- **Time.** Every subsystem is always updated. Expect several minutes per unit, most of it the GNSS. The IM19 alone takes roughly 2 minutes (about 1,000 frames paced 100 ms apart).
+- **Time.** A unit with every subsystem out of date takes several minutes, most of it the GNSS. The IM19 alone takes roughly 2 minutes (about 1,000 frames paced 100 ms apart). Reading the versions at boot adds about 10 seconds (the IM19 reset), or up to 30 seconds more on a Facet FP with a mosaic-X5 and IM19 while the receiver reboots.
 - **Wi-Fi.** 2.4 GHz, WPA2 personal only (`WiFi.begin()`), 30 second connect timeout.
 
 ## Firmware issues found while building this

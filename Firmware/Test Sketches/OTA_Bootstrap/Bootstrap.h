@@ -52,6 +52,11 @@ inline void systemPrintln()
     Serial.println();
 }
 
+inline void systemFlush()
+{
+    Serial.flush();
+}
+
 inline void systemPrintf(const char *format, ...)
 {
     char buffer[256];
@@ -283,6 +288,7 @@ static const char *const otaSubsystem[] = {"ESP32", "GNSS", "LoRa", "IMU"};
 
 typedef uint8_t OTA_SUBSYSTEM_MASK;
 
+typedef bool (*OTA_GET_VERSION)(int &major, int &minor, int &patch, int &revision, int &releaseCandidate);
 typedef bool (*OTA_FIRMWARE_UPDATE)(const char *subsystem, const char *chip, const char *url,
                                     const struct _OTA_TARGET *target,
                                     const struct _OTA_SUBSYSTEM_INFO *subsystemInfo, uint8_t *buffer,
@@ -296,6 +302,7 @@ typedef struct _OTA_SUBSYSTEM_INFO
     uint8_t _subsystem;
     uint8_t _chip;
     const bool *_present;
+    OTA_GET_VERSION _getVersion; // nullptr: always update (the ESP32 runs the bootstrap)
     OTA_FIRMWARE_UPDATE _firmwareUpdate;
     OTA_STREAM_FIRMWARE _streamFirmware;
     size_t _packetBytes;
@@ -308,9 +315,18 @@ typedef struct _OTA_TARGET
     size_t _fileBytes;    // File size
     uint32_t _crc;        // CRC32 of the whole file
     bool _valid;          // Found in the manifest
+    bool _updateRequired;  // Running version differs from the manifest, or could not be read
     int _remoteVersion[5]; // major, minor, patch, revision, release candidate
 } OTA_TARGET;
 OTA_TARGET otaTarget[OTA_SUBSYSTEM_MAX];
+
+// Firmware each subsystem is running, read at boot by otaReadVersions()
+typedef struct _OTA_LOCAL_VERSION
+{
+    int _version[5]; // major, minor, patch, revision, release candidate
+    bool _known;     // The version was read from the chip
+} OTA_LOCAL_VERSION;
+OTA_LOCAL_VERSION otaLocalVersion[OTA_SUBSYSTEM_MAX];
 
 bool otaDebugVerbose = false;
 uint32_t otaFileBytes;
@@ -350,5 +366,12 @@ enum Im19UpdateResult
 uint32_t tiltCrc;
 int imuFirmwareVersionInt;
 char imuFirmwareVersionStr[32];
+
+//----------------------------------------
+// LoRa (RTK_Everywhere.ino)
+//----------------------------------------
+
+char loraFirmwareVersionStr[20]; // Ex: 3.0.1
+int loraFirmwareVersionInt = 0;  // Ex: 301
 
 #endif // __BOOTSTRAP_H__

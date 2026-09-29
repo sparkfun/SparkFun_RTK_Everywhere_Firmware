@@ -513,6 +513,20 @@ void gpioExpanderSelectLoraConfigure()
         gpioExpanderDigitalWrite(gpioExpanderSwitch_S3, HIGH);
 }
 
+// System.ino startLoRaConfigureCommunicationOnFacet(): ESP32 UART2 to LoRa UART2
+void startLoRaConfigureCommunicationOnFacet()
+{
+    if (productVariant == RTK_FACET_FP)
+        gpioExpanderSelectLoraConfigure();
+}
+
+// System.ino endLoRaConfigureCommunicationOnFacet(): ESP32 UART2 back to the IM19
+void endLoRaConfigureCommunicationOnFacet()
+{
+    if (productVariant == RTK_FACET_FP)
+        gpioExpanderSelectImu();
+}
+
 void gpioExpanderLoraEnable()
 {
     if (online.gpioExpanderSwitches == true)

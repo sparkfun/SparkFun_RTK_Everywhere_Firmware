@@ -5,8 +5,9 @@ Update.ino
 
   Follows RTK_Everywhere OTA.ino (otaGetRequiredUpdates(), otaStateFirmwareUpdate(),
   otaFirmwareUpdate()), with two differences for the production line:
-    * Every subsystem is updated to the product release, whatever it is running now
-      (no version check).
+    * The ESP32 is always updated: it is running the bootstrap. Every other subsystem is
+      updated unless it already runs the product release version (or its version could
+      not be read, in which case it is updated anyway).
     * The ESP32 is skipped if any other subsystem failed, so the bootstrap stays
       installed and the update can be retried.
   See OTA_Bootstrap_Notes.md.
@@ -18,13 +19,13 @@ Update.ino
 // path, like the firmware; mosaic-X5 only updates on the Facet FP.
 //----------------------------------------
 const OTA_SUBSYSTEM_INFO otaSubsystemInfoTable[] = {
-    // Variant      subsystem            chip                present                 firmwareUpdate        streamFirmware          packetBytes       directory
-    {RTK_ALL,       OTA_SUBSYSTEM_ESP32, OTA_CHIP_ESP32,     nullptr,                nullptr,              otaEsp32StreamFirmware, OTA_BUFFER_BYTES, ""},
-    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,  OTA_CHIP_LG290P,    &present.gnss_lg290p,   nullptr,              lg290pStreamFirmware,   4096,             "/gnss/lg290p"},
-    {RTK_FACET_FP,  OTA_SUBSYSTEM_GNSS,  OTA_CHIP_MOSAIC_X5, &present.gnss_mosaicX5, mosaicFirmwareUpdate, nullptr,                4096,             "/gnss/mosaic-x5"},
-    {RTK_FACET_FP,  OTA_SUBSYSTEM_GNSS,  OTA_CHIP_ZED_X20P,  &present.gnss_zedx20p,  nullptr,              x20pStreamFirmware,     256,              "/gnss/zed-x20p"},
-    {RTK_ALL,       OTA_SUBSYSTEM_LORA,  OTA_CHIP_LORA,      &present.radio_lora,    nullptr,              stm32StreamFirmware,    256,              "/lora/stm32wl"},
-    {RTK_ALL,       OTA_SUBSYSTEM_IMU,   OTA_CHIP_IM19,      &present.imu_im19,      im19FirmwareUpdate,   nullptr,                256,              "/imu/im19"},
+    // Variant      subsystem            chip                present                 getVersion        firmwareUpdate        streamFirmware          packetBytes       directory
+    {RTK_ALL,       OTA_SUBSYSTEM_ESP32, OTA_CHIP_ESP32,     nullptr,                nullptr,          nullptr,              otaEsp32StreamFirmware, OTA_BUFFER_BYTES, ""},
+    {RTK_ALL,       OTA_SUBSYSTEM_GNSS,  OTA_CHIP_LG290P,    &present.gnss_lg290p,   lg290pGetVersion, nullptr,              lg290pStreamFirmware,   4096,             "/gnss/lg290p"},
+    {RTK_FACET_FP,  OTA_SUBSYSTEM_GNSS,  OTA_CHIP_MOSAIC_X5, &present.gnss_mosaicX5, mosaicGetVersion, mosaicFirmwareUpdate, nullptr,                4096,             "/gnss/mosaic-x5"},
+    {RTK_FACET_FP,  OTA_SUBSYSTEM_GNSS,  OTA_CHIP_ZED_X20P,  &present.gnss_zedx20p,  zedGetVersion,    nullptr,              x20pStreamFirmware,     256,              "/gnss/zed-x20p"},
+    {RTK_ALL,       OTA_SUBSYSTEM_LORA,  OTA_CHIP_LORA,      &present.radio_lora,    loraGetVersion,   nullptr,              stm32StreamFirmware,    256,              "/lora/stm32wl"},
+    {RTK_ALL,       OTA_SUBSYSTEM_IMU,   OTA_CHIP_IM19,      &present.imu_im19,      tiltGetVersion,   im19FirmwareUpdate,   nullptr,                256,              "/imu/im19"},
 };
 const int otaSubsystemInfoTableEntries = sizeof(otaSubsystemInfoTable) / sizeof(otaSubsystemInfoTable[0]);
 
@@ -264,6 +265,66 @@ void otaFormatVersion(const int *version, char *buffer, size_t bufferBytes)
         snprintf(buffer, bufferBytes, "v%d.%d", version[0], version[1]);
 }
 
+// Read the running version of each subsystem with an update path, at boot.
+// Read in update order (IMU, LoRa, GNSS): the IMU read resets the GNSS on the Torch
+// and Facet FP, so the GNSS is read after it has rebooted.
+// The ESP32 has no _getVersion: it runs the bootstrap.
+void otaReadVersions()
+{
+    systemPrintln("Reading the subsystem firmware versions...");
+    for (int subsystem = OTA_SUBSYSTEM_MAX - 1; subsystem >= 0; subsystem--)
+    {
+        OTA_LOCAL_VERSION *local = &otaLocalVersion[subsystem];
+        memset(local, 0, sizeof(*local));
+
+        const OTA_SUBSYSTEM_INFO *subsystemInfo = otaGetSubsystemInfo(subsystem);
+        if ((subsystemInfo == nullptr) || (subsystemInfo->_getVersion == nullptr))
+            continue;
+
+        local->_known = subsystemInfo->_getVersion(local->_version[0], local->_version[1], local->_version[2],
+                                                   local->_version[3], local->_version[4]);
+
+        // A version of 0.0 means the chip answered with something that did not parse
+        if ((local->_version[0] == 0) && (local->_version[1] == 0))
+            local->_known = false;
+    }
+}
+
+// Running version for display: "v2.1", "unknown", "bootstrap", or "" (no update path)
+void otaFormatLocalVersion(uint8_t subsystem, char *buffer, size_t bufferBytes)
+{
+    const OTA_SUBSYSTEM_INFO *subsystemInfo = otaGetSubsystemInfo(subsystem);
+    if (subsystem == OTA_SUBSYSTEM_ESP32)
+        snprintf(buffer, bufferBytes, "bootstrap");
+    else if (otaLocalVersion[subsystem]._known)
+        otaFormatVersion(otaLocalVersion[subsystem]._version, buffer, bufferBytes);
+    else if (subsystemInfo && subsystemInfo->_getVersion)
+        snprintf(buffer, bufferBytes, "unknown");
+    else
+        buffer[0] = '\0';
+}
+
+// Decide which subsystems to update. Like the firmware's product release rule
+// (OTA.ino otaGetRequiredUpdates()), a subsystem is skipped only when it runs exactly
+// the manifest version. One whose version could not be read is updated, and the ESP32
+// is always updated.
+void otaCheckVersions()
+{
+    for (int subsystem = 0; subsystem < OTA_SUBSYSTEM_MAX; subsystem++)
+    {
+        OTA_TARGET *target = &otaTarget[subsystem];
+        const OTA_LOCAL_VERSION *local = &otaLocalVersion[subsystem];
+
+        target->_updateRequired = true;
+        if ((subsystem != OTA_SUBSYSTEM_ESP32) && local->_known)
+            target->_updateRequired =
+                (otaCompareVersions(local->_version[0], local->_version[1], local->_version[2], local->_version[3],
+                                    local->_version[4], target->_remoteVersion[0], target->_remoteVersion[1],
+                                    target->_remoteVersion[2], target->_remoteVersion[3],
+                                    target->_remoteVersion[4]) != 0);
+    }
+}
+
 //----------------------------------------
 // Updates
 //----------------------------------------
@@ -313,7 +374,8 @@ void restoreUsbSerial()
     }
 }
 
-// Update every subsystem, ESP32 last. Returns true if all of them succeeded.
+// Update the subsystems that are not running the product release, then the ESP32.
+// Returns true if all of them succeeded.
 bool updateAllSubsystems()
 {
     bool allSucceeded = true;
@@ -326,6 +388,8 @@ bool updateAllSubsystems()
         return false;
     }
 
+    otaCheckVersions();
+
     // Show the plan
     systemPrintln(otaEqualSigns);
     for (int subsystem = 0; subsystem < OTA_SUBSYSTEM_MAX; subsystem++)
@@ -334,12 +398,18 @@ bool updateAllSubsystems()
         const char *chip = subsystemChipName(subsystem);
         if (target->_valid)
         {
-            char version[24];
-            otaFormatVersion(target->_remoteVersion, version, sizeof(version));
-            systemPrintf("%-5s %-13s -> %s\r\n", otaSubsystem[subsystem], chip, version);
+            char localVersion[24];
+            char remoteVersion[24];
+            otaFormatLocalVersion(subsystem, localVersion, sizeof(localVersion));
+            otaFormatVersion(target->_remoteVersion, remoteVersion, sizeof(remoteVersion));
+
+            if (target->_updateRequired)
+                systemPrintf("%-5s %-13s %-10s -> %s\r\n", otaSubsystem[subsystem], chip, localVersion, remoteVersion);
+            else
+                systemPrintf("%-5s %-13s %-10s    up to date\r\n", otaSubsystem[subsystem], chip, localVersion);
         }
         else if (chip[0])
-            systemPrintf("%-5s %-13s    no update available\r\n", otaSubsystem[subsystem], chip);
+            systemPrintf("%-5s %-13s %-10s    no update available\r\n", otaSubsystem[subsystem], chip, "");
     }
     systemPrintln(otaEqualSigns);
 
@@ -355,7 +425,7 @@ bool updateAllSubsystems()
     {
         const OTA_TARGET *target = &otaTarget[subsystem];
         const OTA_SUBSYSTEM_INFO *subsystemInfo = otaGetSubsystemInfo(subsystem);
-        if ((target->_valid == false) || (subsystemInfo == nullptr))
+        if ((target->_valid == false) || (subsystemInfo == nullptr) || (target->_updateRequired == false))
             continue;
 
         const char *name = otaSubsystem[subsystem];
@@ -381,7 +451,13 @@ bool updateAllSubsystems()
 
         systemPrintf("%s (%s) %s in %d seconds\r\n", chip, name, success ? "updated" : "FAILED",
                      (millis() - subsystemStartMsec) / 1000);
-        if (success == false)
+        // Remember the new version, so a retry after another subsystem fails skips this one
+        if (success)
+        {
+            memcpy(otaLocalVersion[subsystem]._version, target->_remoteVersion, sizeof(target->_remoteVersion));
+            otaLocalVersion[subsystem]._known = true;
+        }
+        else
             allSucceeded = false;
     }
     rtkFree(buffer, "OTA firmware buffer");
