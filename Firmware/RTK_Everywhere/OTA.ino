@@ -414,6 +414,9 @@ bool otaFirmwareUpdate(const char * subsystem,
             break;
         }
 
+        // Display the firmware update start
+        displayFirmwareStartUpdate(subsystem);
+
         // Connect to the web server and get the file size and stream
         startMsec = millis();
         if (serverConnectUsingUrl(subsystem,

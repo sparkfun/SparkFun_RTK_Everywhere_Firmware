@@ -1978,6 +1978,9 @@ bool im19FirmwareUpdate(const char * subsystem,
             break;
         }
 
+        // Display the firmware update start
+        displayFirmwareStartUpdate(subsystem);
+
         // Initialize the UART communicating with the IM19
         im19InitUart();
 
