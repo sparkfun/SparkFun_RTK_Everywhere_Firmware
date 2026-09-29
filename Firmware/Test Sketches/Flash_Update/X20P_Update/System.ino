@@ -57,7 +57,7 @@ void firmwareUpdateProgressCallback(const char * subsystem,
 
     firmwareUpdateLastPercent = progressPercent;
 
-    systemPrintf("%s (%s) Update Progress: [", chip, subsystem);
+    systemPrintf("%s (%s) Update Progress: [", subsystem, chip);
     for (uint8_t i = 0; i < progressBarWidth; i++)
         systemWrite(i < filled ? '#' : '-');
 
@@ -180,7 +180,6 @@ bool serverConnectUsingUrl(const char * subsystem,
                            const char * chip,
                            const char * url,
                            NetworkClientSecure &secureClient,
-                           NetworkClient &unsecureClient,
                            NetworkClient * &stream,
                            HTTPClient &https,
                            void (*addHeaders)(HTTPClient &https),
@@ -229,17 +228,13 @@ bool serverConnectUsingUrl(const char * subsystem,
         if(settings.debugFirmwareUpdate)
             systemPrintf("Certificate: %s\r\n", cert ? "available" : "none");
 
-        // Select the network connection depending upon the presents of the certificate
-        stream = cert ? &secureClient : &unsecureClient;
-
-        // Bound the connect/read/write and TLS handshake time. HTTPClient's
-        // defaults (30 s socket / 120 s handshake) mean a stalled server can
-        // block a single attempt for up to two minutes, times 3 retries below.
-        stream->setTimeout(10000);   // milliseconds: TCP connect + socket read/write
-
         // Verify the server using the certificate
         if (cert)
         {
+            // Bound the connect/read/write and TLS handshake time. HTTPClient's
+            // defaults (30 s socket / 120 s handshake) mean a stalled server can
+            // block a single attempt for up to two minutes, times 3 retries below.
+            secureClient.setTimeout(10000);       // milliseconds: TCP connect + socket read/write
             secureClient.setHandshakeTimeout(15); // seconds: TLS handshake
 
             // Set the certificate
@@ -259,8 +254,11 @@ bool serverConnectUsingUrl(const char * subsystem,
         const int attemptMax = 3;
         for (int attempt = 1; attempt <= attemptMax; attempt++)
         {
+            bool beginSuccess;
+
             // Build the request for the web server
-            if (https.begin(*stream, url) == false)
+            beginSuccess = cert ? https.begin(secureClient, url) : https.begin(url);
+            if (beginSuccess == false)
             {
                 systemPrintln("ERROR: Failed to set the URL for the web server!\r\n");
                 break;
@@ -290,7 +288,7 @@ bool serverConnectUsingUrl(const char * subsystem,
 
             // Handle the error
             https.end();
-            stream->stop();
+            secureClient.stop();
         }
         if (attempt > attemptMax)
             break;
@@ -324,6 +322,8 @@ bool serverConnectUsingUrl(const char * subsystem,
             break;
         }
 
+        // Get the stream
+        stream = https.getStreamPtr();
         success = true;
     } while (0);
 
@@ -1004,15 +1004,19 @@ void muxSelectLoRaConfigure()
 //----------------------------------------
 // Display the MUX configuration
 //----------------------------------------
-void muxDisplayConfiguration()
+void muxDisplayConfiguration(int muxA, int muxB)
 {
-    int muxA = digitalRead(pin_muxA);
-    int muxB = digitalRead(pin_muxB);
-
     if (productVariant == RTK_TORCH)
     {
         const char * uart0;
         const char * uart1;
+
+        // Connect ESP32 UART 0 to the CH340 (USB)
+        if (muxB)
+        {
+            Serial.flush();
+            digitalWrite(pin_muxB, LOW);
+        }
 
         //                      MUX A
         //                    .--(1) <--> LoRa UART 1
@@ -1032,6 +1036,13 @@ void muxDisplayConfiguration()
         // Display the UART configuration
         systemPrintf("ESP32 UART 0: %s\r\n", uart0);
         systemPrintf("ESP32 UART 1: %s\r\n", uart1);
+
+        // Restore the ESP32 UART 0 connection
+        if (muxB)
+        {
+            Serial.flush();
+            digitalWrite(pin_muxB, muxB);
+        }
     }
     else if (productVariant == RTK_FACET_MOSAIC)
     {
@@ -1714,7 +1725,7 @@ void systemDisplayConfiguration()
         gpioExpanderDisplay();
 
     // Display the MUX configuration
-    muxDisplayConfiguration();
+    muxDisplayConfiguration(digitalRead(pin_muxA), digitalRead(pin_muxB));
 
     // Display the microSD support
     if (present.microSd)

@@ -398,12 +398,13 @@ bool csvOpenCsvFile(const char * url,
     uint32_t startMsec;
     NetworkClient * stream;
     bool success;
-    NetworkClient unsecureClient;
 
     do
     {
         success = false;
         *fileData = nullptr;
+        *fieldCount = 0;
+        *lineCount = 0;
 
         // Open the CSV file web page
         startMsec = millis();
@@ -411,7 +412,6 @@ bool csvOpenCsvFile(const char * url,
                                   "All",
                                   url,
                                   secureClient,
-                                  unsecureClient,
                                   stream,
                                   https,
                                   nullptr,

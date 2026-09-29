@@ -29,11 +29,11 @@
 
     Test procedure commands (Verifies HTTP, HTTPS and array):
     1) a    --> 3.0     Verify array
-    2) L                Verify directory listing
-       0    --> 3.3     Verify HTTPS
+    2) u    --> 3.3     Verify 'u' command and HTTPS
     3) e    --> 3.1     Verify HTTP, connect to somewhere other than
                         raw.githubusercontent.com using http://
-    4) u    --> 3.3     Leave at highest revision
+    4) L                Verify directory listing
+       0    --> ?.?     Leave at highest revision
 */
 
 //----------------------------------------
@@ -84,18 +84,18 @@ const char * chip = "ESP32";
 
 uint8_t rxBuffer[16384];
 
-const char * urlDirectory = "https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries";
+const char * urlDirectory = "https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/soc/esp32";
 
-const char * ulrFileServer = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/";
+const char * ulrFileServer = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/soc/esp32/";
 
 // 3.1
-const char * url_3_1 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK_Everywhere_Firmware_v3_1.bin";
+const char * url_3_1 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/soc/esp32/RTK_Everywhere_Firmware_v3_1.bin";
 
 // 3.2
-const char * url_3_2 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK_Everywhere_Firmware_v3_2.bin";
+const char * url_3_2 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/soc/esp32/RTK_Everywhere_Firmware_v3_2.bin";
 
 // 3.3
-const char * url_3_3 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK_Everywhere_Firmware_v3_3.bin";
+const char * url_3_3 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/soc/esp32/RTK_Everywhere_Firmware_v3_3.bin";
 
 #include <Update.h>
 
@@ -236,7 +236,7 @@ void loop()
 
             // Get the SparkFun directory page
             urlString = serverSelectFileNameFromDirectoryListing(urlDirectory,
-                                                                 otaTree,
+                                                                 otaFileTree,
                                                                  otaListEnd,
                                                                  otaItems,
                                                                  otaName,

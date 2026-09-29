@@ -17,28 +17,6 @@ static uint32_t lastHeapReport;      // Report heap every 1s if option enabled
 //====================== Firmware Update Support ======================
 
 //----------------------------------------
-// Convert firmware update device/chip names into OLED subsystem labels
-//----------------------------------------
-const char * firmwareUpdateDisplayName(const char * chipOrSubsystemName)
-{
-    if (strcmp(chipOrSubsystemName, "ESP32") == 0)
-        return "System";
-    if ((strcmp(chipOrSubsystemName, "LG290P") == 0)
-        || (strcmp(chipOrSubsystemName, "Mosaic-X5") == 0)
-        || (strcmp(chipOrSubsystemName, "UM980") == 0)
-        || (strcmp(chipOrSubsystemName, "ZED-F9P") == 0)
-        || (strcmp(chipOrSubsystemName, "X20P") == 0)
-        || (strcmp(chipOrSubsystemName, "ZED-X20P") == 0))
-        return "GNSS";
-    if ((strcmp(chipOrSubsystemName, "LoRa/STM32") == 0)
-        || (strcmp(chipOrSubsystemName, "LoRa-STM32WL") == 0))
-        return "LoRa";
-    if (strcmp(chipOrSubsystemName, "IM19") == 0)
-        return "IMU";
-    return chipOrSubsystemName;
-}
-
-//----------------------------------------
 // Resets the progress-bar state. Must be called once at the start of each
 // firmware update - these otherwise carry over from the previous update
 // (bytesProcessed and lastPercent both already at their prior-run end
@@ -69,7 +47,8 @@ void firmwareUpdateStatusWebsocket(const char * status, const char * message)
 // Callback for all firmware update targets. Called with the number of
 // bytes just written to flash. Used to track and print progress.
 //----------------------------------------
-void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
+void firmwareUpdateProgressCallback(const char * subsystem,
+                                    const char * chip,
                                     uint16_t bytesProcessed)
 {
     const uint8_t progressBarWidth = 20;
@@ -94,7 +73,8 @@ void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
     // Report progress to $SPGET,updateStatus (OTA_Local.ino)
     otaLocalProgress(progressPercent);
 
-    systemPrintf("%s Update Progress: [", chipOrSubsystemName);
+    systemPrintf("%s (%s) Update Progress: [", subsystem, chip);
+
     for (uint8_t i = 0; i < progressBarWidth; i++)
         systemWrite(i < filled ? '#' : '-');
 
@@ -103,25 +83,20 @@ void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
     systemPrintln("%");
 
     // Update the display
-    displayFirmwareUpdateProgress(firmwareUpdateDisplayName(chipOrSubsystemName), progressPercent);
+    displayFirmwareUpdateProgress(subsystem, progressPercent);
 
     // Report progress to the Web Config socket
     if (apConfigFirmwareUpdateInProcess == true)
     {
         char myProgress[50];
 
-        if (strcmp(chipOrSubsystemName, "ESP32") == 0)
+        if (strcmp(subsystem, "SOC") == 0)
             snprintf(myProgress, sizeof(myProgress), "espOtaFirmwareStatus,%d,", progressPercent);
-        else if ((strcmp(chipOrSubsystemName, "LG290P") == 0)
-                 || (strcmp(chipOrSubsystemName, "Mosaic-X5") == 0)
-                 || (strcmp(chipOrSubsystemName, "UM980") == 0)
-                 || (strcmp(chipOrSubsystemName, "ZED-F9P") == 0)
-                  || (strcmp(chipOrSubsystemName, "X20P") == 0)
-                 || (strcmp(chipOrSubsystemName, "ZED-X20P") == 0))
+        else if (strcmp(subsystem, "GNSS") == 0)
             snprintf(myProgress, sizeof(myProgress), "gnssOtaFirmwareStatus,%d,", progressPercent);
-        else if (strcmp(chipOrSubsystemName, "LoRa/STM32") == 0)
+        else if (strcmp(subsystem, "LoRa") == 0)
             snprintf(myProgress, sizeof(myProgress), "loraOtaFirmwareStatus,%d,", progressPercent);
-        else if (strcmp(chipOrSubsystemName, "IM19") == 0)
+        else if (strcmp(subsystem, "IMU") == 0)
             snprintf(myProgress, sizeof(myProgress), "imuOtaFirmwareStatus,%d,", progressPercent);
         else
             myProgress[0] = 0;
@@ -313,7 +288,6 @@ bool serverConnectUsingUrl(const char * subsystem,
                            const char * chip,
                            const char * url,
                            NetworkClientSecure &secureClient,
-                           NetworkClient &unsecureClient,
                            NetworkClient * &stream,
                            HTTPClient &https,
                            void (*addHeaders)(HTTPClient &https),
@@ -362,17 +336,13 @@ bool serverConnectUsingUrl(const char * subsystem,
         if(settings.debugFirmwareUpdate)
             systemPrintf("Certificate: %s\r\n", cert ? "available" : "none");
 
-        // Select the network connection depending upon the presents of the certificate
-        stream = cert ? &secureClient : &unsecureClient;
-
-        // Bound the connect/read/write and TLS handshake time. HTTPClient's
-        // defaults (30 s socket / 120 s handshake) mean a stalled server can
-        // block a single attempt for up to two minutes, times 3 retries below.
-        stream->setTimeout(10000);   // milliseconds: TCP connect + socket read/write
-
         // Verify the server using the certificate
         if (cert)
         {
+            // Bound the connect/read/write and TLS handshake time. HTTPClient's
+            // defaults (30 s socket / 120 s handshake) mean a stalled server can
+            // block a single attempt for up to two minutes, times 3 retries below.
+            secureClient.setTimeout(10000);       // milliseconds: TCP connect + socket read/write
             secureClient.setHandshakeTimeout(15); // seconds: TLS handshake
 
             // Set the certificate
@@ -392,8 +362,11 @@ bool serverConnectUsingUrl(const char * subsystem,
         const int attemptMax = 3;
         for (int attempt = 1; attempt <= attemptMax; attempt++)
         {
+            bool beginSuccess;
+
             // Build the request for the web server
-            if (https.begin(*stream, url) == false)
+            beginSuccess = cert ? https.begin(secureClient, url) : https.begin(url);
+            if (beginSuccess == false)
             {
                 systemPrintln("ERROR: Failed to set the URL for the web server!\r\n");
                 break;
@@ -423,7 +396,7 @@ bool serverConnectUsingUrl(const char * subsystem,
 
             // Handle the error
             https.end();
-            stream->stop();
+            secureClient.stop();
         }
         if (attempt > attemptMax)
             break;
@@ -457,6 +430,8 @@ bool serverConnectUsingUrl(const char * subsystem,
             break;
         }
 
+        // Get the stream
+        stream = https.getStreamPtr();
         success = true;
     } while (0);
 
@@ -2232,15 +2207,19 @@ void muxSelectLoRaConfigure()
 //----------------------------------------
 // Display the MUX configuration
 //----------------------------------------
-void muxDisplayConfiguration()
+void muxDisplayConfiguration(int muxA, int muxB)
 {
-    int muxA = digitalRead(pin_muxA);
-    int muxB = digitalRead(pin_muxB);
-
     if (productVariant == RTK_TORCH)
     {
         const char * uart0;
         const char * uart1;
+
+        // Connect ESP32 UART 0 to the CH340 (USB)
+        if (muxB)
+        {
+            Serial.flush();
+            digitalWrite(pin_muxB, LOW);
+        }
 
         //                      MUX A
         //                    .--(1) <--> LoRa UART 1
@@ -2260,6 +2239,13 @@ void muxDisplayConfiguration()
         // Display the UART configuration
         systemPrintf("ESP32 UART 0: %s\r\n", uart0);
         systemPrintf("ESP32 UART 1: %s\r\n", uart1);
+
+        // Restore the ESP32 UART 0 connection
+        if (muxB)
+        {
+            Serial.flush();
+            digitalWrite(pin_muxB, muxB);
+        }
     }
     else if (productVariant == RTK_FACET_MOSAIC)
     {
@@ -2947,7 +2933,7 @@ void systemDisplayConfiguration()
         gpioExpanderDisplay();
 
     // Display the MUX configuration
-    muxDisplayConfiguration();
+    muxDisplayConfiguration(digitalRead(pin_muxA), digitalRead(pin_muxB));
 
     // Display the microSD support
     if (present.microSd)
