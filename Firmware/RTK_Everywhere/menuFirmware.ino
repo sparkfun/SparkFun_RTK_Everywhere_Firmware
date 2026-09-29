@@ -628,7 +628,10 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 // 3) Loop reading firmware from the stream and writing it to the device, call
 //    firmwareUpdateProgressCallback to update the progress bar
 // 4) Call the updateFirmwareEnd function to complete the flash write operation
-// 5) Display the flash write status
+// 5) Display any error message
+// 6) Return the flash update success status (true/false) to the flash update
+//    routine
+// 7) The flash update routine display the final flash update operation status
 //----------------------------------------
 bool otaEsp32StreamFirmware(const char * subsystem,
                             const char * chip,
@@ -652,15 +655,15 @@ bool otaEsp32StreamFirmware(const char * subsystem,
             systemPrintf("packetBytes: %d\r\n", packetBytes);
         }
 
-        systemPrintf("Starting %s firmware update...\r\n", chip);
+        systemPrintf("%s (%s) entering bootloader mode...\r\n", subsystem, chip);
 
-        // Enter the bootloader and erase flash before opening the GitHub connection.
+        // Enter the bootloader and erase flash
         if (Update.begin(fileBytes) == false)
         {
-            systemPrintf("ERROR: %s failed to enter bootloader mode.\r\n", chip);
+            systemPrintf("%s (%s) failed to enter bootloader mode.\r\n", subsystem, chip);
             break;
         }
-        systemPrintf("%s is in bootloader mode.\r\n", chip);
+        systemPrintf("%s (%s) is in bootloader mode.\r\n", subsystem, chip);
 
         // Initialize the progress bar
         firmwareUpdateProgressReset(fileBytes);
@@ -691,7 +694,7 @@ bool otaEsp32StreamFirmware(const char * subsystem,
                 // Check for network timeout
                 if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
                 {
-                    systemPrintf("ERROR: Timed out waiting for data\r\n");
+                    systemPrintln("ERROR: Timed out waiting for data");
                     break;
                 }
                 yield();
@@ -722,9 +725,8 @@ bool otaEsp32StreamFirmware(const char * subsystem,
             // Validate the computed CRC matches the expected CRC
             if ((fileBytes == validData) && (crc != expectedCrc))
             {
-                systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n",
-                             expectedCrc, crc);
-                systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
+                systemPrintln("ERROR: File has changed, CRC does not match!");
+                systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n", expectedCrc, crc);
                 break;
             }
 
@@ -746,7 +748,7 @@ bool otaEsp32StreamFirmware(const char * subsystem,
         if (fileBytes)
             break;
 
-        // Complete the flash update transaction
+        // Notify the bootloader that the flash image is uploaded
         if (Update.end() == false)
         {
             systemPrintf("ERROR: %s update.end failed. Error #: %s\r\n",
@@ -756,24 +758,16 @@ bool otaEsp32StreamFirmware(const char * subsystem,
 
         if (Update.isFinished() == false)
         {
-            systemPrintf("ERROR: %s update not finished? Something went wrong!\r\n", chip);
+            systemPrintf("ERROR: %s (%s) update not finished? Something went wrong!\r\n", subsystem, chip);
             break;
         }
 
-        systemPrintf("%s update successfully completed.\r\n", chip);
         success = true;
     } while (0);
 
+    // Display the number of bytes remaining
     if (fileBytes && settings.debugFirmwareUpdate)
         systemPrintf("fileBytes: %d\r\n", fileBytes);
-
-    // Display the firmware update status
-    systemPrintln(otaEqualSigns);
-    if (success)
-        systemPrintf("%s firmware update completed successfully\r\n", chip);
-    else
-        systemPrintf("%s firmware update failed!\r\n", chip);
-    systemPrintln(otaEqualSigns);
 
     return success;
 }
