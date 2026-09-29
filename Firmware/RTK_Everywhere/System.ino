@@ -91,6 +91,9 @@ void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
 
     firmwareUpdateLastPercent = progressPercent;
 
+    // Report progress to $SPGET,updateStatus (OTA_Local.ino)
+    otaLocalProgress(progressPercent);
+
     systemPrintf("%s Update Progress: [", chipOrSubsystemName);
     for (uint8_t i = 0; i < progressBarWidth; i++)
         systemWrite(i < filled ? '#' : '-');
@@ -463,13 +466,13 @@ bool serverConnectUsingUrl(const char * subsystem,
 #endif // COMPILE_NETWORK
 
 //----------------------------------------
-// Extract the web server from the URL
+// Extract the web server from the URL, without any port number
 //----------------------------------------
 String getServerFromUrl(const char * url)
 {
     const char * http = "http://";
     const char * https = "https://";
-    int index;
+    size_t index;
     size_t length;
     size_t pos;
 
@@ -478,7 +481,8 @@ String getServerFromUrl(const char * url)
         return String("");
 
     index = 0;
-    length = strlen(url) - pos;
+    pos = 0;
+    length = strlen(url);
     char server[length + 1];
     if (strncmp(url, https, strlen(https)) == 0)
         pos = strlen(https);
@@ -491,7 +495,7 @@ String getServerFromUrl(const char * url)
         {
             if (server[index] == 0)
                 break;
-            if (server[index] == '/')
+            if ((server[index] == '/') || (server[index] == ':')) // End of the host name
                 break;
         }
     }

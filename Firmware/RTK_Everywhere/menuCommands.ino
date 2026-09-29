@@ -395,6 +395,7 @@ t_cliResult processCommand(char *cmdBuffer)
 
     const int MAX_TOKENS = 10;
     char valueBuffer[100];
+    t_cliResult localUpdateResult;
 
     char *tokens[MAX_TOKENS];
     int tokenCount = 0;
@@ -491,6 +492,10 @@ t_cliResult processCommand(char *cmdBuffer)
                 return (CLI_OK);
             }
 
+            // updateStatus and subsystemVersions are not settings (OTA_Local.ino)
+            if (otaLocalGet(tokens[0], field))
+                return (CLI_OK);
+
             // setState is not a setting: report the current mode
             if (strcmp(field, "setState") == 0)
             {
@@ -573,6 +578,12 @@ t_cliResult processCommand(char *cmdBuffer)
                 return (CLI_UNKNOWN_SETTING);
             }
         }
+    }
+    else if ((strcmp(tokens[0], "SPEXE") == 0) && (tokenCount >= 2) &&
+             otaLocalExecute(tokens, tokenCount, localUpdateResult))
+    {
+        // Local firmware update: UPDATEAP, UPDATEFILE, UPDATESTART, UPDATECANCEL (OTA_Local.ino)
+        return (localUpdateResult);
     }
     else if ((strcmp(tokens[0], "SPEXE") == 0) && (tokenCount == 3) && (strcmp(tokens[1], "DISPLAYTEST") == 0))
     {

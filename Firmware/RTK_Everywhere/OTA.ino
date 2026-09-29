@@ -1345,6 +1345,7 @@ void otaStateFirmwareUpdate()
 
             // Perform the update for the current target
             updatesPerformed += 1;
+            otaLocalSubsystemStart(subsystem);
             if (subsystemInfo->_firmwareUpdate == nullptr)
             {
                 if (settings.debugFirmwareUpdate && otaDebugVerbose)
@@ -1385,6 +1386,7 @@ void otaStateFirmwareUpdate()
             if (subsystemSuccess == false)
             {
                 allUpdatesSucceeded = false;
+                otaLocalSubsystemFailed(subsystem, "Update failed");
                 otaFirmwareUpdateStatusWebsocket(subsystemIndex,
                                                  "Update failed. Please restart the device and try again.");
             }
@@ -1575,8 +1577,10 @@ void otaUpdate()
     connected = networkConsumerIsConnected(NETCONSUMER_OTA_CLIENT);
 
     // networkConsumerIsConnected returns false once each time the default network
-    // interface changes, so go back to waiting rather than failing the update
+    // interface changes, so go back to waiting rather than failing the update.
+    // Local updates (OTA_Local.ino) download over the soft AP, which has no internet.
     if ((!connected)
+        && (otaLocalUpdateRunning() == false)
         && ((otaState == OTA_STATE_GET_SYSTEMS_TO_UPDATE)
             || (otaState == OTA_STATE_UPDATE_FIRMWARE)))
     {
@@ -1643,6 +1647,7 @@ void otaUpdate()
                 webServerSendString("firmwareUpdateComplete,1,");
                 delay(500); // Allow websocket delivery before rebooting
             }
+            otaLocalComplete(); // Give $SPGET,updateStatus polls a chance to see COMPLETE
             dfuEsp32Reboot();
             break;
         }

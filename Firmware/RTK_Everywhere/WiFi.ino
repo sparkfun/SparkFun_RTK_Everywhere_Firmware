@@ -788,11 +788,21 @@ bool wifiSoftApOn(const char *fileName, uint32_t lineNumber)
     if (settings.debugWifiState)
         systemPrintf("wifiSoftApOn called in %s at line %d\r\n", fileName, lineNumber);
 
-    // Select the AP name
-    if (inWebConfigMode())
-        wifiSoftApSsid = "RTK Config";
+    // Select the AP name and password
+    if (otaLocalApActive)
+    {
+        // Local firmware update: full SSID (serial number included) and WPA2 password (OTA_Local.ino)
+        wifiSoftApSsid = otaLocalApSsid;
+        wifiSoftApPassword = otaLocalApPassword;
+    }
     else
-        wifiSoftApSsid = "RTK";
+    {
+        if (inWebConfigMode())
+            wifiSoftApSsid = "RTK Config";
+        else
+            wifiSoftApSsid = "RTK";
+        wifiSoftApPassword = nullptr; // Open network
+    }
 
     status = wifi.enable(settings.enableEspNow, true, wifiStationRunning, __FILE__, __LINE__);
 
@@ -2046,7 +2056,9 @@ bool RTK_WIFI::softApSetSsidPassword(const char *ssid, const char *password)
     // Set the WiFi soft AP SSID and password
     if (settings.debugWifiState)
         systemPrintf("WiFi AP: Attempting to set AP SSID and password\r\n");
-    created = WiFi.AP.create(ssid, password);
+    // Local firmware update: allow only the phone to connect. Channel 1 and 4 connections are the
+    // create() defaults.
+    created = WiFi.AP.create(ssid, password, 1, 0, otaLocalApActive ? 1 : 4);
     if (!created)
         systemPrintf("ERROR: Failed to set soft AP SSID and Password!\r\n");
     else if (settings.debugWifiState)
@@ -2962,7 +2974,10 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             // Append the last four digits of the MAC address
             if (strlen(_apSsid) == 0)
             {
-                snprintf(_apSsid, SSID_LENGTH, "%s %s", wifiSoftApSsid, serialNumber);
+                if (otaLocalApActive)
+                    snprintf(_apSsid, SSID_LENGTH, "%s", wifiSoftApSsid); // Already includes the serial number
+                else
+                    snprintf(_apSsid, SSID_LENGTH, "%s %s", wifiSoftApSsid, serialNumber);
                 _apSsid[SSID_LENGTH - 1] = 0;
             }
 
