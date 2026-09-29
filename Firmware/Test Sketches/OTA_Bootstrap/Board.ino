@@ -581,12 +581,13 @@ bool lg290pBegin()
 // LG290P, ZED (F9P then X20P), mosaic-X5.
 // The ZED is only probed over the UART when it answers on I2C, as the firmware's I2C test
 // does. This keeps UBX bytes off the UART of a mosaic-X5 while it boots.
-void detectFacetFpGnss()
+// Returns true if a flex module is fitted, even if its GNSS could not be identified.
+bool detectFacetFpGnss()
 {
     if (gpioExpanderDetectGnss() == false)
     {
         systemPrintln("No GNSS module detected");
-        return;
+        return false;
     }
     gpioGnssBoot();
     delay(1000);
@@ -614,15 +615,15 @@ void detectFacetFpGnss()
 
     if (settings.detectedGnssReceiver != GNSS_RECEIVER_UNKNOWN)
         systemPrintf("GNSS: %s\r\n", subsystemChipName(OTA_SUBSYSTEM_GNSS));
+    return true;
 }
 
 // Tilt.ino tiltDetect(), without saving the result
+// BOOTSTRAP CHANGE: the firmware skips tilt detection when the GNSS is unknown. The IM19
+// is on the flex module, so the bootstrap looks for it whenever a flex module is fitted:
+// a GNSS that does not answer should not also block the IMU update.
 void detectFacetFpTilt()
 {
-    // The firmware skips tilt detection when the GNSS is unknown
-    if (settings.detectedGnssReceiver == GNSS_RECEIVER_UNKNOWN)
-        return;
-
     systemPrintln("Detecting the tilt sensor...");
     gpioExpanderSelectImu(); // SW3: ESP UART2 to GNSS UART3, where the IM19 resides
     beginUart2Serial();
@@ -647,8 +648,8 @@ void detectSubsystems()
 {
     if (productVariant == RTK_FACET_FP)
     {
-        detectFacetFpGnss();
-        detectFacetFpTilt();
+        if (detectFacetFpGnss())
+            detectFacetFpTilt();
     }
     else if (present.gnss_lg290p)
     {

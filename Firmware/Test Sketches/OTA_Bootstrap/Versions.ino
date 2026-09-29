@@ -62,27 +62,20 @@ bool mosaicGetVersion(int &major, int &minor, int &patch, int &revision, int &re
     if (serialGNSS == nullptr)
         return false;
 
-    // Get to the COM1> prompt and remember the baud rate for the update (Update_Mosaic.ino).
-    // Detection saved COM1 at 460800. The IM19 check resets the receiver on an FPM-T and
-    // it takes about 12 seconds to boot, so wait for it there before scanning other rates.
-    bool atPrompt = false;
-    uint32_t promptStartMsec = millis();
-    while ((atPrompt == false) && ((millis() - promptStartMsec) < MOSAIC_TIMEOUT_POST_UPDATE_BOOT))
-        atPrompt = mosaicTryBaud(*serialGNSS, MOSAIC_NORMAL_BAUD);
-    if (atPrompt)
-        mosaicKnownBaud = MOSAIC_NORMAL_BAUD;
-    else if (mosaicFindCommandPrompt(*serialGNSS) == false)
-        return false;
-
-    // The escape sequence leaves COM1 in command mode. Like the firmware (GNSS_MOSAIC::begin()
-    // calls isPresent() just before its esoc), put COM1 back to auto input with SBF output
-    // enabled, otherwise the ReceiverSetup block is not sent
-    if (mosaicSendWithResponse(serialGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", 1000,
-                               25) == false)
+    // Detection saved COM1 at 460800. The IM19 read resets the receiver on an FPM-T and it
+    // takes about 12 seconds to boot; it can show a COM1> prompt before it accepts commands.
+    // Use the detection sequence (Mosaic_Detect.ino): sdio, wait for DataInOut, escape
+    // sequence, repeated. Like the firmware (GNSS_MOSAIC::begin() calls isPresent() just
+    // before its esoc), this also sets COM1 to auto input with SBF output, which the
+    // ReceiverSetup block needs. 20 tries is 20 - 40 seconds.
+    serialGNSS->updateBaudRate(MOSAIC_NORMAL_BAUD);
+    if (mosaicIsPresentOnSerial(serialGNSS, "sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate\n\r", "DataInOut", "COM1>",
+                                20, 1000, 100) == false)
     {
-        systemPrintln("mosaic-X5 version: no reply to sdio");
+        systemPrintln("mosaic-X5 version: no reply to sdio at 460800");
         return false;
     }
+    mosaicKnownBaud = MOSAIC_NORMAL_BAUD; // For the update (Update_Mosaic.ino)
 
     uint8_t *block = (uint8_t *)rtkMalloc(SBF_BLOCK_MAX_BYTES, "SBF block");
     if (block == nullptr)

@@ -51,11 +51,11 @@ The flow follows `otaStateGetSystemsToUpdate()` and `otaStateFirmwareUpdate()` i
   |------|-----|------------------------|
   | LG290P | Library `getFirmwareVersionMajor()/Minor()` | `GNSS_LG290P::getVersion()` |
   | ZED-X20P | UBX MON-VER extension `FWVER=HPG 2.10` -> 2.10 (`ZED_Detect.ino`) | u-blox library `getFirmwareVersionHigh()/Low()` |
-  | mosaic-X5 | `sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate` (as `isPresent()` does; the escape sequence used to find the prompt leaves COM1 in command mode), then `esoc,COM1,ReceiverSetup`, then `RxVersion` from the SBF block (CRC checked, 5 s timeout) | `GNSS_MOSAIC::begin()`, `processSBFReceiverSetup()` |
+  | mosaic-X5 | The detection sequence `mosaicIsPresentOnSerial()` (`sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate` until `DataInOut`, escape sequence between tries), as `GNSS_MOSAIC::begin()` runs `isPresent()` first; then `esoc,COM1,ReceiverSetup`, then `RxVersion` from the SBF block (CRC checked, 5 s timeout) | `GNSS_MOSAIC::begin()`, `processSBFReceiverSetup()` |
   | LoRa | Power up the radio, the firmware's `loraEnterCommandMode()` (`AT+V?`), power down | `loraGetVersion()` |
   | IM19 | `im19GetVersionString()` (resets the IMU, ~5 s), then the firmware's parse | `tiltGetVersion()` |
 
-  The IM19 reset also resets the GNSS on the Torch and Facet FP, which is why the GNSS is read last. The mosaic-X5 check waits up to 30 seconds for the receiver to reboot at 460800.
+  The IM19 reset also resets the GNSS on the Torch and Facet FP, which is why the GNSS is read last. The mosaic-X5 read retries `sdio` at 460800 for 20 - 40 seconds while the receiver reboots. Waiting for the `COM1>` prompt alone is not enough: the X5 shows it before it accepts commands.
 - **Product release only.** For each subsystem, the first manifest line for that subsystem whose chip is fitted and whose `release_candidate` is 0. That is the firmware's `OTA_REQUEST_PRODUCT_RELEASE` rule. Release candidates are never used.
 - **The ESP32 is skipped if anything else failed.** The firmware still updates the ESP32 after a failure, then declines to reboot. The bootstrap stops so it stays installed and the worker can press `u` again.
 - **No web, BLE or display reporting.** `firmwareUpdateStatusWebsocket()` does nothing, and progress goes to the serial port only.
@@ -86,7 +86,7 @@ Detection differences, to keep in mind when the firmware's detection changes:
 
 On a Facet FP with a mosaic-X5, detection takes longest: the LG290P check has to time out first, and the X5 check alone can take about 12 seconds while the receiver boots.
 
-Tilt (IM19) detection only runs once the GNSS is identified, as in the firmware. If the GNSS is not found, the IMU is not found either.
+Tilt (IM19) detection runs whenever a flex module is fitted (the GNSS reset pin test passes), even if the GNSS could not be identified. The firmware only looks for tilt once the GNSS is identified; the bootstrap does not, so a GNSS that does not answer does not also stop the IMU from being updated. With no flex module fitted there is no IM19, so tilt detection is skipped.
 
 ## Files
 
