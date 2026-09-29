@@ -562,7 +562,12 @@ void bluetoothStartSkipOnlineCheck()
 void bluetoothStart(bool onlineCheck)
 {
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+    {
+        // tickerBegin() turns on the BT LED at startup. Turn it off since Bluetooth will not be started.
+        if (pin_bluetoothStatusLED != PIN_UNDEFINED)
+            ledcWrite(pin_bluetoothStatusLED, 0);
         return;
+    }
 
     if (bluetoothEnded)
     {
