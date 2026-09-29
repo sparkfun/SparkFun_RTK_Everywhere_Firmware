@@ -2139,8 +2139,11 @@ void createSettingsString(char *newSettings)
     if (variantHousingProperties->tiltPossible == true)
         stringRecord(newSettings, "imuFirmwareVersionStr",
                      (char *)(strlen(imuFirmwareVersionStr) > 0 ? imuFirmwareVersionStr : "Not detected"));
+    // Report LoRa even when the radio is offline so the user can still see it and update its firmware
     if (strlen(loraFirmwareVersionStr) > 3)
         stringRecord(newSettings, "loraFirmwareVersionStr", (char *)loraFirmwareVersionStr);
+    else if (present.radio_lora == true)
+        stringRecord(newSettings, "loraFirmwareVersionStr", (char *)"Unknown");
 
     // Pass extra setting so that web config can show/hide tilt enable check box
     // We can't depend on enableTiltCompensation setting because all FP platforms transmit it.

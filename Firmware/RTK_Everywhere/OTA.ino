@@ -196,7 +196,10 @@ void otaFormatVersion(const int * version,
                       char * buffer,
                       size_t bufferBytes)
 {
-    if (version[3])
+    // A subsystem that is offline (ie, LoRa not responding) reports 0.0.0.0
+    if ((version[0] == 0) && (version[1] == 0) && (version[2] == 0) && (version[3] == 0))
+        snprintf(buffer, bufferBytes, "Unknown%s", version[4] ? " (debug build)" : "");
+    else if (version[3])
         snprintf(buffer, bufferBytes, "v%d.%d.%d.%d%s",
                  version[0], version[1], version[2], version[3],
                  version[4] ? " (debug build)" : "");
