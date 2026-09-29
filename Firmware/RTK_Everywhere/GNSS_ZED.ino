@@ -4316,8 +4316,13 @@ bool x20pFirmwareUpdateEnd()
  *
  * Returns true upon successful firmware update and false upon failure.
  */
-bool x20pStreamFirmware(const char *chip, NetworkClient *stream, size_t fileBytes, uint32_t expectedCrc,
-                        uint8_t *buffer, size_t packetBytes)
+bool x20pStreamFirmware(const char * subsystem,
+                        const char * chip,
+                        NetworkClient * stream,
+                        size_t fileBytes,
+                        uint32_t expectedCrc,
+                        uint8_t * buffer,
+                        size_t packetBytes)
 {
     // Display the parameters
     if (settings.debugFirmwareUpdate && otaDebugVerbose)
@@ -4405,7 +4410,7 @@ bool x20pStreamFirmware(const char *chip, NetworkClient *stream, size_t fileByte
         }
 
         // Display the progress
-        firmwareUpdateProgressCallback("X20P", validData);
+        firmwareUpdateProgressCallback(subsystem, chip, validData);
 
         // Account for this data
         fileBytes -= validData;

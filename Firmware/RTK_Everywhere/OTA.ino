@@ -46,6 +46,16 @@ static const int otaChipNameEntries = sizeof(otaChipName) / sizeof(otaChipName[0
 static const char * const otaSubsystem[] = {"SOC", "GNSS", "LoRa", "IMU"};
 static const int otaSubsystemEntries = sizeof(otaSubsystem) / sizeof(otaSubsystem[0]);
 
+static const char * otaRequestTypeName[] =
+{
+    "OTA_REQUEST_PRODUCT_RELEASE",  // 0
+    "OTA_REQUEST_SKIP_UPDATE",      // 1
+    "OTA_REQUEST_LATEST_VERSION",   // 2
+    "OTA_REQUEST_USE_RC",           // 3
+    "OTA_REQUEST_ALWAYS_UPDATE",    // 4
+};
+static const int otaRequestTypeNameEntries = sizeof(otaRequestTypeName) / sizeof(otaRequestTypeName[0]);
+
 #define OTA_BUFFER_BYTES        (16 * 1024)
 
 const char * otaGhRawCert = GITHUB_RAW_PUBLIC_CERT;
@@ -107,61 +117,44 @@ void otaCleanup(bool keepTargets)
 int otaCompareVersions(int localMajor, int localMinor, int localPatch, int localRevision, int localReleaseCandidate,
                        int remoteMajor, int remoteMinor, int remotePatch, int remoteRevision, int remoteReleaseCandidate)
 {
-    if (localReleaseCandidate)
-    {
-        if (settings.debugFirmwareUpdate && otaDebugVerbose)
-            systemPrintf("%d.%d.%d.%d (debug build) < %d.%d.%d.%d%s\r\n",
-                         localMajor, localMinor, localPatch, localRevision,
-                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
-                         remoteReleaseCandidate ? " (debug build)" : "");
-        return -1;
-    }
-    if (localMajor != remoteMajor)
-    {
-        if (settings.debugFirmwareUpdate && otaDebugVerbose)
-            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
-                         localMajor, localMinor, localPatch, localRevision,
-                         (localMajor < remoteMajor) ? '<' : '>',
-                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
-                         remoteReleaseCandidate ? " (debug build)" : "");
-        return (localMajor < remoteMajor) ? -1 : 1;
-    }
-    if (localMinor != remoteMinor)
-    {
-        if (settings.debugFirmwareUpdate && otaDebugVerbose)
-            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
-                         localMajor, localMinor, localPatch, localRevision,
-                         (localMinor < remoteMinor) ? '<' : '>',
-                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
-                         remoteReleaseCandidate ? " (debug build)" : "");
-        return (localMinor < remoteMinor) ? -1 : 1;
-    }
-    if (localPatch != remotePatch)
-    {
-        if (settings.debugFirmwareUpdate && otaDebugVerbose)
-            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
-                         localMajor, localMinor, localPatch, localRevision,
-                         (localPatch < remotePatch) ? '<' : '>',
-                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
-                         remoteReleaseCandidate ? " (debug build)" : "");
-        return (localPatch < remotePatch) ? -1 : 1;
-    }
-    if (localRevision != remoteRevision)
-    {
-        if (settings.debugFirmwareUpdate && otaDebugVerbose)
-            systemPrintf("%d.%d.%d.%d %c %d.%d.%d.%d%s\r\n",
-                         localMajor, localMinor, localPatch, localRevision,
-                         (localRevision < remoteRevision) ? '<' : '>',
-                         remoteMajor, remoteMinor, remotePatch, remoteRevision,
-                         remoteReleaseCandidate ? " (debug build)" : "");
-        return (localRevision < remoteRevision) ? -1 : 1;
-    }
+    int delta;
+    const int No_Update_Higher_Version = 1;
+    const int No_Update_Same_Version = 0;
+    const int Update_Lower_Version = -1;
+
+    // Display the parameters
     if (settings.debugFirmwareUpdate && otaDebugVerbose)
-        systemPrintf("%d.%d.%d.%d == %d.%d.%d.%d%s\r\n",
+        systemPrintf("%d.%d.%d.%d (debug build) .vs. %d.%d.%d.%d%s\r\n",
                      localMajor, localMinor, localPatch, localRevision,
+                     localReleaseCandidate ? " (debug build)" : "",
                      remoteMajor, remoteMinor, remotePatch, remoteRevision,
                      remoteReleaseCandidate ? " (debug build)" : "");
-    return 0;
+
+    // Always replace local release candidate firmware
+    if (localReleaseCandidate)
+        delta = Update_Lower_Version;
+
+    // Update firmware if local version < remote version
+    else if (localMajor != remoteMajor)
+        delta = (localMajor < remoteMajor) ? Update_Lower_Version : No_Update_Higher_Version;
+    else if (localMinor != remoteMinor)
+        delta = (localMinor < remoteMinor) ? Update_Lower_Version : No_Update_Higher_Version;
+    else if (localPatch != remotePatch)
+        delta = (localPatch < remotePatch) ? Update_Lower_Version : No_Update_Higher_Version;
+    else if (localRevision != remoteRevision)
+        delta = (localRevision < remoteRevision) ? Update_Lower_Version : No_Update_Higher_Version;
+
+    // Keep local firmware when the versions are equal
+    else
+        delta = No_Update_Same_Version;
+
+    // Display the result
+    if (settings.debugFirmwareUpdate && otaDebugVerbose)
+    {
+        const char * selection = (delta == Update_Lower_Version) ? "Update" : "Keep existing";
+        systemPrintf("%s\r\n", selection);
+    }
+    return delta;
 }
 
 //----------------------------------------
@@ -222,8 +215,8 @@ void otaPrintUpdateStart(const char * subsystem,
 
     otaFormatVersion(target->_localVersion, localVersion, sizeof(localVersion));
     otaFormatVersion(target->_remoteVersion, remoteVersion, sizeof(remoteVersion));
-    systemPrintf("Updating %s (%s) from %s to %s\r\n",
-                 chip, subsystem, localVersion, remoteVersion);
+    systemPrintf("%s (%s) updating from %s to %s\r\n",
+                 subsystem, chip, localVersion, remoteVersion);
 }
 
 //----------------------------------------
@@ -297,7 +290,8 @@ void otaDisplayTarget(OTA_TARGET * target)
                      target->_remoteVersion[2], target->_remoteVersion[3],
                      target->_remoteVersion[4] ? " (debug build)" : "");
     systemPrintln();
-    systemPrintf("URL: %s\r\n", target->_url ? target->_url : "None");
+    if (target->_url)
+        systemPrintf("URL: %s\r\n", target->_url ? target->_url : "None");
     if ((target->_requestType != OTA_REQUEST_SKIP_UPDATE) && target->_url)
     {
         systemPrintf("File bytes: %d (0x%08x)\r\n", target->_fileBytes, target->_fileBytes);
@@ -334,11 +328,9 @@ void otaDisplayTargets()
 
         // Skip over invalid entries
         target = &otaTarget[subsystem];
-        if ((target->_url == nullptr) && (target->_requestType != OTA_REQUEST_SKIP_UPDATE))
-            continue;
 
         // Display the firmware update status for this subsystem
-        otaDisplayTarget(&otaTarget[subsystem]);
+        otaDisplayTarget(target);
         displayed = true;
     }
 
@@ -396,10 +388,8 @@ bool otaFirmwareUpdate(const char * subsystem,
     size_t fileBytes;
     HTTPClient https;
     NetworkClientSecure secureClient;
-    uint32_t startMsec;
     NetworkClient * stream;
     bool success;
-    NetworkClient unsecureClient;
 
     do
     {
@@ -414,16 +404,15 @@ bool otaFirmwareUpdate(const char * subsystem,
             break;
         }
 
-        // Display the firmware update start
+        // Display the firmware update being attempted
+        otaPrintUpdateStart(subsystem, chip, target);
         displayFirmwareStartUpdate(subsystem);
 
         // Connect to the web server and get the file size and stream
-        startMsec = millis();
         if (serverConnectUsingUrl(subsystem,
                                   chip,
                                   url,
                                   secureClient,
-                                  unsecureClient,
                                   stream,
                                   https,
                                   nullptr,
@@ -433,9 +422,6 @@ bool otaFirmwareUpdate(const char * subsystem,
             break;
         }
         otaFileBytes = fileBytes;
-
-        // Display the firmware update being attempted
-        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
 
         // Verify the file size
         if ((fileBytes != target->_fileBytes) && (fileBytes != (size_t)-1))
@@ -449,23 +435,29 @@ bool otaFirmwareUpdate(const char * subsystem,
         }
 
         // Initialize the progress bar
-        firmwareUpdateProgressReset(target->_fileBytes);
-
-        // Display the firmware update being attempted
-        otaPrintUpdateStart(subsystem, chip, target);
+        firmwareUpdateProgressReset(fileBytes);
 
         // Start the firmware update and display any streaming errors
-        success = subsystemInfo->_streamFirmware(chip,
-                                                 stream,
-                                                 target->_fileBytes,
-                                                 target->_crc,
-                                                 otaFirmwareBuffer,
-                                                 subsystemInfo->_packetBytes);
-
-        // Display the performance
-        if (success)
-            otaDisplayPerformance(subsystem, chip, startMsec, millis(), fileBytes);
+        if (subsystemInfo->_streamFirmware(subsystem,
+                                           chip,
+                                           stream,
+                                           fileBytes,
+                                           target->_crc,
+                                           buffer,
+                                           packetBytes) == false)
+        {
+            break;
+        }
+        success = true;
     } while (0);
+
+    // Display the firmware update status
+    systemPrintln(otaEqualSigns);
+    if (success)
+        systemPrintf("%s (%s) firmware update completed successfully\r\n", subsystem, chip);
+    else
+        systemPrintf("%s (%s) firmware update failed!\r\n", subsystem, chip);
+    systemPrintln(otaEqualSigns);
 
     // Done with the web server.  The NetworkClient* and HTTPClient objects are
     // released automatically as the routine exits since they are stack local variables.
@@ -550,6 +542,17 @@ uint8_t otaGetRequestTypeFromSubsystem(uint8_t subsystem)
         return 0;
     }
     return otaTarget[subsystem]._requestType;
+}
+
+//----------------------------------------
+// Get the request type name from the request type
+//----------------------------------------
+const char * otaGetRequestTypeName(uint8_t requestType)
+{
+    if (requestType < OTA_REQUEST_MAX)
+        return otaRequestTypeName[requestType];
+    else
+        return "Unknown request type";
 }
 
 //----------------------------------------
@@ -1002,7 +1005,7 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
 
     systemPrintf("d) %s developer options\r\n", developerOptions ? "Disable" : "Enable");
     if (developerOptions)
-        systemPrintf("D) %s firmware debugging\r\n", settings.debugFirmwareUpdate ? "Disable" : "Enable");
+        systemPrintf("D) Firmware debugging: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
 
     if (developerOptions && (dfuEsp32AreFirmwareWritesSupported()))
         systemPrintf("E) ESP32: %s\r\n", otaGetRequestNameFromSubsystem(OTA_SUBSYSTEM_ESP32));
@@ -1038,7 +1041,7 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
                      otaRequestFirmwareUpdate ? "Requested" : "Not Requested");
 
     if (developerOptions && settings.debugFirmwareUpdate)
-            systemPrintf("V) %s verbose firmware debugging\r\n", otaDebugVerbose ? "Disable" : "Enable");
+            systemPrintf("V) Verbose firmware debugging: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
 }
 
 //----------------------------------------
@@ -1310,7 +1313,7 @@ void otaStateFirmwareUpdate()
                 if (settings.debugFirmwareUpdate && otaDebugVerbose)
                 {
                     systemPrintf("%s (%s) is not implemented in this product\r\n",
-                                 chip, subsystem);
+                                 subsystem, chip);
 
                     // Display the subsystemInfo table
                     for (int index = 0; index < otaSubsystemInfoTableEntries; index++)
@@ -1331,7 +1334,7 @@ void otaStateFirmwareUpdate()
             if ((target->_requestType == OTA_REQUEST_SKIP_UPDATE)
                 || (target->_url == nullptr))
             {
-                systemPrintf("%s (%s): nothing to update (%s)\r\n", chip, subsystem,
+                systemPrintf("%s (%s): nothing to update (%s)\r\n", subsystem, chip,
                              (target->_requestType == OTA_REQUEST_SKIP_UPDATE) ? "skip requested" : "no URL");
                 continue;
             }
@@ -1341,18 +1344,19 @@ void otaStateFirmwareUpdate()
                 && (subsystemInfo->_streamFirmware == nullptr))
             {
                 systemPrintf("WARNING: Need to implement firmwareUpdate or streamFirmware support for %s (%s)!\r\n",
-                             chip, subsystem);
+                             subsystem, chip);
                 otaFirmwareUpdateStatusWebsocket(subsystemIndex, "Not currently available");
                 continue;
             }
 
             // Perform the update for the current target
             updatesPerformed += 1;
+            uint32_t startMsec = millis();
             if (subsystemInfo->_firmwareUpdate == nullptr)
             {
                 if (settings.debugFirmwareUpdate && otaDebugVerbose)
                     systemPrintf("%s (%s) is using _streamFirmware\r\n",
-                                 chip, subsystem);
+                                 subsystem, chip);
                 subsystemSuccess = otaFirmwareUpdate(subsystem,
                                                      chip,
                                                      target->_url,
@@ -1365,9 +1369,7 @@ void otaStateFirmwareUpdate()
             {
                 if (settings.debugFirmwareUpdate && otaDebugVerbose)
                     systemPrintf("%s (%s) is calling _firmwareUpdate\r\n",
-                                 chip, subsystem);
-                uint32_t startMsec = millis();
-                otaPrintUpdateStart(subsystem, chip, target);
+                                 subsystem, chip);
                 subsystemSuccess = subsystemInfo->_firmwareUpdate(subsystem,
                                                                   chip,
                                                                   target->_url,
@@ -1375,17 +1377,16 @@ void otaStateFirmwareUpdate()
                                                                   subsystemInfo,
                                                                   otaFirmwareBuffer,
                                                                   subsystemInfo->_packetBytes);
-
-                // Display the performance
-                if (subsystemSuccess)
-                    otaDisplayPerformance(subsystem,
-                                          chip,
-                                          startMsec,
-                                          millis(),
-                                          target->_fileBytes);
             }
 
-            if (subsystemSuccess == false)
+            // Display the performance
+            if (subsystemSuccess)
+                otaDisplayPerformance(subsystem,
+                                      chip,
+                                      startMsec,
+                                      millis(),
+                                      target->_fileBytes);
+            else
             {
                 allUpdatesSucceeded = false;
                 otaFirmwareUpdateStatusWebsocket(subsystemIndex,
@@ -1707,6 +1708,8 @@ void otaVerifyTables()
     // Verify the request type name "table"
     for (uint8_t index= 0; index < OTA_REQUEST_MAX; index++)
         otaGetRequestNameFromRequestType(index);
+    if (otaRequestTypeNameEntries != OTA_REQUEST_MAX)
+        reportFatalError("Fix otaRequestTypeName table to match OTA_REQUEST_MAX");
 }
 
 //----------------------------------------
