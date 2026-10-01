@@ -1878,6 +1878,9 @@ void reportCorruptHeap(const char *errorMsg)
 {
     displayHalt();
 
+    // Settings may be corrupt, so give the recovery prompt at the default rate
+    usbSerialSetBaud(115200);
+
     // Empty the FIFO of any incoming data
     serialInputClear(&Serial);
 
@@ -2146,9 +2149,13 @@ void muxSelectUsb()
         //                    .--(1) <--> U11 (0) <--> LoRa UART 2
         // ESP32 UART 0 <--> U18 (0) <--> CH340 <--> USB serial
         //
+        Serial.flush(); // Finish any LoRa transmission before changing the mux
+
         pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
         digitalWrite(pin_muxA, LOW); // ESP UART1 <--> UM980 UART3
         digitalWrite(pin_muxB, LOW); // ESP UART0 <--> CH340 <--> USB serial
+
+        uart0SetBaud(usbSerialBaudActive); // LoRa runs at loraUart0Baud, USB may differ
 
         usbSerialIsSelected = true; // Let other print operations know we are connected to the CH34x
     }
@@ -2172,9 +2179,13 @@ void muxSelectLoRaCommunication()
         //                    .--(1) <--> U11 (0) <--> LoRa UART 2
         // ESP32 UART 0 <--> U18 (0) <--> CH340 <--> USB serial
         //
+        Serial.flush(); // Finish any USB prints before changing the mux
+
         pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
         digitalWrite(pin_muxA, LOW);  // ESP UART1 <--> UM980 UART3
         digitalWrite(pin_muxB, HIGH); // ESP UART0 <--> LoRa UART2
+
+        uart0SetBaud(loraUart0Baud); // USB may be running at a different rate
 
         usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
     }

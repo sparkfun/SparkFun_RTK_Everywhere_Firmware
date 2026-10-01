@@ -540,7 +540,7 @@ void microSDUpdateFirmware(const char *firmwareFileName)
             displayFirmwareUpdateProgress(100);
 
             // Clear all settings from LittleFS
-            LittleFS.format();
+            littleFsFormat();
 
             systemPrintln("ESP32 updated successfully. Rebooting. Goodbye!");
 

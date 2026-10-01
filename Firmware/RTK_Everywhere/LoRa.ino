@@ -1810,6 +1810,21 @@ bool stm32UpdateFirmwareEnd()
 }
 
 //----------------------------------------
+// Torch: stm32UpdateFirmwareBegin() switched UART0 to 8E1 for the STM32 bootloader. Return it to 8N1
+// at the rate for whichever device the mux is connected to.
+//----------------------------------------
+void stm32UpdateFirmwareRestoreUart()
+{
+    if (productVariant != RTK_TORCH)
+        return;
+
+    Serial.flush();
+    Serial.end(); // Must end before begin, otherwise UART settings can be corrupted
+    uart0BaudCurrent = usbSerialIsSelected ? usbSerialBaudActive : loraUart0Baud;
+    Serial.begin(uart0BaudCurrent);
+}
+
+//----------------------------------------
 // Update the STM32 firmware
 //----------------------------------------
 bool stm32StreamFirmware(const char * subsystem,
@@ -1829,6 +1844,7 @@ bool stm32StreamFirmware(const char * subsystem,
         loraSharedPrintln(otaEqualSigns);
         loraSharedPrintln("LoRa/STM32 update failed.");
         loraSharedPrintln(otaEqualSigns);
+        stm32UpdateFirmwareRestoreUart();
         return false;
     }
 
@@ -1849,6 +1865,7 @@ bool stm32StreamFirmware(const char * subsystem,
             if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
             {
                 systemPrintln("LoRa OTA update timed out waiting for data");
+                stm32UpdateFirmwareRestoreUart();
                 return false;
             }
             delay(1);
@@ -1897,6 +1914,7 @@ bool stm32StreamFirmware(const char * subsystem,
     else
         loraSharedPrintln("LoRa/STM32 update failed.");
     loraSharedPrintln(otaEqualSigns);
+    stm32UpdateFirmwareRestoreUart();
     return success;
 }
 

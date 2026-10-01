@@ -1118,6 +1118,7 @@ struct Settings
     int16_t serialTimeoutGNSS = 1; // In ms - used during serialGNSS->begin. Number of ms to pass of no data before
                                    // hardware serial reports data available.
     bool enableNmeaOnRadio = true; // Depends on the platform and GNSS
+    uint32_t usbSerialBaud = 115200; // USB serial (UART0) rate. Only 115200 or 921600, so a lost user has one other rate to try
 
     // Setup Button
     bool disableSetupButton = false;                  // By default, allow setup through the overlay button(s)
@@ -1782,6 +1783,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.radioPortBaud, "radioPortBaud", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.serialTimeoutGNSS, "serialTimeoutGNSS", nullptr, },
     { 1, 1, 0, 0, 1, 0, 1, ALL, 0, _bool,     0, & settings.enableNmeaOnRadio, "enableNmeaOnRadio", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.usbSerialBaud, "usbSerialBaud", nullptr, },
 
 //                F
 //    i           a
@@ -2668,6 +2670,9 @@ const uint8_t gpioExpanderSwitch_S5 = 7;         // Controls U61 switch 5: conne
 const uint8_t gpioExpanderNumSwitches = 8;
 
 bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved from CH34x to LoRa
+uint32_t usbSerialBaudActive = 115200; // UART0 rate while connected to USB. Boot at 115200, beginUsbSerial() applies the setting
+uint32_t uart0BaudCurrent = 115200;    // Rate UART0 is currently running at. Maintained by uart0SetBaud()
+const uint32_t loraUart0Baud = 115200; // Torch: UART0 rate while U18 connects UART0 to LoRa
 
 //----------------------------------------
 // Peripherals

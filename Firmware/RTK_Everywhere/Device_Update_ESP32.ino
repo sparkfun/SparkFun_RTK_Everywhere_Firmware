@@ -37,7 +37,7 @@ void dfuEsp32Close(DEVICE_FIRMWARE_CTX * ctx)
             displayFirmwareUpdateProgress(100);
 
             // Clear all settings from LittleFS
-            LittleFS.format();
+            littleFsFormat();
 
             systemPrintln("ESP32 updated successfully.");
 

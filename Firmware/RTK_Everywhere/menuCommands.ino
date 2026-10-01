@@ -583,11 +583,26 @@ t_cliResult processCommand(char *cmdBuffer)
                 return (CLI_BAD_FORMAT);
             }
 
+            bool usbSerialBaudChange = (strcmp(field, "usbSerialBaud") == 0);
+            if (usbSerialBaudChange && (usbSerialBaudIsAllowed(strtoul(value, nullptr, 10)) == false))
+            {
+                commandSendErrorResponse(tokens[0], field, (char *)"Must be 115200 or 921600");
+                return (CLI_BAD_FORMAT);
+            }
+
             SettingValueResponse response = updateSettingWithValue(true, field, value);
             if (response == SETTING_KNOWN)
             {
                 commandSendValueOkResponse(tokens[0], field,
                                            value); // Just respond with the setting (not quotes needed)
+
+                // Save now, as changing the terminal rate may reset the ESP32. Then change the rate after the
+                // response has been sent at the old rate.
+                if (usbSerialBaudChange)
+                {
+                    recordSystemSettings();
+                    usbSerialSetBaud(settings.usbSerialBaud);
+                }
                 return (CLI_OK);
             }
             else if (response == SETTING_KNOWN_STRING)

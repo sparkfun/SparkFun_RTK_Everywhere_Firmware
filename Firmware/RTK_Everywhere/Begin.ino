@@ -1222,6 +1222,60 @@ bool beginUart2Serial()
 }
 
 //----------------------------------------
+// USB serial (UART0) baud rate
+// Only two rates are allowed so a user who has forgotten the setting has only one other rate to try
+//----------------------------------------
+bool usbSerialBaudIsAllowed(uint32_t baudRate)
+{
+    return ((baudRate == 115200) || (baudRate == 921600));
+}
+
+//----------------------------------------
+// Change the rate UART0 uses while connected to USB
+//----------------------------------------
+void usbSerialSetBaud(uint32_t baudRate)
+{
+    usbSerialBaudActive = baudRate;
+
+    // On Torch, UART0 may be muxed to LoRa. muxSelectUsb() applies the rate when USB is reconnected.
+    if (usbSerialIsSelected)
+        uart0SetBaud(baudRate);
+}
+
+//----------------------------------------
+// Change the UART0 rate, if needed
+// Use end() then begin(), as the other UART0 rate changes do, rather than updateBaudRate()
+//----------------------------------------
+void uart0SetBaud(uint32_t baudRate)
+{
+    if (baudRate == uart0BaudCurrent)
+        return;
+
+    Serial.flush(); // Finish sending at the old rate
+    Serial.end();   // We must end before we begin otherwise the UART settings are corrupted
+    Serial.begin(baudRate);
+    uart0BaudCurrent = baudRate;
+}
+
+//----------------------------------------
+// Move UART0 from the 115200bps boot rate to settings.usbSerialBaud
+// Must be called after the direct connect modes, which expect UART0 at their own fixed rates
+//----------------------------------------
+void beginUsbSerial()
+{
+    if (usbSerialBaudIsAllowed(settings.usbSerialBaud) == false)
+        settings.usbSerialBaud = 115200;
+
+    if (settings.usbSerialBaud == usbSerialBaudActive)
+        return;
+
+    // Announce the change at the boot rate so a user who has forgotten the setting can find it
+    systemPrintf("Changing USB serial to %dbps.\r\n",
+                 settings.usbSerialBaud);
+    usbSerialSetBaud(settings.usbSerialBaud);
+}
+
+//----------------------------------------
 // Start the NVM file system
 //----------------------------------------
 void beginFS()
