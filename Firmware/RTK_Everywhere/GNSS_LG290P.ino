@@ -3828,36 +3828,285 @@ bool lg290pFirmwareUpdateBegin(size_t fileBytes, uint32_t expectedCrc)
 }
 
 //----------------------------------------
-// Write firmware to the LG290P
+// Block up to timeoutMs waiting for one byte; returns 1 on success, 0 on timeout
 //----------------------------------------
-bool lg290pFirmwareUpdate(const uint8_t *buffer, size_t dataBytes)
+int lg290pSerialWaitByte(uint8_t *b, uint32_t timeoutMs)
 {
-    // Bytes will be aggregated into 4096 chunks, then written to the LG290P
-    return ((GNSS_LG290P *)gnss)->updateFirmware(buffer, dataBytes);
+    uint32_t start = millis();
+    while (millis() - start < timeoutMs)
+    {
+        if (serialGNSS->available())
+        {
+            *b = serialGNSS->read();
+            return 1;
+        }
+    }
+    return 0;
 }
 
 //----------------------------------------
-// Flush any remaining buffered firmware bytes, reset the LG290P, and wait for it to reboot
-// and respond to the PQTMUNIQID command
+// Write a 32-bit value big-endian into a 4-byte buffer
+//----------------------------------------
+void lg290pInsertBigEndian(uint32_t val, uint8_t *buf)
+{
+    buf[0] = (val >> 24) & 0xff;
+    buf[1] = (val >> 16) & 0xff;
+    buf[2] = (val >> 8) & 0xff;
+    buf[3] = val & 0xff;
+}
+
+//----------------------------------------
+// Accumulate bytes until a complete 0xAA...0x55 bootloader packet is received.
+//----------------------------------------
+bool lg290pGetResponse(const char * subsystem,
+                       const char * chip,
+                       const char * msgName,
+                       uint8_t classId,
+                       uint8_t messageId,
+                       uint8_t * response,
+                       size_t responseMaxBytes,
+                       size_t &responseBytes,
+                       uint32_t timeoutMs)
+{
+    uint8_t b;
+    size_t bytesTo0x55;
+    uint32_t crc;
+    uint32_t deadline;
+    size_t messageBytes;
+    uint32_t messageCrc;
+    union
+    {
+        uint8_t u8[2];
+        uint16_t u16;
+    } payloadBytes;
+    uint32_t remaining;
+
+    messageBytes = 0;
+    responseBytes = 0;
+    deadline = millis() + timeoutMs;
+    while (millis() < deadline)
+    {
+        // Attempt to get the next input character
+        remaining = deadline - millis();
+        if (remaining == 0)
+        {
+            systemPrintf("%s (%s) %s message response not received after %d mSec!\r\n",
+                         subsystem, chip, msgName, timeoutMs);
+            break;
+        }
+        if (lg290pSerialWaitByte(&b, remaining < 250 ? remaining : 250) <= 0)
+            continue;
+
+        // Wait for the start of a binary packet
+        if ((messageBytes == 0) && (b != 0xAA))
+            continue;
+
+        //     0        1           2          3       4       5       n     n+1   n+5
+        //  .------.----------.------------.--------.-------.------...-----.-----.------.
+        //  | 0xaa | Class ID | Message ID | Payload Length | Payload Data | CRC | 0x55 |
+        //  '------'----------'------------'--------'-------'------'''-----'-----'------'
+        //
+        // Save the response if requested
+        if (response && (messageBytes < responseMaxBytes))
+            response[messageBytes] = b;
+
+        // Save the length
+        if (messageBytes == 3)
+            payloadBytes.u8[1] = b;
+        if (messageBytes == 4)
+            payloadBytes.u8[0] = b;
+
+        // Account for this byte
+        messageBytes += 1;
+
+        // Wait until the payload length is known
+        if (messageBytes < 5)
+            continue;
+
+        // Determine the message length including the CRC
+        bytesTo0x55 = 1 + 1 + 1 + 2 + payloadBytes.u16 + 4;
+
+        // Wait until the entire message is received
+        if (messageBytes <= bytesTo0x55)
+            continue;
+
+        // The last byte of a valid message is 0x55
+        if (b != 0x55)
+        {
+            // Invalid termination
+            systemPrintf("%s (%s) improper %s message termination: 0x%02x!\r\n",
+                         subsystem, chip, msgName, b);
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            {
+                systemPrintf("Message length: %d bytes\r\n", messageBytes);
+                dumpBuffer(0, response, messageBytes);
+            }
+            break;
+        }
+
+        // Validate the response
+        messageCrc = (((uint32_t)response[messageBytes - 5]) << 24)
+                   | (((uint32_t)response[messageBytes - 4]) << 16)
+                   | (((uint32_t)response[messageBytes - 3]) << 8)
+                   |   (uint32_t)response[messageBytes - 2];
+        crc = crc32Compute(0, &response[1], messageBytes - 1 - 4 - 1);
+        if ((response[0] == 0xaa)
+            && (response[1] == 2) // Class ID
+            && (response[2] == 0) // Message ID
+            && (response[3] == payloadBytes.u8[1]) // Payload length
+            && (response[4] == payloadBytes.u8[0])
+            && (response[5] == classId)     // Class ID
+            && (response[6] == messageId)   // Message ID
+            && (response[7] == 0)       // Status (0 == OK)
+            && (response[8] == 0)
+            && (crc == messageCrc)
+            && (response[messageBytes - 1] == 0x55))
+        {
+            // The message response indicates success (status = 0)
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            {
+                systemPrintf("%s (%s) %s received and executed successfully\r\n",
+                             subsystem, chip, msgName);
+                dumpBuffer(0, response, messageBytes);
+            }
+
+            // Save the response length
+            responseBytes = messageBytes;
+            return true;
+        }
+
+        // Message failed validation
+        systemPrintf("%s (%s) %s response message failed validation!\r\n",
+                     subsystem, chip, msgName);
+
+        // Display wrong message received errors
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        {
+            systemPrintf("Message length: %d bytes\r\n", messageBytes);
+            dumpBuffer(0, response, messageBytes);
+            if (response[1] != 2) // Class ID
+                systemPrintf("Invalid status class ID: 0x%02x\r\n", response[1]);
+            if (response[2] != 0) // Message ID
+                systemPrintf("Invalid status message ID: 0x%02x\r\n", response[2]);
+            // The payload length is valid because the message termination
+            // byte (0x55) was found in the correct location.
+            if (response[5] != classId)     // Class ID
+                systemPrintf("Invalid %s message ID: 0x%02x\r\n", msgName, response[5]);
+            if (response[6] != messageId)   // Message ID
+                systemPrintf("Invalid %s message ID: 0x%02x\r\n", msgName, response[6]);
+            if (crc != messageCrc)   // Message CRC
+                systemPrintf("Invalid %s message CRC, expecting: 0x%08x, received: 0x%08x\r\n",
+                             msgName, crc, messageCrc);
+        }
+
+        // Display status errors
+        if (settings.debugFirmwareUpdate)
+        {
+            systemPrintf("Status: 0x%04x, ");
+            int status = (((int)response[7]) << 8) | response[8];
+            switch (status)
+            {
+            default: systemPrintln("Unknown status value"); break;
+            case 0: systemPrintln("Message received and executed successfully"); break;
+            case 1: systemPrintln("Unknown error"); break;
+            case 2: systemPrintln("CRC32 checksum error"); break;
+            case 3: systemPrintln("Timeout"); break;
+            case 4: systemPrintln("Unsupported message"); break;
+            case 5: systemPrintln("Message package error"); break;
+            case 0x20: systemPrintln("Firmware area erase error"); break;
+            case 0x21: systemPrintln("Firmware write to Flash error"); break;
+            }
+        }
+        break;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Write firmware data to the LG290P
+//----------------------------------------
+bool lg290pUpdateFirmware(const char * subsystem,
+                          const char * chip,
+                          const uint8_t *data,
+                          uint32_t numBytes,
+                          uint32_t packetNumber,
+                          uint32_t timeout)
+{
+    const char * msgName = "Firmware packet";
+    uint8_t packetHeader[9];
+    uint8_t packetTrailer[5];
+    size_t payloadBytes;
+    uint8_t response[32];
+    size_t responseBytes;
+
+    //     0        1           2          3       4       5       n     n+1   n+5
+    //  .------.----------.------------.--------.-------.------...-----.-----.------.
+    //  | 0xaa | Class ID | Message ID | Payload Length | Payload Data | CRC | 0x55 |
+    //  '------'----------'------------'--------'-------'------'''-----'-----'------'
+    //                              .---.---.---.---.---.---.---....---.---.---.
+    // Payload Data:                | Packet Number | N bytes of Firmware Data |
+    //                              '---'---'---'---'---'---'---'...---'---'---'
+    //
+    // Build the message in three pieces:
+    //  1) Packet header + packet number
+    //  2) Firmware data
+    //  3) Packet trailer
+    //
+    payloadBytes = 4 + numBytes;
+    packetHeader[0] = 0xAA;
+    packetHeader[1] = 0x02;
+    packetHeader[2] = 0x04;
+    packetHeader[3] = (uint8_t)(payloadBytes >> 8);
+    packetHeader[4] = (uint8_t)(payloadBytes & 0xff);
+    lg290pInsertBigEndian(packetNumber, &packetHeader[5]);
+
+    // CRC covers: class + id + length[2] + packetNum[4] + data[len] (= commandLength - 6)
+    uint32_t crc = crc32Compute(0, &packetHeader[1], sizeof(packetHeader) - 1);
+    crc = crc32Compute(crc, data, numBytes);
+
+    lg290pInsertBigEndian(crc, packetTrailer);
+    packetTrailer[4] = 0x55;
+
+    for (int attempt = 0; attempt < 3; attempt++)
+    {
+        // Send the message
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+            systemPrintf("%s (%s) Sending %s #%d message, %d firmware bytes\r\n",
+                         subsystem, chip, msgName, packetNumber, numBytes);
+        serialGNSS->write(packetHeader, sizeof(packetHeader));
+        serialGNSS->write(data, numBytes);
+        serialGNSS->write(packetTrailer, sizeof(packetTrailer));
+
+        // Get the response
+        if (lg290pGetResponse(subsystem,
+                              chip,
+                              msgName,
+                              packetHeader[1],
+                              packetHeader[2],
+                              response,
+                              sizeof(response),
+                              responseBytes,
+                              timeout))
+            return true;
+    }
+    return false;
+}
+
+//----------------------------------------
+// Wait for LG290P to reboot and respond to the PQTMUNIQID command
 //----------------------------------------
 bool lg290pFirmwareUpdateEnd()
 {
-    // Send the last (possibly partial) packet so it isn't left stranded in the library's buffer
-    ((GNSS_LG290P *)gnss)->updateFirmwareEnd();
-
     firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "Waiting for device to reboot...");
 
-    bool finished;
-    if (productVariant == RTK_FACET_FP)
-        finished = ((GNSS_LG290P *)gnss)->updateFirmwareIsFinished(30);
-    else
+    if (productVariant != RTK_FACET_FP)
     {
         gpioGnssReset();
         delay(100);
         gpioGnssBoot();
-
-        finished = ((GNSS_LG290P *)gnss)->updateFirmwareIsFinished(10);
     }
+
+    bool finished = ((GNSS_LG290P *)gnss)->updateFirmwareIsFinished(10);
 
     if (finished)
         firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "100");
@@ -3866,7 +4115,21 @@ bool lg290pFirmwareUpdateEnd()
 }
 
 //----------------------------------------
-// Update the LG290P firmware
+// This routine is called by the OTA common code.  It reads packetBytes from an
+// already-open HTTP stream and feeds them to the device, reporting progress as
+// it goes.
+//
+// The generic process is:
+// 1) Call the updateFirmwareBegin function to erase the flash on the device
+// 2) Call firmwareUpdateProgressReset to initialize the progress bar and set
+//    the file size
+// 3) Loop reading firmware from the stream and writing it to the device, call
+//    firmwareUpdateProgressCallback to update the progress bar
+// 4) Call the updateFirmwareEnd function to complete the flash write operation
+// 5) Display any error message
+// 6) Return the flash update success status (true/false) to the flash update
+//    routine
+// 7) The flash update routine display the final flash update operation status
 //----------------------------------------
 bool lg290pStreamFirmware(const char * subsystem,
                           const char * chip,
@@ -3876,101 +4139,150 @@ bool lg290pStreamFirmware(const char * subsystem,
                           uint8_t * buffer,
                           size_t packetBytes)
 {
-    uint32_t crc = 0;
+    size_t remainingBytes;
+    bool success;
 
-    // The LG290P bootloader requires the firmware CRC to be computed over a 4-byte
-    // little-endian size prefix followed by the firmware bytes (see
-    // LG290P::initFirmwareCrc32() in the SparkFun_LG290P_GNSS library), but expectedCrc
-    // (from the firmware manifest) is a plain whole-file CRC32 shared by every chip type.
-    // Combine the prefix's CRC with expectedCrc to get the value the bootloader actually
-    // requires, without re-reading the (potentially multi-megabyte) file a second time.
-    uint8_t sizePrefix[4] = {(uint8_t)fileBytes, (uint8_t)(fileBytes >> 8), (uint8_t)(fileBytes >> 16),
-                             (uint8_t)(fileBytes >> 24)};
-    uint32_t sizePrefixCrc = crc32Compute(0, sizePrefix, sizeof(sizePrefix));
-    uint32_t firmwareCrc32 = crc32Combine(sizePrefixCrc, expectedCrc, fileBytes);
+    do
+    {
+        remainingBytes = fileBytes;
+        success = false;
 
-    // Get the LG290P in a state to receive firmware updates
-    if (lg290pFirmwareUpdateBegin(fileBytes, firmwareCrc32) == false)
-    {
-        systemPrintln(otaEqualSigns);
-        systemPrintln("ERROR: lg290pFirmwareUpdateBegin failed!\r\n");
-        systemPrintln(otaEqualSigns);
-        return false;
-    }
-    systemPrintln("Starting LG290P firmware update...");
-    unsigned long lastDataTime = millis();
-    size_t validData = 0;
-    while (stream->connected() && (fileBytes > 0))
-    {
-        // Wait until some data is available
-        size_t availableBytes = stream->available();
-        if (availableBytes == 0)
+        // Display the parameters
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
         {
-            if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+            systemPrintf("fileBytes: %d\r\n", fileBytes);
+            systemPrintf("expectedCrc: 0x%08x\r\n", expectedCrc);
+            systemPrintf("packetBytes: %d\r\n", packetBytes);
+        }
+
+        // The LG290P bootloader requires the firmware CRC to be computed over a 4-byte
+        // little-endian size prefix followed by the firmware bytes (see
+        // LG290P::initFirmwareCrc32() in the SparkFun_LG290P_GNSS library), but expectedCrc
+        // (from the firmware manifest) is a plain whole-file CRC32 shared by every chip type.
+        // Combine the prefix's CRC with expectedCrc to get the value the bootloader actually
+        // requires, without re-reading the (potentially multi-megabyte) file a second time.
+        uint8_t sizePrefix[4] = {(uint8_t)fileBytes, (uint8_t)(fileBytes >> 8), (uint8_t)(fileBytes >> 16),
+                                 (uint8_t)(fileBytes >> 24)};
+        uint32_t sizePrefixCrc = crc32Compute(0, sizePrefix, sizeof(sizePrefix));
+        uint32_t firmwareCrc32 = crc32Combine(sizePrefixCrc, expectedCrc, fileBytes);
+
+        // Enter the bootloader and erase flash
+        systemPrintf("%s (%s) entering bootloader mode...\r\n", subsystem, chip);
+        if (lg290pFirmwareUpdateBegin(fileBytes, firmwareCrc32) == false)
+            break;
+        systemPrintf("%s (%s) is in bootloader mode.\r\n", subsystem, chip);
+
+        // Initialize the progress bar
+        firmwareUpdateProgressReset(fileBytes);
+
+        // Compute the CRC across the entire file
+        uint32_t crc = 0;
+
+        // Loop until all data has been transferred or another error occurs.
+        // HTTPS conections remain open even after the data has been transferred
+        // and HTTP connections close after data has been transferred but some
+        // may still be available.  Only test the network connection when no
+        // data is available.
+        systemPrintf("%s (%s) Starting firmware update...\r\n", subsystem, chip);
+        unsigned long lastDataTime = millis();
+        size_t validData = 0;
+        uint32_t packetNumber = 0;
+        while (remainingBytes > 0)
+        {
+            // Wait until some data is available
+            size_t availableBytes = stream->available();
+            if (availableBytes == 0)
             {
-                systemPrintln("LG290P OTA update timed out waiting for data");
-                return false;
+                // Verify network connection
+                if (stream->connected() == false)
+                {
+                    systemPrintln("ERROR: lost connection to network server");
+                    break;
+                }
+
+                // Check for network timeout
+                if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+                {
+                    systemPrintln("ERROR: Timed out waiting for data");
+                    break;
+                }
+                yield();
+                continue;
             }
-            delay(1);
-            continue;
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("availableBytes: %d\r\n", availableBytes);
+
+            // Read the received data
+            size_t bytesToRead = min(availableBytes, packetBytes - validData);
+            int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("bytesRead: %d\r\n", bytesRead);
+            if (bytesRead <= 0)
+            {
+                systemPrintln("ERROR: Failed reading data from network");
+                break;
+            }
+            validData += bytesRead;
+
+            // Fill the packet
+            if ((validData < packetBytes) && (validData != remainingBytes))
+                continue;
+
+            // Compute the CRC
+            crc = crc32Compute(crc, buffer, validData);
+
+            // Validate the computed CRC matches the expected CRC
+            if ((remainingBytes == validData) && (crc != expectedCrc))
+            {
+                systemPrintln("ERROR: File has changed, CRC does not match!");
+                systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n", expectedCrc, crc);
+                break;
+            }
+
+            // Update this portion of the firmware
+            uint32_t timeout = (validData != remainingBytes) ? 500 : 30 * MILLISECONDS_IN_A_SECOND;
+            if (lg290pUpdateFirmware(subsystem,
+                                     chip,
+                                     buffer,
+                                     validData,
+                                     packetNumber,
+                                     timeout) == false)
+            {
+                systemPrintln("ERROR: Failed during write");
+                break;
+            }
+
+            // Display the progress
+            firmwareUpdateProgressCallback(subsystem, chip, validData);
+
+            // Account for this data
+            packetNumber += 1;
+            remainingBytes -= validData;
+            lastDataTime = millis();
+            validData = 0;
         }
-
-        // Read the received data
-        size_t bytesToRead = min(availableBytes, packetBytes - validData);
-        int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
-        if (bytesRead <= 0)
+        if (remainingBytes)
             break;
-        validData += bytesRead;
 
-        // Fill the packet
-        if ((validData < packetBytes) && (validData != fileBytes))
-            continue;
+        // Done with the firmware update
+        success = true;
+    } while (0);
 
-        // Compute the CRC
-        crc = crc32Compute(crc, buffer, validData);
+    // Display the number of bytes remaining
+    if (remainingBytes && settings.debugFirmwareUpdate)
+        systemPrintf("remainingBytes: %d\r\n", remainingBytes);
 
-        // Validate the computed CRC matches the expected CRC
-        if ((fileBytes == validData) && (crc != expectedCrc))
-        {
-            systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
-            break;
-        }
-
-        // Update this portion of the firmware
-        if (lg290pFirmwareUpdate(buffer, validData) == false)
-        {
-            systemPrintln("LG290P OTA update failed during write");
-            break;
-        }
-        delay(1);
-
-        // Account for this data
-        fileBytes -= validData;
-        firmwareUpdateProgressCallback(subsystem, chip, (uint16_t)validData);
-        lastDataTime = millis();
-        validData = 0;
-    }
-
-    // Flush the final packet, reset the LG290P, and wait for it to reboot and respond
-    bool rebooted = lg290pFirmwareUpdateEnd();
-
-    // Done with the firmware update
-    systemPrintln(otaEqualSigns);
-    bool success = (fileBytes == 0) && rebooted;
-    if (fileBytes > 0)
-        systemPrintln("LG290P OTA update failed during writeStream");
-    else if (rebooted == false)
-        systemPrintln("LG290P OTA update failed: module did not respond after reboot");
-    else
+    // Reboot the LG290P
+    if (lg290pFirmwareUpdateEnd())
     {
+        // Display the firmware version number
         // Confirm (and log) the version the module now reports
         uint16_t versionMajor = 0;
         uint8_t versionMinor = 0, versionPatch = 0, versionRevision = 0;
         if (((GNSS_LG290P *)gnss)->getVersion(versionMajor, versionMinor, versionPatch, versionRevision))
-            systemPrintf("LG290P now reports firmware v%d.%d\r\n", versionMajor, versionMinor);
-        systemPrintln("LG290P update successfully completed.");
+            systemPrintf("%s (%s) firmware v%d.%d\r\n", subsystem, chip, versionMajor, versionMinor);
+        systemPrintf("%s (%s)  update successfully completed.\r\n", subsystem, chip);
     }
-    systemPrintln(otaEqualSigns);
     return success;
 }
 #endif // COMPILE_FIRMWARE_UPDATE
