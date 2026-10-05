@@ -675,10 +675,12 @@ bool stm32StreamFirmware(const char * subsystem,
                          size_t packetBytes)
 {
     HardwareSerial * loraSerial;
+    size_t remainingBytes;
     bool success;
 
     do
     {
+        remainingBytes = fileBytes;
         success = false;
 
         // Display the parameters
@@ -707,7 +709,7 @@ bool stm32StreamFirmware(const char * subsystem,
         // data is available.
         unsigned long lastDataTime = millis();
         size_t validData = 0;
-        while (fileBytes > 0)
+        while (remainingBytes > 0)
         {
             // Wait until some data is available
             size_t availableBytes = stream->available();
@@ -745,7 +747,7 @@ bool stm32StreamFirmware(const char * subsystem,
             validData += bytesRead;
 
             // Fill the packet
-            if ((validData < packetBytes) && (validData != fileBytes))
+            if ((validData < packetBytes) && (validData != remainingBytes))
                 continue;
 
             // Update this portion of the firmware
@@ -759,11 +761,11 @@ bool stm32StreamFirmware(const char * subsystem,
             firmwareUpdateProgressCallback(subsystem, chip, validData);
 
             // Account for this data
-            fileBytes -= validData;
+            remainingBytes -= validData;
             lastDataTime = millis();
             validData = 0;
         }
-        if (fileBytes)
+        if (remainingBytes)
             break;
 
         // Notify the bootloader that the flash image is uploaded
@@ -773,8 +775,8 @@ bool stm32StreamFirmware(const char * subsystem,
     } while (0);
 
     // Display the number of bytes remaining
-    if (fileBytes && settings.debugFirmwareUpdate)
-        systemPrintf("fileBytes: %d\r\n", fileBytes);
+    if (remainingBytes && settings.debugFirmwareUpdate)
+        systemPrintf("remainingBytes: %d\r\n", remainingBytes);
 
     // Display the firmware version
     loraGetVersion(loraSerial, subsystem, chip);
