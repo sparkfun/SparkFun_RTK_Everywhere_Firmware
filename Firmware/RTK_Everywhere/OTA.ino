@@ -124,7 +124,7 @@ int otaCompareVersions(int localMajor, int localMinor, int localPatch, int local
 
     // Display the parameters
     if (settings.debugFirmwareUpdate && otaDebugVerbose)
-        systemPrintf("%d.%d.%d.%d (debug build) .vs. %d.%d.%d.%d%s\r\n",
+        systemPrintf("%d.%d.%d.%d%s .vs. %d.%d.%d.%d%s\r\n",
                      localMajor, localMinor, localPatch, localRevision,
                      localReleaseCandidate ? " (debug build)" : "",
                      remoteMajor, remoteMinor, remotePatch, remoteRevision,
