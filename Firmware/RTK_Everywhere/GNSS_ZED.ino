@@ -4332,6 +4332,15 @@ bool x20pFirmwareUpdateEnd()
 // 6) Return the flash update success status (true/false) to the flash update
 //    routine
 // 7) The flash update routine display the final flash update operation status
+//
+// The X20P differs because of the long time it takes to get through the auto-baud
+// testing. This sequence involves two hardware resets and autobaud probing and can
+// take 30+ seconds; opening the HTTPS GET first and leaving it idle that long risked
+// the connection going stale (and a stalled TLS read blocking forever) before a
+// single body byte was ever consumed.
+// 1) The call to x20pFirmwareBegin is done in the x20pFirmwareUpdate routine instead
+//    of in x20pStreamFirmware
+// 2) x20pFirmwareUpdate calls otaFirmwareUpdate to perform the get the HTML link
 //----------------------------------------
 bool x20pStreamFirmware(const char * subsystem,
                         const char * chip,
@@ -4482,12 +4491,21 @@ bool x20pDisplayVersion(const char * subsystem, const char * chip)
 // over WiFi, then verifies/reboots - callers only need to call this one
 // function and do not need to know about Begin()/End().
 //
-// Structure:
+// Standard Structure:
 //   1. Verify the URL
 //   2. Connect to the web server
 //   3. Get the file size
 //   4. Stream the file to the chip
 //   5. Display the final firmware update status
+//
+// The X20P differs because of the long time it takes to get through the auto-baud
+// testing. This sequence involves two hardware resets and autobaud probing and can
+// take 30+ seconds; opening the HTTPS GET first and leaving it idle that long risked
+// the connection going stale (and a stalled TLS read blocking forever) before a
+// single body byte was ever consumed.
+// 1) The call to x20pFirmwareBegin is done in the x20pFirmwareUpdate routine instead
+//    of in x20pStreamFirmware
+// 2) x20pFirmwareUpdate calls otaFirmwareUpdate to get the HTML file
 //----------------------------------------
 bool x20pFirmwareUpdate(const char * subsystem,
                         const char * chip,
