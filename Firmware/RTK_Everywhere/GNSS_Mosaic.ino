@@ -4229,7 +4229,7 @@ bool mosaicFirmwareUpdate(const char * subsystem,
             break;
         }
 
-        if ((fileBytes != target->_fileBytes) && (fileBytes != (size_t)-1))
+        if (fileBytes != target->_fileBytes)
         {
             systemPrintf("ERROR: URL file size (%d) is different than CSV file size (%d)!\r\n", fileBytes,
                          target->_fileBytes);
