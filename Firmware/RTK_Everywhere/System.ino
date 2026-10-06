@@ -424,7 +424,7 @@ bool serverConnectUsingUrl(const char * subsystem,
         fileBytes = https.getSize();
         if (settings.debugFirmwareUpdate)
             systemPrintf("File size: %d (0x%08x) bytes\r\n", fileBytes, fileBytes);
-        if (fileBytes <= 0)
+        if ((ssize_t)fileBytes <= 0)
         {
             systemPrintln("ERROR: Web server did not report a file size.");
             break;
