@@ -4341,10 +4341,12 @@ bool x20pStreamFirmware(const char * subsystem,
                         uint8_t * buffer,
                         size_t packetBytes)
 {
+    size_t remainingBytes;
     bool success;
 
     do
     {
+        remainingBytes = fileBytes;
         success = false;
 
         // Display the parameters
@@ -4368,7 +4370,7 @@ bool x20pStreamFirmware(const char * subsystem,
         // data is available.
         unsigned long lastDataTime = millis();
         size_t validData = 0;
-        while (fileBytes > 0)
+        while (remainingBytes > 0)
         {
             // Wait until some data is available
             size_t availableBytes = stream->available();
@@ -4406,14 +4408,14 @@ bool x20pStreamFirmware(const char * subsystem,
             validData += bytesRead;
 
             // Fill the packet
-            if ((validData < packetBytes) && (validData != fileBytes))
+            if ((validData < packetBytes) && (validData != remainingBytes))
                 continue;
 
             // Compute the CRC
             crc = crc32Compute(crc, buffer, validData);
 
             // Validate the computed CRC matches the expected CRC
-            if ((fileBytes == validData) && (crc != expectedCrc))
+            if ((remainingBytes == validData) && (crc != expectedCrc))
             {
                 systemPrintln("ERROR: File has changed, CRC does not match!");
                 systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n", expectedCrc, crc);
@@ -4431,11 +4433,11 @@ bool x20pStreamFirmware(const char * subsystem,
             firmwareUpdateProgressCallback(subsystem, chip, validData);
 
             // Account for this data
-            fileBytes -= validData;
+            remainingBytes -= validData;
             lastDataTime = millis();
             validData = 0;
         }
-        if (fileBytes)
+        if (remainingBytes)
             break;
 
         // Notify the bootloader that the flash image is uploaded
@@ -4446,8 +4448,8 @@ bool x20pStreamFirmware(const char * subsystem,
     } while (0);
 
     // Display the number of bytes remaining
-    if (fileBytes && settings.debugFirmwareUpdate)
-        systemPrintf("fileBytes: %d\r\n", fileBytes);
+    if (remainingBytes && settings.debugFirmwareUpdate)
+        systemPrintf("remainingBytes: %d\r\n", remainingBytes);
 
     // Reboot (fire-and-forget - device does not send a response)
     if (settings.debugFirmwareUpdate)

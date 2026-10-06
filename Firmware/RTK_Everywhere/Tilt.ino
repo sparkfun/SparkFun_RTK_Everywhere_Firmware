@@ -1488,10 +1488,12 @@ bool im19StreamFirmware(const char * subsystem,
                         uint8_t * buffer,
                         size_t packetBytes)
 {
+    size_t remainingBytes;
     bool success;
 
     do
     {
+        remainingBytes = fileBytes;
         success = false;
 
         // Display the parameters
@@ -1511,7 +1513,7 @@ bool im19StreamFirmware(const char * subsystem,
         // data is available.
         unsigned long lastDataTime = millis();
         size_t validData = 0;
-        while (fileBytes > 0)
+        while (remainingBytes > 0)
         {
             // Wait until some data is available
             size_t availableBytes = stream->available();
@@ -1549,7 +1551,7 @@ bool im19StreamFirmware(const char * subsystem,
             validData += bytesRead;
 
             // Fill the packet
-            if ((validData < packetBytes) && (validData != fileBytes))
+            if ((validData < packetBytes) && (validData != remainingBytes))
                 continue;
 
             // Compute the CRC
@@ -1566,18 +1568,18 @@ bool im19StreamFirmware(const char * subsystem,
             firmwareUpdateProgressCallback(subsystem, chip, validData);
 
             // Account for this data
-            fileBytes -= validData;
+            remainingBytes -= validData;
             lastDataTime = millis();
             validData = 0;
         }
-        if (fileBytes)
+        if (remainingBytes)
             break;
         success = true;
     } while (0);
 
     // Display the number of bytes remaining
-    if (fileBytes && settings.debugFirmwareUpdate)
-        systemPrintf("fileBytes: %d\r\n", fileBytes);
+    if (remainingBytes && settings.debugFirmwareUpdate)
+        systemPrintf("remainingBytes: %d\r\n", remainingBytes);
     return success;
 }
 
