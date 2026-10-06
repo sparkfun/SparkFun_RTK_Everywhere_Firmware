@@ -3968,9 +3968,9 @@ static HardwareSerial *mosaicFirmwareUpdatePort()
         return serialGNSS;
 
     if (productVariant == RTK_FACET_MOSAIC)
-        systemPrintln("mosaic-X5 firmware update over WiFi is not yet supported on Facet mosaic - see "
-                     "mosaicFirmwareUpdatePort()'s comment. Use Test Sketches/Flash_Update/Mosaic_Update "
-                     "connected directly to this unit, or the mosaic-X5's own web page over USB-C "
+        systemPrintln("mosaic-X5 firmware update over WiFi is not yet supported on Facet mosaic - see\r\n"
+                     "mosaicFirmwareUpdatePort()'s comment. Use Test Sketches/Flash_Update/Mosaic_Update\r\n"
+                     "connected directly to this unit, or the mosaic-X5's own web page over USB-C\r\n"
                      "(docs/firmware_update_mosaicX5.md), instead.");
     else
         systemPrintln("mosaic-X5 firmware update is not supported on this platform");
@@ -4167,6 +4167,164 @@ static void mosaicFinishUpdate(HardwareSerial &serialPort)
         mosaicFindCommandPrompt(serialPort);
 }
 
+//----------------------------------------
+// Reads packetBytes from an already-open HTTP stream and feeds them to the device,
+// reporting progress as it goes.
+//
+// The generic process is:
+// 1) Call the mosaicEnterBootloaderMode function to increase the baudrate
+//    and request firmware upload mode
+// 2) Call firmwareUpdateProgressReset to initialize the progress bar and set
+//    the file size
+// 3) Loop reading firmware from the stream and writing it to the device, call
+//    firmwareUpdateProgressCallback to update the progress bar
+// 4) Call the mosaicFinishUpdate function to complete the flash write operation
+// 5) Display any error message
+// 6) Return the flash update success status (true/false) to the flash update
+//    routine
+// 7) The flash update routine display the final flash update operation status
+//----------------------------------------
+bool mosaicStreamFirmware(const char * subsystem,
+                          const char * chip,
+                          NetworkClient * stream,
+                          size_t fileBytes,
+                          uint32_t expectedCrc,
+                          uint8_t * buffer,
+                          size_t packetBytes)
+{
+    HardwareSerial * serialPort;
+    size_t remainingBytes;
+    bool success;
+
+    do
+    {
+        remainingBytes = fileBytes;
+        success = false;
+
+        // Display the parameters
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        {
+            systemPrintf("fileBytes: %d\r\n", fileBytes);
+            systemPrintf("packetBytes: %d\r\n", packetBytes);
+        }
+
+        // mosaicFirmwareUpdatePort() returns nullptr for any platform the update sequence isn't
+        // supported on - currently Facet mosaic (see its comment) plus anything else that isn't
+        // Facet FP. Report it the same way OTA.ino's dispatch loop reports a subsystem with no
+        // _firmwareUpdate/_streamFirmware at all (e.g. UM980, ZED-F9P): "Not currently available"
+        // on the web config page (green - isFirmwareStatusError() only flags "failed" and "not
+        // yet supported", so this text doesn't read as an error), and return false so the caller
+        // moves on to other subsystems (e.g. the SOC) without starting anything here.
+        serialPort = mosaicFirmwareUpdatePort();
+        if (serialPort == nullptr)
+        {
+            firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "Not currently available");
+            break;
+        }
+
+        // Initialize the progress bar
+        firmwareUpdateProgressReset(fileBytes);
+
+        systemPrintf("Starting %s (%s) firmware update...\r\n", subsystem, chip);
+        if (mosaicEnterBootloaderMode(*serialPort) == false)
+        {
+            systemPrintln("Failed to enter mosaic-X5 upgrade mode.");
+            break;
+        }
+        systemPrintf("%s (%s) is in upgrade mode.\r\n", subsystem, chip);
+
+        // Compute the CRC across the entire file
+        uint32_t crc = 0;
+
+        // Loop until all data has been transferred or another error occurs.
+        // HTTPS conections remain open even after the data has been transferred
+        // and HTTP connections close after data has been transferred but some
+        // may still be available.  Only test the network connection when no
+        // data is available.
+        systemPrintf("Streaming .suf file at %lu baud...\r\n", (unsigned long)mosaicKnownBaud);
+        unsigned long lastDataTime = millis();
+        size_t validData = 0;
+        while (remainingBytes > 0)
+        {
+            // Wait until some data is available
+            size_t availableBytes = stream->available();
+            if (availableBytes == 0)
+            {
+                // Verify network connection
+                if (stream->connected() == false)
+                {
+                    systemPrintln("ERROR: lost connection to network server");
+                    break;
+                }
+
+                // Check for network timeout
+                if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+                {
+                    systemPrintln("ERROR: Timed out waiting for mosaic-X5 firmware data");
+                    break;
+                }
+                yield();
+                continue;
+            }
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("availableBytes: %d\r\n", availableBytes);
+
+            // Read the received data
+            size_t bytesToRead = min(availableBytes, packetBytes - validData);
+            int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("bytesRead: %d\r\n", bytesRead);
+            if (bytesRead <= 0)
+            {
+                systemPrintln("ERROR: Failed reading data from network");
+                break;
+            }
+            validData += bytesRead;
+
+            // Fill the packet
+//            if ((validData < packetBytes) && (validData != remainingBytes))
+//                continue;
+
+            // Compute the CRC
+            crc = crc32Compute(crc, buffer, validData);
+
+            // Validate the computed CRC matches the expected CRC
+            if ((validData >= remainingBytes) && (crc != expectedCrc))
+            {
+                systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n", expectedCrc, crc);
+                systemPrintln("ERROR: File has changed, CRC does not match!");
+                break;
+            }
+
+            // Update this portion of the firmware
+            if (mosaicUpdateFirmware(*serialPort, buffer, validData) == false)
+            {
+                systemPrintf("%s (%s) firmware update failed during write\r\n", subsystem, chip);
+                break;
+            }
+
+            // Display the progress
+            firmwareUpdateProgressCallback(subsystem, chip, (uint16_t)validData);
+
+            // Account for this data
+            remainingBytes -= validData;
+            lastDataTime = millis();
+            validData = 0;
+        }
+        if (remainingBytes)
+            break;
+
+        mosaicFinishUpdate(*serialPort);
+        success = true;
+    } while (0);
+
+    // Display the number of bytes remaining
+    if (remainingBytes && settings.debugFirmwareUpdate)
+        systemPrintf("remainingBytes: %d\r\n", remainingBytes);
+
+    return success;
+}
+
 bool mosaicFirmwareUpdate(const char * subsystem,
                           const char * chip,
                           const char * url,
@@ -4177,11 +4335,12 @@ bool mosaicFirmwareUpdate(const char * subsystem,
 {
     (void)subsystemInfo;
 
-    uint32_t crc = 0;
     size_t fileBytes;
+    uint32_t expectedCrc;
     HTTPClient https;
+    size_t remainingBytes;
     NetworkClientSecure secureClient;
-    HardwareSerial *serialPort = mosaicFirmwareUpdatePort();
+    HardwareSerial * serialPort;
     NetworkClient * stream;
     uint32_t startMsec;
     bool success = false;
@@ -4192,7 +4351,8 @@ bool mosaicFirmwareUpdate(const char * subsystem,
     // _firmwareUpdate/_streamFirmware at all (e.g. UM980, ZED-F9P): "Not currently available"
     // on the web config page (green - isFirmwareStatusError() only flags "failed" and "not
     // yet supported", so this text doesn't read as an error), and return false so the caller
-    // moves on to other subsystems (e.g. the ESP32) without starting anything here.
+    // moves on to other subsystems (e.g. the SOC) without starting anything here.
+    serialPort = mosaicFirmwareUpdatePort();
     if (serialPort == nullptr)
     {
         firmwareUpdateStatusWebsocket("gnssOtaFirmwareStatus", "Not currently available");
@@ -4201,21 +4361,24 @@ bool mosaicFirmwareUpdate(const char * subsystem,
 
     do
     {
+        expectedCrc = target->_crc;
+        remainingBytes = target->_fileBytes;
+
         if (settings.debugFirmwareUpdate && otaDebugVerbose)
             systemPrintf("packetBytes: %d\r\n", packetBytes);
 
-        systemPrintln("Starting mosaic-X5 firmware update...");
+        // Initialize the progress bar
         firmwareUpdateProgressReset(target->_fileBytes);
 
+        systemPrintf("Starting %s (%s) firmware update...\r\n", subsystem, chip);
         if (mosaicEnterBootloaderMode(*serialPort) == false)
         {
             systemPrintln("Failed to enter mosaic-X5 upgrade mode.");
             break;
         }
+        systemPrintf("%s (%s) is in upgrade mode.\r\n", subsystem, chip);
 
-        systemPrintln("mosaic-X5 is in upgrade mode.");
-        systemPrintf("Streaming .suf file at %lu baud...\r\n", (unsigned long)mosaicKnownBaud);
-
+        // Connect to the web server and get the file size and stream
         if (serverConnectUsingUrl(subsystem,
                                   chip,
                                   url,
@@ -4229,6 +4392,7 @@ bool mosaicFirmwareUpdate(const char * subsystem,
             break;
         }
 
+        // Verify the file size
         if (fileBytes != target->_fileBytes)
         {
             systemPrintf("ERROR: URL file size (%d) is different than CSV file size (%d)!\r\n", fileBytes,
@@ -4236,20 +4400,31 @@ bool mosaicFirmwareUpdate(const char * subsystem,
             break;
         }
 
-        size_t remainingBytes = target->_fileBytes;
+        // Compute the CRC across the entire file
+        uint32_t crc = 0;
+
+        // Loop until all data has been transferred or another error occurs.
+        // HTTPS conections remain open even after the data has been transferred
+        // and HTTP connections close after data has been transferred but some
+        // may still be available.  Only test the network connection when no
+        // data is available.
+        systemPrintf("Streaming .suf file at %lu baud...\r\n", (unsigned long)mosaicKnownBaud);
         unsigned long lastDataTime = millis();
         size_t validData = 0;
         while (remainingBytes > 0)
         {
+            // Wait until some data is available
             size_t availableBytes = stream->available();
             if (availableBytes == 0)
             {
+                // Verify network connection
                 if (stream->connected() == false)
                 {
                     systemPrintln("ERROR: lost connection to network server");
                     break;
                 }
 
+                // Check for network timeout
                 if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
                 {
                     systemPrintln("ERROR: Timed out waiting for mosaic-X5 firmware data");
@@ -4258,60 +4433,71 @@ bool mosaicFirmwareUpdate(const char * subsystem,
                 yield();
                 continue;
             }
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("availableBytes: %d\r\n", availableBytes);
 
-            size_t bytesToRead = availableBytes;
-            if (bytesToRead > (packetBytes - validData))
-                bytesToRead = packetBytes - validData;
-            if (bytesToRead > (remainingBytes - validData))
-                bytesToRead = remainingBytes - validData;
+            // Read the received data
+            size_t bytesToRead = min(availableBytes, packetBytes - validData);
             int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("bytesRead: %d\r\n", bytesRead);
             if (bytesRead <= 0)
             {
-                systemPrintln("ERROR: Failed reading mosaic-X5 firmware data from network");
+                systemPrintln("ERROR: Failed reading data from network");
                 break;
             }
             validData += bytesRead;
 
+            // Fill the packet
             if ((validData < packetBytes) && (validData != remainingBytes))
                 continue;
 
+            // Compute the CRC
             crc = crc32Compute(crc, buffer, validData);
-            if ((validData >= remainingBytes) && (crc != target->_crc))
+
+            // Validate the computed CRC matches the expected CRC
+            if ((validData >= remainingBytes) && (crc != expectedCrc))
             {
                 systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n", target->_crc, crc);
                 systemPrintln("ERROR: File has changed, CRC does not match!");
                 break;
             }
 
+            // Update this portion of the firmware
             if (mosaicUpdateFirmware(*serialPort, buffer, validData) == false)
             {
-                systemPrintln("mosaic-X5 firmware update failed during write");
+                systemPrintf("%s (%s) firmware update failed during write\r\n", subsystem, chip);
                 break;
             }
 
+            // Display the progress
             firmwareUpdateProgressCallback(subsystem, chip, (uint16_t)validData);
 
+            // Account for this data
             remainingBytes -= validData;
             lastDataTime = millis();
             validData = 0;
         }
+        if (remainingBytes)
+            break;
 
-        success = (remainingBytes == 0);
+        mosaicFinishUpdate(*serialPort);
+        success = true;
     } while (0);
 
-    // Release the connection - previously leaked the secure client and its open socket
-    https.end();
+    // Display the number of bytes remaining
+    if (remainingBytes && settings.debugFirmwareUpdate)
+        systemPrintf("remainingBytes: %d\r\n", remainingBytes);
 
     systemPrintln(otaEqualSigns);
     if (success)
-    {
-        systemPrintln("mosaic-X5 update successfully streamed.");
-        mosaicFinishUpdate(*serialPort);
-    }
+        systemPrintf("%s (%s) update successfully streamed.\r\n", subsystem, chip);
     else
-        systemPrintln("mosaic-X5 firmware update failed.");
+        systemPrintf("%s (%s) firmware update failed.\r\n", subsystem, chip);
     systemPrintln(otaEqualSigns);
 
+    // Release the connection - previously leaked the secure client and its open socket
+    https.end();
     return success;
 }
 #endif // COMPILE_FIRMWARE_UPDATE
