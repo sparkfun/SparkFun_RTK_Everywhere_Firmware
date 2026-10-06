@@ -39,9 +39,7 @@ ssize_t dfuLg290pWrite(DEVICE_FIRMWARE_CTX * ctx,
                        const uint8_t * buffer,
                        size_t bytesToWrite)
 {
-    if (lg290pFirmwareUpdate(buffer, bytesToWrite) == false)
-        return 0;
-    return bytesToWrite;
+    return 0;
 }
 
 //----------------------------------------
