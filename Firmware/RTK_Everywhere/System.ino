@@ -2155,7 +2155,7 @@ void muxSelectUsb()
         digitalWrite(pin_muxA, LOW); // ESP UART1 <--> UM980 UART3
         digitalWrite(pin_muxB, LOW); // ESP UART0 <--> CH340 <--> USB serial
 
-        uart0SetBaud(usbSerialBaudActive); // LoRa runs at loraUart0Baud, USB may differ
+        uart0SetBaud(usbSerialBaudActive, SERIAL_8N1); // LoRa runs at loraUart0Baud, USB may differ
 
         usbSerialIsSelected = true; // Let other print operations know we are connected to the CH34x
     }
@@ -2166,7 +2166,7 @@ void muxSelectUsb()
 //        Connect ESP UART 1 to UM980 UART 3
 // On Facet, startLoRaConfigureCommunicationOnFacet() is called separately
 //----------------------------------------
-void muxSelectLoRaCommunication()
+void muxSelectLoRaCommunication(uint32_t serialConfig)
 {
     if (productVariant == RTK_TORCH)
     {
@@ -2185,7 +2185,7 @@ void muxSelectLoRaCommunication()
         digitalWrite(pin_muxA, LOW);  // ESP UART1 <--> UM980 UART3
         digitalWrite(pin_muxB, HIGH); // ESP UART0 <--> LoRa UART2
 
-        uart0SetBaud(loraUart0Baud); // USB may be running at a different rate
+        uart0SetBaud(loraUart0Baud, serialConfig); // USB may be running at a different rate
 
         usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
     }

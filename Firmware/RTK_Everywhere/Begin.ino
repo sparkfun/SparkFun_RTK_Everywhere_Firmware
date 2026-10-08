@@ -1120,6 +1120,9 @@ void forceGnssCommunicationRate(uint32_t &platformGnssCommunicationRate)
     {
         systemPrintln("Error: Unhandled GNSS communication rate");
     }
+
+    // Update the settings value
+    settings.dataPortBaud = platformGnssCommunicationRate;
 }
 
 //----------------------------------------
@@ -1239,22 +1242,25 @@ void usbSerialSetBaud(uint32_t baudRate)
 
     // On Torch, UART0 may be muxed to LoRa. muxSelectUsb() applies the rate when USB is reconnected.
     if (usbSerialIsSelected)
-        uart0SetBaud(baudRate);
+        uart0SetBaud(baudRate, SERIAL_8N1);
 }
 
 //----------------------------------------
 // Change the UART0 rate, if needed
 // Use end() then begin(), as the other UART0 rate changes do, rather than updateBaudRate()
 //----------------------------------------
-void uart0SetBaud(uint32_t baudRate)
+void uart0SetBaud(uint32_t baudRate, uint32_t serialConfig)
 {
-    if (baudRate == uart0BaudCurrent)
+    static uint32_t currentSerialConfig = SERIAL_8N1;
+    if ((baudRate == uart0BaudCurrent) && (serialConfig == currentSerialConfig))
         return;
 
     Serial.flush(); // Finish sending at the old rate
     Serial.end();   // We must end before we begin otherwise the UART settings are corrupted
-    Serial.begin(baudRate);
+    Serial.begin(baudRate, serialConfig);
+    serialInputClear(&Serial);
     uart0BaudCurrent = baudRate;
+    currentSerialConfig = serialConfig;
 }
 
 //----------------------------------------
