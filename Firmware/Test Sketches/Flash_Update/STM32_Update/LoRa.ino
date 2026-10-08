@@ -218,14 +218,6 @@ bool loraWaitForVersionResponse(HardwareSerial * loraSerial, unsigned long timeo
 }
 
 //----------------------------------------
-// Tell the STM32WL running the LoRa application to enter command mode
-//----------------------------------------
-bool loraEnterCommandMode()
-{
-    return loraEnterCommandMode(loraSelectEsp32Uart());
-}
-
-//----------------------------------------
 // On the Torch, USB and LoRa radio are shared, so disconnects from USB are required
 // On the Facet FP, LoRa UART2 is on ESP32 UART2
 // Sends AT+V?, if response, we are already in command mode -> Reconnects to USB, Return
@@ -241,7 +233,7 @@ bool loraEnterCommandMode(HardwareSerial * loraSerial)
     delay(50);         // Give LoRa radio time to power stabilize
 
     // Make sure the STM32 is running its application, not sitting in the bootloader
-    loraReset(); // Needed for Torch
+    loraExitBootloader(); // Needed for Torch
 
     // Connect the ESP32 UART to the STM32 UART
     loraSerialCapture(loraSerial);
@@ -259,7 +251,7 @@ bool loraEnterCommandMode(HardwareSerial * loraSerial)
         loraSerial->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
 
     // Discard incoming data
-    delay(100); // Wait for incoming serial to complete
+    delay(500); // Wait for incoming serial to complete
     while (loraSerial->available())
         loraSerial->read(); // Read any incoming and trash
 
