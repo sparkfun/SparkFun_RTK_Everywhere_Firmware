@@ -106,6 +106,8 @@ HardwareSerial * loraSerial;
 
 bool useUart0ForLoRa = true;
 
+uint32_t serial0Baudrate = 115200;
+
 //----------------------------------------
 // Connects to the configured SSID and blocks until connected or the attempt times out.
 //----------------------------------------
@@ -226,6 +228,7 @@ void displayMenu()
 
     // Common menu items
     systemPrintln("r) Reboot system");
+    systemPrintf("b) Switch baudrate, current: %d\r\n", serial0Baudrate);
     systemPrintln("h) Display the heap");
     systemPrintf("d) Debug: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
     systemPrintf("v) Verbose output: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
@@ -255,6 +258,27 @@ void loop()
         // Process the menu item
         if (incoming == 'r')
             ESP.restart();
+        else if (incoming == 'b')
+        {
+            serial0Baudrate = (serial0Baudrate == 115200) ? 9600 : 115200;
+
+            // Switch baudrates
+            systemPrintf("Switching baudrates to %d\r\n", serial0Baudrate);
+            systemPrintln("Type 'U' at new baudrate to continue");
+            Serial.flush();
+            Serial.end();
+            Serial.begin(serial0Baudrate);
+            while (true)
+            {
+                if (Serial.available() && (Serial.read() == 'U'))
+                {
+                    serialInputClear(&Serial);
+                    break;
+                }
+                yield();
+            }
+            systemPrintf("Now running at %d baud\r\n", serial0Baudrate);
+        }
         else if (incoming == 'd')
         {
             settings.debugFirmwareUpdate ^= 1;
