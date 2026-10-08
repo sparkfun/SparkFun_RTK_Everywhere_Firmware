@@ -2538,6 +2538,10 @@ void gpioExpanderGnssResetFast()
 //----------------------------------------
 void gpioExpanderSelectImu()
 {
+    //                       SW3
+    //                    .--(1) <--> LoRa UART 1
+    // ESP32 UART 1 <--> U12 (0) <--> IMU UART 1
+    //
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, LOW);
 }
@@ -2547,6 +2551,10 @@ void gpioExpanderSelectImu()
 //----------------------------------------
 void gpioExpanderSelectLoraConfigure()
 {
+    //                       SW3
+    //                    .--(1) <--> LoRa UART 1
+    // ESP32 UART 1 <--> U12 (0) <--> IMU UART 1
+    //
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, HIGH);
 }
