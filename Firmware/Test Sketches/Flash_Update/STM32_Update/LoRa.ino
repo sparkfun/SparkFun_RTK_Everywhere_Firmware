@@ -87,20 +87,19 @@ void loraReset()
 // Caller's response array is filled
 // Returns true if OK is seen in response
 //----------------------------------------
-bool loraSendCommand(HardwareSerial * loraSerial,
-                     const char *command,
-                     char *response,
-                     int *responseSize,
-                     const unsigned long timeout,
-                     bool disconnect)
+bool loraSendCommand2(HardwareSerial * loraSerial,
+                      const char *command,
+                      char *response,
+                      int *responseSize,
+                      const unsigned long timeout,
+                      bool disconnect)
 {
     int responseSpot = 0;
     int responseTime = 0;
 
-    loraSerialCapture(loraSerial);
+    loraSerialCapture(loraSerial, SERIAL_8N1);
     delay(10); // Wait a little after switching the UART signals
-    while (loraSerial->available())
-        loraSerial->read(); // Absorb any junk left in the received buffer
+    serialInputClear(loraSerial); // Absorb any junk left in the received buffer
     loraSerial->printf("%s\r\n", command);
     while (loraSerial->available() == 0)
     {
@@ -236,24 +235,11 @@ bool loraEnterCommandMode(HardwareSerial * loraSerial)
     loraExitBootloader(); // Needed for Torch
 
     // Connect the ESP32 UART to the STM32 UART
-    loraSerialCapture(loraSerial);
-
-    // Command mode uses 8N1
-    loraSerial->end();
-    if (productVariant == RTK_TORCH)
-    {
-        if (loraSerial == &Serial)
-            loraSerial->begin(115200, SERIAL_8N1);
-        else
-            loraSerial->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
-    }
-    else if (productVariant == RTK_FACET_FP)
-        loraSerial->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
+    loraSerialCapture(loraSerial, SERIAL_8N1);
 
     // Discard incoming data
     delay(500); // Wait for incoming serial to complete
-    while (loraSerial->available())
-        loraSerial->read(); // Read any incoming and trash
+    serialInputClear(loraSerial); // Read any incoming and trash
 
     // Send version query and wait up to 2000ms for a response. If there's no
     // reply, the STM32 may already be sitting in command mode from a previous
@@ -290,6 +276,9 @@ bool loraGetVersion(HardwareSerial * loraSerial,
                     const char * subsystem,
                     const char * chip)
 {
+    // Switch to using 8N1
+    loraEsp32UartConfigure8N1(loraSerial);
+
     if (loraEnterCommandMode(loraSerial) == true)
     {
         systemPrintf("%s (%s) firmware: %s\r\n", subsystem, chip, loraFirmwareVersionStr);
@@ -308,7 +297,7 @@ bool loraGetVersion(HardwareSerial * loraSerial,
                 else
                 {
                     int responseLength = responseSize;
-                    loraSendCommand(loraSerial, "AT+ATTR?", response, &responseLength, LORA_CMD_ATTR_TIMEOUT_MS, true);
+                    loraSendCommand2(loraSerial, "AT+ATTR?", response, &responseLength, LORA_CMD_ATTR_TIMEOUT_MS, true);
                     if ((responseLength > 0) && (strlen(response) > 0))
                         systemPrint(response);
                     else
@@ -325,7 +314,7 @@ bool loraGetVersion(HardwareSerial * loraSerial,
 //----------------------------------------
 // Determine the ESP32 UART that connects to the LoRa chip
 //----------------------------------------
-HardwareSerial * loraSelectEsp32Uart()
+HardwareSerial * loraEsp32UartSelect()
 {
     HardwareSerial * loraSerial = nullptr;
 
@@ -346,21 +335,99 @@ HardwareSerial * loraSelectEsp32Uart()
     }
     else
         reportFatalError("No ESP32 UART specified for this product!");
-
     return loraSerial;
+}
+
+//----------------------------------------
+// Determine the ESP32 UART that connects to the LoRa chip
+//----------------------------------------
+void loraEsp32UartConfigure8E1(HardwareSerial * loraSerial)
+{
+    int rx;
+    int tx;
+
+    // Select the ESP32 UART that connects to the LoRa chip
+    if ((productVariant == RTK_TORCH) && (loraSerial != &Serial))
+    {
+        rx = pin_GnssUart_RX;
+        tx = pin_GnssUart_TX;
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        rx = pin_IMU_RX;
+        tx = pin_IMU_TX;
+    }
+    else
+        return;
+
+    // Configure the UART
+    loraSerial->end();
+    loraSerial->begin(115200, SERIAL_8E1, rx, tx);
+}
+
+//----------------------------------------
+// Determine the ESP32 UART that connects to the LoRa chip
+//----------------------------------------
+void loraEsp32UartConfigure8N1(HardwareSerial * loraSerial)
+{
+    int rx;
+    int tx;
+
+    // Select the ESP32 UART that connects to the LoRa chip
+    if ((productVariant == RTK_TORCH) && (useUart0ForLoRa == false))
+    {
+        rx = pin_GnssUart_RX;
+        tx = pin_GnssUart_TX;
+    }
+    else if (productVariant == RTK_FACET_FP)
+    {
+        rx = pin_IMU_RX;
+        tx = pin_IMU_TX;
+    }
+    else
+        return;
+
+    // Configure the UART
+    loraSerial->end();
+    loraSerial->begin(115200, SERIAL_8N1, rx, tx);
+}
+
+//----------------------------------------
+// Restore the ESP32 UART configuration
+//----------------------------------------
+void loraEsp32UartRestore(HardwareSerial * loraSerial)
+{
+    if (loraSerial)
+    {
+        if (productVariant == RTK_TORCH)
+        {
+            if (loraSerial != &Serial)
+            {
+                loraSerial->flush();
+                loraSerial->end();
+                loraSerial->begin(settings.dataPortBaud, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
+            }
+        }
+        else if (productVariant == RTK_FACET_FP)
+        {
+            loraSerial->flush();
+            loraSerial->end();
+            loraSerial->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
+        }
+    }
 }
 
 //----------------------------------------
 // Connect the ESP32 UART to the LoRa UART
 //----------------------------------------
-void loraSerialCapture(HardwareSerial * loraSerial)
+void loraSerialCapture(HardwareSerial * loraSerial, uint32_t serialConfig)
 {
     loraSerial->flush();
     if (productVariant == RTK_TORCH)
     {
         if (loraSerial == &Serial)
             // Connect ESP32 UART 0 to LoRa / STM32WL UART 2
-            muxSelectLoRaCommunication();
+            muxSelectLoRaCommunication(serialConfig);
         else
             // Connect ESP32 UART 1 to LoRa / STM32WL UART 1
             muxSelectLoRaConfigure();
@@ -368,7 +435,6 @@ void loraSerialCapture(HardwareSerial * loraSerial)
     else if (productVariant == RTK_FACET_FP)
         // Connect ESP32 UART 2 to LoRa / STM32WL UART 2
         gpioExpanderSelectLoraConfigure();
-    serialInputClear(loraSerial);
 }
 
 //----------------------------------------
@@ -447,19 +513,7 @@ bool stm32UpdateFirmwareBegin(HardwareSerial * loraSerial,
         // likely limited by STM32's internal flash write time.
 
         // Connect the ESP32 UART to the STM32 UART
-        loraSerialCapture(loraSerial);
-
-        // The STM32 bootloader requires even parity
-        loraSerial->end();
-        if (productVariant == RTK_TORCH)
-        {
-            if (loraSerial == &Serial)
-                loraSerial->begin(115200, SERIAL_8E1);
-            else
-                loraSerial->begin(115200, SERIAL_8E1, pin_GnssUart_RX, pin_GnssUart_TX);
-        }
-        else if (productVariant == RTK_FACET_FP)
-            loraSerial->begin(115200, SERIAL_8E1, pin_IMU_RX, pin_IMU_TX);
+        loraSerialCapture(loraSerial, SERIAL_8E1);
 
         gpioLoraPowerOn();     // Regardless of previous state, turn on the STM32
 
@@ -486,7 +540,7 @@ bool stm32UpdateFirmwareBegin(HardwareSerial * loraSerial,
         systemPrintf("%s (%s) Erasing flash...\r\n", subsystem, chip);
 
         // Connect the ESP32 UART to the STM32 UART
-        loraSerialCapture(loraSerial);
+        loraSerialCapture(loraSerial, SERIAL_8E1);
 
         // Global Mass Erase Command (0x44 for extended erase)
         loraSerial->write(0x44);
@@ -549,7 +603,7 @@ bool stm32UpdateFirmwareFlashBlock(HardwareSerial * loraSerial,
         // systemPrintf("Flashing block: Addr=0x%08X, Len=%d\n\r", addr, len);
 
         // Connect the ESP32 UART to the STM32 UART
-        loraSerialCapture(loraSerial);
+        loraSerialCapture(loraSerial, SERIAL_8E1);
 
         // Write Memory Command
         loraSerial->write(0x31);
@@ -608,17 +662,11 @@ bool stm32UpdateFirmware(HardwareSerial * loraSerial,
 
     for (uint8_t attempt = 1; attempt <= 3; attempt++)
     {
-        // Connect the ESP32 UART to the STM32 UART
-        loraSerialCapture(loraSerial);
-
         // Write the flash block
         success = stm32UpdateFirmwareFlashBlock(loraSerial,
                                                 stm32CurrentAddress,
                                                 dataArray,
                                                 bytesToWrite);
-
-        // Restore the previous ESP32 UART connection
-        loraSerialRelease(loraSerial);
         if (success)
         {
             stm32CurrentAddress += bytesToWrite;
@@ -683,7 +731,8 @@ bool stm32StreamFirmware(const char * subsystem,
         }
 
         // Get the ESP32 UART that connects to the LoRa chip
-        loraSerial = loraSelectEsp32Uart();
+        loraSerial = loraEsp32UartSelect();
+        loraEsp32UartConfigure8E1(loraSerial);
 
         // Enter the bootloader and erase flash
         systemPrintf("%s (%s) entering bootloader mode...\r\n", subsystem, chip);
@@ -772,6 +821,9 @@ bool stm32StreamFirmware(const char * subsystem,
 
     // Display the firmware version
     loraGetVersion(loraSerial, subsystem, chip);
+
+    // Restore the UART configuration
+    loraEsp32UartRestore(loraSerial);
     return success;
 }
 

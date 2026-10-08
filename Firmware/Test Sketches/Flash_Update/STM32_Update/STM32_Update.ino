@@ -203,7 +203,8 @@ void setup()
         reportFatalError("A LoRa radio is not in this product");
 
     // Display the current firmware version
-    loraGetVersion(loraSelectEsp32Uart(), subsystem, chip); // Query the STM32 LoRa firmware version over AT+V?
+    HardwareSerial * loraSerial = loraEsp32UartSelect();
+    loraGetVersion(loraSerial, subsystem, chip); // Query the STM32 LoRa firmware version over AT+V?
 
     displayMenu();
 }
