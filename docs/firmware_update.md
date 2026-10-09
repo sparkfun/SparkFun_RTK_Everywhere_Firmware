@@ -19,7 +19,7 @@ Compatibility Icons
 
 </div>
 
-The RTK Devices run a variety of firmware. Please see the device specific pages for more information about the update methods:
+The RTK Devices run a variety of firmware.  Firmware can be updated in the System Configuration section of the WiFi Config page, or over the [Firmware menu](firmware_overview.md) of the serial interface.  Please see the device specific pages for more information about the update methods:
 
 ## RTK EVK
 
