@@ -378,6 +378,165 @@ void otaReportVersionCheck()
 }
 
 //----------------------------------------
+// Compute the CRC over a data stream
+//----------------------------------------
+bool otaStreamCrc(NetworkClient * stream,
+                  size_t fileBytes,
+                  uint32_t &expectedCrc,
+                  uint8_t * buffer,
+                  size_t packetBytes)
+{
+    HardwareSerial * loraSerial;
+    bool success;
+
+    do
+    {
+        success = false;
+
+        // Display the parameters
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
+        {
+            systemPrintf("fileBytes: %d\r\n", fileBytes);
+            systemPrintf("expectedCrc: 0x%08x\r\n", expectedCrc);
+            systemPrintf("packetBytes: %d\r\n", packetBytes);
+        }
+
+        // Compute the CRC across the entire file
+        expectedCrc = 0;
+
+        // Loop until all data has been transferred or another error occurs.
+        // HTTPS conections remain open even after the data has been transferred
+        // and HTTP connections close after data has been transferred but some
+        // may still be available.  Only test the network connection when no
+        // data is available.
+        unsigned long lastDataTime = millis();
+        size_t validData = 0;
+        while (fileBytes > 0)
+        {
+            // Wait until some data is available
+            size_t availableBytes = stream->available();
+            if (availableBytes == 0)
+            {
+                // Verify network connection
+                if (stream->connected() == false)
+                {
+                    systemPrintln("ERROR: lost connection to network server");
+                    break;
+                }
+
+                // Check for network timeout
+                if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+                {
+                    systemPrintln("ERROR: Timed out waiting for data");
+                    break;
+                }
+                delay(1);
+                continue;
+            }
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("availableBytes: %d\r\n", availableBytes);
+
+            // Read the received data
+            size_t bytesToRead = min(availableBytes, packetBytes - validData);
+            int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("bytesRead: %d\r\n", bytesRead);
+            if (bytesRead <= 0)
+            {
+                systemPrintln("ERROR: Failed reading data from network");
+                break;
+            }
+            validData += bytesRead;
+
+            // Fill the packet
+            if ((validData < packetBytes) && (validData != fileBytes))
+                continue;
+
+            // Compute the CRC
+            expectedCrc = crc32Compute(expectedCrc, buffer, validData);
+
+            // Account for this data
+            fileBytes -= validData;
+            lastDataTime = millis();
+            validData = 0;
+        }
+        if (fileBytes)
+            break;
+        success = true;
+    } while (0);
+
+    // Display the number of bytes remaining
+    if (fileBytes && settings.debugFirmwareUpdate)
+        systemPrintf("fileBytes: %d\r\n", fileBytes);
+
+    // Display the CRC value
+    else if (settings.debugFirmwareUpdate)
+        systemPrintf("expectedCrc: 0x%08x\r\n", expectedCrc);
+
+    return success;
+}
+
+//----------------------------------------
+// Open the stream to compute the CRC
+//----------------------------------------
+bool otaComputeCrc(const char * url,
+                   size_t &fileBytes,
+                   uint32_t &expectedCrc,
+                   uint8_t * buffer,
+                   size_t packetBytes)
+{
+    HTTPClient https;
+    NetworkClientSecure secureClient;
+    NetworkClient * stream;
+    bool success;
+
+    do
+    {
+        success = false;
+
+        // Display the firmware update being attempted
+        systemPrintf("Computing the CRC\r\n");
+
+        if (url)
+        {
+            // Connect to the web server and get the file size and stream
+            if (serverConnectUsingUrl("tbd",
+                                      "tbd",
+                                      url,
+                                      secureClient,
+                                      stream,
+                                      https,
+                                      nullptr,
+                                      HTTP_CODE_OK,
+                                      fileBytes) == false)
+            {
+                break;
+            }
+        }
+        else
+        {
+            systemPrintln("URL not specified");
+            break;
+        }
+
+        // Start the firmware update and display any streaming errors
+        if (otaStreamCrc(stream,
+                         fileBytes,
+                         expectedCrc,
+                         buffer,
+                         packetBytes) == false)
+        {
+            break;
+        }
+        success = true;
+    } while (0);
+
+    // Release the resources
+    https.end();
+    return success;
+}
+
+//----------------------------------------
 // Get the file from the web, and initiate firmware update
 //----------------------------------------
 bool otaFirmwareUpdate(const char * subsystem,
@@ -1032,6 +1191,9 @@ void otaMenuDisplay(OTA_SUBSYSTEM_MASK platformDevices,
     if (developerOptions)
         systemPrintf("S) Change Firmware CSV URL: %s\r\n", settings.csvUrl);
 
+    if (developerOptions && networkHasInternet())
+        systemPrintln("T) Display file length and CRC32 for a file");
+
     // Allow user to initiate a firmware update without checking for new firmware first
     // If all systems are up to date, the process will exit
     if (targetCount == 0)
@@ -1195,6 +1357,32 @@ bool otaMenuProcessInput(OTA_SUBSYSTEM_MASK platformDevices,
         getUserInputString(settings.csvUrl, sizeof(settings.csvUrl) - 1);
         if (strlen(settings.csvUrl) == 0)
             strcpy(settings.csvUrl, OTA_FIRMWARE_CSV_URL);
+    }
+
+    else if (networkHasInternet() && (incoming == 'T'))
+    {
+        uint8_t * buffer;
+        const size_t bufferBytes = 16384;
+        uint32_t expectedCrc;
+        size_t fileBytes;
+
+        // Allocate a buffer
+        buffer = (uint8_t *)rtkMalloc(bufferBytes, "CRC buffer");
+        if (buffer)
+        {
+            // Get the URL
+            systemPrint("Enter URL: ");
+            String urlString = systemGetStringFromUser();
+            if (urlString.length())
+            {
+                if (otaComputeCrc(urlString.c_str(), fileBytes, expectedCrc, buffer, bufferBytes))
+                    // Display the summary
+                    systemPrintf("%s,%d,0x%08x\r\n", urlString.c_str(), fileBytes, expectedCrc);
+            }
+
+            // Free the buffer
+            rtkFree(buffer, "CRC buffer");
+        }
     }
 
     else if (incoming == 'u')
