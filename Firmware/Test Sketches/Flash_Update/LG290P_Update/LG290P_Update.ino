@@ -18,79 +18,157 @@
     Put the target into bootload mode and malloc any necessary buffers xxxUpdateFirmwareBegin()
     Grab chunks of bytes over WiFi and throw at xxxUpdateFirmware(*data, length)
     When done, call xxxUpdateFirmwareEnd() to free buffers and exit the bootloader mode or reset the target
+
+    Test procedure commands (Verifies all command URLs, HTTP, HTTPS and array:
+    1) u    ?.? --> 2.1     Get into a known state
+    2) a    2.1 --> 1.6     Verify 'a' command and array
+    3) o    1.6 --> 1.3     Verify 'o' command, URL and HTTPS
+    4) p    1.3 --> 1.6     Verify 'p' command and URL
+    5) u    1.6 --> 2.1     Verify 'u' command and URL
+    6) e    2.1 --> 1.3     Verify 'e' command and HTTP, connect to somewhere
+                            other than raw.githubusercontent.com using http://
+    7) e    1.3 --> 1.6     Verify HTTPS, connect to somewhere other than
+                            raw.githubusercontent.com using https://
+    8) L                    Verify 'L' command and directory listing
+       0    1.6 --> ?.?     Verify HTTPS, leave at highest revision
+
+    Test procedure commands (Verifies HTTP, HTTPS and array, URLs verified above):
+    1) a    ?.? --> 1.6     Verify array
+    2) u    1.6 --> 2.1     Verify 'u' command, HTTPS with CERT
+    3) e    2.1 --> 1.3     Verify HTTP, connect to somewhere other than
+                            raw.githubusercontent.com using http://
+    4) e    1.3 --> 1.6     Verify HTTPS, no CERT, connect to somewhere
+                            other than raw.githubusercontent.com using https://
+    5) L                    Verify directory listing
+       0    1.6 --> ?.?     Leave at highest revision
 */
+
+//----------------------------------------
+// Common declarations
+//----------------------------------------
 
 bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local BT TLS patch
 
-#include "settings.h"
-
-#include "secrets.h"
+#include <arpa/inet.h>
 #include <HTTPClient.h>
+#include <netdb.h>
+#include <Network.h>
+#include <NetworkClientSecure.h>
+#include <sys/socket.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 
-const char *firmwareURLv13 = "/gnss/lg290p/LG290P03AANR01A03S.pkg";
-const char *firmwareURLv21 = "/gnss/lg290p/LG290P03AANR02A01S.pkg";
+#ifndef ENABLE_DEVELOPER
+#define ENABLE_DEVELOPER            true
+#endif   // ENABLE_DEVELOPER
+#define DMW_if if (0)
 
-#define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
+const uint8_t logoSparkFun[] = {0};
+#define logoSparkFun_Height         1
+#define logoSparkFun_Width          1
+
+const uint8_t logoSparkPNT[] = {0};
+#define logoSparkPNT_Height         1
+#define logoSparkPNT_Width          1
+
+#include "Firmware_Data_Stream.h"
+#include "secrets.h"
+#include "settings.h"
+#define COMPILE_ALL_FIRMWARE
+#include "TheData.h"
+
+#define rtkMalloc(bytes, description)       malloc(bytes)
+#define rtkFree(buffer, description)        free(buffer)
+
+//----------------------------------------
+// Test specific declarations
+//----------------------------------------
+
+Firmware_Data_Stream dataArray(firmwareData, sizeof(firmwareData));
+
+const char * subsystem = "GNSS";
+const char * chip = "LG290P";
+
+uint8_t rxBuffer[2048];
+
+const char * urlDirectory = "https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/gnss/lg290p";
+
+const char * ulrFileServer = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/gnss/lg290p/";
+
+// 1.3
+const char * url_1_3 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/gnss/lg290p/LG290P03AANR01A03S.pkg";
+
+// 1.6
+const char * url_1_6 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/gnss/lg290p/LG290P03AANR01A06S.pkg";
+
+// 2.1
+const char * url_2_1 = "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/gnss/lg290p/LG290P03AANR02A01S.pkg";
+
+#define GNSS_LG290P             LG290P
 
 #include <SparkFun_LG290P_GNSS.h>
-LG290P myGnss;
-
-#include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
-SFE_PCA95XX io(PCA95XX_PCA9534); // Create a PCA9534
-SFE_PCA95XX *gpioExpanderSwitches = nullptr;
-
-const int gpioExpanderSwitch_S1 = 0; // Controls U16 switch 1: connect ESP UART0 to CH342 or SW2
-const int gpioExpanderSwitch_S2 = 1; // Controls U17 switch 2: connect SW1 to RS232 Output or GNSS UART4
-const int gpioExpanderSwitch_S3 = 2; // Controls U18 switch 3: connect ESP UART2 to GNSS UART3 or LoRa UART2
-const int gpioExpanderSwitch_S4 = 3; // Controls U19 switch 4: connect GNSS UART2 to 4-pin JST TTL Serial or LoRa UART0
-const int gpioExpanderSwitch_LoraEnable = 4; // LoRa_EN
-const int gpioExpanderSwitch_GNSS_Reset = 5; // RST_GNSS
-const int gpioExpanderSwitch_LoraBoot = 6;   // LoRa_BOOT0 - Used for bootloading the STM32 radio IC
-const int gpioExpanderSwitch_S5 = 7;         // Controls U61 switch 5: connect GNSS UART1 to Port A of CH342
-const int gpioExpanderNumSwitches = 8;
-
-// Communication Port
-HardwareSerial SerialGNSS(1); // Use UART1 on the ESP32
-
-int pin_SDA = 15; // FP and TX2
-int pin_SCL = 4;
-
-int pin_UART1_TX = -1;
-int pin_UART1_RX = -1;
-int pin_GNSS_DR_Reset = -1; // Push low to reset GNSS/DR.
-
-// int pin_SDA = 7; // Postcard
-// int pin_SCL = 20;
+LG290P * gnss;
 
 int gnss_baud = 460800; // Baud rate for GNSS module
 
-// External GPIO functions
-extern void gpioExpanderConnectGNSSToESP32();
+//----------------------------------------
+// Connects to the configured SSID and blocks until connected or the attempt times out.
+//----------------------------------------
+bool wifiConnect()
+{
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(wifiSSID, wifiPassword);
+    return wifiWaitUntilConnected();
+}
 
-// Timer for firmware update duration
-unsigned long firmwareUpdateStartTime = 0;
-unsigned long firmwareUpdateElapsed = 0;
+//----------------------------------------
+// Wait for the WiFi connection
+//----------------------------------------
+bool wifiWaitUntilConnected()
+{
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        systemPrint("Connecting to WiFi SSID: ");
+        systemPrintln(wifiSSID);
 
-// Global variables used by firmwareUpdateProgressCallback, called by all firmware update procedures
-uint32_t firmwareUpdateBytesToProcess = 0;
-uint32_t firmwareUpdateBytesProcessed = 0;
+        unsigned long start = millis();
+        while (WiFi.status() != WL_CONNECTED)
+        {
+            if ((millis() - start) > 20000)
+            {
+                systemPrintln("WiFi connection timed out.");
+                return false;
+            }
+            delay(250);
+            systemPrint(".");
+        }
 
-// To be removed / obtained from JSON file in the future
-uint32_t fileSize;
-uint32_t crc;
+        systemPrint("WiFi connected, IP address: ");
+        systemPrintln(WiFi.localIP());
+    }
+    return true;
+}
 
+//----------------------------------------
+// Test entry point
+//----------------------------------------
 void setup()
 {
+    // Common setup
     Serial.begin(115200);
-
-    Serial.println("LG290P bootloader test");
-
     delay(250);
 
-    Wire.begin(pin_SDA, pin_SCL);
+    identifyBoard(); // Determine what hardware platform we are running on.
+    beginBoard();    // Set all pin numbers and pin initial states
+    beginMux();      // Must come before I2C activity to avoid external
+                     // devices from corrupting the bus. See issue 474
+                     //  https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
+    peripheralsOn(); // Enable power for the display, SD, etc
+    beginI2C();      // Requires settings and peripheral power (if applicable).
+    if (wifiConnect() == false)
+        reportFatalError("WiFi network not found!");
 
+    // Test specific setup
     // ID the platform
     if (i2cIsDevicePresent(&Wire, 0x21)) // FP has the GPIO expander at 0x21
     {
@@ -100,9 +178,6 @@ void setup()
 
         // Connect Facet FP GNSS receiver UART1 to ESP32 UART1 for normal comms
         gpioExpanderConnectGNSSToESP32();
-
-        pin_UART1_TX = 27; // FP
-        pin_UART1_RX = 26;
     }
     // Postcard has different I2C pins
     //  else if (i2cIsDevicePresent(&Wire, 0x20)) // Postcard has the GPIO expander at 0x20
@@ -118,126 +193,163 @@ void setup()
     {
         systemPrintln("TX2 detected");
         productVariant = RTK_TORCH_X2;
-        pin_UART1_TX = 17; // TX2
-        pin_UART1_RX = 14;
-        pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR.
-        pinMode(pin_GNSS_DR_Reset, OUTPUT);
     }
 
-    SerialGNSS.begin(gnss_baud, SERIAL_8N1, pin_UART1_RX, pin_UART1_TX);
-    Serial.println("Serial GNSS started");
+    serialGNSS = new HardwareSerial(1);
+    serialGNSS->begin(gnss_baud, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
+    systemPrintln("Serial GNSS started");
 
-    Serial.printf("Starting connection to GNSS module at %d baud...\n\r", gnss_baud);
-
+    systemPrintf("Starting connection to GNSS module at %d baud...\n\r", gnss_baud);
+    gnss = new LG290P();
     gpioGnssBoot();
 
     delay(1000);
 
-    myGnss.enableDebugging(Serial); // Enable debugging to get more info during the update process
-    if (myGnss.begin(SerialGNSS, "LG290P") == true)
+    gnss->enableDebugging(Serial); // Enable debugging to get more info during the update process
+    if (gnss->begin(*serialGNSS, "LG290P") == true)
     {
-        Serial.println("GNSS module found");
+        systemPrintln("GNSS module found");
         if (lg290pCheckFirmware() == false)
-            Serial.println("Unable to read LG290P firmware version.");
+            systemPrintln("Unable to read LG290P firmware version.");
     }
     else
-        Serial.println(
+        systemPrintln(
             "Failed to find GNSS module. It may have been damaged by a previous failed update attempt. Proceeding.");
-
-    wifiConnect();
 
     displayMenu();
 }
 
+//----------------------------------------
+// Test serial menu
+//----------------------------------------
 void displayMenu()
 {
-    Serial.println();
-    Serial.println("r) Restart the ESP32");
-    Serial.println("1) Load LG290P firmware v1.3");
-    Serial.println("2) Load LG290P firmware v2.1");
-    Serial.print("Selection: ");
+    systemPrintln();
+    lg290pDisplayVersion();
+    systemPrintln();
+    systemPrintln("Menu:");
+
+    // Test specific menu items
+    systemPrintln("a) Update GNSS to 1.6 from array");
+    systemPrintln("o) Update GNSS to 1.3");
+    systemPrintln("p) Update GNSS to 1.6");
+    systemPrintln("u) Update GNSS to 2.1");
+    systemPrintln("e) Enter URL");
+    systemPrintln("L) List all versions");
+    systemPrintln("g) Reset GNSS");
+
+    // Common menu items
+    systemPrintln("r) Reboot system");
+    systemPrintln("h) Display the heap");
+    systemPrintf("d) Debug: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
+    systemPrintf("v) Verbose output: %s\r\n", otaDebugVerbose ? "Enabled" : "Disabled");
+
+    // Discard any type ahead
+    serialInputClear(&Serial);
+
+    // Request user input
+    systemPrint("Make selection: ");
 }
 
+//----------------------------------------
+// Process user input
+//----------------------------------------
 void loop()
 {
+    String urlString;
+
+    // Loop common code
+    wifiWaitUntilConnected();
     if (Serial.available())
     {
+        // Get and echo the user input
         byte incoming = Serial.read();
         Serial.printf("%c\r\n", incoming);
+
+        // Process the menu item
         if (incoming == 'r')
-        {
             ESP.restart();
-        }
-        else if ((incoming == '1') || (incoming == '2'))
+        else if (incoming == 'd')
         {
-            const char *firmwareURL = (incoming == '1') ? firmwareURLv13 : firmwareURLv21;
-            Serial.printf("Starting LG290P firmware v%s update...\r\n", (incoming == '1') ? "1.3" : "2.1");
-
-            // Start timer before erase
-            firmwareUpdateStartTime = millis();
-
-            if (lg290pStreamFirmware((char *)firmwareURL) == false)
-            {
-                displayMenu();
-                return;
-            }
-
-            Serial.print("Sending last packet. Device will then take up to 30 seconds to verify and reboot... ");
-            if (lg290pFirmwareUpdate(NULL, 0, true) == true) // Send a final call to flush any remaining buffered data
-                Serial.println("OK");
-            else
-            {
-                Serial.println("FAILED");
-                displayMenu();
-                return;
-            }
-
-            Serial.print("Waiting up to 25 seconds for device to boot. updateFirmwareIsFinished: ");
-            if (lg290pFirmwareUpdateEnd() == false)
-            {
-                Serial.println("LG290P update failed.");
-                displayMenu();
-                return;
-            }
-
-            Serial.println("OK");
-            if (lg290pCheckFirmware() == true)
-                Serial.println("LG290 updated successfully.");
-            else
-                Serial.println("LG290P rebooted, but firmware version verification failed.");
-
-            // Stop timer and print elapsed time
-            firmwareUpdateElapsed = millis() - firmwareUpdateStartTime;
-            Serial.print("Firmware update time: ");
-            Serial.print(firmwareUpdateElapsed / 1000.0, 3);
-            Serial.println(" seconds");
-            displayMenu();
+            settings.debugFirmwareUpdate ^= 1;
+            otaDebugVerbose = false;
         }
+        else if (incoming == 'h')
+            reportHeapNow(true);
+        else if (incoming == 'v')
+            otaDebugVerbose ^= 1;
+
+        // Test specific menu items
+        else if (incoming == 'a')
+            flashUpdate(nullptr);
+        else if (incoming == 'e')
+        {
+            // Get the URL
+            systemPrint("Enter URL: ");
+            urlString = systemGetStringFromUser();
+            if (urlString.length())
+                flashUpdate(urlString.c_str());
+        }
+        else if (incoming == 'L')
+        {
+            systemPrintln("Getting the list of files");
+
+            // Get the SparkFun directory page
+            urlString = serverSelectFileNameFromDirectoryListing(urlDirectory,
+                                                                 otaFileTree,
+                                                                 otaListEnd,
+                                                                 otaItems,
+                                                                 otaName,
+                                                                 otaNameEnd,
+                                                                 "LG290P",
+                                                                 ".pkg",
+                                                                 ulrFileServer);
+            if (urlString.length() != 0)
+            {
+                wifiWaitUntilConnected();
+                flashUpdate(urlString.c_str());
+            }
+        }
+        else if (incoming == 'o')
+            flashUpdate(url_1_3);
+        else if (incoming == 'p')
+            flashUpdate(url_1_6);
+        else if (incoming == 'u')
+            flashUpdate(url_2_1);
+
+        // Display the menu again
+        displayMenu();
     }
 }
 
-// Connects to the configured SSID and blocks until connected or the attempt times out.
-bool wifiConnect()
+//----------------------------------------
+// Perform the flash update and display duration
+//----------------------------------------
+void flashUpdate(const char * url)
 {
-    systemPrint("Connecting to WiFi SSID: ");
-    systemPrintln(wifiSSID);
+    // Start timer before erase
+    uint32_t flashUpdateStartTime = millis();
 
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(wifiSSID, wifiPassword);
-
-    unsigned long start = millis();
-    while (WiFi.status() != WL_CONNECTED)
+    // Attempt to update the firmware
+    dataArray.init(0);
+    if (((url != nullptr) && (lg290pFirmwareUpdate(subsystem,
+                                                   chip,
+                                                   url,
+                                                   rxBuffer,
+                                                   sizeof(rxBuffer)) == true))
+        || ((url == nullptr) && lg290pArrayFlashUpdate(subsystem,
+                                                       chip,
+                                                       rxBuffer,
+                                                       sizeof(rxBuffer))))
     {
-        if ((millis() - start) > 20000)
-        {
-            systemPrintln("WiFi connection timed out.");
-            return false;
-        }
-        delay(250);
-        systemPrint(".");
+        // Stop timer and print elapsed time
+        uint32_t flashUpdateElapsed = millis() - flashUpdateStartTime;
+        systemPrintf("%s (%s) firmware update time: ", chip, subsystem);
+        systemPrint(flashUpdateElapsed / 1000.0, 3);
+        systemPrint(" seconds, ");
+        systemPrint(otaFileBytes);
+        systemPrint(" bytes, ");
+        systemPrint((int)(otaFileBytes / ((flashUpdateElapsed + 500) / 1000)));
+        systemPrintln(" bytes/second");
     }
-
-    systemPrint("WiFi connected, IP address: ");
-    systemPrintln(WiFi.localIP());
-    return true;
 }
