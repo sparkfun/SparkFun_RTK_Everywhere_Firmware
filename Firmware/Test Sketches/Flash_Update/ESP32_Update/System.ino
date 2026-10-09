@@ -316,7 +316,7 @@ bool serverConnectUsingUrl(const char * subsystem,
         fileBytes = https.getSize();
         if (settings.debugFirmwareUpdate)
             systemPrintf("File size: %d (0x%08x) bytes\r\n", fileBytes, fileBytes);
-        if (fileBytes <= 0)
+        if ((ssize_t)fileBytes <= 0)
         {
             systemPrintln("ERROR: Web server did not report a file size.");
             break;
@@ -331,13 +331,13 @@ bool serverConnectUsingUrl(const char * subsystem,
 }
 
 //----------------------------------------
-// Extract the web server from the URL
+// Extract the web server from the URL, without any port number
 //----------------------------------------
 String getServerFromUrl(const char * url)
 {
     const char * http = "http://";
     const char * https = "https://";
-    int index;
+    size_t index;
     size_t length;
     size_t pos;
 
@@ -346,7 +346,8 @@ String getServerFromUrl(const char * url)
         return String("");
 
     index = 0;
-    length = strlen(url) - pos;
+    pos = 0;
+    length = strlen(url);
     char server[length + 1];
     if (strncmp(url, https, strlen(https)) == 0)
         pos = strlen(https);
@@ -359,7 +360,7 @@ String getServerFromUrl(const char * url)
         {
             if (server[index] == 0)
                 break;
-            if (server[index] == '/')
+            if ((server[index] == '/') || (server[index] == ':')) // End of the host name
                 break;
         }
     }
@@ -943,9 +944,13 @@ void muxSelectUsb()
         //                    .--(1) <--> U11 (0) <--> LoRa UART 2
         // ESP32 UART 0 <--> U18 (0) <--> CH340 <--> USB serial
         //
+        Serial.flush(); // Finish any LoRa transmission before changing the mux
+
         pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
         digitalWrite(pin_muxA, LOW); // ESP UART1 <--> UM980 UART3
         digitalWrite(pin_muxB, LOW); // ESP UART0 <--> CH340 <--> USB serial
+
+        uart0SetBaud(usbSerialBaudActive, SERIAL_8N1); // LoRa runs at loraUart0Baud, USB may differ
 
         usbSerialIsSelected = true; // Let other print operations know we are connected to the CH34x
     }
@@ -956,7 +961,7 @@ void muxSelectUsb()
 //        Connect ESP UART 1 to UM980 UART 3
 // On Facet, startLoRaConfigureCommunicationOnFacet() is called separately
 //----------------------------------------
-void muxSelectLoRaCommunication()
+void muxSelectLoRaCommunication(uint32_t serialConfig)
 {
     if (productVariant == RTK_TORCH)
     {
@@ -969,9 +974,13 @@ void muxSelectLoRaCommunication()
         //                    .--(1) <--> U11 (0) <--> LoRa UART 2
         // ESP32 UART 0 <--> U18 (0) <--> CH340 <--> USB serial
         //
+        Serial.flush(); // Finish any USB prints before changing the mux
+
         pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
         digitalWrite(pin_muxA, LOW);  // ESP UART1 <--> UM980 UART3
         digitalWrite(pin_muxB, HIGH); // ESP UART0 <--> LoRa UART2
+
+        uart0SetBaud(loraUart0Baud, serialConfig); // USB may be running at a different rate
 
         usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
     }
@@ -1319,6 +1328,10 @@ void gpioExpanderGnssResetFast()
 //----------------------------------------
 void gpioExpanderSelectImu()
 {
+    //                       SW3
+    //                    .--(1) <--> LoRa UART 1
+    // ESP32 UART 1 <--> U12 (0) <--> IMU UART 1
+    //
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, LOW);
 }
@@ -1328,6 +1341,10 @@ void gpioExpanderSelectImu()
 //----------------------------------------
 void gpioExpanderSelectLoraConfigure()
 {
+    //                       SW3
+    //                    .--(1) <--> LoRa UART 1
+    // ESP32 UART 1 <--> U12 (0) <--> IMU UART 1
+    //
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, HIGH);
 }
