@@ -30,7 +30,7 @@ These companies set up a large number of reference stations that cover entire re
 - [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun) ($40-$85/month, $350-$750/year) - US, UK, EU, KOR, AUS, NZ, and JP
 - [Skylark](https://www.swiftnav.com/skylark) ($29 to $69/month) - US, EU, Japan, Australia
 - [SensorCloud RTK](https://rtk.sensorcloud.com/pricing/) ($100/month) partial US, EU
-- [Premium Positioning](https://www.premium-positioning.com) (~$315/month) partial EU
+- [Premium Positioning](https://www.premium-positioning.com) (quoted per device and term, 14-day free trial) - EU, UK, US multi-network coverage (35+ countries, see [coverage map](https://www.premium-positioning.com/coverage))
 - [KeyNetGPS](https://www.keypre.com/KeynetGPS) ($375/month) North Eastern US
 - [Hexagon/Leica](https://hxgnsmartnet.com/en-US) ($500/month) - partial US, EU
 
