@@ -39,9 +39,7 @@ void firmwareMenu()
         systemPrintf("Current firmware: %s\r\n", currentVersion);
 
         // Display the OTA portion of the menu
-        // Note: Use otaMenuDisplay to get a new ESP32 image when the parsing
-        // fails in deviceFirmwareUpdate due to server website changes!
-        // Letters: a c d e i q u C D E F G I L O P S V 1... for files
+        // Letters: a c d i q u C D E F G I L P S T V 1... for files
         otaMenuDisplay(subsystemMask, &otaDeveloperOptions, currentVersion);
 
         for (int x = 0; x < binCount; x++)
@@ -58,9 +56,6 @@ void firmwareMenu()
             microSDUpdateFirmware(binFileNames[incoming]);
         }
 
-        // Note: Use otaMenuProcessInput to get a new ESP32 image when the
-        // parsing fails in deviceFirmwareUpdate due to server website
-        // changes!
         else if (otaMenuProcessInput(subsystemMask, &otaDeveloperOptions, incoming))
         {
         }
@@ -615,6 +610,37 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 
         previousPercent = percent;
     }
+}
+
+//----------------------------------------
+// Determine if the ESP32 supports OTA
+//----------------------------------------
+bool otaEsp32AreFirmwareWritesSupported()
+{
+    int partitionCount;
+
+    // We can do OTA if there are two APP partitions
+    partitionCount = countAppPartitions();
+    if (partitionCount >= 2)
+        return true;
+
+    // Warn the user
+    systemPrintf("WARNING: ESP32 updates require two APP paritions, found %d!\r\n",
+                 partitionCount);
+    printPartitionTable();
+    return false;
+}
+
+//----------------------------------------
+// Reboot the ESP32
+//----------------------------------------
+void otaEsp32Reboot()
+{
+    // Restart ESP32 to see changes
+    systemPrintf("Rebooting. Goodbye!\r\n");
+    Serial.flush();
+    delay(1000);
+    ESP.restart();
 }
 
 //----------------------------------------
