@@ -766,12 +766,6 @@ char *latestEASessionData;
 
 // Global variables
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include "Device_Update.h"
-
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
-// Global variables
-//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 uint8_t wifiMACAddress[6];     // Display this address in the system menu
 uint8_t btMACAddress[6];       // Display this address when Bluetooth is enabled, otherwise display wifiMACAddress
 uint8_t ethernetMACAddress[6]; // Display this address when Ethernet is enabled, otherwise display wifiMACAddress
@@ -1268,9 +1262,6 @@ void setup()
 
     DMW_b("beginPsram");
     beginPsram(); // Initialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
-
-    DMW_b("beginBuffers");
-    beginBuffers(); // Allocate permanent buffers from PSRAM
 
     DMW_b("beginMux");
     beginMux(); // Must come before I2C activity to avoid external devices from corrupting the bus. See issue 474
