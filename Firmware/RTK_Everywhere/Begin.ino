@@ -1746,54 +1746,53 @@ void allocateI2C()
 
 //----------------------------------------
 // Initialize the I2C controllers
+//
+// i2c_0 is always present
+// i2c_1 is only present on EVK and Postcard:
+//   EVK: i2c_1 is connected to the OLED (only)
+//   Postcard: i2c_1 is the Qwiic bus, which may or may not have an authentication coprocessor connected.
+//             If the coprocessor is detected, i2cAuthCoPro is set to i2c_1 by i2cBusEnumerate.
+// So, we don't actually care if i2cBusInitialization(i2c_1 fails...
 //----------------------------------------
 bool beginI2C()
 {
-    bool success;
+    if (online.i2c == true)
+        return true;
 
-    do
+    // Allocate the I2C objects. Redundant - already allocated by beginI2CTask()
+    allocateI2C();
+
+    // Complete the power-up delay for a power-controlled I2C bus
+    if (i2cPowerUpDelay)
+        while (millis() < i2cPowerUpDelay)
+            ;
+
+    // Initialize I2C bus 1
+    if (present.i2c1)
     {
-        success = true;
-        if (online.i2c == true)
-            break;
-        success = false;
+        int bus1speed = 100;
+        if (present.i2c1BusSpeed_400 == true)
+            bus1speed = 400;
 
-        // Allocate the I2C objects
-        allocateI2C();
+        if (pin_I2C1_SDA == PIN_UNDEFINED || pin_I2C1_SCL == PIN_UNDEFINED)
+            reportFatalError("Illegal I2C1 pin assignment.");
 
-        // Complete the power-up delay for a power-controlled I2C bus
-        if (i2cPowerUpDelay)
-            while (millis() < i2cPowerUpDelay)
-                ;
+        // See notes above. We don't care if this 'fails'.
+        // i2cBusEnumerate will print if initialization fails or no devices are detected
+        i2cBusInitialization(i2c_1, 1, pin_I2C1_SDA, pin_I2C1_SCL, bus1speed);
+    }
 
-        // Initialize I2C bus 1
-        if (present.i2c1)
-        {
-            int bus1speed = 100;
-            if (present.i2c1BusSpeed_400 == true)
-                bus1speed = 400;
+    // Initialize I2C bus 0
+    int bus0speed = 100;
+    if (present.i2c0BusSpeed_400 == true)
+        bus0speed = 400;
 
-            if (pin_I2C1_SDA == PIN_UNDEFINED || pin_I2C1_SCL == PIN_UNDEFINED)
-                reportFatalError("Illegal I2C1 pin assignment.");
-            if (i2cBusInitialization(i2c_1, 1, pin_I2C1_SDA, pin_I2C1_SCL, bus1speed) == false)
-                break;
-        }
+    if (pin_I2C0_SDA == PIN_UNDEFINED || pin_I2C0_SCL == PIN_UNDEFINED)
+        reportFatalError("Illegal I2C0 pin assignment.");
+    // i2cBusEnumerate will print if initialization fails or no devices are detected
+    online.i2c = i2cBusInitialization(i2c_0, 0, pin_I2C0_SDA, pin_I2C0_SCL, bus0speed); // Update the I2C status
 
-        // Initialize I2C bus 0
-        int bus0speed = 100;
-        if (present.i2c0BusSpeed_400 == true)
-            bus0speed = 400;
-
-        if (pin_I2C0_SDA == PIN_UNDEFINED || pin_I2C0_SCL == PIN_UNDEFINED)
-            reportFatalError("Illegal I2C0 pin assignment.");
-        if (i2cBusInitialization(i2c_0, 0, pin_I2C0_SDA, pin_I2C0_SCL, bus0speed) == false)
-            break;
-
-        // Update the I2C status
-        online.i2c = true;
-        success = true;
-    } while (0);
-    return success;
+    return online.i2c;
 }
 
 //----------------------------------------
@@ -1884,11 +1883,10 @@ void pinI2CTask(void *pvParameters)
 //----------------------------------------
 bool i2cBusEnumerate(TwoWire *i2cBus, int i2cBusNumber)
 {
-    bool deviceFound;
+    bool deviceFound = false;
     uint32_t timer;
 
     // Display the device addresses
-    deviceFound = false;
     for (uint8_t addr = 0; addr < 127; addr++)
     {
         // begin/end wire transmission to see if the bus is responding correctly
@@ -2007,18 +2005,16 @@ bool i2cBusEnumerate(TwoWire *i2cBus, int i2cBusNumber)
         }
         else if ((millis() - timer) > 3)
         {
-            systemPrintln("ERROR: I2C bus not responding!");
+            systemPrintf("I2C-%d not responding\r\n", i2cBusNumber);
             return false;
         }
     }
 
     // Determine if any devices are on the bus
-    if (deviceFound == false)
-    {
-        systemPrintln("No devices found on this I2C bus");
-        return false;
-    }
-    return true;
+    if (!deviceFound)
+        systemPrintf("No devices found on I2C-%d\r\n", i2cBusNumber);
+
+    return deviceFound;
 }
 
 //----------------------------------------
