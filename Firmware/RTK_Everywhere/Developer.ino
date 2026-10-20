@@ -184,21 +184,6 @@ void networkVerifyTables() {}
 
 #ifndef COMPILE_FIRMWARE_UPDATE
 
-// dfu
-void beginBuffers() {}
-
-#define DEVICE_FIRMWARE_CTX     int
-#define DFU_BUFFER_DATA         int
-
-bool deviceFirmwareUpdate(uint32_t currentMsec) {return false;}
-bool deviceFirmwareUpdateBegin(bool doAll, bool debugVerbose, size_t saveDataLength) {return false;}
-void deviceFirmwareFileListMenu(DEVICE_FIRMWARE_CTX * ctx) {}
-void deviceFirmwareFileSort(int bufferIndex, int fileCount) {}
-void deviceFirmwareStateSet(DEVICE_FIRMWARE_CTX * ctx, int newState) {}
-
-void dfuNetworkCleanup(DEVICE_FIRMWARE_CTX * ctx, DFU_BUFFER_DATA * bufferData) {}
-ssize_t dfuNetworkRead(DEVICE_FIRMWARE_CTX * ctx, uint8_t * buffer, size_t bytesToRead) {return 0;}
-
 // microSD card
 void microSDMountThenUpdate(const char *firmwareFileName) {}
 void microSDScanForFirmware() {}
