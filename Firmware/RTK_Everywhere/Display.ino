@@ -164,6 +164,12 @@ void HYBRID_DISPLAY::display(bool partial, bool dirtyOnly)
         _oled->display();
     else
     {
+        // Nothing has changed since the last push - leave the panel alone
+        if (partial && _pushedValid && (_frameHash == _pushedHash))
+            return;
+        _pushedHash = _frameHash;
+        _pushedValid = true;
+
         // If not in deep sleep, wait for any previous display calls to complete
         if (!theDisplay->_inDeepSleep)
         {
@@ -175,69 +181,67 @@ void HYBRID_DISPLAY::display(bool partial, bool dirtyOnly)
         theDisplay->_inDeepSleep = false;
     }
 }
+void HYBRID_DISPLAY::fullUpdate(void)
+{
+    display(false, false); // Full update, send all pixels
+    _lastFullUpdate = millis();
+    _forceFullUpdate = false;
+    _fullUpdateWanted = false;
+}
 void HYBRID_DISPLAY::displayNothing(void)
 {
-    if (_displayContent == NOTHING)
+    if ((_displayContent == NOTHING) && (_forceFullUpdate == false))
         display(true); // Partial update if already displaying nothing, dirty pixels only
     else
     {
         _displayContent = NOTHING;
-        display(false, false); // Full update on first call, send all pixels
+        fullUpdate(); // Full update on first call - this image stays on the panel with the power off
     }
 }
 void HYBRID_DISPLAY::displaySplash(void)
 {
-    if (_displayContent == SPLASH)
+    // The e-paper library's begin() has just done a full update to white, so the splash only
+    // needs a partial update
+    if (_forceFullUpdate)
+        fullUpdate();
+    else if (_displayContent == SPLASH)
         display(true); // Partial update if already displaying splash, dirty pixels only
     else
-    {
-        _displayContent = SPLASH;
-        display(false, false); // Full update on first call, send all pixels
-    }
+        display(true, false); // Partial update on first call, send all pixels
+    _displayContent = SPLASH;
 }
 void HYBRID_DISPLAY::displayMessage(void)
 {
     // displayMessage is called during firmware update. It needs a full-update timer
-
-    static unsigned long previousFullUpdate = 0;
     const unsigned long fullUpdateEvery_ms = 60000;
-    if (_displayContent == MESSAGE)
+    if (_forceFullUpdate)
+        fullUpdate();
+    else if (_displayContent == MESSAGE)
     {
-        if ((millis() - previousFullUpdate) > fullUpdateEvery_ms)
-        {
-            display(); // Time for a full update, dirty pixels only
-            previousFullUpdate = millis();
-        }
+        if ((millis() - _lastFullUpdate) > fullUpdateEvery_ms)
+            fullUpdate(); // Time for a full update
         else
             display(true); // Partial update, dirty pixels only
     }
     else
-    {
-        _displayContent = MESSAGE;
-        display(false, false); // Full update on first call, send all pixels
-        previousFullUpdate = millis();
-    }
+        display(true, false); // Partial update on first call, send all pixels
+    _displayContent = MESSAGE;
 }
 void HYBRID_DISPLAY::displayRegular(void)
 {
-    static unsigned long previousFullUpdate = 0;
-    const unsigned long fullUpdateEvery_ms = 60000;
-    if (_displayContent == REGULAR)
-    {
-        if ((millis() - previousFullUpdate) > fullUpdateEvery_ms)
-        {
-            display(); // Time for a full update, dirty pixels only
-            previousFullUpdate = millis();
-        }
-        else
-            display(true); // Partial update, dirty pixels only
-    }
+    unsigned long sinceFullUpdate = millis() - _lastFullUpdate;
+    bool fullDue = (_fullUpdateWanted && (sinceFullUpdate > fullUpdateMinimum_ms))
+                   || (sinceFullUpdate > fullUpdateBackstop_ms);
+    if (dtSuppressFullUpdate())
+        fullDue = false; // DisplayTest.ino ghosting test - partial updates only
+
+    if (_forceFullUpdate || fullDue)
+        fullUpdate();
+    else if (_displayContent == REGULAR)
+        display(true); // Partial update, dirty pixels only
     else
-    {
-        _displayContent = REGULAR;
-        display(false, false); // Full update on first call, send all pixels
-        previousFullUpdate = millis();
-    }
+        display(true, false); // Partial update on first call, send all pixels
+    _displayContent = REGULAR;
     // displayUpdate will put e-paper into deepSleep when needed
 }
 
@@ -246,7 +250,10 @@ void HYBRID_DISPLAY::erase(void)
     if (_isOLED)
         _oled->erase();
     else
+    {
         _epaper->erase();
+        _frameHash = 2166136261UL; // New frame
+    }
 }
 void HYBRID_DISPLAY::invert(bool bInvert)
 {
@@ -268,77 +275,123 @@ void HYBRID_DISPLAY::setFont(QwiicFont &theFont, QwiicEpFont &theEpFont)
     if (_isOLED)
         _oled->setFont(theFont);
     else
+    {
+        hashValue(&theEpFont);
         _epaper->setFont(theEpFont);
+    }
 }
 void HYBRID_DISPLAY::setDrawMode(grRasterOp_t rop, grEpRasterOp_t eprop)
 {
     if (_isOLED)
         _oled->setDrawMode(rop);
     else
+    {
+        hashValue((uint8_t)eprop);
         _epaper->setDrawMode(eprop);
+    }
 }
 void HYBRID_DISPLAY::pixel(uint8_t x, uint8_t y, uint8_t clr)
 {
     if (_isOLED)
         _oled->pixel(x, y, clr);
     else
+    {
+        uint8_t args[] = {0, x, y, clr};
+        hashBytes(args, sizeof(args));
         _epaper->pixel(x, y, clr);
+    }
 }
 void HYBRID_DISPLAY::line(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t clr)
 {
     if (_isOLED)
         _oled->line(x0, y0, x1, y1, clr);
     else
+    {
+        uint8_t args[] = {1, x0, y0, x1, y1, clr};
+        hashBytes(args, sizeof(args));
         _epaper->line(x0, y0, x1, y1, clr);
+    }
 }
 void HYBRID_DISPLAY::rectangle(uint8_t x0, uint8_t y0, uint8_t width, uint8_t height, uint8_t clr)
 {
     if (_isOLED)
         _oled->rectangle(x0, y0, width, height, clr);
     else
+    {
+        uint8_t args[] = {2, x0, y0, width, height, clr};
+        hashBytes(args, sizeof(args));
         _epaper->rectangle(x0, y0, width, height, clr);
+    }
 }
 void HYBRID_DISPLAY::rectangleFill(uint8_t x0, uint8_t y0, uint8_t width, uint8_t height, uint8_t clr)
 {
     if (_isOLED)
         _oled->rectangleFill(x0, y0, width, height, clr);
     else
+    {
+        uint8_t args[] = {3, x0, y0, width, height, clr};
+        hashBytes(args, sizeof(args));
         _epaper->rectangleFill(x0, y0, width, height, clr);
+    }
 }
 void HYBRID_DISPLAY::bitmap(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t *pBitmap, uint8_t bmp_width, uint8_t bmp_height)
 {
     if (_isOLED)
         _oled->bitmap(x0, y0, x1, y1, pBitmap, bmp_width, bmp_height);
     else
+    {
+        uint8_t args[] = {4, x0, y0, x1, y1, bmp_width, bmp_height};
+        hashBytes(args, sizeof(args));
+        hashBitmap(pBitmap, bmp_width, bmp_height);
         _epaper->bitmap(x0, y0, x1, y1, pBitmap, bmp_width, bmp_height);
+    }
 }
 void HYBRID_DISPLAY::bitmap(uint8_t x0, uint8_t y0, uint8_t *pBitmap, uint8_t bmp_width, uint8_t bmp_height)
 {
     if (_isOLED)
         _oled->bitmap(x0, y0, pBitmap, bmp_width, bmp_height);
     else
+    {
+        uint8_t args[] = {5, x0, y0, bmp_width, bmp_height};
+        hashBytes(args, sizeof(args));
+        hashBitmap(pBitmap, bmp_width, bmp_height);
         _epaper->bitmap(x0, y0, pBitmap, bmp_width, bmp_height);
+    }
 }
 void HYBRID_DISPLAY::text(uint8_t x0, uint8_t y0, const char *text, uint8_t clr)
 {
     if (_isOLED)
         _oled->text(x0, y0, text, clr);
     else
+    {
+        uint8_t args[] = {6, x0, y0, clr};
+        hashBytes(args, sizeof(args));
+        hashBytes(text, strlen(text));
         _epaper->text(x0, y0, text, clr);
+    }
 }
 void HYBRID_DISPLAY::text(uint8_t x0, uint8_t y0, String &text, uint8_t clr)
 {
     if (_isOLED)
         _oled->text(x0, y0, text, clr);
     else
+    {
+        uint8_t args[] = {6, x0, y0, clr};
+        hashBytes(args, sizeof(args));
+        hashBytes(text.c_str(), text.length());
         _epaper->text(x0, y0, text, clr);
+    }
 }
 void HYBRID_DISPLAY::setCursor(uint8_t x, uint8_t y)
 {
     if (_isOLED)
         _oled->setCursor(x, y);
     else
+    {
+        uint8_t args[] = {7, x, y};
+        hashBytes(args, sizeof(args));
         _epaper->setCursor(x, y);
+    }
 }
 void HYBRID_DISPLAY::setXOffset(uint8_t xOffset)
 {
@@ -399,7 +452,10 @@ size_t HYBRID_DISPLAY::write(uint8_t theChar)
     if (_isOLED)
         return _oled->write(theChar);
     else
+    {
+        hashValue(theChar);
         return _epaper->write(theChar);
+    }
 }
 bool HYBRID_DISPLAY::isBusy(void)
 {
@@ -457,7 +513,10 @@ size_t HYBRID_DISPLAY::printf(const char *format, ...)
     if (_isOLED)
         res = _oled->print(buf);
     else
+    {
+        hashBytes(buf, strlen(buf));
         res = _epaper->print(buf);
+    }
 
     va_end(args);
     va_end(args2);
@@ -468,55 +527,82 @@ size_t HYBRID_DISPLAY::print(const char *text)
     if (_isOLED)
         return _oled->print(text);
     else
+    {
+        hashBytes(text, strlen(text));
         return _epaper->print(text);
+    }
 }
 size_t HYBRID_DISPLAY::print(double number, int digits) {
     if (_isOLED)
         return _oled->print(number, digits);
     else
+    {
+        hashValue(number);
+        hashValue(digits);
         return _epaper->print(number, digits);
+    }
 }
 size_t HYBRID_DISPLAY::print(unsigned long n, uint8_t base)
 {
     if (_isOLED)
         return _oled->print(n, base);
     else
+    {
+        hashValue(n);
+        hashValue(base);
         return _epaper->print(n, base);
+    }
 }
 size_t HYBRID_DISPLAY::print(unsigned long n)
 {
     if (_isOLED)
         return _oled->print(n);
     else
+    {
+        hashValue(n);
         return _epaper->print(n);
+    }
 }
 size_t HYBRID_DISPLAY::print(float flt, int dp)
 {
     if (_isOLED)
         return _oled->print(flt, dp);
     else
+    {
+        hashValue(flt);
+        hashValue(dp);
         return _epaper->print(flt, dp);
+    }
 }
 size_t HYBRID_DISPLAY::print(uint8_t i)
 {
     if (_isOLED)
         return _oled->print(i);
     else
+    {
+        hashValue(i);
         return _epaper->print(i);
+    }
 }
 size_t HYBRID_DISPLAY::print(int i)
 {
     if (_isOLED)
         return _oled->print(i);
     else
+    {
+        hashValue(i);
         return _epaper->print(i);
+    }
 }
 size_t HYBRID_DISPLAY::print(char c)
 {
     if (_isOLED)
         return _oled->print(c);
     else
+    {
+        hashValue(c);
         return _epaper->print(c);
+    }
 }
 
 //----------------------------------------
@@ -634,8 +720,8 @@ void beginDisplay(TwoWire *i2cBus)
 
             x = (theDisplay->getWidth() - logoWidth) / 2;
             y = (theDisplay->getHeight() - logoHeight) / 2;
-            if ((brandAttribute->brand == BRAND_SPARKPNT) && (present.display_type == DISPLAY_184x88))
-                paintBootLogo184x88(); // The powered-off screen's full-width logo, alone
+            if (present.display_type == DISPLAY_184x88)
+                paintStarting184x88(); // The powered-off screen with STARTING - only the words change
             else
                 displayBitmap(x, y, logoWidth, logoHeight, logoPointer);
             theDisplay->displaySplash();
@@ -693,6 +779,12 @@ void displayUpdate()
                 theDisplay->displayRegular();
                 return;
             }
+            if (dtStripTestActive())
+            {
+                dtPaintStripTest();
+                theDisplay->displayRegular();
+                return;
+            }
             if (dtActive() && (dtScenario()->screen == DT_SCREEN_SHUTDOWN))
             {
                 displayShutdown(); // Draws and pushes on its own
@@ -702,6 +794,15 @@ void displayUpdate()
                     theDisplay->displayRegular();
                 }
                 return;
+            }
+
+            // e-paper: a change of state (NO FIX -> RTK FIX, etc.) earns a full update to clear ghosting
+            if (present.display_type == DISPLAY_184x88)
+            {
+                static SystemState previousState = STATE_NOT_SET;
+                if ((previousState != STATE_NOT_SET) && (dtSystemState() != previousState))
+                    theDisplay->fixStateChanged();
+                previousState = dtSystemState();
             }
 
             iconPropertyList.clear();   // Redundant?
@@ -783,7 +884,13 @@ void displayUpdate()
                 // displayBatteryVsEthernet(&iconPropertyList);
                 // displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 // setRadioIcons(&iconPropertyList);
-                displayRoverStart(0);
+                if (present.display_type == DISPLAY_184x88)
+                {
+                    paintStarting184x88(); // Same screen as boot - unchanged frames are not pushed
+                    theDisplay->displaySplash();
+                }
+                else
+                    displayRoverStart(0);
                 break;
             case (STATE_ROVER_NO_FIX):
                 displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
@@ -845,7 +952,13 @@ void displayUpdate()
             case (STATE_BASE_ASSIST_NOT_STARTED):
             case (STATE_BASE_NOT_STARTED):
             case (STATE_BASE_CONFIG_WAIT):
-                displayBaseStart(0); // Show 'Base' while the system configures the Base
+                if (present.display_type == DISPLAY_184x88)
+                {
+                    paintStarting184x88();
+                    theDisplay->displaySplash();
+                }
+                else
+                    displayBaseStart(0); // Show 'Base' while the system configures the Base
                 break;
 
             // Start of base / survey in / NTRIP mode
@@ -880,7 +993,13 @@ void displayUpdate()
             }
             break;
             case (STATE_BASE_FIXED_NOT_STARTED):
-                displayBaseSuccess(0); // Show 'Base Started' while the system configures the Base
+                if (present.display_type == DISPLAY_184x88)
+                {
+                    paintStarting184x88();
+                    theDisplay->displaySplash();
+                }
+                else
+                    displayBaseSuccess(0); // Show 'Base Started' while the system configures the Base
                 // displayBatteryVsEthernet(&iconPropertyList); // Top right
                 // displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 / 184x88 only
                 // setRadioIcons(&iconPropertyList);
@@ -980,6 +1099,8 @@ void displayUpdate()
             blinkState <<= 1;
             if (blinkState == 0)
                 blinkState = 0b00000001;
+            if (present.display_type == DISPLAY_184x88)
+                blinkState = 0b11111111; // No blinking on e-paper: any icon with a non-zero duty is drawn steady
             if ((iconPropertyList.begin() != iconPropertyList.end()) || (iconPropertyList2x.begin() != iconPropertyList2x.end()) || textToPrint) // Check there is something to display
             {
                 for (auto it = iconPropertyList.begin(); it != iconPropertyList.end(); it = std::next(it))
@@ -1041,6 +1162,10 @@ void displaySplashCommon(bool nameKnown)
 {
     if (online.display == true)
     {
+        // e-paper: beginDisplay() already shows STARTING - no splash to wait for or redraw
+        if (present.display_type == DISPLAY_184x88)
+            return;
+
         // Shorten logo display if locally compiled
         if (ENABLE_DEVELOPER == false)
         {
@@ -1156,20 +1281,37 @@ void displayPoweredOff()
     theDisplay->displayNothing();
 }
 
+// 184x88 power screens: the SparkPNT logo (rows 3-26), a status word in Terminus Bold 20
+// (rows 36-50) and a detail line in 8x16 (rows 62-77). The powered-off image stays on the panel,
+// and boot draws the same layout with STARTING - only the words change between the two.
+void paintPowerScreen184x88(const char *word, const char *detail)
+{
+    uint8_t width = theDisplay->getWidth();
+    displayBitmap((width - SparkPNT_PoweredOff_Logo_Width) / 2, 3, SparkPNT_PoweredOff_Logo_Width,
+                  SparkPNT_PoweredOff_Logo_Height, SparkPNT_PoweredOff_Logo);
+
+    uint8_t wordWidth = stripTextWidth(&stripText20, word);
+    printStripText((wordWidth < width) ? (width - wordWidth) / 2 : 0, 36, &stripText20, word, false);
+
+    printTextCenter(detail, 62, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);
+}
+
+// Logo, STARTING and the firmware version - shown from the first image after power on until the
+// status screen
+void paintStarting184x88()
+{
+    char unitFirmware[50];
+    espFirmwareVersionGet(unitFirmware, sizeof(unitFirmware), false);
+    paintPowerScreen184x88("STARTING", unitFirmware);
+}
+
+// Logo, POWERED OFF, the model and the 6 character Bluetooth ID
 void paintPoweredOff184x88()
 {
-    // Logo centered on the panel, rows 32-55
-    uint8_t logoY = (theDisplay->getHeight() - SparkPNT_PoweredOff_Logo_Height) / 2;
-    displayBitmap((theDisplay->getWidth() - SparkPNT_PoweredOff_Logo_Width) / 2, logoY,
-                  SparkPNT_PoweredOff_Logo_Width, SparkPNT_PoweredOff_Logo_Height, SparkPNT_PoweredOff_Logo);
-
-    // Model name small (8x16) just below the logo, right edge 25% of the width in from the right
-    theDisplay->setFont(QW_FONT_8X16, QW_EP_FONT_8X16);
-    theDisplay->setDrawMode(grROPXOR, grEpROPXOR);
-    uint8_t rightX = theDisplay->getWidth() - (theDisplay->getWidth() / 4);
-    uint8_t textWidth = printedTextWidth(displayName);
-    theDisplay->setCursor((textWidth < rightX) ? rightX - textWidth : 0, logoY + SparkPNT_PoweredOff_Logo_Height + 2);
-    theDisplay->print(displayName);
+    char detail[40];
+    const uint8_t *mac = networkGetMacAddress();
+    snprintf(detail, sizeof(detail), "%s  %02X%02X%02X", displayName, mac[3], mac[4], mac[5]);
+    paintPowerScreen184x88("POWERED OFF", detail);
 }
 
 // Displays a small error message then hard freeze
@@ -3310,6 +3452,45 @@ uint8_t printBigDigits(uint8_t x, uint8_t colonY, const char *text, uint8_t maxX
     return 0;
 }
 
+// 184x88: width in pixels of text in a fontStripText.h font (fixed advance, spacing built in)
+uint8_t stripTextWidth(const bigDigitFont_t *font, const char *text)
+{
+    uint16_t width = 0;
+    for (size_t i = 0; text[i]; i++)
+        for (uint8_t g = 0; g < font->glyphCount; g++)
+            if (font->glyphs[g].character == text[i])
+            {
+                width += font->glyphs[g].width;
+                break;
+            }
+    return (width > 255) ? 255 : width;
+}
+
+// 184x88: print capitals, digits, '-' and space in a fontStripText.h font with the cap tops at y.
+// whiteOnBlack XORs the glyphs, so they come out white when drawn over a filled black strip.
+// Returns x just past the last glyph's advance.
+uint8_t printStripText(uint8_t x, uint8_t y, const bigDigitFont_t *font, const char *text, bool whiteOnBlack)
+{
+    if (whiteOnBlack)
+        theDisplay->setDrawMode(grROPXOR, grEpROPXOR);
+    for (size_t i = 0; text[i]; i++)
+    {
+        for (uint8_t g = 0; g < font->glyphCount; g++)
+        {
+            const bigDigitGlyph_t *glyph = &font->glyphs[g];
+            if (glyph->character == text[i])
+            {
+                displayBitmap(x, y, glyph->width, font->height, glyph->bitmap);
+                x += glyph->width;
+                break;
+            }
+        }
+    }
+    if (whiteOnBlack)
+        theDisplay->setDrawMode(grROPCopy, grEpROPCopy);
+    return x;
+}
+
 // Width in pixels that print() actually covers with the current font. getStringWidth() counts
 // only the glyph widths, but the e-paper print() advances one extra (kerning) pixel per
 // character, so getStringWidth() comes up one pixel short per character - and a string it says
@@ -3986,6 +4167,8 @@ void displayBaseStart(uint16_t displayTime)
 
 void displayBaseSuccess(uint16_t displayTime)
 {
+    if (present.display_type == DISPLAY_184x88)
+        return; // e-paper: STARTING stays up until the status screen
     if (settings.baseCasterOverride == true)
         displayMessage("BaseCast Started", displayTime);
     else
@@ -4075,6 +4258,8 @@ void displayNoRingBuffer(uint16_t displayTime)
 
 void displayRoverSuccess(uint16_t displayTime)
 {
+    if (present.display_type == DISPLAY_184x88)
+        return; // e-paper: STARTING stays up until the status screen
     displayMessage("Rover Started", displayTime);
 }
 

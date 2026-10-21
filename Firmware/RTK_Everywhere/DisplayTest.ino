@@ -88,6 +88,18 @@ const displayTestScenario_t displayTestScenarios[] = {
         0, 0, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 0, DT_LOG_PULSE, 0, 0, DT_SCREEN_POWERED_OFF},
     {"B4 shutting down", STATE_ROVER_RTK_FIX, false, DT_WIFI_OFF, 0, false, 0, false, false, nullptr, 90,
         0, 0, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 0, DT_LOG_PULSE, 0, 0, DT_SCREEN_SHUTDOWN},
+    {"S1 strip, white on black, 16 row", STATE_ROVER_RTK_FIX, false, DT_WIFI_OFF, 0, false, 0, false, false, nullptr, 90,
+        0, 0, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 0, DT_LOG_PULSE, 0, 0, DT_SCREEN_STRIP_16},
+    {"S2 strip, white on black, 20 row", STATE_ROVER_RTK_FIX, false, DT_WIFI_OFF, 0, false, 0, false, false, nullptr, 90,
+        0, 0, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 0, DT_LOG_PULSE, 0, 0, DT_SCREEN_STRIP_20},
+    {"S3 strip, black on white, 20", STATE_ROVER_RTK_FIX, false, DT_WIFI_OFF, 0, false, 0, false, false, nullptr, 90,
+        0, 0, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 0, DT_LOG_PULSE, 0, 0, DT_SCREEN_STRIP_PLAIN},
+    {"S4 strip ghosting, partial cycles", STATE_ROVER_RTK_FIX, false, DT_WIFI_OFF, 0, false, 0, false, false, nullptr, 90,
+        0, 0, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 0, DT_LOG_PULSE, 0, 0, DT_SCREEN_STRIP_GHOST},
+    {"S5 strip ghosting, full update", STATE_ROVER_RTK_FIX, false, DT_WIFI_OFF, 0, false, 0, false, false, nullptr, 90,
+        0, 0, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 0, DT_LOG_PULSE, 0, 0, DT_SCREEN_STRIP_GHOST_FULL},
+    {"S6 strip ghosting, black on white", STATE_ROVER_RTK_FIX, false, DT_WIFI_OFF, 0, false, 0, false, false, nullptr, 90,
+        0, 0, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 0, DT_LOG_PULSE, 0, 0, DT_SCREEN_STRIP_GHOST_PLAIN},
 };
 // clang-format on
 
@@ -95,6 +107,7 @@ const int displayTestScenarioCount = sizeof(displayTestScenarios) / sizeof(displ
 
 int displayTestScenarioNumber = 0; // 0 = off, else 1-based index into displayTestScenarios[]
 bool displayTestInvert = false;    // SPEXE,DISPLAYTEST,INVERT - white on black experiment
+uint16_t dtStripUpdates = 0;       // Display updates since a strip test scenario was selected
 
 bool dtInverted()
 {
@@ -160,8 +173,101 @@ bool displayTestCommand(const char *arg)
     else
         systemPrintf("DISPLAYTEST: %d - %s\r\n", number, displayTestScenarios[number - 1].name);
 
+    // Strip tests start from a clean panel
+    if ((number > 0) && (displayTestScenarios[number - 1].screen >= DT_SCREEN_STRIP_16))
+    {
+        theDisplay->requestFullUpdate();
+        dtStripUpdates = 0;
+    }
+
     forceDisplayUpdate = true;
     return true;
+}
+
+//----------------------------------------
+// Top strip readability test (plan Phase 0)
+//----------------------------------------
+
+static const char *const dtStripWords[] = {"NO FIX", "GNSS", "RTK FLOAT", "RTK FIX"};
+const uint8_t dtStripWordCount = sizeof(dtStripWords) / sizeof(dtStripWords[0]);
+const uint16_t dtStripGhostCycles = 24; // Partial updates (2 s each) cycling the words before holding RTK FIX
+
+bool dtStripTestActive()
+{
+    return dtActive() && (dtScenario()->screen >= DT_SCREEN_STRIP_16);
+}
+
+// The ghost test must only use partial updates - skip displayRegular()'s periodic full update
+bool dtSuppressFullUpdate()
+{
+    return dtActive()
+           && ((dtScenario()->screen == DT_SCREEN_STRIP_GHOST) || (dtScenario()->screen == DT_SCREEN_STRIP_GHOST_PLAIN));
+}
+
+// One strip: black bar (or a rule for the plain variant), fix word at the left, Bluetooth ID and a
+// small battery at the right
+void dtPaintStrip(uint8_t y, uint8_t height, const bigDigitFont_t *font, const char *word, bool whiteOnBlack)
+{
+    const uint8_t width = theDisplay->getWidth();
+    const uint8_t batteryWidth = 19; // Body, plus a 2 px nub
+    const uint8_t batteryHeight = 10;
+    uint8_t textY = y + (height - font->height + 1) / 2;
+    uint8_t batteryX = width - 3 - (batteryWidth + 2);
+    uint8_t batteryY = y + (height - batteryHeight) / 2;
+
+    if (whiteOnBlack)
+        theDisplay->rectangleFill(0, y, width, height, 1);
+    else
+        theDisplay->rectangleFill(0, y + height - 2, width, 2, 1); // Rule under the text
+
+    printStripText(3, textY, font, word, whiteOnBlack);
+    const char *id = "B4E706";
+    printStripText(batteryX - 4 - stripTextWidth(font, id), textY, font, id, whiteOnBlack);
+
+    // Battery, 3 bars. XOR punches white out of the black strip
+    if (whiteOnBlack)
+        theDisplay->setDrawMode(grROPXOR, grEpROPXOR);
+    theDisplay->rectangle(batteryX, batteryY, batteryWidth, batteryHeight, 1);
+    theDisplay->rectangleFill(batteryX + batteryWidth, batteryY + 3, 2, batteryHeight - 6, 1);
+    for (uint8_t bar = 0; bar < 3; bar++)
+        theDisplay->rectangleFill(batteryX + 2 + bar * 5, batteryY + 2, 4, batteryHeight - 4, 1);
+    if (whiteOnBlack)
+        theDisplay->setDrawMode(grROPCopy, grEpROPCopy);
+}
+
+void dtPaintStripTest()
+{
+    switch (dtScenario()->screen)
+    {
+    case DT_SCREEN_STRIP_16:
+        for (uint8_t i = 0; i < dtStripWordCount; i++)
+            dtPaintStrip(i * 22, 16, &stripText20, dtStripWords[i], true);
+        break;
+    case DT_SCREEN_STRIP_20:
+        for (uint8_t i = 0; i < dtStripWordCount; i++)
+            dtPaintStrip(i * 22, 20, &stripText20, dtStripWords[i], true);
+        break;
+    case DT_SCREEN_STRIP_PLAIN:
+        for (uint8_t i = 0; i < dtStripWordCount; i++)
+            dtPaintStrip(i * 22, 20, &stripText20, dtStripWords[i], false);
+        break;
+    case DT_SCREEN_STRIP_GHOST:
+    case DT_SCREEN_STRIP_GHOST_FULL:
+    case DT_SCREEN_STRIP_GHOST_PLAIN: {
+        uint8_t word = dtStripWordCount - 1; // RTK FIX
+        if ((dtScenario()->screen != DT_SCREEN_STRIP_GHOST_FULL) && (dtStripUpdates < dtStripGhostCycles))
+            word = dtStripUpdates % dtStripWordCount;
+        if (dtScenario()->screen == DT_SCREEN_STRIP_GHOST_PLAIN)
+            dtPaintStrip(0, 20, &stripText20, dtStripWords[word], false);
+        else
+            dtPaintStrip(0, 16, &stripText20, dtStripWords[word], true);
+        printStripText(3, 30, &stripText20, "8 MM", false);
+        printStripText(3, 56, &stripText20, "SATS 42", false);
+        if (dtStripUpdates < 0xFFFF)
+            dtStripUpdates++;
+    }
+    break;
+    }
 }
 
 //----------------------------------------

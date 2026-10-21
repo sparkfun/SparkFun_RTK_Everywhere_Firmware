@@ -34,7 +34,8 @@ void powerOnCheck()
 // then don't display a shutdown screen
 void powerDown(bool displayInfo)
 {
-    if (displayInfo == true)
+    // e-paper goes straight to the powered off screen - one full update, no 2 s message
+    if ((displayInfo == true) && (present.display_type != DISPLAY_184x88))
     {
         displayShutdown();
         delay(2000);
@@ -42,8 +43,8 @@ void powerDown(bool displayInfo)
 
     if (present.display_type == DISPLAY_184x88)
     {
-        theDisplay->reset(true); // Ensure epaper memory is clear
-        displayPoweredOff();     // Logo + model name - held on the panel with zero power
+        theDisplay->requestFullUpdate(); // Clean image - it stays on the panel with the power off
+        displayPoweredOff();             // Logo, POWERED OFF, model and ID - held on the panel with zero power
         while (theDisplay->isBusy())
             ; // Do nothing
         theDisplay->deepSleep();

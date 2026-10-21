@@ -18,14 +18,19 @@ Display.h
   displayUpdate will update the OLED every ~0.5s changing text and icons as needed
   displayUpdate will update e-paper every 2.0s. I.e. longer the partial update BUSY period,
     allowing some deepSleep between partial updates
-  A full update is performed once per minute (with black-white reversals)
+  Every draw call is folded into a frame hash. A partial update whose frame matches the last
+    one pushed is skipped, so a screen that isn't changing doesn't touch the panel at all
+  Switching between splash, message and status screens is a partial update
+  The status screen does a full update (with black-white reversals) when the fix state changes
+    (at most once per fullUpdateMinimum_ms), and otherwise every fullUpdateBackstop_ms to clear
+    any ghosting
 
   Special displays:
 
-  displayMessage will perform a full update on the first call
-  Any successive displayMessage calls will perform a partial update
-  So, "Rover" followed by "Rover Success" will only do a full update on the "Rover"
-  "Rover success" will be a partial update - to avoid the reversals
+  displayNothing (the powered off screen) does a full update on the first call, so the image
+  left on the panel with the power off is clean
+  displayMessage does a full update every 60 s while it keeps being called (firmware update
+  progress)
 
 
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
@@ -52,6 +57,34 @@ class HYBRID_DISPLAY
     bool _inDeepSleep;
     displayContent_e _displayContent;
 
+    // e-paper only - see the strategy above
+    uint32_t _frameHash;           // FNV-1a over every draw call since the last erase()
+    uint32_t _pushedHash;          // _frameHash of the frame last sent to the panel
+    bool _pushedValid;             // _pushedHash is set
+    bool _forceFullUpdate;         // The next push is a full update
+    bool _fullUpdateWanted;        // Fix state changed - full update once fullUpdateMinimum_ms has passed
+    unsigned long _lastFullUpdate; // millis() of the last full update
+    static const unsigned long fullUpdateMinimum_ms = 30000;   // Fix state changes: at most one full update per 30 s
+    static const unsigned long fullUpdateBackstop_ms = 600000; // Status screen: full update at least every 10 minutes
+
+    void hashBytes(const void *data, size_t length)
+    {
+      if (_isOLED)
+        return;
+      const uint8_t *bytes = (const uint8_t *)data;
+      for (size_t i = 0; i < length; i++)
+        _frameHash = (_frameHash ^ bytes[i]) * 16777619UL;
+    }
+    template <typename T> void hashValue(T value)
+    {
+      hashBytes(&value, sizeof(value));
+    }
+    void hashBitmap(const uint8_t *pBitmap, uint8_t bmp_width, uint8_t bmp_height)
+    {
+      hashBytes(pBitmap, (size_t)bmp_width * ((bmp_height + 7) / 8));
+    }
+    void fullUpdate(void); // e-paper: full update, sending all pixels
+
   public:
     // Constructor
     HYBRID_DISPLAY(bool isOLED)
@@ -63,6 +96,12 @@ class HYBRID_DISPLAY
         _epaper = new SSD1680I2C184x88Rotated;
       _inDeepSleep = false;
       _displayContent = NOTHING;
+      _frameHash = 2166136261UL;
+      _pushedHash = 0;
+      _pushedValid = false;
+      _forceFullUpdate = false;
+      _fullUpdateWanted = false;
+      _lastFullUpdate = 0;
     }
 
     ~HYBRID_DISPLAY()
@@ -82,6 +121,8 @@ class HYBRID_DISPLAY
     }
 
     bool begin(TwoWire &wirePort, uint8_t address);
+    void requestFullUpdate(void) { _forceFullUpdate = true; } // e-paper: the next push is a full update
+    void fixStateChanged(void) { _fullUpdateWanted = true; }  // e-paper: full update soon, rate limited
     uint8_t getWidth(void);
     uint8_t getHeight(void);
     bool reset(bool clearDisplay);
@@ -212,5 +253,12 @@ const uint8_t bigDigitsColonOffset = 9;
 #define DT_SCREEN_BOOT_INFO 3 // paintBootInfo184x88()
 #define DT_SCREEN_POWERED_OFF 4 // paintPoweredOff184x88()
 #define DT_SCREEN_SHUTDOWN 5    // displayShutdown()
+// Top strip readability test (plan Phase 0) - see dtPaintStripTest()
+#define DT_SCREEN_STRIP_16 6          // 4 white-on-black 16 row strips, Terminus Bold 20 (Juan's proposal)
+#define DT_SCREEN_STRIP_20 7          // 4 white-on-black 20 row strips, Terminus Bold 20 (more margin)
+#define DT_SCREEN_STRIP_PLAIN 8       // 4 black-on-white lines with a rule, Terminus Bold 20
+#define DT_SCREEN_STRIP_GHOST 9       // Strip cycling the fix words by partial updates only, then RTK FIX
+#define DT_SCREEN_STRIP_GHOST_FULL 10 // The ghost test's final frame after a full update, for comparison
+#define DT_SCREEN_STRIP_GHOST_PLAIN 11 // Ghost test with the black-on-white strip
 
 #endif // __DISPLAY_H__

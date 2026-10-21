@@ -1099,7 +1099,7 @@ void finishDisplay()
     {
         // Skip splash delay
     }
-    else if (online.display == true)
+    else if ((online.display == true) && (present.display_type != DISPLAY_184x88)) // e-paper: STARTING, no wait
     {
         displaySplashNameKnown(); // Display the full RTK product name and firmware version
 
