@@ -29,8 +29,8 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Needed because of local B
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 
-char *firmwareURL = "/gnss/lg290p/LG290P03AANR01A03S.pkg"; //v1.3
-// char *firmwareURL = "/gnss/lg290p/LG290P03AANR02A01S.pkg"; //v2.1
+const char *firmwareURLv13 = "/gnss/lg290p/LG290P03AANR01A03S.pkg";
+const char *firmwareURLv21 = "/gnss/lg290p/LG290P03AANR02A01S.pkg";
 
 #define OTA_FIRMWARE_GITHUB_RAW "raw.githubusercontent.com"
 
@@ -153,7 +153,8 @@ void displayMenu()
 {
     Serial.println();
     Serial.println("r) Restart the ESP32");
-    Serial.println("u) Update the LG290P firmware");
+    Serial.println("1) Load LG290P firmware v1.3");
+    Serial.println("2) Load LG290P firmware v2.1");
     Serial.print("Selection: ");
 }
 
@@ -167,14 +168,15 @@ void loop()
         {
             ESP.restart();
         }
-        else if (incoming == 'u')
+        else if ((incoming == '1') || (incoming == '2'))
         {
-            Serial.println("Starting LG290P firmware update...");
+            const char *firmwareURL = (incoming == '1') ? firmwareURLv13 : firmwareURLv21;
+            Serial.printf("Starting LG290P firmware v%s update...\r\n", (incoming == '1') ? "1.3" : "2.1");
 
             // Start timer before erase
             firmwareUpdateStartTime = millis();
 
-            if (lg290pStreamFirmware(firmwareURL) == false)
+            if (lg290pStreamFirmware((char *)firmwareURL) == false)
             {
                 displayMenu();
                 return;

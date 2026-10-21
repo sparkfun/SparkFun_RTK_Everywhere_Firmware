@@ -442,7 +442,7 @@ void factoryReset(bool alreadyHasSemaphore)
     tiltSensorFactoryReset();
 
     systemPrintln("Formatting internal file system...");
-    LittleFS.format();
+    littleFsFormat();
 
     if (online.gnss == true)
     {
@@ -458,6 +458,23 @@ void factoryReset(bool alreadyHasSemaphore)
     systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
     delay(2000);
     ESP.restart();
+}
+
+// Format LittleFS without task WDT errors
+// The LittleFS erase loop calls esp_task_wdt_reset() which prints 'task not found' errors
+// if the calling task is not subscribed to the task WDT. Temporarily subscribe it.
+bool littleFsFormat()
+{
+    bool wdtAdded = false;
+    if (esp_task_wdt_status(nullptr) == ESP_ERR_NOT_FOUND)
+        wdtAdded = (esp_task_wdt_add(nullptr) == ESP_OK);
+
+    bool result = LittleFS.format();
+
+    if (wdtAdded)
+        esp_task_wdt_delete(nullptr);
+
+    return result;
 }
 
 // Open the given file and load a given line to the given pointer

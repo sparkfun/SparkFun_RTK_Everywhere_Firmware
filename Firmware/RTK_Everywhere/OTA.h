@@ -10,6 +10,9 @@ OTA.h
 
 typedef uint8_t OTA_SUBSYSTEM_MASK;
 
+// File that is loaded from SD card at startup regardless of user input
+const char * forceFirmwareFileName = "RTK_Everywhere_Firmware_Force.bin";
+
 #ifdef COMPILE_FIRMWARE_UPDATE
 
 //----------------------------------------
@@ -66,7 +69,10 @@ char otaFirmwareCsvUrl[OTA_FIRMWARE_CSV_URL_LENGTH];
 // Subsystem support
 //----------------------------------------
 
-typedef bool (*OTA_FIRMWARE_UPDATE)(const struct _OTA_TARGET * target,
+typedef bool (*OTA_FIRMWARE_UPDATE)(const char * subsystem,
+                                    const char * chip,
+                                    const char * url,
+                                    const struct _OTA_TARGET * target,
                                     const struct _OTA_SUBSYSTEM_INFO * subsystemInfo,
                                     uint8_t * buffer,
                                     size_t bufferBytes);
@@ -75,7 +81,8 @@ typedef bool (*OTA_GET_VERSION)(int &major,
                                 int &patch,
                                 int &revision,
                                 int &releaseCandidate);
-typedef bool (*OTA_STREAM_FIRMWARE)(const char * chip,
+typedef bool (*OTA_STREAM_FIRMWARE)(const char * subsystem,
+                                    const char * chip,
                                     NetworkClient * stream,
                                     size_t contentLength,
                                     uint32_t expectedCrc,

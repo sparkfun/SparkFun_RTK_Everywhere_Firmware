@@ -10,7 +10,7 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 	[![Product Image](./img/SparkFun_RTK_EVK.png)](https://www.sparkfun.com/sparkfun-rtk-evk.html "Go to Product Page")
 	<figcaption markdown>
-	
+
 	[SparkFun RTK EVK (GPS-24342)](https://www.sparkfun.com/sparkfun-rtk-evk.html)
 	</figcaption>
 	</figure>
@@ -116,7 +116,7 @@ There are multiple ways to configure an RTK product:
 - [Settings File](configure_with_settings_file.md) - Used for configuring multiple RTK devices identically
 - [Ethernet](configure_with_ethernet.md) - RTK EVK only
 
-The Bluetooth or Serial Terminal methods are recommended for most advanced configurations. Most, but not all settings are also available over WiFi but can be tricky to input via mobile phone.
+The [Bluetooth or Serial Terminal](serial_menu_overview.md) methods are recommended for most advanced configurations. Most, but not all settings are also available over WiFi but can be tricky to input via mobile phone.
 
 If you have an issue, feature request, bug report, or a general question about the RTK firmware specifically we encourage you to post your comments on the [firmware's repository](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues). If you feel like bragging or showing off what you did with your RTK product, we'd be thrilled to hear about it on the issues list as well!
 

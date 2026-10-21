@@ -39,9 +39,7 @@ void firmwareMenu()
         systemPrintf("Current firmware: %s\r\n", currentVersion);
 
         // Display the OTA portion of the menu
-        // Note: Use otaMenuDisplay to get a new ESP32 image when the parsing
-        // fails in deviceFirmwareUpdate due to server website changes!
-        // Letters: a c d e i q u C D E F G I L O P S V 1... for files
+        // Letters: a c d i q u C D E F G I L P S T V 1... for files
         otaMenuDisplay(subsystemMask, &otaDeveloperOptions, currentVersion);
 
         for (int x = 0; x < binCount; x++)
@@ -58,9 +56,6 @@ void firmwareMenu()
             microSDUpdateFirmware(binFileNames[incoming]);
         }
 
-        // Note: Use otaMenuProcessInput to get a new ESP32 image when the
-        // parsing fails in deviceFirmwareUpdate due to server website
-        // changes!
         else if (otaMenuProcessInput(subsystemMask, &otaDeveloperOptions, incoming))
         {
         }
@@ -540,7 +535,7 @@ void microSDUpdateFirmware(const char *firmwareFileName)
             displayFirmwareUpdateProgress(100);
 
             // Clear all settings from LittleFS
-            LittleFS.format();
+            littleFsFormat();
 
             systemPrintln("ESP32 updated successfully. Rebooting. Goodbye!");
 
@@ -618,6 +613,37 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 }
 
 //----------------------------------------
+// Determine if the ESP32 supports OTA
+//----------------------------------------
+bool otaEsp32AreFirmwareWritesSupported()
+{
+    int partitionCount;
+
+    // We can do OTA if there are two APP partitions
+    partitionCount = countAppPartitions();
+    if (partitionCount >= 2)
+        return true;
+
+    // Warn the user
+    systemPrintf("WARNING: ESP32 updates require two APP paritions, found %d!\r\n",
+                 partitionCount);
+    printPartitionTable();
+    return false;
+}
+
+//----------------------------------------
+// Reboot the ESP32
+//----------------------------------------
+void otaEsp32Reboot()
+{
+    // Restart ESP32 to see changes
+    systemPrintf("Rebooting. Goodbye!\r\n");
+    Serial.flush();
+    delay(1000);
+    ESP.restart();
+}
+
+//----------------------------------------
 // Reads packetBytes from an already-open HTTP stream and feeds them to the device,
 // reporting progress as it goes.
 //
@@ -628,20 +654,26 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 // 3) Loop reading firmware from the stream and writing it to the device, call
 //    firmwareUpdateProgressCallback to update the progress bar
 // 4) Call the updateFirmwareEnd function to complete the flash write operation
-// 5) Display the flash write status
+// 5) Display any error message
+// 6) Return the flash update success status (true/false) to the flash update
+//    routine
+// 7) The flash update routine display the final flash update operation status
 //----------------------------------------
-bool otaEsp32StreamFirmware(const char * chip,
+bool otaEsp32StreamFirmware(const char * subsystem,
+                            const char * chip,
                             NetworkClient * stream,
                             size_t fileBytes,
                             uint32_t expectedCrc,
                             uint8_t * buffer,
                             size_t packetBytes)
 {
+    size_t remainingBytes;
     bool success;
 
     do
     {
         success = false;
+        remainingBytes = fileBytes;
 
         // Display the parameters
         if (settings.debugFirmwareUpdate && otaDebugVerbose)
@@ -651,15 +683,15 @@ bool otaEsp32StreamFirmware(const char * chip,
             systemPrintf("packetBytes: %d\r\n", packetBytes);
         }
 
-        systemPrintf("Starting %s firmware update...\r\n", chip);
+        systemPrintf("%s (%s) entering bootloader mode...\r\n", subsystem, chip);
 
-        // Enter the bootloader and erase flash before opening the GitHub connection.
+        // Enter the bootloader and erase flash
         if (Update.begin(fileBytes) == false)
         {
-            systemPrintf("ERROR: %s failed to enter bootloader mode.\r\n", chip);
+            systemPrintf("%s (%s) failed to enter bootloader mode.\r\n", subsystem, chip);
             break;
         }
-        systemPrintf("%s is in bootloader mode.\r\n", chip);
+        systemPrintf("%s (%s) is in bootloader mode.\r\n", subsystem, chip);
 
         // Initialize the progress bar
         firmwareUpdateProgressReset(fileBytes);
@@ -674,7 +706,7 @@ bool otaEsp32StreamFirmware(const char * chip,
         // data is available.
         unsigned long lastDataTime = millis();
         size_t validData = 0;
-        while (fileBytes > 0)
+        while (remainingBytes > 0)
         {
             // Wait until some data is available
             size_t availableBytes = stream->available();
@@ -690,7 +722,7 @@ bool otaEsp32StreamFirmware(const char * chip,
                 // Check for network timeout
                 if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
                 {
-                    systemPrintf("ERROR: Timed out waiting for data\r\n");
+                    systemPrintln("ERROR: Timed out waiting for data");
                     break;
                 }
                 yield();
@@ -712,18 +744,17 @@ bool otaEsp32StreamFirmware(const char * chip,
             validData += bytesRead;
 
             // Fill the packet
-            if ((validData < packetBytes) && (validData != fileBytes))
+            if ((validData < packetBytes) && (validData != remainingBytes))
                 continue;
 
             // Compute the CRC
             crc = crc32Compute(crc, buffer, validData);
 
             // Validate the computed CRC matches the expected CRC
-            if ((fileBytes == validData) && (crc != expectedCrc))
+            if ((remainingBytes == validData) && (crc != expectedCrc))
             {
-                systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n",
-                             expectedCrc, crc);
-                systemPrintf("ERROR: File has changed, CRC does not match!\r\n");
+                systemPrintln("ERROR: File has changed, CRC does not match!");
+                systemPrintf("Expected CRC: 0x%08x, File CRC: 0x%08x\r\n", expectedCrc, crc);
                 break;
             }
 
@@ -735,17 +766,17 @@ bool otaEsp32StreamFirmware(const char * chip,
             }
 
             // Display the progress
-            firmwareUpdateProgressCallback(chip, validData);
+            firmwareUpdateProgressCallback(subsystem, chip, validData);
 
             // Account for this data
-            fileBytes -= validData;
+            remainingBytes -= validData;
             lastDataTime = millis();
             validData = 0;
         }
-        if (fileBytes)
+        if (remainingBytes)
             break;
 
-        // Complete the flash update transaction
+        // Notify the bootloader that the flash image is uploaded
         if (Update.end() == false)
         {
             systemPrintf("ERROR: %s update.end failed. Error #: %s\r\n",
@@ -755,24 +786,16 @@ bool otaEsp32StreamFirmware(const char * chip,
 
         if (Update.isFinished() == false)
         {
-            systemPrintf("ERROR: %s update not finished? Something went wrong!\r\n", chip);
+            systemPrintf("ERROR: %s (%s) update not finished? Something went wrong!\r\n", subsystem, chip);
             break;
         }
 
-        systemPrintf("%s update successfully completed.\r\n", chip);
         success = true;
     } while (0);
 
-    if (fileBytes && settings.debugFirmwareUpdate)
-        systemPrintf("fileBytes: %d\r\n", fileBytes);
-
-    // Display the firmware update status
-    systemPrintln(otaEqualSigns);
-    if (success)
-        systemPrintf("%s firmware update completed successfully\r\n", chip);
-    else
-        systemPrintf("%s firmware update failed!\r\n", chip);
-    systemPrintln(otaEqualSigns);
+    // Display the number of bytes remaining
+    if (remainingBytes && settings.debugFirmwareUpdate)
+        systemPrintf("remainingBytes: %d\r\n", remainingBytes);
 
     return success;
 }
@@ -801,7 +824,7 @@ char *otaGetGithubFileLocation(const char *relativeFirmwareFileLocation)
 }
 
 // Returns true if we successfully establish a secure connection to GitHub.
-bool otaSecurelyConnectGitHub(WiFiClientSecure &client)
+bool otaSecurelyConnectGitHub(NetworkClientSecure &client)
 {
     client.setCACert(GITHUB_RAW_PUBLIC_CERT);
 

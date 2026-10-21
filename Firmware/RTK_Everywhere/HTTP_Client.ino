@@ -504,7 +504,7 @@ void httpClientUpdate()
         {
             // Device is now active with ThingStream
             // Pull pertinent values from response
-            jsonZtp = new JsonDocument;
+            jsonZtp = new JsonDocument(&jsonPsramAllocator);
             if (!jsonZtp)
             {
                 systemPrintln("ERROR - Failed to allocate jsonZtp!\r\n");

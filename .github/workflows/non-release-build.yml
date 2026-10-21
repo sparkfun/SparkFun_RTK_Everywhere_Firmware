@@ -51,11 +51,16 @@ jobs:
           fi
 
       - name: Run Dockerfile and copy files
-        # The --quiet suppresses the build output, keeping the secrets safe
+        # BuildKit expands the build-arg secrets into its step headers and error messages, so the build
+        # output must never be shown. grep -o prints only the whitelisted text: step number, stage position
+        # (ie [deployment 2/8]), DONE time, ERROR, CACHED, CANCELED. The stage position identifies the
+        # Dockerfile instruction where a build stalls or fails.
+        timeout-minutes: 10 # The build normally takes ~5 minutes
         run: |
+          set -o pipefail
           cd ./Firmware
-          echo "*** The docker build is quiet to protect the GitHub secrets ***"
-          docker build -t rtk_everywhere_firmware --no-cache --quiet \
+          echo "*** The docker build output is filtered to protect the GitHub secrets ***"
+          docker build -t rtk_everywhere_firmware --no-cache --progress=plain \
             --build-arg CORE_VERSION=${{ env.CORE_VERSION }} \
             --build-arg FIRMWARE_VERSION_MAJOR=${{ env.FIRMWARE_VERSION_MAJOR }} \
             --build-arg FIRMWARE_VERSION_MINOR=${{ env.FIRMWARE_VERSION_MINOR }} \
@@ -66,7 +71,7 @@ jobs:
             --build-arg COMPILE_AUTHENTICATION=true \
             --build-arg DEPLOY_ACCESSORY_LIBRARY="${{ secrets.DEPLOY_ACCESSORY_LIBRARY }}" \
             --build-arg DEPLOY_AUTHENTICATION_LIBRARY="${{ secrets.DEPLOY_AUTHENTICATION_LIBRARY }}" \
-            .
+            . 2>&1 | grep --line-buffered -oE '^#[0-9]+ (\[[a-z]+ +[0-9]+/[0-9]+\]|DONE [0-9.]+s|ERROR|CACHED|CANCELED)'
           docker create --name=rtk_everywhere rtk_everywhere_firmware:latest
           mkdir ./build
           docker cp rtk_everywhere:/RTK_Everywhere.ino.bin ./build

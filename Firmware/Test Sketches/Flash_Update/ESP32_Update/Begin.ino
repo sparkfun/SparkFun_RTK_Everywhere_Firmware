@@ -690,6 +690,24 @@ bool beginUart2Serial()
 }
 
 //----------------------------------------
+// Change the UART0 rate, if needed
+// Use end() then begin(), as the other UART0 rate changes do, rather than updateBaudRate()
+//----------------------------------------
+void uart0SetBaud(uint32_t baudRate, uint32_t serialConfig)
+{
+    static uint32_t currentSerialConfig = SERIAL_8N1;
+    if ((baudRate == uart0BaudCurrent) && (serialConfig == currentSerialConfig))
+        return;
+
+    Serial.flush(); // Finish sending at the old rate
+    Serial.end();   // We must end before we begin otherwise the UART settings are corrupted
+    Serial.begin(baudRate, serialConfig);
+    serialInputClear(&Serial);
+    uart0BaudCurrent = baudRate;
+    currentSerialConfig = serialConfig;
+}
+
+//----------------------------------------
 // Torch has no ID resistors. We need to test the I2C bus to detect a Torch
 //----------------------------------------
 void testI2cDevices()

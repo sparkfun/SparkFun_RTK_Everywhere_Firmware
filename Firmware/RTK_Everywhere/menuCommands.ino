@@ -138,22 +138,38 @@ size_t commandSettingSize(const RTK_Settings_Entry &entry)
     }
 }
 
-// List CLI settings which differ from their default values, followed by the count.
-void commandSendChangedSettings()
+// Build an in-memory snapshot of what settings.* would contain if this platform/GNSS
+// combination had never been touched by the user: struct defaults, plus the
+// lastState/correctionsSourcesPriority overrides, plus the receiver-conditional
+// defaults that checkGNSSArrayDefaults() normally resolves into the live settings
+// at boot. Shared by the CLI "$SPGET,changedSettings" command and the Web Config
+// changed-from-default optimization in createSettingsString().
+// Caller must rtkFree() the result.
+Settings *allocateEffectiveDefaultSettings(const char *mallocTag)
 {
-    // Keep the large default settings snapshot off the task stack.
-    Settings *defaultSettings = (Settings *)rtkMalloc(sizeof(*defaultSettings), "CLI default settings");
+    Settings *defaultSettings = (Settings *)rtkMalloc(sizeof(*defaultSettings), mallocTag);
     if (defaultSettings == nullptr)
-    {
-        commandSendErrorResponse((char *)"SPGET", (char *)"changedSettings", (char *)"Insufficient memory");
-        return;
-    }
+        return nullptr;
 
     getDefaultSettings(defaultSettings);
     defaultSettings->lastState = productVariantProperties->defaultSystemState;
     for (int i = 0; i < CORR_NUM; i++)
         defaultSettings->correctionsSourcesPriority[i] = i;
     checkGNSSArrayDefaults(defaultSettings, false);
+    return defaultSettings;
+}
+
+// List CLI settings which differ from their default values, followed by the count.
+void commandSendChangedSettings()
+{
+    // Keep the large default settings snapshot off the task stack.
+    Settings *defaultSettings = allocateEffectiveDefaultSettings("CLI default settings");
+    if (defaultSettings == nullptr)
+    {
+        commandSendErrorResponse((char *)"SPGET", (char *)"changedSettings", (char *)"Insufficient memory");
+        return;
+    }
+
     changedSettingsReportCount = 0;
     changedSettingsDefaults = defaultSettings;
     reportingChangedSettings = true;
@@ -206,6 +222,104 @@ void commandSendChangedSettings()
     char countBuffer[12];
     snprintf(countBuffer, sizeof(countBuffer), "%d", changedSettingsReportCount);
     commandSendValueOkResponse("SPGET", "changedSettings", countBuffer);
+}
+
+// setState modes, used by $SPSET,setState and $SPGET,setState. 0-3 match the lastState values.
+enum
+{
+    SET_STATE_ROVER = 0,
+    SET_STATE_BASE,
+    SET_STATE_NTP,
+    SET_STATE_BASE_CASTER,
+    SET_STATE_BASE_ASSIST,
+};
+
+// Handle $SPSET,setState,<mode>: change the system mode now, without a reset. The state machine
+// records the new mode in lastState once it starts, so it is also used at the next power on.
+// Returns false if the mode is unknown or not supported on this device.
+bool commandSetState(const char *value)
+{
+    char *end;
+    long mode = strtol(value, &end, 10);
+    if ((end == value) || (*end != '\0'))
+        return false;
+
+    SystemState newState;
+    switch (mode)
+    {
+    default:
+        return false;
+    case SET_STATE_ROVER:
+        newState = STATE_ROVER_NOT_STARTED;
+        break;
+    case SET_STATE_BASE:
+        newState = STATE_BASE_NOT_STARTED;
+        break;
+    case SET_STATE_NTP:
+        if (present.ethernet_ws5500 == false)
+            return false;
+        newState = STATE_NTPSERVER_NOT_STARTED;
+        break;
+    case SET_STATE_BASE_CASTER:
+        newState = STATE_BASE_CASTER_NOT_STARTED; // Enables the caster override
+        break;
+    case SET_STATE_BASE_ASSIST:
+        newState = STATE_BASE_ASSIST_NOT_STARTED;
+        break;
+    }
+
+    // Leave Caster mode unless going to it (Rover also does this when it starts)
+    if (mode != SET_STATE_BASE_CASTER)
+        baseCasterDisableOverride();
+
+    // processCommand() may run in the Bluetooth command task, so let stateUpdate() make the change
+    requestChangeState(newState);
+    forceSystemStateUpdate = true; // Immediately go to this new state
+    return true;
+}
+
+// Handle $SPGET,setState: the current mode, as a setState value, or -1 when in some other mode
+// (setup, web config, pairing, etc.)
+int commandGetState()
+{
+    if (inRoverMode())
+        return SET_STATE_ROVER;
+    if (systemState == STATE_BASE_ASSIST_NOT_STARTED)
+        return SET_STATE_BASE_ASSIST;
+    if (inBaseMode())
+        return (settings.baseCasterOverride ? SET_STATE_BASE_CASTER : SET_STATE_BASE);
+    if (inNtpMode())
+        return SET_STATE_NTP;
+    return -1;
+}
+
+// Handle $SPGET,loggingState: is a microSD card present, and if logging, what type of messages
+LoggingState commandGetLoggingState()
+{
+    bool logging = online.logging;
+    bool sdPresent = online.microSD;
+
+    // The mosaic-X5 logs to its own internal microSD card
+    if (present.mosaicMicroSd)
+    {
+        logging |= logMosaicIncreasing;
+        sdPresent |= (mosaicSdCardSize > 0);
+    }
+
+    if (logging)
+    {
+        if (loggingType == LOGGING_STANDARD)
+            return LOGGING_STATE_DEFAULT;
+        if (loggingType == LOGGING_PPP)
+            return LOGGING_STATE_PPP;
+        if (loggingType == LOGGING_CUSTOM)
+            return LOGGING_STATE_CUSTOM;
+        return LOGGING_STATE_TYPE_UNKNOWN;
+    }
+
+    if (sdPresent)
+        return LOGGING_STATE_NOT_LOGGING;
+    return LOGGING_STATE_NO_SD;
 }
 
 // On Facet FP, ensure detectedGnssReceiver matches attached hardware before
@@ -310,6 +424,7 @@ t_cliResult processCommand(char *cmdBuffer)
 
     const int MAX_TOKENS = 10;
     char valueBuffer[100];
+    t_cliResult localUpdateResult;
 
     char *tokens[MAX_TOKENS];
     int tokenCount = 0;
@@ -406,6 +521,18 @@ t_cliResult processCommand(char *cmdBuffer)
                 return (CLI_OK);
             }
 
+            // updateStatus and subsystemVersions are not settings (OTA_Local.ino)
+            if (otaLocalGet(tokens[0], field))
+                return (CLI_OK);
+
+            // setState is not a setting: report the current mode
+            if (strcmp(field, "setState") == 0)
+            {
+                snprintf(valueBuffer, sizeof(valueBuffer), "%d", commandGetState());
+                commandSendValueResponse(tokens[0], field, valueBuffer);
+                return (CLI_OK);
+            }
+
             SettingValueResponse response = getSettingValue(false, field, valueBuffer);
 
             if (response == SETTING_KNOWN)
@@ -444,11 +571,38 @@ t_cliResult processCommand(char *cmdBuffer)
             auto field = tokens[1];
             auto value = tokens[2];
 
+            // setState is not a setting: change the mode now, without a reset
+            if (strcmp(field, "setState") == 0)
+            {
+                if (commandSetState(value))
+                {
+                    commandSendValueOkResponse(tokens[0], field, value);
+                    return (CLI_OK);
+                }
+                commandSendErrorResponse(tokens[0], field, (char *)"Unknown or unsupported state");
+                return (CLI_BAD_FORMAT);
+            }
+
+            bool usbSerialBaudChange = (strcmp(field, "usbSerialBaud") == 0);
+            if (usbSerialBaudChange && (usbSerialBaudIsAllowed(strtoul(value, nullptr, 10)) == false))
+            {
+                commandSendErrorResponse(tokens[0], field, (char *)"Must be 115200 or 921600");
+                return (CLI_BAD_FORMAT);
+            }
+
             SettingValueResponse response = updateSettingWithValue(true, field, value);
             if (response == SETTING_KNOWN)
             {
                 commandSendValueOkResponse(tokens[0], field,
                                            value); // Just respond with the setting (not quotes needed)
+
+                // Save now, as changing the terminal rate may reset the ESP32. Then change the rate after the
+                // response has been sent at the old rate.
+                if (usbSerialBaudChange)
+                {
+                    recordSystemSettings();
+                    usbSerialSetBaud(settings.usbSerialBaud);
+                }
                 return (CLI_OK);
             }
             else if (response == SETTING_KNOWN_STRING)
@@ -468,6 +622,22 @@ t_cliResult processCommand(char *cmdBuffer)
                 return (CLI_UNKNOWN_SETTING);
             }
         }
+    }
+    else if ((strcmp(tokens[0], "SPEXE") == 0) && (tokenCount >= 2) &&
+             otaLocalExecute(tokens, tokenCount, localUpdateResult))
+    {
+        // Local firmware update: UPDATEAP, UPDATEFILE, UPDATESTART, UPDATECANCEL (OTA_Local.ino)
+        return (localUpdateResult);
+    }
+    else if ((strcmp(tokens[0], "SPEXE") == 0) && (tokenCount == 3) && (strcmp(tokens[1], "DISPLAYTEST") == 0))
+    {
+        // Force the 184x88 display into a canned test scenario (DisplayTest.ino)
+        if (displayTestCommand(tokens[2]) == false)
+            return (CLI_OK); // LIST or bad argument - stay in command mode
+
+        commandSendExecuteOkResponse(tokens[0], tokens[1]);
+        forceMenuExit = true; // Leave the menus so displayUpdate() runs
+        return (CLI_EXIT);
     }
     else if (strcmp(tokens[0], "SPEXE") == 0)
     {
@@ -1057,6 +1227,9 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             SystemState *ptr = (SystemState *)var;
             knownSetting = true;
 
+            // DEPRECATED for apps: setting lastState only takes effect after a reset. Use
+            // $SPSET,setState,<mode> instead - it changes the mode immediately and updates
+            // lastState on its own. Kept for Web Config and existing clients.
             // 0 = Rover, 1 = Base, 2 = NTP, 3 = Base Caster
             settings.lastState = STATE_ROVER_NOT_STARTED; // Default
             if (settingValue == 1)
@@ -1407,6 +1580,13 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         espnowRequestPair = true;
         knownSetting = true;
     }
+    else if (strcmp(settingName, "espnowCancelPair") == 0)
+    {
+        // Web Config's "Pair Radios" button gave up (timed out, or the user navigated
+        // away) - let the ESP-NOW state machine know to stop scanning for a peer.
+        espnowRequestPair = false;
+        knownSetting = true;
+    }
     else if (strcmp(settingName, "exitAndReset") == 0)
     {
         // Confirm receipt
@@ -1693,6 +1873,10 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         for (int x = 0; x < settings.espnowPeerCount; x++)
             espNowRemovePeer(settings.espnowPeers[x]);
         settings.espnowPeerCount = 0;
+        // Also clear the stored MAC addresses, not just the count - otherwise each slot
+        // still compares as non-default and Web Config's next settings dump (createSettingsString's
+        // tEspNowPr case) re-sends the "forgotten" peers, making them reappear on refresh
+        memset(settings.espnowPeers, 0, sizeof(settings.espnowPeers));
         knownSetting = true;
     }
     else if (strcmp(settingName, "startNewLog") == 0)
@@ -1791,7 +1975,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             "batteryLevelPercent",   "batteryVoltage", "batteryChargingPercentPerHour",
             "bluetoothId",           "deviceId",       "deviceName",
             "gnssModuleInfo",        "list",           "espFirmwareVersion",
-            "espNewFirmwareVersion", "tiltState",
+            "espNewFirmwareVersion", "tiltState",      "loggingState",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
@@ -1866,6 +2050,100 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
 // Create a csv string with current settings
 // The order of variables matches the order found in settings.h
+// Single unambiguous platform/model code for the Web Config page, sent ahead of every
+// other setting so the browser can show/hide platform-specific UI and pick the right
+// defaults before the rest of the CSV arrives. Facet FP's sub-variant is derived from
+// the detected GNSS receiver; ZED-F9P (legacy) is grouped in with ZED-X20P as "FPX".
+const char *webConfigModelName()
+{
+    switch (productVariant)
+    {
+    case RTK_EVK:
+        return "EVK";
+    case RTK_FACET_MOSAIC:
+        return "FacetX5";
+    case RTK_TORCH:
+        return "Torch";
+    case RTK_POSTCARD:
+        return "Postcard";
+    case RTK_TORCH_X2:
+        return "TX2";
+    case RTK_FACET_FP:
+        switch (settings.detectedGnssReceiver)
+        {
+        case GNSS_RECEIVER_MOSAIC_X5:
+            return "FPM";
+        case GNSS_RECEIVER_LG290P:
+            return "FPL";
+        case GNSS_RECEIVER_X20P:
+        case GNSS_RECEIVER_F9P:
+        default:
+            return "FPX"; // ZED family (and not-yet-resolved), grouped together
+        }
+    default:
+        return "Unknown";
+    }
+}
+
+// webConfigKnownDefaultNames[] - generated by Firmware/Tools/generate_settings_defaults_js.py
+// from settings.h alongside AP-Config/src/settingsDefaults.js. A setting only appears
+// here when that same script could confidently resolve BOTH a single scalar CSV field
+// name and a plain-value firmware default for it - i.e. exactly the settings the
+// browser can correctly redisplay when the ESP32 omits them. That excludes settings
+// whose default depends on runtime state (dynamicModel, enableExtCorrRadio - resolved
+// per-GNSS-receiver by checkGNSSArrayDefaults()), array/suffix settings (constellation_*,
+// WiFi networks, NTRIP casters, ...), and any setting whose CSV name doesn't textually
+// match its C++ struct member (e.g. "antennaHeight" vs. settings.antennaHeight_mm).
+// (webConfigOptimizedSettings.h is included from RTK_Everywhere.ino.)
+
+// True if the browser already knows this setting's platform-effective default (via
+// SETTINGS_DEFAULTS in settingsDefaults.js), and so createSettingsString() is free to
+// omit it from the CSV when the live value matches that default.
+bool settingHasKnownWebConfigDefault(int i)
+{
+    // All 4 receivers' constellation rows share the name "constellation_", so a plain
+    // name lookup can't tell them apart - distinguish by type instead. LG290P/UM980/
+    // Mosaic always default to "all enabled" (checkGNSSArrayDefaults() in
+    // menuSupport.ino unconditionally resets them), so the browser's generated default
+    // (settingsDefaults.js) is always correct for those. ZED's constellationSupported()
+    // (GNSS_ZED.ino) depends on the connected receiver's firmware version, discovered
+    // at runtime, so there's no static default for the browser to know - always send it.
+    RTK_Settings_Types type = rtkSettingsEntries[i].type;
+    if (type == tLgConst || type == tUmConst || type == tMosaicConst)
+        return true;
+    if (type == tUbxConst)
+        return false;
+
+    const char *name = rtkSettingsEntries[i].name;
+    for (int x = 0; x < webConfigKnownDefaultNamesCount; x++)
+    {
+        if (strcmp(name, webConfigKnownDefaultNames[x]) == 0)
+            return true;
+    }
+    return false;
+}
+
+// True if the byte range at `liveElem` differs from the same offset within
+// `defaultSettings`. Used for PER-ELEMENT skipping inside array/suffix settings
+// (WiFi networks, NTRIP servers, ESP-NOW peers) so that unused/default slots (e.g.
+// WiFi network 2 of 4, still blank) can be omitted individually, rather than only
+// when EVERY slot in the array matches default. Only called when the caller has
+// already confirmed the row is in the settingHasKnownWebConfigDefault() allowlist -
+// falls back to "changed" (always send) if that's not the case, or if the element
+// falls outside the settings struct, so this can only ever make the CSV send MORE.
+bool webConfigElementChanged(const Settings *defaultSettings, const void *liveElem, size_t elemSize)
+{
+    if (defaultSettings == nullptr)
+        return true;
+
+    ptrdiff_t offset = (const uint8_t *)liveElem - (const uint8_t *)&settings;
+    if (offset < 0 || (size_t)offset + elemSize > sizeof(settings))
+        return true;
+
+    const uint8_t *defaultElem = (const uint8_t *)defaultSettings + offset;
+    return memcmp(liveElem, defaultElem, elemSize) != 0;
+}
+
 void createSettingsString(char *newSettings)
 {
     char tagText[80];
@@ -1873,6 +2151,12 @@ void createSettingsString(char *newSettings)
     RTK_Settings_Types type;
 
     newSettings[0] = '\0'; // Erase current settings string
+
+    // Keep the large default settings snapshot off the task stack. May be nullptr if
+    // allocation fails; the loop below falls back to sending everything in that case.
+    Settings *defaultSettings = allocateEffectiveDefaultSettings("Web Config default settings");
+
+    stringRecord(newSettings, "platformModel", (char *)webConfigModelName());
 
     stringRecord(newSettings, "productBrand", (char *)getBrandAttributeFromProductVariant(productVariant)->name);
 
@@ -1899,8 +2183,11 @@ void createSettingsString(char *newSettings)
     if (variantHousingProperties->tiltPossible == true)
         stringRecord(newSettings, "imuFirmwareVersionStr",
                      (char *)(strlen(imuFirmwareVersionStr) > 0 ? imuFirmwareVersionStr : "Not detected"));
+    // Report LoRa even when the radio is offline so the user can still see it and update its firmware
     if (strlen(loraFirmwareVersionStr) > 3)
         stringRecord(newSettings, "loraFirmwareVersionStr", (char *)loraFirmwareVersionStr);
+    else if (present.radio_lora == true)
+        stringRecord(newSettings, "loraFirmwareVersionStr", (char *)"Unknown");
 
     // Pass extra setting so that web config can show/hide tilt enable check box
     // We can't depend on enableTiltCompensation setting because all FP platforms transmit it.
@@ -1915,6 +2202,29 @@ void createSettingsString(char *newSettings)
     {
         if (rtkSettingsEntries[i].inWebConfig && (settingAvailableOnPlatform(i) == true))
         {
+            // Whether the browser already knows this setting's platform-effective
+            // default (see settingsDefaults.js) and so can correctly redisplay it if
+            // omitted - reused below both for the whole-row skip and, for array/suffix
+            // settings, the per-element skip inside the switch.
+            bool rowDefaultKnown = (defaultSettings != nullptr && settingHasKnownWebConfigDefault(i));
+
+            // Skip settings that are unchanged from their platform-effective default -
+            // there's no need to spend bytes sending it.
+            if (rowDefaultKnown)
+            {
+                size_t settingSize = commandSettingSize(rtkSettingsEntries[i]);
+                if (rtkSettingsEntries[i].var != nullptr && settingSize != 0)
+                {
+                    ptrdiff_t offset = (uint8_t *)rtkSettingsEntries[i].var - (uint8_t *)&settings;
+                    if (offset >= 0 && (size_t)offset + settingSize <= sizeof(settings))
+                    {
+                        const uint8_t *defaultValue = (const uint8_t *)defaultSettings + offset;
+                        if (memcmp(rtkSettingsEntries[i].var, defaultValue, settingSize) == 0)
+                            continue; // Unchanged from default; omit from Web Config CSV
+                    }
+                }
+            }
+
             // Handle GNSS specific types
             type = rtkSettingsEntries[i].type;
             if (gnssCreateString(type, i, newSettings))
@@ -2028,6 +2338,10 @@ void createSettingsString(char *newSettings)
                 // Record ESP-NOW peer MAC addresses
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
+                    if (rowDefaultKnown &&
+                        !webConfigElementChanged(defaultSettings, settings.espnowPeers[x], sizeof(settings.espnowPeers[x])))
+                        continue; // This peer slot is still at default (unpaired); omit it individually
+
                     char tempString[50]; // espnowPeers_1=B4:C1:33:42:DE:01,
                     snprintf(tempString, sizeof(tempString), "%s%d,%02X:%02X:%02X:%02X:%02X:%02X,",
                              rtkSettingsEntries[i].name, x, settings.espnowPeers[x][0], settings.espnowPeers[x][1],
@@ -2041,6 +2355,10 @@ void createSettingsString(char *newSettings)
                 // Record WiFi credential table
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
+                    if (rowDefaultKnown &&
+                        !webConfigElementChanged(defaultSettings, &settings.wifiNetworks[x], sizeof(settings.wifiNetworks[x])))
+                        continue; // This network slot is still at default (blank); omit it individually
+
                     char tempString[100]; // wifiNetwork_0Password=parachutes
 
                     snprintf(tempString, sizeof(tempString), "%s%dSSID,%s,", rtkSettingsEntries[i].name, x,
@@ -2055,6 +2373,10 @@ void createSettingsString(char *newSettings)
             case tNSCEn: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
+                    if (rowDefaultKnown && !webConfigElementChanged(defaultSettings, &settings.ntripServer_CasterEnabled[x],
+                                                                     sizeof(settings.ntripServer_CasterEnabled[x])))
+                        continue;
+
                     char tempString[50];
                     snprintf(tempString, sizeof(tempString), "%s%d,%s,", rtkSettingsEntries[i].name, x,
                              settings.ntripServer_CasterEnabled[x] ? "true" : "false");
@@ -2065,6 +2387,10 @@ void createSettingsString(char *newSettings)
             case tNSCHost: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
+                    if (rowDefaultKnown && !webConfigElementChanged(defaultSettings, &settings.ntripServer_CasterHost[x],
+                                                                     sizeof(settings.ntripServer_CasterHost[x])))
+                        continue;
+
                     char tempString[50];
                     snprintf(tempString, sizeof(tempString), "%s%d,%s,", rtkSettingsEntries[i].name, x,
                              &settings.ntripServer_CasterHost[x][0]);
@@ -2075,6 +2401,10 @@ void createSettingsString(char *newSettings)
             case tNSCPort: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
+                    if (rowDefaultKnown && !webConfigElementChanged(defaultSettings, &settings.ntripServer_CasterPort[x],
+                                                                     sizeof(settings.ntripServer_CasterPort[x])))
+                        continue;
+
                     char tempString[50];
                     snprintf(tempString, sizeof(tempString), "%s%d,%d,", rtkSettingsEntries[i].name, x,
                              settings.ntripServer_CasterPort[x]);
@@ -2085,6 +2415,10 @@ void createSettingsString(char *newSettings)
             case tNSCUser: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
+                    if (rowDefaultKnown && !webConfigElementChanged(defaultSettings, &settings.ntripServer_CasterUser[x],
+                                                                     sizeof(settings.ntripServer_CasterUser[x])))
+                        continue;
+
                     char tempString[50];
                     snprintf(tempString, sizeof(tempString), "%s%d,%s,", rtkSettingsEntries[i].name, x,
                              &settings.ntripServer_CasterUser[x][0]);
@@ -2095,6 +2429,10 @@ void createSettingsString(char *newSettings)
             case tNSCUsrPw: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
+                    if (rowDefaultKnown && !webConfigElementChanged(defaultSettings, &settings.ntripServer_CasterUserPW[x],
+                                                                     sizeof(settings.ntripServer_CasterUserPW[x])))
+                        continue;
+
                     char tempString[50];
                     snprintf(tempString, sizeof(tempString), "%s%d,%s,", rtkSettingsEntries[i].name, x,
                              &settings.ntripServer_CasterUserPW[x][0]);
@@ -2105,6 +2443,10 @@ void createSettingsString(char *newSettings)
             case tNSMtPt: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
+                    if (rowDefaultKnown && !webConfigElementChanged(defaultSettings, &settings.ntripServer_MountPoint[x],
+                                                                     sizeof(settings.ntripServer_MountPoint[x])))
+                        continue;
+
                     char tempString[50];
                     snprintf(tempString, sizeof(tempString), "%s%d,%s,", rtkSettingsEntries[i].name, x,
                              &settings.ntripServer_MountPoint[x][0]);
@@ -2115,6 +2457,10 @@ void createSettingsString(char *newSettings)
             case tNSMtPtPw: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
+                    if (rowDefaultKnown && !webConfigElementChanged(defaultSettings, &settings.ntripServer_MountPointPW[x],
+                                                                     sizeof(settings.ntripServer_MountPointPW[x])))
+                        continue;
+
                     char tempString[50];
                     snprintf(tempString, sizeof(tempString), "%s%d,%s,", rtkSettingsEntries[i].name, x,
                              &settings.ntripServer_MountPointPW[x][0]);
@@ -2152,18 +2498,30 @@ void createSettingsString(char *newSettings)
         }
     }
 
-    stringRecord(newSettings, "baseTypeSurveyIn", !settings.fixedBase);
-    stringRecord(newSettings, "baseTypeFixed", settings.fixedBase);
-
-    if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
+    // baseTypeSurveyIn/Fixed and fixedBaseCoordinateTypeECEF/Geo are radio-button-
+    // friendly booleans derived from fixedBase/fixedBaseCoordinateType (both
+    // inWebConfig=0, so they're never sent by the generic loop above). Skipped when
+    // unchanged from default for the same reason as everywhere else - the browser
+    // already knows the default (see the "fixedBase"/"fixedBaseCoordinateType"
+    // handling in generate_settings_defaults_js.py / settingsDefaults.js).
+    if (defaultSettings == nullptr || settings.fixedBase != defaultSettings->fixedBase)
     {
-        stringRecord(newSettings, "fixedBaseCoordinateTypeECEF", true);
-        stringRecord(newSettings, "fixedBaseCoordinateTypeGeo", false);
+        stringRecord(newSettings, "baseTypeSurveyIn", !settings.fixedBase);
+        stringRecord(newSettings, "baseTypeFixed", settings.fixedBase);
     }
-    else
+
+    if (defaultSettings == nullptr || settings.fixedBaseCoordinateType != defaultSettings->fixedBaseCoordinateType)
     {
-        stringRecord(newSettings, "fixedBaseCoordinateTypeECEF", false);
-        stringRecord(newSettings, "fixedBaseCoordinateTypeGeo", true);
+        if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
+        {
+            stringRecord(newSettings, "fixedBaseCoordinateTypeECEF", true);
+            stringRecord(newSettings, "fixedBaseCoordinateTypeGeo", false);
+        }
+        else
+        {
+            stringRecord(newSettings, "fixedBaseCoordinateTypeECEF", false);
+            stringRecord(newSettings, "fixedBaseCoordinateTypeGeo", true);
+        }
     }
 
     stringRecord(newSettings, "measurementRateHz", 1.0 / gnss->getRateS(), 2); // 2 = decimals to print
@@ -2193,6 +2551,13 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "profileNumber", profileNumber);
     for (int index = 0; index < MAX_PROFILE_COUNT; index++)
     {
+        // Unused profile slots (empty name) are omitted - the Web Config page already
+        // pre-fills each profile label with its default "N: " text (see
+        // initializeArrays() in main.js), so there's nothing useful to send for a slot
+        // nobody has named yet.
+        if (strlen(profileNames[index]) == 0)
+            continue;
+
         snprintf(tagText, sizeof(tagText), "profile%dName", index);
         snprintf(nameText, sizeof(nameText), "%d: %s", index + 1, profileNames[index]);
         stringRecord(newSettings, tagText, nameText);
@@ -2203,22 +2568,20 @@ void createSettingsString(char *newSettings)
     // profileNameSelected entry with the name of the selected profile so that Web Config can display it.
     stringRecord(newSettings, "profileNameSelected", profileNames[profileNumber]);
 
-    // Drop downs on the AP config page expect a value, whereas bools get stringRecord as true/false
-    // These special bool settings get added twice to the string, once above, once here.
-    if (settings.wifiConfigOverAP == true)
-        stringRecord(newSettings, "wifiConfigOverAP", 1); // 1 = AP mode, 0 = WiFi
-    else
-        stringRecord(newSettings, "wifiConfigOverAP", 0); // 1 = AP mode, 0 = WiFi
+    // Drop downs on the AP config page expect a "1"/"0" value, whereas bools get
+    // stringRecord'd as true/false in the generic loop above - so these are resent
+    // here in the format the dropdown actually needs. Skipped when unchanged from
+    // default for the same reason (and using the same default snapshot) as the
+    // generic loop: the browser already knows the "1"/"0" default for these three via
+    // SPECIAL_DOM_MAPPING in generate_settings_defaults_js.py / settingsDefaults.js.
+    if (defaultSettings == nullptr || settings.wifiConfigOverAP != defaultSettings->wifiConfigOverAP)
+        stringRecord(newSettings, "wifiConfigOverAP", settings.wifiConfigOverAP ? 1 : 0); // 1 = AP mode, 0 = WiFi
 
-    if (settings.tcpOverWiFiStation == true)
-        stringRecord(newSettings, "tcpOverWiFiStation", 1); // 1 = WiFi mode, 0 = AP
-    else
-        stringRecord(newSettings, "tcpOverWiFiStation", 0); // 1 = WiFi mode, 0 = AP
+    if (defaultSettings == nullptr || settings.tcpOverWiFiStation != defaultSettings->tcpOverWiFiStation)
+        stringRecord(newSettings, "tcpOverWiFiStation", settings.tcpOverWiFiStation ? 1 : 0); // 1 = WiFi mode, 0 = AP
 
-    if (settings.udpOverWiFiStation == true)
-        stringRecord(newSettings, "udpOverWiFiStation", 1); // 1 = WiFi mode, 0 = AP
-    else
-        stringRecord(newSettings, "udpOverWiFiStation", 0); // 1 = WiFi mode, 0 = AP
+    if (defaultSettings == nullptr || settings.udpOverWiFiStation != defaultSettings->udpOverWiFiStation)
+        stringRecord(newSettings, "udpOverWiFiStation", settings.udpOverWiFiStation ? 1 : 0); // 1 = WiFi mode, 0 = AP
 
     // Single variables needed on Config page
     stringRecord(newSettings, "minCN0", settings.minCN0);
@@ -2420,6 +2783,9 @@ void createSettingsString(char *newSettings)
         systemWrite(newSettings[x]);
 
     systemPrintln();
+
+    if (defaultSettings != nullptr)
+        rtkFree(defaultSettings, "Web Config default settings");
 }
 
 // Add record with int
@@ -2925,6 +3291,11 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         writeToString(settingValueStr, (int)tiltState);
         knownSetting = true;
     }
+    else if (strcmp(settingName, "loggingState") == 0)
+    {
+        writeToString(settingValueStr, (int)commandGetLoggingState());
+        knownSetting = true;
+    }
 
     // Unused variables - read to avoid errors
     // TODO: check this! Is this really what we want?
@@ -3337,6 +3708,10 @@ const char *commandGetName(int stringIndex, int rtkIndex)
     // Display the tilt sensor state
     else if (rtkIndex == COMMAND_TILT_STATE)
         return "tiltState";
+
+    // Display the microSD logging state
+    else if (rtkIndex == COMMAND_LOGGING_STATE)
+        return "loggingState";
 
     systemPrintf("commandGetName Error: Uncaught command type, stringIndex: %d, rtkIndex: %d\r\n", stringIndex,
                  rtkIndex);
@@ -3754,12 +4129,20 @@ void printAvailableSettings()
             snprintf(tiltStateString, sizeof(tiltStateString), "%d", (int)tiltState);
             commandSendExecuteListResponse("tiltState", "TiltState", tiltStateString);
         }
+
+        // Display the microSD logging state
+        else if (commandIndex[i] == COMMAND_LOGGING_STATE)
+        {
+            char loggingStateString[4];
+            snprintf(loggingStateString, sizeof(loggingStateString), "%d", (int)commandGetLoggingState());
+            commandSendExecuteListResponse("loggingState", "LoggingState", loggingStateString);
+        }
     }
 }
 
 void createCommandTypesJson(String &output)
 {
-    JsonDocument doc;
+    JsonDocument doc(&jsonPsramAllocator);
 
     JsonArray command_types = doc["command types"].to<JsonArray>();
 

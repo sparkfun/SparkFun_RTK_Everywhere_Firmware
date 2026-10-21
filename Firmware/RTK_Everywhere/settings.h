@@ -264,6 +264,17 @@ typedef enum
     TILT_REQUEST_STOP,
 } TiltState;
 
+// Reported by $SPGET,loggingState. Values are part of the CLI API, only add to the end.
+typedef enum
+{
+    LOGGING_STATE_NO_SD = 0,         // No microSD card present or mounted
+    LOGGING_STATE_NOT_LOGGING,       // microSD card present, but not logging
+    LOGGING_STATE_DEFAULT,           // Logging the default messages
+    LOGGING_STATE_PPP,               // Logging messages for a PPP survey
+    LOGGING_STATE_CUSTOM,            // Logging a custom set of messages
+    LOGGING_STATE_TYPE_UNKNOWN,      // Logging, but the message type is not yet determined
+} LoggingState;
+
 // Product Properties Table
 // ========================
 // name is used to create the BT broadcast deviceName
@@ -759,8 +770,10 @@ enum
     NETCONSUMER_UDP_SERVER,
     NETCONSUMER_WEB_CONFIG,
     NETCONSUMER_DEVICE_OTA,
+    NETCONSUMER_LOCAL_UPDATE,
     // Add new consumers just before this line
     // Also add them to the networkConsumerTable
+    // NETCONSUMER_MASK_t is 16 bits: more than 16 consumers requires a wider mask
     NETCONSUMER_MAX
 };
 
@@ -1105,6 +1118,7 @@ struct Settings
     int16_t serialTimeoutGNSS = 1; // In ms - used during serialGNSS->begin. Number of ms to pass of no data before
                                    // hardware serial reports data available.
     bool enableNmeaOnRadio = true; // Depends on the platform and GNSS
+    uint32_t usbSerialBaud = 115200; // USB serial (UART0) rate. Only 115200 or 921600, so a lost user has one other rate to try
 
     // Setup Button
     bool disableSetupButton = false;                  // By default, allow setup through the overlay button(s)
@@ -1112,7 +1126,7 @@ struct Settings
     // State
     bool enablePrintDuplicateStates = false;
     bool enablePrintStates = true;
-    SystemState lastState = STATE_NOT_SET; // Start unit in last known state
+    SystemState lastState = STATE_NOT_SET; // Start unit in last known state. Setting it from the CLI is deprecated, use setState
 
     // TCP Client
     bool debugTcpClient = false;
@@ -1325,8 +1339,9 @@ typedef struct
 #define COMMAND_DEVICE_NAME                (COMMAND_BLUETOOTH_ID - 1)           // -17 - 1 = -18
 #define COMMAND_DEVICE_ID                  (COMMAND_DEVICE_NAME - 1)            // -18 - 1 = -19
 #define COMMAND_TILT_STATE                 (COMMAND_DEVICE_ID - 1)              // -19 - 1 = -20
-#define COMMAND_UNKNOWN                    (COMMAND_TILT_STATE - 1)              // -20 - 1 = -21
-#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN))                 // -21
+#define COMMAND_LOGGING_STATE              (COMMAND_TILT_STATE - 1)             // -20 - 1 = -21
+#define COMMAND_UNKNOWN                    (COMMAND_LOGGING_STATE - 1)          // -21 - 1 = -22
+#define COMMAND_COUNT                      (-(COMMAND_UNKNOWN))                 // -22
 
 // Exit types for processCommand
 typedef enum
@@ -1670,7 +1685,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.handleGnssDataTaskCore, "handleGnssDataTaskCore", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.handleGnssDataTaskPriority, "handleGnssDataTaskPriority", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.i2cInterruptsCore, "i2cInterruptsCore", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.measurementScale, "measurementScale", nullptr, }, //Don't show on Config
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.measurementScale, "measurementScale", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printBootTimes, "printBootTimes", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printPartitionTable, "printPartitionTable", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.printTaskStartStop, "printTaskStartStop", nullptr, },
@@ -1768,6 +1783,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.radioPortBaud, "radioPortBaud", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.serialTimeoutGNSS, "serialTimeoutGNSS", nullptr, },
     { 1, 1, 0, 0, 1, 0, 1, ALL, 0, _bool,     0, & settings.enableNmeaOnRadio, "enableNmeaOnRadio", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.usbSerialBaud, "usbSerialBaud", nullptr, },
 
 //                F
 //    i           a
@@ -1788,6 +1804,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // State
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintDuplicateStates, "enablePrintDuplicateStates", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintStates, "enablePrintStates", nullptr, },
+    // DEPRECATED as a way to change modes over the CLI: it only takes effect after a reset.
+    // Apps should use $SPSET,setState,<mode>, which changes modes without a reset (menuCommands.ino)
     { 0, 1, 0, 1, 1, 1, 1, ALL, 1, tSysState, 0, & settings.lastState, "lastState", nullptr, }, // Not inWebConfig - must be changed to 0:3 by createSettingsString
 
     // TCP Client
@@ -2652,6 +2670,9 @@ const uint8_t gpioExpanderSwitch_S5 = 7;         // Controls U61 switch 5: conne
 const uint8_t gpioExpanderNumSwitches = 8;
 
 bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved from CH34x to LoRa
+uint32_t usbSerialBaudActive = 115200; // UART0 rate while connected to USB. Boot at 115200, beginUsbSerial() applies the setting
+uint32_t uart0BaudCurrent = 115200;    // Rate UART0 is currently running at. Maintained by uart0SetBaud()
+const uint32_t loraUart0Baud = 115200; // Torch: UART0 rate while U18 connects UART0 to LoRa
 
 //----------------------------------------
 // Peripherals
@@ -2726,5 +2747,19 @@ uint32_t otaFileBytes;
 // A plain global rather than a Settings member - it must never be sticky/NVM, always
 // starts disabled at boot so a forgotten 'Always update' override can't silently persist.
 bool otaDeveloperOptions = false;
+
+//----------------------------------------
+// Declare forward routines
+//----------------------------------------
+
+bool serverConnectUsingUrl(const char * subsystem,
+                           const char * chip,
+                           const char * url,
+                           NetworkClientSecure &secureClient,
+                           NetworkClient * &stream,
+                           HTTPClient &https,
+                           void (*addHeaders)(HTTPClient &https),
+                           t_http_codes expectedResponseCode,
+                           size_t &fileBytes);
 
 #endif // __SETTINGS_H__

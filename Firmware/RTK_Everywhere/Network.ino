@@ -119,6 +119,7 @@ static const char *networkConsumerTable[] = {
     "UDP_SERVER",
     "WEB_CONFIG",
     "DEVICE_OTA",
+    "LOCAL_UPDATE",
 };
 
 static const int networkConsumerTableEntries = sizeof(networkConsumerTable) / sizeof(networkConsumerTable[0]);
@@ -1102,8 +1103,10 @@ IPAddress networkGetIpAddress()
     IPAddress ip;
 
     // NETIF doesn't capture the IP address of a soft AP
+#ifdef COMPILE_WIFI
     if (wifiSoftApRunning == true && wifiStationRunning == false)
         return WiFi.softAPIP();
+#endif // COMPILE_WIFI
 
     // Get the networkInterfaceTable index
     index = networkPriority;

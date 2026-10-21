@@ -37,12 +37,16 @@ void menuPortsUsb()
         systemPrintf("1) Output GNSS data to USB serial: %s\r\n",
                      settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
 
+        systemPrintf("2) Set USB serial baud rate: %d bps\r\n", settings.usbSerialBaud);
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
             settings.enableGnssToUsbSerial ^= 1;
+        else if (incoming == 2)
+            menuPortsToggleUsbSerialBaud();
 
         else if (incoming == 'x')
             break;
@@ -109,6 +113,8 @@ void menuPortsNoMux()
             // F9P UART2 is limited to RTCM. No need to change settings.enableNmeaOnRadio
         }
 
+        systemPrintf("6) Set USB serial baud rate: %d bps\r\n", settings.usbSerialBaud);
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -171,6 +177,8 @@ void menuPortsNoMux()
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // We may need to enable / disable NMEA
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_OTHER); // Make sure PQTMRTCMIS is enabled on LG290P
         }
+        else if (incoming == 6)
+            menuPortsToggleUsbSerialBaud();
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -228,6 +236,8 @@ void menuPortsMultiplexed()
                          settings.enableNmeaOnRadio ? "Disabled"
                                                     : "Enabled"); // Reverse disabled/enabled to align with prompt
         }
+
+        systemPrintf("7) Set USB serial baud rate: %d bps\r\n", settings.usbSerialBaud);
 
         systemPrintln("x) Exit");
 
@@ -309,6 +319,8 @@ void menuPortsMultiplexed()
             settings.enableNmeaOnRadio ^= 1;
             gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_NMEA); // We may need to enable / disable NMEA
         }
+        else if (incoming == 7)
+            menuPortsToggleUsbSerialBaud();
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -322,6 +334,19 @@ void menuPortsMultiplexed()
     clearBuffer(); // Empty buffer of any newline chars
 
     gnss->beginExternalEvent(); // Update with new settings
+}
+
+// Toggle the USB serial rate between the two allowed rates (see usbSerialBaudIsAllowed)
+void menuPortsToggleUsbSerialBaud()
+{
+    settings.usbSerialBaud = (settings.usbSerialBaud == 115200) ? 921600 : 115200;
+
+    // Save now. Changing the terminal rate often toggles DTR/RTS, resetting the ESP32 before the menus exit.
+    recordSystemSettings();
+
+    // Print at the old rate, then change
+    systemPrintf("USB serial is now %dbps. Change your terminal to match.\r\n", settings.usbSerialBaud);
+    usbSerialSetBaud(settings.usbSerialBaud);
 }
 
 // Configure the behavior of the PPS and INT pins.

@@ -116,6 +116,9 @@ void espNowBeginPairing()
     espNowPrePairingState =
         espNowState; // Once pairing is completed or canceled, we will need to return to the original state
 
+    // Start the shared 30s pairing window - see espNowPairingStartTime's declaration
+    espNowPairingStartTime = millis();
+
     espNowSetState(ESPNOW_PAIRING);
 }
 
@@ -675,9 +678,33 @@ void espNowUpdate()
             espNowSetState(ESPNOW_OFF);
         }
 
+        // Give up after 30s if no peer has been found - applies the same regardless of
+        // whether pairing was requested from the display, serial menu, or Web Config (Web
+        // Config's page also runs its own independent 30s JS timer, so its UI times out
+        // right along with this).
+        if ((millis() - espNowPairingStartTime) > 30000)
+        {
+            espnowRequestPair = false;
+            if (!inMainMenu)
+                systemPrintln("ESP-NOW pairing timed out");
+            paintEspNowPairingTimeout();
+        }
+
         if (espnowRequestPair == false) // The menuRadio can cancel a pairing request. We also end once paired.
         {
-            espNowSetState(espNowPrePairingState); // Return to the original state
+            // Web Config's "Pair Radios" button relies on the auto-enable at the top of
+            // this function to turn ESP-NOW on just for the attempt. If it didn't
+            // succeed, and ESP-NOW wasn't already running before Web Config started,
+            // turn it back off rather than leaving it silently enabled for the rest of
+            // the session - otherwise, return to the original state as usual.
+            if (inWebConfigMode() && espNowEnabledBeforeWebConfig == false && settings.enableEspNow == true)
+            {
+                settings.enableEspNow = false;
+                wifiEspNowOff(__FILE__, __LINE__);
+                espNowSetState(ESPNOW_OFF);
+            }
+            else
+                espNowSetState(espNowPrePairingState); // Return to the original state
         }
         else
         {
@@ -691,7 +718,8 @@ void espNowUpdate()
                 espNowSendPairMessage(
                     espNowBroadcastAddr); // Send unit's MAC address over broadcast, no ack, no encryption
 
-                systemPrintln("Scanning for other radio...");
+                if(!inMainMenu)
+                    systemPrintf("Scanning for other radio on channel %d...\r\n", wifiChannel);
             }
 
             // Callback espNowOnDataReceived() will change state if a MAC is received
@@ -731,6 +759,14 @@ void espNowUpdate()
 
         // Send message directly to the received MAC (not unicast)
         espNowSendPairMessage(espNowReceivedMAC);
+
+        // Let Web Config know a pairing attempt just concluded successfully - it only
+        // watches for peer MAC addresses while a pairing attempt from that page is
+        // active (see main.js's pairingSucceeded()), so this must be a one-shot event
+        // rather than the always-on peer list webServerCreateDynamicDataString() sends
+        // otherwise; a device with a peer from a previous session would falsely report
+        // an immediate "success" the moment the next periodic update went out.
+        espnowNewPeerPaired = true;
 
         // Report success to the CLI
         commandSendStringOkResponse((char *)"SPEXE", (char *)"UPDATEPAIR", (char *)"SUCCESS");

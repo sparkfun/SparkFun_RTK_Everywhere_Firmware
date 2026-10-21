@@ -221,6 +221,8 @@ struct Settings
     bool debugFirmwareUpdate = false;
     int uartReceiveBufferSize = 1024 * 2; // This buffer is filled automatically as the UART receives characters
     bool enableHeapReport = true; // Turn on to display free heap
+    uint32_t dataPortBaud =
+        (115200 * 2); // Default to 230400bps. This interface can be a bottleneck at high fix rates but allows the SD buffer to be reduced to 6k.
     int16_t serialTimeoutGNSS = 1; // In ms - used during serialGNSS->begin. Number of ms to pass of no data before
                                    // hardware serial reports data available.
 } settings;
@@ -502,6 +504,9 @@ const uint8_t gpioExpanderSwitch_S5 = 7;         // Controls U61 switch 5: conne
 const uint8_t gpioExpanderNumSwitches = 8;
 
 bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved from CH34x to LoRa
+uint32_t usbSerialBaudActive = 115200; // UART0 rate while connected to USB. Boot at 115200, beginUsbSerial() applies the setting
+uint32_t uart0BaudCurrent = 115200;    // Rate UART0 is currently running at. Maintained by uart0SetBaud()
+const uint32_t loraUart0Baud = 115200; // Torch: UART0 rate while U18 connects UART0 to LoRa
 
 //----------------------------------------
 // Peripherals
@@ -571,5 +576,24 @@ const char * otaNameEnd = "\"";
 
 bool otaDebugVerbose;
 uint32_t otaFileBytes;
+
+// Firmware Update menu developer options, serial menu only (see OTA_REQUEST_* in OTA.h).
+// A plain global rather than a Settings member - it must never be sticky/NVM, always
+// starts disabled at boot so a forgotten 'Always update' override can't silently persist.
+bool otaDeveloperOptions = false;
+
+//----------------------------------------
+// Declare forward routines
+//----------------------------------------
+
+bool serverConnectUsingUrl(const char * subsystem,
+                           const char * chip,
+                           const char * url,
+                           NetworkClientSecure &secureClient,
+                           NetworkClient * &stream,
+                           HTTPClient &https,
+                           void (*addHeaders)(HTTPClient &https),
+                           t_http_codes expectedResponseCode,
+                           size_t &fileBytes);
 
 #endif // __SETTINGS_H__

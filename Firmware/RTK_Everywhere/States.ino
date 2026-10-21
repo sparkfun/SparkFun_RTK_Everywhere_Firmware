@@ -486,8 +486,14 @@ void stateUpdate()
 
             displayWebConfigNotStarted(); // Display immediately while we wait for server to start
 
-            bluetoothEnd();                    // Bluetooth must end to allow enough RAM for AP+STA (firmware check)
-            wifiEspNowOff(__FILE__, __LINE__); // We don't need ESP-NOW during web config
+            bluetoothEnd(); // Bluetooth must end to allow enough RAM for AP+STA (firmware check)
+
+            // We don't need ESP-NOW during web config, other than to support pairing from the
+            // Web Config page itself - remember whether it was already running so that a
+            // pairing attempt that doesn't succeed can restore this instead of leaving
+            // ESP-NOW silently enabled (see ESPNOW.ino's ESPNOW_PAIRING case).
+            espNowEnabledBeforeWebConfig = settings.enableEspNow;
+            wifiEspNowOff(__FILE__, __LINE__);
 
             // The GNSS UART task is left running to allow GNSS receivers to obtain LLh data for 1Hz page updates
             // Stop any running NTRIP Client or Server
@@ -594,10 +600,16 @@ void stateUpdate()
         break;
 
         case (STATE_ESPNOW_PAIRING): {
-            // The ESP-NOW state machine handles the pairing process
-            // Once it exits the pairing process, return to last system state
-            if (espNowIsPairing())
-                // Return to the previous state
+            // The ESP-NOW state machine handles the pairing process. Watch espnowRequestPair
+            // (not espNowIsPairing()) to decide when to leave this screen: turning on the
+            // ESP-NOW radio from cold (as happens when pairing is started from the display or
+            // serial menu, rather than Web Config where WiFi is already running) can take longer
+            // than one state-machine tick, so espNowIsPairing() may still read false for a bit
+            // after pairing has been requested. espnowRequestPair stays true for the whole
+            // attempt and is only cleared on success or explicit cancellation (display, serial
+            // menu, or Web Config), so it doesn't race with ESPNOW.ino's startup.
+            if (espnowRequestPair == false)
+                // Pairing finished (paired) or was canceled - return to the previous state
                 changeState(lastSystemState);
         }
         break;
@@ -775,6 +787,14 @@ void changeState(SystemState newState)
     // Debug print of new state, add leading asterisk for repeated states
     if ((!settings.enablePrintDuplicateStates) && (newState == systemState))
         return;
+
+    // If an ESP-NOW pairing attempt is still in progress and the user is navigating to an
+    // unrelated mode (Rover, Base, Config, etc), cancel it so ESPNOW.ino stops scanning in the
+    // background. STATE_DISPLAY_SETUP and the ESP-NOW pairing states themselves are transient/
+    // related, so passing through them does not cancel an in-progress pairing attempt.
+    if (espnowRequestPair && newState != STATE_DISPLAY_SETUP && newState != STATE_ESPNOW_PAIRING_NOT_STARTED &&
+        newState != STATE_ESPNOW_PAIRING)
+        espnowRequestPair = false;
 
     if (settings.enablePrintStates)
     {

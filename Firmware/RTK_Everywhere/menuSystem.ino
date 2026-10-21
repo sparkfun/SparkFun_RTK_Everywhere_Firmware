@@ -893,7 +893,7 @@ void menuDebugHardware()
         else if (incoming == 'e')
         {
             systemPrintln("Erasing LittleFS and resetting");
-            LittleFS.format();
+            littleFsFormat();
             ESP.restart();
         }
 
@@ -1186,7 +1186,7 @@ void menuDebugSoftware()
         else if (incoming == 'e')
         {
             systemPrintln("Erasing LittleFS and resetting");
-            LittleFS.format();
+            littleFsFormat();
             ESP.restart();
         }
 

@@ -90,7 +90,7 @@ Updating the firmware via Firmware serial menu
 </figcaption>
 </figure>
 
-Firmware can be updated in the System Configuration section of the WiFi Config page, or over the Firmware menu of the serial interface. This makes checking and upgrading a unit very easy.
+Firmware can be updated in the System Configuration section of the WiFi Config page, or over the [Firmware menu](firmware_overview.md) of the serial interface. This makes checking and upgrading a unit very easy.
 
 Additionally, users may opt to check for Beta firmware. This is the latest firmware that may have new features and is meant for testing. Beta firmware is not recommended for units deployed into the field as it may not be stable.
 

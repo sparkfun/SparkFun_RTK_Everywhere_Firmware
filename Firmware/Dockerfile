@@ -162,10 +162,18 @@ RUN cd ./RTK_Everywhere/Patch \
     && cp libmbedx509.a "/root/.arduino15/packages/esp32/tools/esp32-arduino-libs/${ESP_IDF}/esp32/lib/libmbedx509.a" \
     && cp libbt.a "/root/.arduino15/packages/esp32/tools/esp32-arduino-libs/${ESP_IDF}/esp32/lib/libbt.a"
 
-# Update form.h with index_html and main_js
+# Regenerate settingsDefaults.js / webConfigOptimizedSettings.h from settings.h, so
+# CI always builds with the Web Config defaults/platform table in sync with the
+# settings.h checked in for this build (see Firmware/Tools/generate_settings_defaults_js.py)
+RUN cd ./Tools \
+    && python3 generate_settings_defaults_js.py ../RTK_Everywhere/settings.h \
+    ../RTK_Everywhere/AP-Config/src/settingsDefaults.js ../RTK_Everywhere/webConfigOptimizedSettings.h
+
+# Update form.h with index_html, main_js and settingsDefaults.js
 RUN cd ./Tools \
     && python3 index_html_zipper.py ../RTK_Everywhere/AP-Config/index.html ../RTK_Everywhere/form.h \
-    && python3 main_js_zipper.py ../RTK_Everywhere/AP-Config/src/main.js ../RTK_Everywhere/form.h
+    && python3 main_js_zipper.py ../RTK_Everywhere/AP-Config/src/main.js ../RTK_Everywhere/form.h \
+    && python3 settings_defaults_js_zipper.py ../RTK_Everywhere/AP-Config/src/settingsDefaults.js ../RTK_Everywhere/form.h
 
 # Patch ESP32_BleSerial - remove the BLE multiple write characteristics
 RUN sed -i 's|txCharacteristic->setWriteNoResponseProperty(true)|//txCharacteristic->setWriteNoResponseProperty(true)|g' /root/Arduino/libraries/ESP32_BleSerial/src/BleBufferedSerial.cpp

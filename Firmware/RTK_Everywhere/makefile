@@ -67,9 +67,13 @@ DIR_LISTING=ls
 ENABLE_EXECUTION=chmod +x
 TERMINAL_APP=minicom
 TERMINAL_PORT=/dev/ttyUSB0
-TERMINAL_PORT_FACET_FP=/dev/ttyACM2
+TERMINAL_PORT_FACET_FPL=/dev/ttyACM1
+TERMINAL_PORT_FACET_FPM=/dev/ttyACM1
+TERMINAL_PORT_FACET_FPM3=/dev/ttyACM3
+TERMINAL_PORT_FACET_FPX=/dev/ttyACM2
 TERMINAL_PORT_LG290P=/dev/ttyACM0
 TERMINAL_PORT_TORCH=/dev/ttyACM1
+TERMINAL_PORT_TX2=/dev/ttyACM1
 TERMINAL_PARAMS=-b 115200 -8 < /dev/tty
 
 # Linux generic paths
@@ -242,12 +246,12 @@ upload:	$(RTK_BIN_PATH)
         0x10000   $<
 	$(TERMINAL_APP)   -D $(TERMINAL_PORT)   $(TERMINAL_PARAMS)
 
-.PHONY: upload_facet_fp
+.PHONY: upload_facet_fpl
 
-upload_facet_fp:	$(RTK_BIN_PATH)
+upload_facet_fpl:	$(RTK_BIN_PATH)
 	python3 $(ESPTOOL_PATH)esptool.py \
         --chip   esp32 \
-        --port   $(TERMINAL_PORT_FACET_FP) \
+        --port   $(TERMINAL_PORT_FACET_FPL) \
         --baud   921600 \
         --before   default_reset \
         --after   hard_reset \
@@ -260,7 +264,67 @@ upload_facet_fp:	$(RTK_BIN_PATH)
          0x8000   $(BOOT_LOADER_PATH)RTK_Surveyor_Partitions_16MB.bin \
          0xe000   $(BOOT_LOADER_PATH)boot_app0.bin \
         0x10000   $<
-	$(TERMINAL_APP)   -D $(TERMINAL_PORT_FACET_FP)   $(TERMINAL_PARAMS)
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT_FACET_FPL)   $(TERMINAL_PARAMS)
+
+.PHONY: upload_facet_fpm
+
+upload_facet_fpm:	$(RTK_BIN_PATH)
+	python3 $(ESPTOOL_PATH)esptool.py \
+        --chip   esp32 \
+        --port   $(TERMINAL_PORT_FACET_FPM) \
+        --baud   921600 \
+        --before   default_reset \
+        --after   hard_reset \
+        write_flash \
+        --flash_mode dio \
+        --flash_freq 80m \
+        --flash_size detect \
+        --compress \
+         0x1000   $(BOOT_LOADER_PATH)RTK_Surveyor.ino.bootloader.bin \
+         0x8000   $(BOOT_LOADER_PATH)RTK_Surveyor_Partitions_16MB.bin \
+         0xe000   $(BOOT_LOADER_PATH)boot_app0.bin \
+        0x10000   $<
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT_FACET_FPM)   $(TERMINAL_PARAMS)
+
+.PHONY: upload_facet_fpm3
+
+upload_facet_fpm3:	$(RTK_BIN_PATH)
+	python3 $(ESPTOOL_PATH)esptool.py \
+        --chip   esp32 \
+        --port   $(TERMINAL_PORT_FACET_FPM3) \
+        --baud   921600 \
+        --before   default_reset \
+        --after   hard_reset \
+        write_flash \
+        --flash_mode dio \
+        --flash_freq 80m \
+        --flash_size detect \
+        --compress \
+         0x1000   $(BOOT_LOADER_PATH)RTK_Surveyor.ino.bootloader.bin \
+         0x8000   $(BOOT_LOADER_PATH)RTK_Surveyor_Partitions_16MB.bin \
+         0xe000   $(BOOT_LOADER_PATH)boot_app0.bin \
+        0x10000   $<
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT_FACET_FPM3)   $(TERMINAL_PARAMS)
+
+.PHONY: upload_facet_fpx
+
+upload_facet_fpx:	$(RTK_BIN_PATH)
+	python3 $(ESPTOOL_PATH)esptool.py \
+        --chip   esp32 \
+        --port   $(TERMINAL_PORT_FACET_FPX) \
+        --baud   921600 \
+        --before   default_reset \
+        --after   hard_reset \
+        write_flash \
+        --flash_mode dio \
+        --flash_freq 80m \
+        --flash_size detect \
+        --compress \
+         0x1000   $(BOOT_LOADER_PATH)RTK_Surveyor.ino.bootloader.bin \
+         0x8000   $(BOOT_LOADER_PATH)RTK_Surveyor_Partitions_16MB.bin \
+         0xe000   $(BOOT_LOADER_PATH)boot_app0.bin \
+        0x10000   $<
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT_FACET_FPX)   $(TERMINAL_PARAMS)
 
 .PHONY: upload_lg290p
 
@@ -302,15 +366,36 @@ upload_torch:	$(RTK_BIN_PATH)
         0x10000   $<
 	$(TERMINAL_APP)   -D $(TERMINAL_PORT_TORCH)   $(TERMINAL_PARAMS)
 
+.PHONY: upload_tx2
+
+upload_tx2:	upload_torch
+
 .PHONY:	terminal
 
 terminal:
 	$(TERMINAL_APP)   -D $(TERMINAL_PORT)   $(TERMINAL_PARAMS)
 
-.PHONY:	terminal_lg290p
+.PHONY:	terminal_facet_fpl
 
-terminal_facet_fp:
-	$(TERMINAL_APP)   -D $(TERMINAL_PORT_FACET_FP)   $(TERMINAL_PARAMS)
+terminal_facet_fpl:
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT_FACET_FPL)   $(TERMINAL_PARAMS)
+
+.PHONY:	terminal_facet_fpm
+
+terminal_facet_fpm:
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT_FACET_FPM)   $(TERMINAL_PARAMS)
+
+.PHONY:	terminal_facet_fpm3
+
+terminal_facet_fpm3:
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT_FACET_FPM3)   $(TERMINAL_PARAMS)
+
+.PHONY:	terminal_facet_fpx
+
+terminal_facet_fpx:
+	$(TERMINAL_APP)   -D $(TERMINAL_PORT_FACET_FPX)   $(TERMINAL_PARAMS)
+
+.PHONY:	terminal_lg290p
 
 terminal_lg290p:
 	$(TERMINAL_APP)   -D $(TERMINAL_PORT_LG290P)   $(TERMINAL_PARAMS)
@@ -319,6 +404,10 @@ terminal_lg290p:
 
 terminal_torch:
 	$(TERMINAL_APP)   -D $(TERMINAL_PORT_TORCH)   $(TERMINAL_PARAMS)
+
+.PHONY:	terminal_tx2
+
+terminal_tx2:	terminal_torch
 
 ########
 # Handle crashes

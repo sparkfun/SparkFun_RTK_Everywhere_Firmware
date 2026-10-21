@@ -696,6 +696,8 @@ bool x20pFirmwareUpdateBegin()
     if (x20pEnterBootloaderMode() == false)
         return false;
 
+    // Start writing from the beginning of the firmware area
+    x20pCurrentAddress = FW_BASE_ADDR;
     return true;
 }
 
@@ -741,16 +743,24 @@ bool x20pFirmwareUpdateEnd()
  * function and do not need to know about Begin()/End().
  *
  * Returns true upon successful firmware update and false upon failure.
- *
- * The generic process is:
- * 1) Call the updateFirmwareBegin function to erase the flash on the device
- * 2) Call firmwareUpdateProgressReset to initialize the progress bar and set
- *    the file size
- * 3) Loop reading firmware from the stream and writing it to the device, call
- *    firmwareUpdateProgressCallback to update the progress bar
- * 4) Call the updateFirmwareEnd function to complete the flash write operation
- * 5) Display the flash write status
  */
+
+//----------------------------------------
+// Reads packetBytes from an already-open HTTP stream and feeds them to the device,
+// reporting progress as it goes.
+//
+// The generic process is:
+// 1) Call the updateFirmwareBegin function to erase the flash on the device
+// 2) Call firmwareUpdateProgressReset to initialize the progress bar and set
+//    the file size
+// 3) Loop reading firmware from the stream and writing it to the device, call
+//    firmwareUpdateProgressCallback to update the progress bar
+// 4) Call the updateFirmwareEnd function to complete the flash write operation
+// 5) Display any error message
+// 6) Return the flash update success status (true/false) to the flash update
+//    routine
+// 7) The flash update routine display the final flash update operation status
+//----------------------------------------
 bool x20pStreamFirmware(const char * subsystem,
                         const char * chip,
                         NetworkClient * stream,
@@ -758,10 +768,12 @@ bool x20pStreamFirmware(const char * subsystem,
                         uint8_t * buffer,
                         size_t packetBytes)
 {
+    size_t remainingBytes;
     bool success;
 
     do
     {
+        remainingBytes = fileBytes;
         success = false;
 
         // Display the parameters
@@ -770,18 +782,6 @@ bool x20pStreamFirmware(const char * subsystem,
             systemPrintf("fileBytes: %d\r\n", fileBytes);
             systemPrintf("packetBytes: %d\r\n", packetBytes);
         }
-
-        // Enter the bootloader and erase flash before opening the GitHub connection.
-        // This sequence involves two hardware resets and autobaud probing and can take
-        // 30+ seconds; opening the HTTPS GET first and leaving it idle that long risked
-        // the connection going stale (and a stalled TLS read blocking forever) before a
-        // single body byte was ever consumed.
-        if (x20pFirmwareUpdateBegin() == false)
-        {
-            systemPrintf("ERROR: %s failed to enter bootloader mode.\r\n", chip);
-            break;
-        }
-        systemPrintf("%s is in bootloader mode.\r\n", chip);
 
         // Initialize the progress bar
         firmwareUpdateProgressReset(fileBytes);
@@ -793,7 +793,7 @@ bool x20pStreamFirmware(const char * subsystem,
         // data is available.
         unsigned long lastDataTime = millis();
         size_t validData = 0;
-        while (fileBytes > 0)
+        while (remainingBytes > 0)
         {
             // Wait until some data is available
             size_t availableBytes = stream->available();
@@ -809,7 +809,7 @@ bool x20pStreamFirmware(const char * subsystem,
                 // Check for network timeout
                 if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
                 {
-                    systemPrintf("ERROR: Timed out waiting for data\r\n");
+                    systemPrintln("ERROR: Timed out waiting for data");
                     break;
                 }
                 yield();
@@ -831,7 +831,7 @@ bool x20pStreamFirmware(const char * subsystem,
             validData += bytesRead;
 
             // Fill the packet
-            if ((validData < packetBytes) && (validData != fileBytes))
+            if ((validData < packetBytes) && (validData != remainingBytes))
                 continue;
 
             // Update this portion of the firmware
@@ -845,14 +845,14 @@ bool x20pStreamFirmware(const char * subsystem,
             firmwareUpdateProgressCallback(subsystem, chip, validData);
 
             // Account for this data
-            fileBytes -= validData;
+            remainingBytes -= validData;
             lastDataTime = millis();
             validData = 0;
         }
-        if (fileBytes)
+        if (remainingBytes)
             break;
 
-        // Complete the flash update transaction
+        // Notify the bootloader that the flash image is uploaded
         if (x20pFirmwareUpdateEnd() == false)
             break;
 
@@ -860,8 +860,17 @@ bool x20pStreamFirmware(const char * subsystem,
     } while (0);
 
     // Display the number of bytes remaining
-    if (fileBytes && settings.debugFirmwareUpdate)
-        systemPrintf("fileBytes: %d\r\n", fileBytes);
+    if (remainingBytes && settings.debugFirmwareUpdate)
+        systemPrintf("remainingBytes: %d\r\n", remainingBytes);
+
+    // Reboot (fire-and-forget - device does not send a response)
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Rebooting %s (%s)...\r\n", subsystem, chip);
+    x20pSend(*serialGNSS, UBX_CLASS_UPD, 0x0E, nullptr, 0); // Reboot
+
+    // Display the version number
+    x20pDisplayVersion(subsystem, chip);
+
     return success;
 }
 
@@ -870,119 +879,53 @@ bool x20pStreamFirmware(const char * subsystem,
 // Owns the full update sequence: enters bootloader mode, streams the image
 // over WiFi, then verifies/reboots - callers only need to call this one
 // function and do not need to know about Begin()/End().
+//
+// Structure:
+//   1. Verify the URL
+//   2. Connect to the web server
+//   3. Get the file size
+//   4. Stream the file to the chip
+//   5. Display the final firmware update status
 //----------------------------------------
-bool x20pFirmwareUpdate(const char * subsystem,
+bool otaFirmwareUpdate(const char * subsystem,
                         const char * chip,
                         const char * url,
                         uint8_t * buffer,
                         size_t packetBytes)
 {
-    const char * cert;
-    NetworkClientSecure client;
-    const char * errorMsg;
     size_t fileBytes;
-    HTTPClient http;
-    String ipAddressString;
-    const char * ipAddress;
-    char msgBuffer[128];
-    const char * server;
-    String serverString;
+    HTTPClient https;
+    NetworkClientSecure secureClient;
     NetworkClient * stream;
     bool success;
 
     do
     {
         success = false;
-        errorMsg = nullptr;
 
         // Verify that a URL was specified
         if(settings.debugFirmwareUpdate)
             systemPrintf("URL: %s\r\n", url ? url : "[nullptr]");
         if ((url == nullptr) || (strlen(url) == 0))
         {
-            errorMsg = "ERROR: No URL was specified!";
+            systemPrintln("ERROR: No URL was specified!");
             break;
         }
 
-        // Locate the server for this URL
-        serverString = getServerFromUrl(url);
-        if (serverString.length() == 0)
+        // Connect to the web server and get the file size and stream
+        if (serverConnectUsingUrl(subsystem,
+                                  chip,
+                                  url,
+                                  secureClient,
+                                  stream,
+                                  https,
+                                  nullptr,
+                                  HTTP_CODE_OK,
+                                  fileBytes) == false)
         {
-            errorMsg = "ERROR: Failed to find server name in URL string";
-            break;
-        }
-        server = serverString.c_str();
-
-        // Translate the server name into an IP address
-        ipAddressString = getServerIpAddress(server);
-        if (ipAddressString.length() == 0)
-        {
-            errorMsg = "Failed to get the IP address for the server\r\n";
-            break;
-        }
-        ipAddress = ipAddressString.c_str();
-
-        // Determine if the certificate is known for this server
-        cert = getCertFromUrl(url);
-        if(settings.debugFirmwareUpdate)
-            systemPrintf("Certificate: %s\r\n", cert ? "available" : "none");
-
-        // Use an encrypted and verified connection when possible
-        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-        if (cert)
-        {
-            // Verify the server using the certificate
-            if (!securelyConnectToServer(url, client, cert))
-            {
-                //                           1         2         3         4         5         6         7         8         9
-                //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-                sprintf(msgBuffer, "ERROR: Failed to securely connect to %s (%s)", server, ipAddress);
-                errorMsg = msgBuffer;
-                break;
-            }
-
-            // Request the URL from the web server
-            if (!http.begin(client, url))
-            {
-                errorMsg = "ERROR: unable to begin HTTPS request.";
-                break;
-            }
-        }
-
-        // Request the URL from the web server
-        else if (!http.begin(url))
-        {
-            errorMsg = "ERROR: Unable to begin HTTP request.";
-            break;
-        }
-
-        // Get the web server's response
-        int httpCode = http.GET();
-        if (httpCode != HTTP_CODE_OK)
-        {
-            //                           1         2         3         4         5         6         7         8         9
-            //                  123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
-            sprintf(msgBuffer, "ERROR: Update failed HTTP GET request, code: %d", httpCode);
-            errorMsg = msgBuffer;
-            break;
-        }
-
-        // Get the file size
-        fileBytes = http.getSize();
-        if (settings.debugFirmwareUpdate)
-            systemPrintf("File size: %d (0x%08x) bytes\r\n", fileBytes, fileBytes);
-        if (fileBytes <= 0)
-        {
-            errorMsg = "ERROR: Web server did not report a file size.";
             break;
         }
         otaFileBytes = fileBytes;
-
-        // Get the connection to the file data
-        stream = http.getStreamPtr();
-
-        // Display the firmware update being attempted
-        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
 
         // Start the firmware update and display any streaming errors
         if (x20pStreamFirmware(subsystem,
@@ -994,29 +937,59 @@ bool x20pFirmwareUpdate(const char * subsystem,
         {
             break;
         }
-
         success = true;
     } while (0);
-
-    // Display the remote connection error
-    if (errorMsg)
-        systemPrintf("%s\r\n", errorMsg);
 
     // Display the firmware update status
     systemPrintln(otaEqualSigns);
     if (success)
-        systemPrintf("%s (%s) firmware update completed successfully\r\n", chip, subsystem);
+        systemPrintf("%s (%s) firmware update completed successfully\r\n", subsystem, chip);
     else
-        systemPrintf("%s (%s) firmware update failed!\r\n", chip, subsystem);
-
-    // Display the version number
-    if (success)
-        x20pDisplayVersion(subsystem, chip);
+        systemPrintf("%s (%s) firmware update failed!\r\n", subsystem, chip);
     systemPrintln(otaEqualSigns);
 
     // Release the resources
-    http.end();
+    https.end();
+
     return success;
+}
+
+//----------------------------------------
+// Update the X20P firmware
+// Owns the full update sequence: enters bootloader mode, streams the image
+// over WiFi, then verifies/reboots - callers only need to call this one
+// function and do not need to know about Begin()/End().
+//
+// Structure:
+//   1. Verify the URL
+//   2. Connect to the web server
+//   3. Get the file size
+//   4. Stream the file to the chip
+//   5. Display the final firmware update status
+//----------------------------------------
+bool x20pFirmwareUpdate(const char * subsystem,
+                        const char * chip,
+                        const char * url,
+                        uint8_t * buffer,
+                        size_t packetBytes)
+{
+        // Display the firmware update being attempted
+        systemPrintf("Updating %s (%s)\r\n", subsystem, chip);
+
+        // Enter the bootloader and erase flash before opening the GitHub connection.
+        // This sequence involves two hardware resets and autobaud probing and can take
+        // 30+ seconds; opening the HTTPS GET first and leaving it idle that long risked
+        // the connection going stale (and a stalled TLS read blocking forever) before a
+        // single body byte was ever consumed.
+        systemPrintf("%s (%s) entering bootloader mode...\r\n", subsystem, chip);
+        if (x20pFirmwareUpdateBegin() == false)
+        {
+            systemPrintf("%s (%s) failed to enter bootloader mode.\r\n", subsystem, chip);
+            return false;
+        }
+        systemPrintf("%s (%s) is in bootloader mode.\r\n", subsystem, chip);
+
+        return otaFirmwareUpdate(subsystem, chip, url, buffer, packetBytes);
 }
 
 //----------------------------------------
@@ -1042,6 +1015,13 @@ void x20pDisplayVersion(const char * subsystem, const char * chip)
 
 //----------------------------------------
 // Perform the flash update using an array
+//
+// Structure:
+//   1. Initialize the array
+//   2. Get the file size
+//   3. Get the stream for the file data
+//   4. Stream the file to the chip
+//   5. Display the final firmware update status
 //----------------------------------------
 bool x20pArrayFlashUpdate(const char * subsystem,
                           const char * chip,
@@ -1067,7 +1047,20 @@ bool x20pArrayFlashUpdate(const char * subsystem,
         stream = (NetworkClient *)&dataArray;
 
         // Display the firmware update being attempted
-        systemPrintf("Updating %s (%s)\r\n", chip, subsystem);
+        systemPrintf("Updating %s (%s)\r\n", subsystem, chip);
+
+        // Enter the bootloader and erase flash before opening the GitHub connection.
+        // This sequence involves two hardware resets and autobaud probing and can take
+        // 30+ seconds; opening the HTTPS GET first and leaving it idle that long risked
+        // the connection going stale (and a stalled TLS read blocking forever) before a
+        // single body byte was ever consumed.
+        systemPrintf("%s (%s) entering bootloader mode...\r\n", subsystem, chip);
+        if (x20pFirmwareUpdateBegin() == false)
+        {
+            systemPrintf("%s (%s) failed to enter bootloader mode.\r\n", subsystem, chip);
+            break;
+        }
+        systemPrintf("%s (%s) is in bootloader mode.\r\n", subsystem, chip);
 
         // Start the firmware update and display any streaming errors
         if (x20pStreamFirmware(subsystem,
@@ -1086,13 +1079,9 @@ bool x20pArrayFlashUpdate(const char * subsystem,
     // Display the firmware update status
     systemPrintln(otaEqualSigns);
     if (success)
-        systemPrintf("%s (%s) firmware update completed successfully\r\n", chip, subsystem);
+        systemPrintf("%s (%s) firmware update completed successfully\r\n", subsystem, chip);
     else
-        systemPrintf("%s (%s) firmware update failed!\r\n", chip, subsystem);
-
-    // Display the version number
-    if (success)
-        x20pDisplayVersion(subsystem, chip);
+        systemPrintf("%s (%s) firmware update failed!\r\n", subsystem, chip);
     systemPrintln(otaEqualSigns);
 
     return success;

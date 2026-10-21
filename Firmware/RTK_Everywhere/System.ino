@@ -17,28 +17,6 @@ static uint32_t lastHeapReport;      // Report heap every 1s if option enabled
 //====================== Firmware Update Support ======================
 
 //----------------------------------------
-// Convert firmware update device/chip names into OLED subsystem labels
-//----------------------------------------
-const char * firmwareUpdateDisplayName(const char * chipOrSubsystemName)
-{
-    if (strcmp(chipOrSubsystemName, "ESP32") == 0)
-        return "System";
-    if ((strcmp(chipOrSubsystemName, "LG290P") == 0)
-        || (strcmp(chipOrSubsystemName, "Mosaic-X5") == 0)
-        || (strcmp(chipOrSubsystemName, "UM980") == 0)
-        || (strcmp(chipOrSubsystemName, "ZED-F9P") == 0)
-        || (strcmp(chipOrSubsystemName, "X20P") == 0)
-        || (strcmp(chipOrSubsystemName, "ZED-X20P") == 0))
-        return "GNSS";
-    if ((strcmp(chipOrSubsystemName, "LoRa/STM32") == 0)
-        || (strcmp(chipOrSubsystemName, "LoRa-STM32WL") == 0))
-        return "LoRa";
-    if (strcmp(chipOrSubsystemName, "IM19") == 0)
-        return "IMU";
-    return chipOrSubsystemName;
-}
-
-//----------------------------------------
 // Resets the progress-bar state. Must be called once at the start of each
 // firmware update - these otherwise carry over from the previous update
 // (bytesProcessed and lastPercent both already at their prior-run end
@@ -69,7 +47,8 @@ void firmwareUpdateStatusWebsocket(const char * status, const char * message)
 // Callback for all firmware update targets. Called with the number of
 // bytes just written to flash. Used to track and print progress.
 //----------------------------------------
-void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
+void firmwareUpdateProgressCallback(const char * subsystem,
+                                    const char * chip,
                                     uint16_t bytesProcessed)
 {
     const uint8_t progressBarWidth = 20;
@@ -91,7 +70,11 @@ void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
 
     firmwareUpdateLastPercent = progressPercent;
 
-    systemPrintf("%s Update Progress: [", chipOrSubsystemName);
+    // Report progress to $SPGET,updateStatus (OTA_Local.ino)
+    otaLocalProgress(progressPercent);
+
+    systemPrintf("%s (%s) Update Progress: [", subsystem, chip);
+
     for (uint8_t i = 0; i < progressBarWidth; i++)
         systemWrite(i < filled ? '#' : '-');
 
@@ -100,25 +83,20 @@ void firmwareUpdateProgressCallback(const char * chipOrSubsystemName,
     systemPrintln("%");
 
     // Update the display
-    displayFirmwareUpdateProgress(firmwareUpdateDisplayName(chipOrSubsystemName), progressPercent);
+    displayFirmwareUpdateProgress(subsystem, progressPercent);
 
     // Report progress to the Web Config socket
     if (apConfigFirmwareUpdateInProcess == true)
     {
         char myProgress[50];
 
-        if (strcmp(chipOrSubsystemName, "ESP32") == 0)
+        if (strcmp(subsystem, "SOC") == 0)
             snprintf(myProgress, sizeof(myProgress), "espOtaFirmwareStatus,%d,", progressPercent);
-        else if ((strcmp(chipOrSubsystemName, "LG290P") == 0)
-                 || (strcmp(chipOrSubsystemName, "Mosaic-X5") == 0)
-                 || (strcmp(chipOrSubsystemName, "UM980") == 0)
-                 || (strcmp(chipOrSubsystemName, "ZED-F9P") == 0)
-                  || (strcmp(chipOrSubsystemName, "X20P") == 0)
-                 || (strcmp(chipOrSubsystemName, "ZED-X20P") == 0))
+        else if (strcmp(subsystem, "GNSS") == 0)
             snprintf(myProgress, sizeof(myProgress), "gnssOtaFirmwareStatus,%d,", progressPercent);
-        else if (strcmp(chipOrSubsystemName, "LoRa/STM32") == 0)
+        else if (strcmp(subsystem, "LoRa") == 0)
             snprintf(myProgress, sizeof(myProgress), "loraOtaFirmwareStatus,%d,", progressPercent);
-        else if (strcmp(chipOrSubsystemName, "IM19") == 0)
+        else if (strcmp(subsystem, "IMU") == 0)
             snprintf(myProgress, sizeof(myProgress), "imuOtaFirmwareStatus,%d,", progressPercent);
         else
             myProgress[0] = 0;
@@ -301,16 +279,175 @@ bool securelyConnectToServer(const char * url,
     client.stop();
     return true;
 }
+
+//----------------------------------------
+// Connect to the remote web server specified by the URL.
+// Return the file length if possible.
+//----------------------------------------
+bool serverConnectUsingUrl(const char * subsystem,
+                           const char * chip,
+                           const char * url,
+                           NetworkClientSecure &secureClient,
+                           NetworkClient * &stream,
+                           HTTPClient &https,
+                           void (*addHeaders)(HTTPClient &https),
+                           t_http_codes expectedResponseCode,
+                           size_t &fileBytes)
+{
+    int attempt;
+    int httpResponseCode;
+    bool success;
+
+    do
+    {
+        success = false;
+        stream = nullptr;
+        fileBytes = 0;
+
+        // Verify that a URL was specified
+        if(settings.debugFirmwareUpdate)
+            systemPrintf("URL: %s\r\n", url ? url : "[nullptr]");
+        if ((url == nullptr) || (strlen(url) == 0))
+        {
+            systemPrintln("ERROR: No URL was specified!");
+            break;
+        }
+
+        // Locate the server for this URL
+        String serverString = getServerFromUrl(url);
+        if (serverString.length() == 0)
+        {
+            systemPrintln("ERROR: Failed to find server name in URL string");
+            break;
+        }
+        const char * server = serverString.c_str();
+
+        // Translate the server name into an IP address
+        String ipAddressString = getServerIpAddress(server);
+        if (ipAddressString.length() == 0)
+        {
+            systemPrintln("Failed to get the IP address for the server");
+            break;
+        }
+        const char * ipAddress = ipAddressString.c_str();
+
+        // Determine if the certificate is known for this server
+        const char * cert = getCertFromUrl(url);
+        if(settings.debugFirmwareUpdate)
+            systemPrintf("Certificate: %s\r\n", cert ? "available" : "none");
+
+        // Verify the server using the certificate
+        if (cert)
+        {
+            // Bound the connect/read/write and TLS handshake time. HTTPClient's
+            // defaults (30 s socket / 120 s handshake) mean a stalled server can
+            // block a single attempt for up to two minutes, times 3 retries below.
+            secureClient.setTimeout(10000);       // milliseconds: TCP connect + socket read/write
+            secureClient.setHandshakeTimeout(15); // seconds: TLS handshake
+
+            // Set the certificate
+            secureClient.setCACert(cert);
+
+            // Hand the not-yet-connected client straight to HTTPClient rather than
+            // preflighting a connect() here: HTTPClient::begin() unconditionally
+            // stops any already-connected socket it's handed (beginInternal() in
+            // arduino-esp32's HTTPClient.cpp forces _canReuse = false and calls
+            // disconnect() the first time a client is bound), so a separate
+            // connect-then-stop pass here would just pay for the TLS handshake
+            // twice. The GET retry loop below performs the (single) real connect
+            // and already retries 3x on failure.
+        }
+
+        // Retry the connection up to 3 times
+        const int attemptMax = 3;
+        for (int attempt = 1; attempt <= attemptMax; attempt++)
+        {
+            bool beginSuccess;
+
+            // Build the request for the web server
+            beginSuccess = cert ? https.begin(secureClient, url) : https.begin(url);
+            if (beginSuccess == false)
+            {
+                systemPrintln("ERROR: Failed to set the URL for the web server!\r\n");
+                break;
+            }
+
+            // Tell the HTTP layer to follow redirect links returned by the web server
+            https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+
+            // Add additional request headers
+            if (addHeaders)
+                addHeaders(https);
+
+            // Send the request to the web server and get the web server's response
+            httpResponseCode = https.GET();
+            if (httpResponseCode >= 0)
+                break;
+
+            // Display the error message
+            if (settings.debugFirmwareUpdate)
+            {
+                systemPrintf("ERROR: HTTP GET failed, attempt %d of 3: %d (%s)\r\n",
+                             attempt, httpResponseCode,
+                             https.errorToString(httpResponseCode).c_str());
+                if (attempt < 3)
+                    delay(500);
+            }
+
+            // Handle the error
+            https.end();
+            secureClient.stop();
+        }
+        if (attempt > attemptMax)
+            break;
+
+        // Display the error
+        if ((httpResponseCode == expectedResponseCode) && settings.debugFirmwareUpdate)
+            systemPrintf("HTTP Response code: %d (%s)\r\n", httpResponseCode,
+                         https.errorToString(httpResponseCode).c_str());
+
+        // Handle the error from the web server
+        if (httpResponseCode != expectedResponseCode)
+        {
+            systemPrintf("Web server response %d: %s\r\n", httpResponseCode,
+                         https.errorToString(httpResponseCode).c_str());
+            if (httpResponseCode == HTTP_CODE_OK)
+                // A 200 here means the server ignored our Range request and is about to send
+                // the whole file from byte 0 - streaming that into this offset would corrupt
+                // the image, so bail rather than guess.
+                systemPrintf("HTTP range request failed, code: %d, fileBytes: %d\r\n",
+                             httpResponseCode, https.getSize());
+            break;
+        }
+
+        // Get the file size
+        fileBytes = https.getSize();
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("File size: %d (0x%08x) bytes\r\n", fileBytes, fileBytes);
+        if ((ssize_t)fileBytes <= 0)
+        {
+            systemPrintln("ERROR: Web server did not report a file size.");
+            break;
+        }
+
+        // Get the stream
+        stream = https.getStreamPtr();
+        success = true;
+    } while (0);
+
+    return success;
+}
+
 #endif // COMPILE_NETWORK
 
 //----------------------------------------
-// Extract the web server from the URL
+// Extract the web server from the URL, without any port number
 //----------------------------------------
 String getServerFromUrl(const char * url)
 {
     const char * http = "http://";
     const char * https = "https://";
-    int index;
+    size_t index;
     size_t length;
     size_t pos;
 
@@ -319,7 +456,8 @@ String getServerFromUrl(const char * url)
         return String("");
 
     index = 0;
-    length = strlen(url) - pos;
+    pos = 0;
+    length = strlen(url);
     char server[length + 1];
     if (strncmp(url, https, strlen(https)) == 0)
         pos = strlen(https);
@@ -332,7 +470,7 @@ String getServerFromUrl(const char * url)
         {
             if (server[index] == 0)
                 break;
-            if (server[index] == '/')
+            if ((server[index] == '/') || (server[index] == ':')) // End of the host name
                 break;
         }
     }
@@ -778,7 +916,7 @@ void rtkValidateHeap(const char *string)
         heap_caps_check_integrity(MALLOC_CAP_INTERNAL, true);
         systemPrintf("Checking PSRAM heap\r\n");
         heap_caps_check_integrity(MALLOC_CAP_SPIRAM, true);
-        reportFatalError("Corrupt heap!");
+        reportCorruptHeap("Corrupt heap!");
     }
 }
 
@@ -1669,7 +1807,10 @@ void systemReset()
 }
 
 //----------------------------------------
-// Print the error message every 15 seconds
+// Print the error message every 15 seconds. Used for all fatal errors except
+// heap corruption (see reportCorruptHeap below) - these are "should never
+// happen" conditions (bad pin config, table mismatches, etc) where we'd
+// rather freeze for inspection than reboot into an unknown state.
 //----------------------------------------
 void reportFatalError(const char *errorMsg)
 {
@@ -1699,6 +1840,94 @@ void reportFatalError(const char *errorMsg)
         if (Serial.available() && (Serial.read() == '\r'))
             systemReset();
     }
+}
+
+//----------------------------------------
+// RTC memory survives ESP.restart() (a software reboot) but is cleared by a
+// power-cycle or brownout. Used to notice when the unit keeps hitting heap
+// corruption before ever finishing setup() - a boot loop - so we can stop
+// rebooting into the same corrupt state and factory reset instead.
+//----------------------------------------
+#define HEAP_ERROR_BOOT_LOOP_MAGIC 0x52544B31 // 'RTK1' - marks the RTC fields below as valid
+#define HEAP_ERROR_BOOT_LOOP_LIMIT 3          // Consecutive heap-corruption halts before we auto factory reset
+#define HEAP_ERROR_REBOOT_SECONDS 5           // Seconds to show the halt message before auto-rebooting
+
+RTC_NOINIT_ATTR uint32_t heapErrorBootLoopMagic;
+RTC_NOINIT_ATTR uint32_t heapErrorBootLoopCount;
+
+//----------------------------------------
+// Call once setup() completes successfully so only heap corruption that
+// keeps recurring before we get that far is treated as a boot loop
+//----------------------------------------
+void fatalErrorBootLoopClear()
+{
+    heapErrorBootLoopMagic = HEAP_ERROR_BOOT_LOOP_MAGIC;
+    heapErrorBootLoopCount = 0;
+}
+
+//----------------------------------------
+// Heap corruption is unlike the other fatal errors above: continuing to run
+// risks further corruption, but freezing forever bricks an unattended unit,
+// and a corrupt heap is often a symptom of corrupt settings/LFS that will
+// reproduce on every boot. So: display the error, give a connected user a
+// few seconds to intervene over serial, then auto-reboot. If we keep
+// landing back here without a clean boot in between, factory reset instead
+// of looping on the same failure forever.
+//----------------------------------------
+void reportCorruptHeap(const char *errorMsg)
+{
+    displayHalt();
+
+    // Settings may be corrupt, so give the recovery prompt at the default rate
+    usbSerialSetBaud(115200);
+
+    // Empty the FIFO of any incoming data
+    serialInputClear(&Serial);
+
+    // Uninitialized RTC memory (power-on/brownout) looks random - only trust
+    // the counter when our marker is present
+    if (heapErrorBootLoopMagic != HEAP_ERROR_BOOT_LOOP_MAGIC)
+    {
+        heapErrorBootLoopMagic = HEAP_ERROR_BOOT_LOOP_MAGIC;
+        heapErrorBootLoopCount = 0;
+    }
+    heapErrorBootLoopCount++;
+
+    systemPrintf("HALTED: %s\r\n", errorMsg);
+
+    // Repeated heap corruption with no successful boot in between points to
+    // corrupt settings/LFS rather than a one-off glitch
+    if (heapErrorBootLoopCount >= HEAP_ERROR_BOOT_LOOP_LIMIT)
+    {
+        systemPrintf("Corrupt heap %d times in a row without a successful boot - factory resetting\r\n",
+                     heapErrorBootLoopCount);
+        factoryReset(false); // Erases settings and reboots - does not return
+    }
+
+    systemPrintf("Rebooting in %d seconds. Press any key to pause, then 'f' to factory reset.\r\n",
+                 HEAP_ERROR_REBOOT_SECONDS);
+
+    // Countdown to auto-reboot, but let a connected user pause and choose a factory reset
+    uint32_t countdownStartMsec = millis();
+    while ((millis() - countdownStartMsec) < (HEAP_ERROR_REBOOT_SECONDS * MILLISECONDS_IN_A_SECOND))
+    {
+        if (Serial.available())
+        {
+            Serial.read(); // Consume the key that paused the countdown
+            systemPrintln("Paused. Press 'f' to factory reset, or any other key to reboot now.");
+
+            while (!Serial.available())
+                delay(10); // Wait for the user's decision
+
+            if (Serial.read() == 'f')
+                factoryReset(false); // Does not return
+
+            break; // Any other key: stop waiting and reboot below
+        }
+        delay(10);
+    }
+
+    systemReset(); // Soft reboot
 }
 
 //----------------------------------------
@@ -1920,9 +2149,13 @@ void muxSelectUsb()
         //                    .--(1) <--> U11 (0) <--> LoRa UART 2
         // ESP32 UART 0 <--> U18 (0) <--> CH340 <--> USB serial
         //
+        Serial.flush(); // Finish any LoRa transmission before changing the mux
+
         pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
         digitalWrite(pin_muxA, LOW); // ESP UART1 <--> UM980 UART3
         digitalWrite(pin_muxB, LOW); // ESP UART0 <--> CH340 <--> USB serial
+
+        uart0SetBaud(usbSerialBaudActive, SERIAL_8N1); // LoRa runs at loraUart0Baud, USB may differ
 
         usbSerialIsSelected = true; // Let other print operations know we are connected to the CH34x
     }
@@ -1933,7 +2166,7 @@ void muxSelectUsb()
 //        Connect ESP UART 1 to UM980 UART 3
 // On Facet, startLoRaConfigureCommunicationOnFacet() is called separately
 //----------------------------------------
-void muxSelectLoRaCommunication()
+void muxSelectLoRaCommunication(uint32_t serialConfig)
 {
     if (productVariant == RTK_TORCH)
     {
@@ -1946,9 +2179,13 @@ void muxSelectLoRaCommunication()
         //                    .--(1) <--> U11 (0) <--> LoRa UART 2
         // ESP32 UART 0 <--> U18 (0) <--> CH340 <--> USB serial
         //
+        Serial.flush(); // Finish any USB prints before changing the mux
+
         pinMode(pin_muxB, OUTPUT); // Make really sure we can control this pin
         digitalWrite(pin_muxA, LOW);  // ESP UART1 <--> UM980 UART3
         digitalWrite(pin_muxB, HIGH); // ESP UART0 <--> LoRa UART2
+
+        uart0SetBaud(loraUart0Baud, serialConfig); // USB may be running at a different rate
 
         usbSerialIsSelected = false; // Let other print operations know we are not connected to the CH34x
     }
@@ -1981,15 +2218,19 @@ void muxSelectLoRaConfigure()
 //----------------------------------------
 // Display the MUX configuration
 //----------------------------------------
-void muxDisplayConfiguration()
+void muxDisplayConfiguration(int muxA, int muxB)
 {
-    int muxA = digitalRead(pin_muxA);
-    int muxB = digitalRead(pin_muxB);
-
     if (productVariant == RTK_TORCH)
     {
         const char * uart0;
         const char * uart1;
+
+        // Connect ESP32 UART 0 to the CH340 (USB)
+        if (muxB)
+        {
+            Serial.flush();
+            digitalWrite(pin_muxB, LOW);
+        }
 
         //                      MUX A
         //                    .--(1) <--> LoRa UART 1
@@ -2009,6 +2250,13 @@ void muxDisplayConfiguration()
         // Display the UART configuration
         systemPrintf("ESP32 UART 0: %s\r\n", uart0);
         systemPrintf("ESP32 UART 1: %s\r\n", uart1);
+
+        // Restore the ESP32 UART 0 connection
+        if (muxB)
+        {
+            Serial.flush();
+            digitalWrite(pin_muxB, muxB);
+        }
     }
     else if (productVariant == RTK_FACET_MOSAIC)
     {
@@ -2290,6 +2538,10 @@ void gpioExpanderGnssResetFast()
 //----------------------------------------
 void gpioExpanderSelectImu()
 {
+    //                       SW3
+    //                    .--(1) <--> LoRa UART 1
+    // ESP32 UART 1 <--> U12 (0) <--> IMU UART 1
+    //
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, LOW);
 }
@@ -2299,6 +2551,10 @@ void gpioExpanderSelectImu()
 //----------------------------------------
 void gpioExpanderSelectLoraConfigure()
 {
+    //                       SW3
+    //                    .--(1) <--> LoRa UART 1
+    // ESP32 UART 1 <--> U12 (0) <--> IMU UART 1
+    //
     if (online.gpioExpanderSwitches == true)
         gpioExpanderSwitches->digitalWrite(gpioExpanderSwitch_S3, HIGH);
 }
@@ -2696,7 +2952,7 @@ void systemDisplayConfiguration()
         gpioExpanderDisplay();
 
     // Display the MUX configuration
-    muxDisplayConfiguration();
+    muxDisplayConfiguration(digitalRead(pin_muxA), digitalRead(pin_muxB));
 
     // Display the microSD support
     if (present.microSd)

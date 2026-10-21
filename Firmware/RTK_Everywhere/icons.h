@@ -1787,6 +1787,46 @@ const uint8_t logoSparkPNT_128x64[] = {
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
+// SparkPNT wordmark, sized for the 184x88 e-paper powered-off screen (displayPoweredOff(),
+// Display.ino). Generated from the vector master (SparkPNT-Black.svg) at 170x24, thresholded to
+// 1-bit - see Firmware/Tools/EPaper_Emulator/render_screens.py's render_logo_grayscale() for the
+// anti-aliased preview this was derived from.
+const uint8_t SparkPNT_PoweredOff_Logo_Height = 24;
+const uint8_t SparkPNT_PoweredOff_Logo_Width = 170;
+const uint8_t SparkPNT_PoweredOff_Logo[] = {
+    0x00, 0xF8, 0xFC, 0xFE, 0x07, 0x07, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x07, 0x07, 0x1E, 0x3C,
+    0x38, 0x20, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
+    0x07, 0x07, 0x0F, 0xFE, 0xFC, 0xF8, 0x00, 0x00, 0x00, 0x00, 0x80, 0xF0, 0xFC, 0x3F, 0x07, 0x0F,
+    0x7F, 0xF8, 0xE0, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF,
+    0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x07, 0x0F, 0xFE, 0xFC, 0xF8, 0x00,
+    0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x80, 0xC0, 0xE0, 0x70, 0x78, 0x3C, 0x1E,
+    0x0F, 0x07, 0x03, 0x01, 0x80, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC, 0xFE, 0xFF, 0xFF, 0x07, 0x07, 0x07,
+    0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x0F, 0x1F, 0x3F, 0xFF, 0xFF,
+    0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x1F, 0x3F, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, 0x07, 0x07,
+    0x07, 0x07, 0x07, 0xFF, 0xFF, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07,
+    0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x87, 0xFE, 0xFC, 0xF8, 0x80, 0x80, 0x81, 0x03, 0x07, 0x07,
+    0x06, 0x0E, 0x0E, 0x0E, 0x0C, 0x1C, 0x1C, 0x1C, 0x38, 0xF8, 0xF0, 0xE0, 0x00, 0x00, 0x00, 0xFF,
+    0xFF, 0xFF, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x1C, 0x1C, 0x1E, 0x0F, 0x07, 0x03,
+    0x00, 0x80, 0xF0, 0xFC, 0xFF, 0xE7, 0xE1, 0xE0, 0xE0, 0xE0, 0xE0, 0xE1, 0xEF, 0xFF, 0xFC, 0xF0,
+    0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x1C,
+    0x1C, 0x3C, 0x7C, 0xEC, 0xEE, 0xC7, 0x07, 0x03, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x38,
+    0x1C, 0x0E, 0x07, 0x0F, 0x1F, 0x7C, 0xF8, 0xE0, 0xC0, 0x80, 0x18, 0x3C, 0x3E, 0x7F, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x0F, 0x0F,
+    0x0F, 0x07, 0x00, 0x00, 0x00, 0x80, 0xC0, 0xF0, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0xE0, 0x80, 0x00, 0x00, 0x01, 0x03, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0x03, 0x0F, 0x1F, 0x3C, 0x38, 0x30, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70,
+    0x70, 0x30, 0x38, 0x1E, 0x1F, 0x07, 0x00, 0x00, 0x00, 0x7F, 0x7F, 0x3F, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x70, 0x7E, 0x3F, 0x0F, 0x01, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x0F, 0x3F, 0x7E, 0x78, 0x00, 0x00, 0x00,
+    0x00, 0x7F, 0x7F, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x07,
+    0x1F, 0x3E, 0x78, 0x70, 0x40, 0x00, 0x3F, 0x7F, 0x7F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x01, 0x07, 0x0F, 0x3E, 0x7C, 0x78, 0x60, 0x00, 0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F,
+    0xFF, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xFE, 0xFE, 0xFE, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xFF, 0xFF, 0xFF, 0xFE, 0xFC, 0xF8,
+    0xF0, 0xE0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC0,
+    0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0x3F, 0x1F};
+
 /*
     ESPNOW_Symbol_3 [8, 13]
 
@@ -2208,26 +2248,26 @@ const uint8_t DynamicModelIconYPos64x48 = 0;
 const uint8_t DynamicModelIconXPos128x64 = 92;
 const uint8_t DynamicModelIconYPos128x64 = 0;
 const uint8_t DynamicModelIconXPos184x88 = 143;
-const uint8_t DynamicModelIconYPos184x88 = 4;
+const uint8_t DynamicModelIconYPos184x88 = 4; // Per-icon nudges below (- 1 / - 2) center each 2x icon's ink on the top row, set from hardware photos
 
 const iconProperties DynamicModel_1_Properties = {{{ &DynamicModel_1_Portable, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
                                                    { &DynamicModel_1_Portable, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 },
-                                                   { &DynamicModel_1_Portable, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 }}};
+                                                   { &DynamicModel_1_Portable, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 - 2 }}};
 const iconProperties DynamicModel_2_Properties = {{{ &DynamicModel_2_Stationary, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
                                                    { &DynamicModel_2_Stationary, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 },
-                                                   { &DynamicModel_2_Stationary, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 }}};
+                                                   { &DynamicModel_2_Stationary, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 - 2 }}};
 const iconProperties DynamicModel_3_Properties = {{{ &DynamicModel_3_Pedestrian, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
                                                    { &DynamicModel_3_Pedestrian, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 },
-                                                   { &DynamicModel_3_Pedestrian, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 }}};
+                                                   { &DynamicModel_3_Pedestrian, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 - 2 }}};
 const iconProperties DynamicModel_4_Properties = {{{ &DynamicModel_4_Automotive, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
                                                    { &DynamicModel_4_Automotive, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 },
-                                                   { &DynamicModel_4_Automotive, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 }}};
+                                                   { &DynamicModel_4_Automotive, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 - 1 }}};
 const iconProperties DynamicModel_5_Properties = {{{ &DynamicModel_5_Sea, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
                                                    { &DynamicModel_5_Sea, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 },
                                                    { &DynamicModel_5_Sea, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 }}};
 const iconProperties DynamicModel_6_Properties = {{{ &DynamicModel_6_Airborne1g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
                                                    { &DynamicModel_6_Airborne1g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 },
-                                                   { &DynamicModel_6_Airborne1g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 }}};
+                                                   { &DynamicModel_6_Airborne1g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 - 2 }}};
 const iconProperties DynamicModel_7_Properties = {{{ &DynamicModel_7_Airborne2g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
                                                    { &DynamicModel_7_Airborne2g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 },
                                                    { &DynamicModel_7_Airborne2g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 }}};
@@ -2236,19 +2276,19 @@ const iconProperties DynamicModel_8_Properties = {{{ &DynamicModel_8_Airborne4g,
                                                    { &DynamicModel_8_Airborne4g, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 }}};
 const iconProperties DynamicModel_9_Properties = {{{ &DynamicModel_9_Wrist, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
                                                    { &DynamicModel_9_Wrist, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 },
-                                                   { &DynamicModel_9_Wrist, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 }}};
+                                                   { &DynamicModel_9_Wrist, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 - 2 }}};
 const iconProperties DynamicModel_10_Properties = {{{ &DynamicModel_10_Bike, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
                                                     { &DynamicModel_10_Bike, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 },
-                                                   { &DynamicModel_10_Bike, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 }}};
+                                                   { &DynamicModel_10_Bike, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 - 2 }}};
 const iconProperties DynamicModel_11_Properties = {{{ &DynamicModel_11_Mower, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
                                                     { &DynamicModel_11_Mower, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 },
-                                                   { &DynamicModel_11_Mower, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 }}};
+                                                   { &DynamicModel_11_Mower, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 - 2 }}};
 const iconProperties DynamicModel_12_Properties = {{{ &DynamicModel_12_EScooter, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
                                                    { &DynamicModel_12_EScooter, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64 },
-                                                   { &DynamicModel_12_EScooter, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 }}};
+                                                   { &DynamicModel_12_EScooter, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 - 2 }}};
 const iconProperties DynamicModel_Tractor_Props = {{{&DynamicModel_Tractor, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48},
                                                     {&DynamicModel_Tractor, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos128x64, DynamicModelIconYPos128x64},
-                                                    {&DynamicModel_Tractor, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88}}};
+                                                    {&DynamicModel_Tractor, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos184x88, DynamicModelIconYPos184x88 - 1}}};
 
 const uint8_t BaseIconXPos64x48 = 28;
 const uint8_t BaseIconYPos64x48 = 0;
@@ -2259,10 +2299,10 @@ const uint8_t BaseIconYPos184x88 = 4;
 
 const iconProperties BaseTemporaryProperties = {{{ &BaseTemporary, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos64x48, BaseIconYPos64x48 },
                                                  { &BaseTemporary, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos128x64, BaseIconYPos128x64 },
-                                                 { &BaseTemporary, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos184x88, BaseIconYPos184x88 }}};
+                                                 { &BaseTemporary, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos184x88, BaseIconYPos184x88 - 2 }}};
 const iconProperties BaseFixedProperties = {{{ &BaseFixed, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos64x48, BaseIconYPos64x48 },
                                              { &BaseFixed, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos128x64, BaseIconYPos128x64 },
-                                             { &BaseFixed, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos184x88, BaseIconYPos184x88 }}};
+                                             { &BaseFixed, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos184x88, BaseIconYPos184x88 - 2 }}};
 
 
 const uint8_t AccuracyIconXPos64x48 = 0;
@@ -2350,7 +2390,9 @@ const iconProperties OpenIconProperties = {{{ &Antenna_Open, Antenna_Open_Width,
 
 const uint8_t TiltIconXPos128x64 = 111;
 const uint8_t TiltIconYPos128x64 = 26;
-const uint8_t TiltIconXPos184x88 = 169;
+// 184x88 draws this icon at 2x (displayBitmap2x()) - right-anchored so it doesn't run past the
+// panel edge (169 + 2*15 would be 199, 15px off the right side of a 184px-wide panel).
+const uint8_t TiltIconXPos184x88 = DisplayWidth[2] - (2 * Tilt_Width);
 const uint8_t TiltIconYPos184x88 = 34;
 
 // 128x64 and 184x88 only. 64x48 is just a dummy...
@@ -2362,8 +2404,11 @@ const uint8_t LoggingIconXPos64x48 = DisplayWidth[0] - Logging_Width; // Put the
 const uint8_t LoggingIconYPos64x48 = DisplayHeight[0] - Logging_Height;
 const uint8_t LoggingIconXPos128x64 = DisplayWidth[1] - Logging_Width;
 const uint8_t LoggingIconYPos128x64 = DisplayHeight[1] - Logging_Height;
-const uint8_t LoggingIconXPos184x88 = DisplayWidth[2] - Logging_Width;
-const uint8_t LoggingIconYPos184x88 = DisplayHeight[2] - Logging_Height;
+// 2x, since the logging icon draws doubled on 184x88 (displayBitmap2x(), epaper_update.md Section 11) -
+// single source of truth so the correction/broadcast icon gap math and the IP address budget
+// calculation (both measured from this icon's real left edge) stay correct automatically.
+const uint8_t LoggingIconXPos184x88 = DisplayWidth[2] - (2 * Logging_Width);
+const uint8_t LoggingIconYPos184x88 = DisplayHeight[2] - (2 * Logging_Height);
 
 #define LOGGING_ICON_STATES 4
 typedef struct
