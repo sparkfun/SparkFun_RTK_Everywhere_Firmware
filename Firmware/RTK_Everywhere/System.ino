@@ -3005,8 +3005,10 @@ void systemDisplayConfiguration()
         i2cBusEnumerate(i2c_0, 0);
     }
     if (present.i2c1 && (pin_I2C1_SCL != PIN_UNDEFINED))
+    {
         systemPrintf("I2C-1: SCL: %d, SDA: %d\r\n", pin_I2C1_SCL, pin_I2C1_SDA);
-    i2cBusEnumerate(i2c_1, 1);
+        i2cBusEnumerate(i2c_1, 1);
+    }
 }
 
 //======================= LoRa Support =======================

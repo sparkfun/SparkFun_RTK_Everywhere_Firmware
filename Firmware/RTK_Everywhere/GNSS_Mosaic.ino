@@ -3146,7 +3146,6 @@ bool GNSS_MOSAIC::isPresent()
     if (productVariant == RTK_FACET_MOSAIC)
     {
         // Set COM4 to: CMD input (only), SBF output (only)
-
         // The module is already confirmed to be a mosaic-X5 here, so poll patiently while it
         // boots (documented as ~10 seconds typical, but can run longer) instead of soft-resetting
         // it. A soft reset issued mid-boot restarts the boot process, turning a merely slow boot
