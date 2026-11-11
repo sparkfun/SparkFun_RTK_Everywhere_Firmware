@@ -194,6 +194,10 @@ static const int gnssConfigStateEntries = sizeof(gnssConfigDisplayNames) / sizeo
 
 volatile bool gnssConfigureInProgress = false;
 
+// Set by $SPEXE,APPLY: service the pending GNSS configuration requests without waiting for the BLE
+// command channel to go idle. Cleared once all requests are complete.
+volatile bool gnssConfigureApplyRequested = false;
+
 // On platforms that support / need it (i.e. mosaic-X5), refresh the
 // COM port by sending an escape sequence or similar to make the
 // GNSS snap out of it...
@@ -267,6 +271,8 @@ void gnssUpdate()
 
     if (gnssConfigureComplete() == true)
     {
+        gnssConfigureApplyRequested = false; // Nothing left to apply
+
         // We need to establish the logging type:
         //  After a device has completed boot up (the GNSS may or may not have been reconfigured)
         //  After a user changes the message configurations (NMEA, RTCM, or OTHER).
@@ -280,8 +286,11 @@ void gnssUpdate()
     // Only update the GNSS receiver once the CLI, serial menu, and Web Config interfaces are disconnected
     // This is to avoid multiple reconfigure delays when multiple commands are received, ie enable GPS, disable Galileo,
     // should only trigger one GNSS reconfigure
+    // A mode change (ie, $SPSET,setState) blocks the state machine until the GNSS is configured. Don't wait for
+    // the BLE command channel to go idle: the app may keep polling (ie, $SPGET,setState) and the idle timeout
+    // would never expire. Likewise, $SPEXE,APPLY asks for the pending changes to be applied now.
     if ((inMainMenu == false) && (inWebConfigMode() == false) &&
-        (bluetoothCommandIsConnected() == false))
+        ((bluetoothCommandIsConnected() == false) || gnssModeChangePending() || gnssConfigureApplyRequested))
     {
         gnssConfigureInProgress = true; // Set the 'semaphore'
         bool result = true;
@@ -647,6 +656,47 @@ bool gnssConfigureComplete()
     if (settings.gnssConfigureRequest == 0)
         return (true);
     return (false);
+}
+
+// Returns true if the state machine is waiting on the GNSS to complete a mode change (Rover, Base, Survey-in,
+// Fixed base). These requests are serviced immediately rather than waiting for the BLE command channel to go idle.
+bool gnssModeChangePending()
+{
+    switch (systemState)
+    {
+    case STATE_ROVER_CONFIG_WAIT:
+    case STATE_BASE_CONFIG_WAIT:
+    case STATE_BASE_FIXED_NOT_STARTED:
+        return (true);
+    case STATE_BASE_TEMP_SURVEY_STARTED:
+        return (gnssConfigureRequested(GNSS_CONFIG_BASE_SURVEY));
+    default:
+        return (false);
+    }
+}
+
+//----------------------------------------
+// Request the GNSS configuration for a single-value GNSS setting following a set command
+// (ie, $SPSET,minElev,15). The serial menus request these directly.
+//----------------------------------------
+bool gnssCmdUpdateSetting(const char *settingName, void *settingData, int settingType)
+{
+    if (strcmp(settingName, "minElev") == 0)
+        gnssConfigure(GNSS_CONFIG_ELEVATION);
+    else if (strcmp(settingName, "minCN0") == 0)
+        gnssConfigure(GNSS_CONFIG_CN0);
+    else if (strcmp(settingName, "measurementRateMs") == 0)
+        gnssConfigure(GNSS_CONFIG_FIX_RATE);
+    else if (strcmp(settingName, "dynamicModel") == 0)
+        gnssConfigure(GNSS_CONFIG_MODEL);
+    else if (strcmp(settingName, "enableMultipathMitigation") == 0)
+        gnssConfigure(GNSS_CONFIG_MULTIPATH);
+    else if (strcmp(settingName, "dataPortBaud") == 0) // Range checked in processCommand()
+        gnssConfigure(GNSS_CONFIG_BAUD_RATE_DATA);
+    else if (strcmp(settingName, "radioPortBaud") == 0) // Range checked in processCommand()
+        gnssConfigure(GNSS_CONFIG_BAUD_RATE_RADIO);
+
+    return (true);
 }
 
 //----------------------------------------

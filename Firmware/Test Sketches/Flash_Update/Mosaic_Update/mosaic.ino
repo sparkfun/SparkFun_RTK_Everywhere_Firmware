@@ -757,10 +757,8 @@ void mosaicFindMaxBaudRate(HardwareSerial &ser)
  *
  * Returns true on success.
  */
-bool mosaicEnterBootloaderMode()
+bool mosaicEnterBootloaderMode(HardwareSerial * updateSerial)
 {
-    HardwareSerial *updateSerial = mosaicUpdateSerial();
-
     if (mosaicFindCommandPrompt(*updateSerial) == false)
         return false;
 
@@ -797,19 +795,6 @@ bool mosaicEnterBootloaderMode()
 
     systemPrintln("  Receiver is ready for SUF download.");
     return true;
-}
-
-/*
- * mosaicFirmwareUpdateBegin()
- *
- * Puts the receiver into upgrade mode (see mosaicEnterBootloaderMode()) so
- * streaming of the .suf file via mosaicUpdateFirmware() can begin.
- *
- * Returns true on success.
- */
-bool mosaicFirmwareUpdateBegin()
-{
-    return mosaicEnterBootloaderMode();
 }
 
 /*
@@ -899,117 +884,215 @@ void mosaicFinishUpdate(HardwareSerial &ser)
     mosaicGetVersion(ser);
 }
 
-// Update the mosaic-X5 firmware
-// Owns the full update sequence: enters upgrade mode, streams the .suf file
-// over WiFi, then closes out the transfer - callers only need to call this
-// one function and do not need to know about Begin()/End().
-bool mosaicStreamFirmware(const char *relativeFirmwareFileLocation)
+//----------------------------------------
+// Reads packetBytes from an already-open HTTP stream and feeds them to the device,
+// reporting progress as it goes.
+//
+// The generic process is:
+// 1) Call the mosaicEnterBootloaderMode function to increase the baudrate
+//    and request firmware upload mode
+// 2) Call firmwareUpdateProgressReset to initialize the progress bar and set
+//    the file size
+// 3) Loop reading firmware from the stream and writing it to the device, call
+//    firmwareUpdateProgressCallback to update the progress bar
+// 4) Call the mosaicFinishUpdate function to complete the flash write operation
+// 5) Display any error message
+// 6) Return the flash update success status (true/false) to the flash update
+//    routine
+// 7) The flash update routine display the final flash update operation status
+//----------------------------------------
+bool mosaicStreamFirmware(const char * subsystem,
+                          const char * chip,
+                          NetworkClient * stream,
+                          size_t fileBytes,
+                          uint8_t * buffer,
+                          size_t packetBytes)
 {
-    if (relativeFirmwareFileLocation == nullptr)
+    size_t remainingBytes;
+    bool success;
+
+    do
     {
-        systemPrintln("Firmware file location is null.");
-        return false;
-    }
+        remainingBytes = fileBytes;
+        success = false;
 
-    systemPrintln("Starting mosaic-X5 firmware update...");
-
-    firmwareUpdateProgressReset();
-
-    if (mosaicFirmwareUpdateBegin() == false)
-    {
-        systemPrintln("Failed to enter upgrade mode.");
-        return false;
-    }
-
-    systemPrintln("Device is in upgrade mode.");
-    systemPrintf("Streaming .suf file at %lu baud...\r\n", (unsigned long)mosaicKnownBaud);
-
-    WiFiClientSecure client;
-    if (!otaSecurelyConnectGitHub(client))
-    {
-        systemPrintln("Failed to securely connect to GitHub.");
-        mosaicFirmwareUpdateEnd(false);
-        return false;
-    }
-
-    const char *url = otaGetGithubFileLocation(relativeFirmwareFileLocation);
-
-    HTTPClient http;
-    if (!http.begin(client, url))
-    {
-        systemPrintln("Unable to begin HTTP request.");
-        mosaicFirmwareUpdateEnd(false);
-        return false;
-    }
-
-    int httpCode = http.GET();
-    if (httpCode != HTTP_CODE_OK)
-    {
-        systemPrintf("HTTP GET failed, code: %d\r\n", httpCode);
-        http.end();
-        mosaicFirmwareUpdateEnd(false);
-        return false;
-    }
-
-    int contentLength = http.getSize();
-    if (contentLength > 0)
-        firmwareUpdateBytesToProcess = (uint32_t)contentLength;
-
-    WiFiClient *stream = http.getStreamPtr();
-    // static, not stack-local: HTTPClient/WiFiClientSecure's own TLS handshake
-    // internals are already fairly stack-hungry, and a buffer this size on the
-    // stack blew loopTask's 8KB stack during the GET (confirmed - crashed as
-    // "Stack canary watchpoint triggered" right after bumping this from 2048
-    // to 4096 as a plain stack array).
-    static uint8_t buffer[4096];
-
-    bool success = true;
-
-    while (http.connected() && (contentLength > 0 || contentLength == -1))
-    {
-        size_t available = stream->available();
-        if (available == 0)
+        // Display the parameters
+        if (settings.debugFirmwareUpdate && otaDebugVerbose)
         {
-            if (!client.connected())
+            systemPrintf("fileBytes: %d\r\n", fileBytes);
+            systemPrintf("packetBytes: %d\r\n", packetBytes);
+        }
+
+        // Initialize the progress bar
+        firmwareUpdateProgressReset(fileBytes);
+
+        systemPrintf("Starting %s (%s) firmware update...\r\n", subsystem, chip);
+        if (mosaicEnterBootloaderMode(mosaicSerial) == false)
+        {
+            systemPrintln("Failed to enter mosaic-X5 upgrade mode.");
+            break;
+        }
+        systemPrintf("%s (%s) is in upgrade mode.\r\n", subsystem, chip);
+
+        // Loop until all data has been transferred or another error occurs.
+        // HTTPS conections remain open even after the data has been transferred
+        // and HTTP connections close after data has been transferred but some
+        // may still be available.  Only test the network connection when no
+        // data is available.
+        systemPrintf("Streaming .suf file at %lu baud...\r\n", (unsigned long)mosaicKnownBaud);
+        unsigned long lastDataTime = millis();
+        size_t validData = 0;
+        while (remainingBytes > 0)
+        {
+            // Wait until some data is available
+            size_t availableBytes = stream->available();
+            if (availableBytes == 0)
+            {
+                // Verify network connection
+                if (stream->connected() == false)
+                {
+                    systemPrintln("ERROR: lost connection to network server");
+                    break;
+                }
+
+                // Check for network timeout
+                if ((millis() - lastDataTime) > OTA_DATA_TIMEOUT)
+                {
+                    systemPrintln("ERROR: Timed out waiting for mosaic-X5 firmware data");
+                    break;
+                }
+                yield();
+                continue;
+            }
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("availableBytes: %d\r\n", availableBytes);
+
+            // Read the received data
+            size_t bytesToRead = min(availableBytes, packetBytes - validData);
+            int bytesRead = stream->readBytes(&buffer[validData], bytesToRead);
+            if (settings.debugFirmwareUpdate && otaDebugVerbose)
+                systemPrintf("bytesRead: %d\r\n", bytesRead);
+            if (bytesRead <= 0)
+            {
+                systemPrintln("ERROR: Failed reading data from network");
                 break;
-            // yield(), not delay(1): delay(1) blocks for a full ~1ms RTOS
-            // tick regardless of when data actually shows up; yield() just
-            // hands off to the scheduler (letting WiFi/lwIP run) and returns
-            // as soon as it's rescheduled, so newly-arrived bytes get picked
-            // up sooner instead of always waiting out the tick.
-            yield();
-            continue;
-        }
+            }
+            validData += bytesRead;
 
-        size_t toRead = min(available, sizeof(buffer));
-        int bytesRead = stream->readBytes(buffer, toRead);
-        if (bytesRead <= 0)
+            // Update this portion of the firmware
+            if (mosaicUpdateFirmware(*mosaicSerial, buffer, validData) == false)
+            {
+                systemPrintf("%s (%s) firmware update failed during write\r\n", subsystem, chip);
+                break;
+            }
+
+            // Display the progress
+            firmwareUpdateProgressCallback(subsystem, chip, (uint16_t)validData);
+
+            // Account for this data
+            remainingBytes -= validData;
+            lastDataTime = millis();
+            validData = 0;
+        }
+        if (remainingBytes)
             break;
 
-        if (mosaicUpdateFirmware(*mosaicUpdateSerial(), buffer, (uint32_t)bytesRead) == false)
-        {
-            systemPrintln("Firmware update failed during WiFi data upload.");
-            success = false;
-            break;
-        }
+        mosaicFinishUpdate(*mosaicSerial);
+        success = true;
+    } while (0);
 
-        firmwareUpdateProgressCallback(bytesRead);
+    // Display the number of bytes remaining
+    if (remainingBytes && settings.debugFirmwareUpdate)
+        systemPrintf("remainingBytes: %d\r\n", remainingBytes);
 
-        if (contentLength > 0)
-            contentLength -= bytesRead;
-    }
-
-    http.end();
-
-    if (success)
-        systemPrintln("mosaic-X5 update successfully streamed.");
-    else
-        systemPrintln("mosaic-X5 firmware update failed.");
-
-    systemPrintln("Finalizing transfer...");
-    bool updateOk = mosaicFirmwareUpdateEnd(success);
-
-    return updateOk;
+    return success;
 }
+
+//----------------------------------------
+// Update the Mosaic firmware
+// Owns the full update sequence: enters bootloader mode, streams the image
+// over WiFi, then verifies/reboots - callers only need to call this one
+// function and do not need to know about Begin()/End().
+//
+// Structure:
+//   1. Verify the URL
+//   2. Connect to the web server
+//   3. Get the file size
+//   4. Stream the file to the chip
+//   5. Display the final firmware update status
+//----------------------------------------
+bool mosaicFirmwareUpdate(const char * subsystem,
+                          const char * chip,
+                          const char * url,
+                          uint8_t * buffer,
+                          size_t packetBytes)
+{
+    size_t fileBytes;
+    HTTPClient https;
+    NetworkClientSecure secureClient;
+    NetworkClient * stream;
+    bool success;
+
+    do
+    {
+        success = false;
+
+        // Verify that a URL was specified
+        if(settings.debugFirmwareUpdate)
+            systemPrintf("URL: %s\r\n", url ? url : "[nullptr]");
+        if ((url == nullptr) || (strlen(url) == 0))
+        {
+            systemPrintln("ERROR: No URL was specified!");
+            break;
+        }
+
+        // Display the firmware update being attempted
+        systemPrintf("Updating %s (%s)\r\n", subsystem, chip);
+
+        // Connect to the web server and get the file size and stream
+        if (serverConnectUsingUrl(subsystem,
+                                  chip,
+                                  url,
+                                  secureClient,
+                                  stream,
+                                  https,
+                                  nullptr,
+                                  HTTP_CODE_OK,
+                                  fileBytes) == false)
+        {
+            break;
+        }
+        otaFileBytes = fileBytes;
+
+        // Initialize the progress bar
+        firmwareUpdateProgressReset(fileBytes);
+
+        // Start the firmware update and display any streaming errors
+        if (mosaicStreamFirmware(subsystem,
+                                 chip,
+                                 stream,
+                                 fileBytes,
+                                 buffer,
+                                 packetBytes) == false)
+        {
+            break;
+        }
+        success = true;
+    } while (0);
+
+    // Display the firmware update status
+    systemPrintln(otaEqualSigns);
+    if (success)
+        systemPrintf("%s (%s) firmware update completed successfully\r\n", subsystem, chip);
+    else
+        systemPrintf("%s (%s) firmware update failed!\r\n", subsystem, chip);
+    systemPrintln(otaEqualSigns);
+
+    // Done with the web server.  The NetworkClient* and HTTPClient objects are
+    // released automatically as the routine exits since they are stack local variables.
+    https.end();
+    return success;
+}
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // End of mosaic-X5 firmware update functions.

@@ -304,6 +304,79 @@ static String drainGnssLine(unsigned long maxMs = 2000, unsigned long quietMs = 
   return out;
 }
 
+// Send `command` on gnssPort and return the first line containing `needle`, or
+// an empty String on timeout. A timeout reports how many bytes were seen, since
+// silence and garbage (wrong baud rate) point to different problems.
+static String queryGnss(const char *command, const char *needle, unsigned long timeoutMs)
+{
+  flushGnssInput();
+
+  dbgPrintf("[TX] %s\r\n", command);
+  gnssPort->print(command);
+  gnssPort->print("\r\n");
+
+  String line;
+  String accum;
+  uint32_t byteCount = 0;
+  unsigned long start = millis();
+  while (millis() - start < timeoutMs)
+  {
+    while (gnssPort->available())
+    {
+      char c = gnssPort->read();
+      byteCount++;
+      appendAndTrim(accum, c);
+      if (c == '\n')
+      {
+        if (line.indexOf(needle) != -1)
+        {
+          line.trim();
+          return line;
+        }
+        line = "";
+      }
+      else
+        appendAndTrim(line, c);
+    }
+    delay(1);
+  }
+
+  dbgPrintf("[RX] TIMEOUT waiting for \"%s\" after %lu ms. %lu bytes were received on %s\r\n",
+            needle, timeoutMs, (unsigned long)byteCount, gnssPortLabel().c_str());
+  if (accum.length() > 0)
+    printHexDump("  Hex", accum);
+  return String();
+}
+
+// Send a configuration command and wait for the UM980 to acknowledge it.
+static bool sendGnssCommand(const char *command)
+{
+  return queryGnss(command, "response: OK", 3000).length() > 0;
+}
+
+// Ask the UM980 for its version on gnssPort. Retries to allow for the UM980
+// still booting, which matters at power on and after a factory reset.
+static bool gnssCommCheck()
+{
+  const int maxAttempts = 3;
+  for (int attempt = 1; attempt <= maxAttempts; attempt++)
+  {
+    String version = queryGnss("version", "UM980", 1500);
+    if (version.length() > 0)
+    {
+      dbgPrint("[CHECK] ");
+      dbgPrint(gnssPortLabel());
+      dbgPrint(" responded: ");
+      dbgPrintln(version);
+      return true;
+    }
+  }
+
+  dbgPrint("[CHECK] No version response on ");
+  dbgPrintln(gnssPortLabel());
+  return false;
+}
+
 // -----------------------------------------------------------------------------
 // Bootloader steps
 // -----------------------------------------------------------------------------
@@ -666,6 +739,12 @@ static void restoreUsbConsole()
   gnssPort = &SerialForGnss;
   consoleAvailable = true;
 
+  // Anything left in the RX buffer came from the UM980, not the keyboard.
+  // Discard it so loop() doesn't act on it as a menu selection.
+  delay(2);
+  while (Serial.available())
+    Serial.read();
+
   if (wasBuffering)
   {
     Serial.println("[MUX] ESP32 UART0 reconnected to USB.");
@@ -696,6 +775,8 @@ void setup()
   pinMode(pin_GNSS_reset, OUTPUT);
   digitalWrite(pin_GNSS_reset, HIGH); // Keep out of reset
 
+  gnssCheckAllPorts();
+
   displayMenu();
 }
 
@@ -706,6 +787,10 @@ void displayMenu()
   Serial.println("r) Reset");
   Serial.println("u) Update Firmware (via UM980 UART1 / COM1)");
   Serial.println("l) Update Firmware (via UM980 UART3 / COM3 - legacy, live console)");
+  Serial.println("f) Factory reset UM980 (via UM980 UART1 / COM1)");
+  Serial.println("g) Factory reset UM980 (via UM980 UART3 / COM3)");
+  Serial.println("n) Enable NMEA on UM980 UART3 / COM3 (sent via UM980 UART1 / COM1)");
+  Serial.println("c) Enable commands on UM980 UART3 / COM3 (sent via UM980 UART1 / COM1)");
   Serial.print("Make selection: ");
 }
 
@@ -730,6 +815,22 @@ void loop()
     else if (incoming == 'l')
     {
       runUpdateViaCom3();
+    }
+    else if (incoming == 'f')
+    {
+      factoryResetViaCom1();
+    }
+    else if (incoming == 'g')
+    {
+      factoryResetViaCom3();
+    }
+    else if (incoming == 'n')
+    {
+      enableCom3ViaCom1("GPGGA COM3 1");
+    }
+    else if (incoming == 'c')
+    {
+      enableCom3ViaCom1(nullptr);
     }
     displayMenu();
   }
@@ -873,4 +974,142 @@ void runUpdateViaCom3()
   selectUm980Com3();
 #endif
   runUpdateCore(fileSize);
+}
+
+// Check for a version response on each UM980 port we can reach. Output from the
+// COM1 half of the check is buffered and printed once USB is reconnected.
+void gnssCheckAllPorts()
+{
+  Serial.println("\r\nChecking UM980 communication...");
+
+#ifdef PLATFORM_TORCH
+  selectUm980Com3();
+  bool com3Ok = gnssCommCheck();
+
+  selectUm980Com1();
+  bool com1Ok = gnssCommCheck();
+  String com3Config;
+  if (com1Ok)
+    com3Config = queryGnss("CONFIG", "$CONFIG,COM3", 2000);
+  restoreUsbConsole();
+
+  Serial.printf("UM980 UART1 / COM1: %s\r\n", com1Ok ? "OK" : "NO RESPONSE");
+  Serial.printf("UM980 UART3 / COM3: %s\r\n", com3Ok ? "OK" : "NO RESPONSE");
+  if (com3Config.length() > 0)
+  {
+    Serial.print("COM3 configuration reported over COM1: ");
+    Serial.println(com3Config);
+  }
+#else
+  Serial.printf("UM980: %s\r\n", gnssCommCheck() ? "OK" : "NO RESPONSE");
+#endif
+}
+
+// Factory reset is destructive, so require a second key press. Line endings
+// are ignored since many terminals send them after the menu selection.
+static bool confirmFactoryReset()
+{
+  delay(50);
+  while (Serial.available())
+    Serial.read();
+
+  Serial.print("This clears all UM980 settings. Press y to continue: ");
+
+  unsigned long start = millis();
+  while (millis() - start < 15000)
+  {
+    if (Serial.available())
+    {
+      byte incoming = Serial.read();
+      if (incoming == '\r' || incoming == '\n')
+        continue;
+      Serial.printf("%c\r\n", incoming);
+      return (incoming == 'y' || incoming == 'Y');
+    }
+    delay(1);
+  }
+
+  Serial.println("Timed out");
+  return false;
+}
+
+// Send FRESET on gnssPort, then wait for the reboot banner. A missing banner
+// isn't fatal: the banner is a convenience, and the caller's comm check gives
+// the real answer.
+static void sendFactoryReset()
+{
+  dbgPrint("Sending FRESET on ");
+  dbgPrintln(gnssPortLabel());
+  gnssPort->print("FRESET\r\n");
+  gnssPort->flush();
+
+  waitForString("$devicename,COM", 10000);
+}
+
+void factoryResetViaCom1()
+{
+#ifdef PLATFORM_TORCH
+  if (confirmFactoryReset() == false)
+    return;
+
+  selectUm980Com1();
+  sendFactoryReset();
+  restoreUsbConsole();
+
+  gnssCheckAllPorts();
+#else
+  Serial.println("COM1 path requires the Torch mux (pin_muxA/pin_muxB) - not available on this platform.");
+#endif
+}
+
+void factoryResetViaCom3()
+{
+  if (confirmFactoryReset() == false)
+    return;
+
+#ifdef PLATFORM_TORCH
+  selectUm980Com3();
+#endif
+  sendFactoryReset();
+
+  gnssCheckAllPorts();
+}
+
+// Configure COM3 over COM1, save it, then test COM3 from the ESP32 side. All
+// three UM980 ports accept commands equally, so the baud rate is the only
+// setting needed for COM3 to take commands. If `messageCommand` is given
+// (ie "GPGGA COM3 1") it is sent as well, and COM3 is checked for that output.
+void enableCom3ViaCom1(const char *messageCommand)
+{
+#ifdef PLATFORM_TORCH
+  selectUm980Com1();
+  bool ok = sendGnssCommand("CONFIG COM3 115200");
+  if (messageCommand != nullptr)
+    ok &= sendGnssCommand(messageCommand);
+  ok &= sendGnssCommand("SAVECONFIG");
+  restoreUsbConsole();
+
+  Serial.println(ok ? "COM3 configuration accepted over COM1 and saved." : "COM3 configuration FAILED over COM1.");
+
+  selectUm980Com3();
+
+  if (messageCommand != nullptr)
+  {
+    Serial.println("Listening for NMEA on COM3...");
+    String nmea = drainGnssLine(3000, 200);
+    if (nmea.indexOf("GGA") != -1)
+    {
+      Serial.print("NMEA received on COM3: ");
+      Serial.print(nmea);
+    }
+    else if (nmea.length() > 0)
+      printHexDump("Unexpected data on COM3", nmea);
+    else
+      Serial.println("Nothing received on COM3.");
+  }
+
+  Serial.printf("COM3 commands: %s\r\n", gnssCommCheck() ? "OK" : "NO RESPONSE");
+#else
+  Serial.println("COM1 path requires the Torch mux (pin_muxA/pin_muxB) - not available on this platform.");
+#endif
 }

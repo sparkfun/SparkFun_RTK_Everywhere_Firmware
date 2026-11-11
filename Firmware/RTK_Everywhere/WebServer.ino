@@ -876,9 +876,9 @@ void webServerGetClientIpAddressAndPort(httpd_req_t *req, char *ipAddress, size_
 
     // Build the IP address string
     if (isIp6Address)
-        sprintf(ipAddress, "[%s]:%d", temp, ip6Address.sin6_port);
+        sprintf(ipAddress, "[%s]:%d", temp, ntohs(ip6Address.sin6_port)); // Port is in network byte order
     else
-        sprintf(ipAddress, "%s:%d", temp, ip6Address.sin6_port);
+        sprintf(ipAddress, "%s:%d", temp, ntohs(ip6Address.sin6_port));
 }
 
 //----------------------------------------
@@ -1579,6 +1579,12 @@ static esp_err_t webServerHandlerWebSockets(httpd_req_t *req)
 
         // Release the synchronization
         xSemaphoreGive(webServerMutex);
+
+        // Always let the user know a browser has connected to Web Config (over WiFi AP or STA)
+        char clientIpAddress[64];
+        webServerGetClientIpAddressAndPort(req, clientIpAddress, sizeof(clientIpAddress));
+        systemPrintf("Web Config: Device connected from %s\r\n",
+                     clientIpAddress[0] ? clientIpAddress : "unknown address");
 
         if (settings.debugWebServer == true)
             systemPrintf("WebServer: Added client, _request: %p, _socketFD: %d\r\n", client->_request,

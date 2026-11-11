@@ -443,6 +443,9 @@ class GNSS
     virtual void update();
 };
 
+// Request the GNSS configuration for a single-value GNSS setting following a set command
+bool gnssCmdUpdateSetting(const char *settingName, void *settingData, int settingType);
+
 // Update the constellations following a set command
 bool gnssCmdUpdateConstellations(const char *settingName, void *settingData, int settingType);
 

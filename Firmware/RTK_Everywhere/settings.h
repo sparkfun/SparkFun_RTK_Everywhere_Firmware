@@ -1541,7 +1541,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugGnss, "debugGnss", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.debugGnssConfig, "debugGnssConfig", nullptr, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintPosition, "enablePrintPosition", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.measurementRateMs, "measurementRateMs", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _uint16_t, 0, & settings.measurementRateMs, "measurementRateMs", gnssCmdUpdateSetting, },
 
     // Hardware
     { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.defaultDoubleTapInterval_ms, "defaultDoubleTapInterval", nullptr, },
@@ -1743,10 +1743,10 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.gnssHandlerBufferSize, "gnssHandlerBufferSize", nullptr, },
 
     // Rover operation
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.dynamicModel, "dynamicModel", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.dynamicModel, "dynamicModel", gnssCmdUpdateSetting, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.minCN0, "minCN0", nullptr, }, // Not inWebConfig - createSettingsString gets from GNSS
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.minElev, "minElev", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.minCN0, "minCN0", gnssCmdUpdateSetting, }, // Not inWebConfig - createSettingsString gets from GNSS
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint8_t,  0, & settings.minElev, "minElev", gnssCmdUpdateSetting, },
 
     // RTC (Real Time Clock)
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enablePrintRtcSync, "enablePrintRtcSync", nullptr, },
@@ -1777,10 +1777,10 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 0, 1, ALL, 0, _bool,     0, & settings.forceResetOnSDFail, "forceResetOnSDFail", nullptr, },
 
     // Serial
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.dataPortBaud, "dataPortBaud", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.dataPortBaud, "dataPortBaud", gnssCmdUpdateSetting, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.echoUserInput, "echoUserInput", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.enableGnssToUsbSerial, "enableGnssToUsbSerial", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.radioPortBaud, "radioPortBaud", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.radioPortBaud, "radioPortBaud", gnssCmdUpdateSetting, },
     { 0, 0, 0, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.serialTimeoutGNSS, "serialTimeoutGNSS", nullptr, },
     { 1, 1, 0, 0, 1, 0, 1, ALL, 0, _bool,     0, & settings.enableNmeaOnRadio, "enableNmeaOnRadio", nullptr, },
     { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _uint32_t, 0, & settings.usbSerialBaud, "usbSerialBaud", nullptr, },
@@ -1863,7 +1863,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    f  n  f  E  a  r  a
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
-    { 1, 1, 0, 0, 0, 1, 0, NON, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", nullptr, },
+    { 1, 1, 0, 0, 0, 1, 0, NON, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", gnssCmdUpdateSetting, },
     { 0, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug", nullptr, },
     { 0, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableImuDebug, "enableImuDebug", nullptr, },
     { 1, 1, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation", nullptr, },

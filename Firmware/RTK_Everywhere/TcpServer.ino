@@ -699,6 +699,10 @@ void tcpServerStop()
         tcpServerTimer = millis();
     }
 
+    // Leave caster mode. Otherwise processUart1Message() keeps removing everything but RTCM (ie, NMEA)
+    // after the unit returns to Rover. tcpServerEnabled() sets this again when the server restarts.
+    tcpServerInCasterMode = false;
+
     tcpServerDisableEndpoint(); // Remove the TCP Server print endpoint
 }
 

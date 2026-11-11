@@ -10,6 +10,9 @@ OTA.h
 
 typedef uint8_t OTA_SUBSYSTEM_MASK;
 
+// File that is loaded from SD card at startup regardless of user input
+const char * forceFirmwareFileName = "RTK_Everywhere_Firmware_Force.bin";
+
 #ifdef COMPILE_FIRMWARE_UPDATE
 
 //----------------------------------------

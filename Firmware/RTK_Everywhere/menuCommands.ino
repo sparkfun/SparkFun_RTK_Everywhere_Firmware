@@ -4,10 +4,42 @@ menuCommands.ino
 
 char otaOutcome[21] = {0}; // Modified by otaUpdate(), used to respond to espNewFirmwareVersion commands
 int systemWriteCounts =
-    0; // Modified by systemWrite(), used to calculate the number of items in the LIST command for CLI
+    0; // Modified by commandSendExecuteListResponse(), used to calculate the number of items in the LIST command for CLI
+// Where commandSendAllInterfaces() sends CLI responses. Normally all interfaces, but responses containing
+// a password or key go only to the interface that sent the request (see processCommand())
+PrintEndpoint commandResponseEndpoint = PRINT_ENDPOINT_ALL;
+
+// Sends the responses for the rest of a command to only the requesting interface when the command reads or
+// writes a password or key, then restores the default when the command completes
+class CommandSecretResponse
+{
+  public:
+    CommandSecretResponse(bool secret, PrintEndpoint requester)
+    {
+        if (secret)
+            commandResponseEndpoint = requester;
+    }
+    ~CommandSecretResponse()
+    {
+        commandResponseEndpoint = PRINT_ENDPOINT_ALL;
+    }
+};
+
 bool reportingChangedSettings = false;
 int changedSettingsReportCount = 0;
 const Settings *changedSettingsDefaults = nullptr;
+
+// Return true if the CLI setting holds a password or key. LIST shows these as ******** and $SPGET/$SPSET
+// responses for them go only to the requesting interface. Web Config is not affected.
+// Ex: wifiNetwork_0Password, ntripClientCasterUserPW, ntripServerMountPointPW_2
+bool commandIsSecretSetting(const char *settingName)
+{
+    if (strstr(settingName, "Password") || strstr(settingName, "UserPW") || strstr(settingName, "MountPointPW"))
+        return true;
+    if (strcmp(settingName, "pointPerfectDeviceProfileToken") == 0)
+        return true;
+    return false;
+}
 
 // Return true when a setting value should be included in a changed-settings report.
 bool commandSettingChanged(const void *settingValue, size_t settingSize)
@@ -232,12 +264,15 @@ enum
     SET_STATE_NTP,
     SET_STATE_BASE_CASTER,
     SET_STATE_BASE_ASSIST,
+    SET_STATE_WEB_CONFIG,
 };
 
 // Handle $SPSET,setState,<mode>: change the system mode now, without a reset. The state machine
 // records the new mode in lastState once it starts, so it is also used at the next power on.
-// Returns false if the mode is unknown or not supported on this device.
-bool commandSetState(const char *value)
+// Web Config is the exception: it is not recorded in lastState.
+// Returns false if the mode is unknown or not supported on this device. Otherwise returns true and the
+// state to request; the caller sends the OK response, then calls commandRequestState().
+bool commandSetState(const char *value, SystemState *requestedState)
 {
     char *end;
     long mode = strtol(value, &end, 10);
@@ -266,22 +301,42 @@ bool commandSetState(const char *value)
     case SET_STATE_BASE_ASSIST:
         newState = STATE_BASE_ASSIST_NOT_STARTED;
         break;
+    case SET_STATE_WEB_CONFIG:
+        // Web Config ends Bluetooth (to free RAM for AP+STA), so a BLE client is disconnected
+        newState = STATE_WEB_CONFIG_NOT_STARTED;
+        break;
     }
 
     // Leave Caster mode unless going to it (Rover also does this when it starts)
-    if (mode != SET_STATE_BASE_CASTER)
+    // Web Config is a temporary mode: leave the caster setting for the mode the unit returns to
+    if ((mode != SET_STATE_BASE_CASTER) && (mode != SET_STATE_WEB_CONFIG))
         baseCasterDisableOverride();
+
+    *requestedState = newState;
+    return true;
+}
+
+// Change to the state validated by commandSetState(), after the OK response has been sent
+void commandRequestState(SystemState newState)
+{
+    if (newState == STATE_WEB_CONFIG_NOT_STARTED)
+    {
+        // Web Config ends Bluetooth. Give the BLE stack time to deliver the OK response first.
+        delay(250);
+        forceMenuExit = true; // Leave serial command mode so the main loop starts Web Config
+    }
 
     // processCommand() may run in the Bluetooth command task, so let stateUpdate() make the change
     requestChangeState(newState);
     forceSystemStateUpdate = true; // Immediately go to this new state
-    return true;
 }
 
 // Handle $SPGET,setState: the current mode, as a setState value, or -1 when in some other mode
-// (setup, web config, pairing, etc.)
+// (setup, pairing, etc.)
 int commandGetState()
 {
+    if (inWebConfigMode())
+        return SET_STATE_WEB_CONFIG;
     if (inRoverMode())
         return SET_STATE_ROVER;
     if (systemState == STATE_BASE_ASSIST_NOT_STARTED)
@@ -366,7 +421,7 @@ void menuCommands()
             continue;
 
         // Process this input and exit mode if command dictates
-        if (processCommand(cmdBuffer) == CLI_EXIT)
+        if (processCommand(cmdBuffer, PRINT_ENDPOINT_SERIAL) == CLI_EXIT)
         {
             systemPrintln("Exiting command mode");
             break; // Exit while(1) loop
@@ -379,8 +434,9 @@ void menuCommands()
 }
 
 // Checks the string for validity and parses as necessary
+// requester is the interface the command arrived on (PRINT_ENDPOINT_SERIAL or PRINT_ENDPOINT_BLUETOOTH_COMMAND)
 // Returns the various types of command responses
-t_cliResult processCommand(char *cmdBuffer)
+t_cliResult processCommand(char *cmdBuffer, PrintEndpoint requester)
 {
     // These commands are not part of the CLI and allow quick testing without validity check
     if ((strcmp(cmdBuffer, "x") == 0) || (strcmp(cmdBuffer, "exit") == 0))
@@ -498,6 +554,12 @@ t_cliResult processCommand(char *cmdBuffer)
         tokens[x][k] = '\0';
     }
 
+    // Responses that read or write a password or key go only to the requesting interface
+    bool secretResponse = (tokenCount >= 2) &&
+                          ((strcmp(tokens[0], "SPGET") == 0) || (strcmp(tokens[0], "SPSET") == 0)) &&
+                          commandIsSecretSetting(tokens[1]);
+    CommandSecretResponse secretResponseScope(secretResponse, requester);
+
     // Valid commands: CMD, GET, SET, EXE,
     if (strcmp(tokens[0], "SPCMD") == 0)
     {
@@ -529,6 +591,15 @@ t_cliResult processCommand(char *cmdBuffer)
             if (strcmp(field, "setState") == 0)
             {
                 snprintf(valueBuffer, sizeof(valueBuffer), "%d", commandGetState());
+                commandSendValueResponse(tokens[0], field, valueBuffer);
+                return (CLI_OK);
+            }
+
+            // gnssConfigPending is not a setting: 1 while a GNSS configuration is pending or running, else 0
+            if (strcmp(field, "gnssConfigPending") == 0)
+            {
+                bool pending = (gnssConfigureComplete() == false) || gnssConfigureInProgress;
+                snprintf(valueBuffer, sizeof(valueBuffer), "%d", pending ? 1 : 0);
                 commandSendValueResponse(tokens[0], field, valueBuffer);
                 return (CLI_OK);
             }
@@ -574,13 +645,23 @@ t_cliResult processCommand(char *cmdBuffer)
             // setState is not a setting: change the mode now, without a reset
             if (strcmp(field, "setState") == 0)
             {
-                if (commandSetState(value))
+                SystemState requestedState;
+                if (commandSetState(value, &requestedState))
                 {
                     commandSendValueOkResponse(tokens[0], field, value);
+                    commandRequestState(requestedState); // After the response, which Web Config could cut off
                     return (CLI_OK);
                 }
                 commandSendErrorResponse(tokens[0], field, (char *)"Unknown or unsupported state");
                 return (CLI_BAD_FORMAT);
+            }
+
+            // LIST shows a set password or key as ********. If an app writes that back (ie, saving a whole
+            // settings screen), keep the stored value rather than replacing it with asterisks.
+            if (commandIsSecretSetting(field) && (strcmp(value, "********") == 0))
+            {
+                commandSendStringOkResponse(tokens[0], field, value);
+                return (CLI_OK);
             }
 
             bool usbSerialBaudChange = (strcmp(field, "usbSerialBaud") == 0);
@@ -588,6 +669,28 @@ t_cliResult processCommand(char *cmdBuffer)
             {
                 commandSendErrorResponse(tokens[0], field, (char *)"Must be 115200 or 921600");
                 return (CLI_BAD_FORMAT);
+            }
+
+            // The GNSS data and radio ports: same range check as the serial menu (menuPorts.ino)
+            if ((strcmp(field, "dataPortBaud") == 0) || (strcmp(field, "radioPortBaud") == 0))
+            {
+                if (gnss == nullptr)
+                {
+                    commandSendErrorResponse(tokens[0], field, (char *)"GNSS not available");
+                    return (CLI_BAD_FORMAT);
+                }
+
+                char *end;
+                unsigned long newBaud = strtoul(value, &end, 10);
+                if ((end == value) || (*end != '\0') || (gnss->baudIsAllowed(newBaud) == false))
+                {
+                    // Some receivers (ie, LG290P) allow only standard rates within this range
+                    char errorText[60];
+                    snprintf(errorText, sizeof(errorText), "Unsupported baud rate (%lu to %lu)",
+                             (unsigned long)gnss->baudGetMinimum(), (unsigned long)gnss->baudGetMaximum());
+                    commandSendErrorResponse(tokens[0], field, errorText);
+                    return (CLI_BAD_FORMAT);
+                }
             }
 
             SettingValueResponse response = updateSettingWithValue(true, field, value);
@@ -651,8 +754,11 @@ t_cliResult processCommand(char *cmdBuffer)
         {
             if (strcmp(tokens[1], "APPLY") == 0)
             {
+                // Apply the pending GNSS configuration now rather than waiting for the BLE command channel
+                // to go idle. Over USB the serial command mode blocks the main loop, so the changes are
+                // applied once command mode is exited. Poll $SPGET,gnssConfigPending to know when done.
+                gnssConfigureApplyRequested = true;
                 commandSendExecuteOkResponse(tokens[0], tokens[1]);
-                // TODO - Do an apply...
                 return (CLI_OK);
             }
             else if (strcmp(tokens[1], "EXIT") == 0)
@@ -835,6 +941,19 @@ void commandSendExecuteListResponse(const char *settingName, const char *setting
     if (reportingChangedSettings)
         changedSettingsReportCount++;
 
+    // The LIST command first counts its rows: count this $SPLST row, nothing else ($SPCTY header,
+    // multi-part writes, debug prints), so the announced total matches the rows sent
+    if (printEndpoint == PRINT_ENDPOINT_COUNT_COMMANDS)
+    {
+        systemWriteCounts++;
+        return;
+    }
+
+    // Don't send passwords or keys in the list. Report only whether one is set. Apps read the actual
+    // value with $SPGET, which responds to only the requesting interface.
+    if (commandIsSecretSetting(settingName) && settingValue[0])
+        settingValue = "********";
+
     // Create string between $ and * for checksum calculation
     char innerBuffer[200];
 
@@ -949,7 +1068,7 @@ void commandSendAllInterfaces(char *rxData)
     // Don't re-direct if we're doing a count of the print output
     if (printEndpoint != PRINT_ENDPOINT_COUNT_COMMANDS)
     {
-        printEndpoint = PRINT_ENDPOINT_ALL;
+        printEndpoint = commandResponseEndpoint; // All interfaces, or only the requester for a password or key
 
         // The LIST command dumps a large amount of data across the BLE link causing "esp_ble_gatts_send_ notify: rc=-1"
         // errors
