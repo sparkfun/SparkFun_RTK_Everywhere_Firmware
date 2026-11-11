@@ -1213,7 +1213,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     // If BaseCasterOverride is enabled, remove everything but RTCM from the circular buffer
     // to avoid saturating the downstream radio link that is consuming over a TCP (NTRIP Caster) connection
     // Remove NMEA, etc after passing to the GNSS receiver library so that we still have SIV and other stats available
-    if (tcpServerInCasterMode)
+    if (tcpServerInCasterMode && online.tcpServer)
     {
         if (type != RTK_RTCM_PARSER_INDEX)
         {
@@ -2950,6 +2950,9 @@ void bluetoothCommandTask(void *pvParameters)
     char rxData[256]; // Input limit of 256 chars
     bool passRtcmToGnss = false;
     uint32_t rtcmTimer = 0;
+    uint16_t rtcmFrameBytes = 0;  // Bytes of the current RTCM frame received so far
+    uint16_t rtcmFrameLength = 0; // Total length of the current RTCM frame, 0 until the length bytes arrive
+    uint8_t rtcmLengthHigh = 0;
 
     // Start notification
     task.bluetoothCommandTaskRunning = true;
@@ -2974,14 +2977,16 @@ void bluetoothCommandTask(void *pvParameters)
             if (bluetoothCommandAvailable() > 0)
             {
                 byte incoming = bluetoothCommandRead();
-                bleCommandTrafficSeen_ms = millis();
 
                 // The app may send binary RTCM over the BLE command channel; keep it out of the CLI line parser.
-                if (incoming == 0xd3)
+                // Only a 0xD3 outside of a frame starts a new frame (0xD3 can appear inside a frame)
+                if ((passRtcmToGnss == false) && (incoming == 0xd3))
                 {
                     passRtcmToGnss = true;
                     rtcmTimer = millis();
                     rxSpot = 0;
+                    rtcmFrameBytes = 0;
+                    rtcmFrameLength = 0;
                 }
 
                 if (passRtcmToGnss && ((millis() - rtcmTimer) < RTCM_CORRECTION_INPUT_TIMEOUT))
@@ -2993,10 +2998,26 @@ void bluetoothCommandTask(void *pvParameters)
                     if (correctionLastSeen(CORR_BLUETOOTH))
                         addToGnssBuffer(incoming);
 
+                    // Track the frame: 0xD3, 6 reserved bits + 10 bit length, payload, 3 byte CRC.
+                    // Leave RTCM mode at the end of the frame so that commands sent between corrections are
+                    // processed. Otherwise, with corrections arriving more often than the timeout, every
+                    // command would be passed to the GNSS.
+                    rtcmFrameBytes++;
+                    if (rtcmFrameBytes == 2)
+                        rtcmLengthHigh = incoming;
+                    else if (rtcmFrameBytes == 3)
+                        rtcmFrameLength = 3 + (((rtcmLengthHigh & 0x03) << 8) | incoming) + 3;
+                    else if (rtcmFrameLength && (rtcmFrameBytes >= rtcmFrameLength))
+                        passRtcmToGnss = false; // Frame complete
+
                     continue;
                 }
 
                 passRtcmToGnss = false;
+
+                // Only CLI bytes count as command traffic. RTCM corrections streamed by the app must not hold
+                // off the GNSS configuration (see bluetoothCommandIsConnected() and gnssUpdate())
+                bleCommandTrafficSeen_ms = millis();
 
                 rxData[rxSpot++] = incoming;
                 rxSpot %= sizeof(rxData); // Wrap
@@ -3005,7 +3026,7 @@ void bluetoothCommandTask(void *pvParameters)
                 if (rxSpot > 2 && rxData[rxSpot - 1] == '\n' && rxData[rxSpot - 2] == '\r')
                 {
                     rxData[rxSpot - 2] = '\0'; // Remove \r\n
-                    processCommand(rxData);
+                    processCommand(rxData, PRINT_ENDPOINT_BLUETOOTH_COMMAND);
                     rxSpot = 0; // Reset
                 }
             }

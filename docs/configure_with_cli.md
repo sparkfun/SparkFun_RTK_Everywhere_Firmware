@@ -117,6 +117,14 @@ The receiver returns the numeric `LoggingState` enum value:
 
 On platforms with a mosaic-X5, logging to the internal mosaic microSD card is also reported.
 
+## Getting GNSS Configuration State
+
+To learn whether the receiver has finished configuring its GNSS (after a power on, a mode change, or `$SPEXE,APPLY`), send:
+
+	$SPGET,gnssConfigPending*FF<CR><LF>
+
+The receiver returns 1 while a GNSS configuration is pending or in progress, and 0 once it is complete.
+
 ## Changing Modes
 
 To switch the device between Rover, Base, and the other modes without a reset, send:
@@ -130,8 +138,12 @@ To switch the device between Rover, Base, and the other modes without a reset, s
 | NTP Server (devices with Ethernet only) | 2 |
 | Base Caster | 3 |
 | Base Assist (fixed base at the current position) | 4 |
+| Web Config | 5 |
 
-The device starts the new mode right away and uses it again at the next power on. An unknown mode, or NTP on a device without Ethernet, returns an error.
+The device starts the new mode right away and uses it again at the next power on. Web Config is the exception: it is not remembered across a power cycle. An unknown mode, or NTP on a device without Ethernet, returns an error.
+
+!!! note
+	Web Config turns off Bluetooth to free memory for WiFi, so a Bluetooth connection drops after the `OK` response. Connect to the device's WiFi network or web page to continue.
 
 !!! example
 	Switch to Base mode:
@@ -154,7 +166,7 @@ The device starts the new mode right away and uses it again at the next power on
 
 		$SPSET,setState,,ERROR,Unknown or unsupported state*5B<CR><LF>
 
-To read the current mode, send `$SPGET,setState*4C`. The receiver returns one of the values above, or -1 while in another mode (for example, Web Config or ESP-NOW pairing). For example, `$SPGET,setState,1*51` means Base. Base Assist is reported as 4 only briefly, and then as Base once the fixed base starts.
+To read the current mode, send `$SPGET,setState*4C`. The receiver returns one of the values above, or -1 while in another mode (for example, ESP-NOW pairing). For example, `$SPGET,setState,1*51` means Base. Base Assist is reported as 4 only briefly, and then as Base once the fixed base starts.
 
 !!! note
 	The `lastState` setting also selects Rover, Base, NTP, or Base Caster, but only takes effect after a reset. It is deprecated for changing modes; use `setState` instead.
@@ -340,7 +352,7 @@ If the receiver is unable to carry out the action, the following error message i
 
 The following actions shall be implemented.
 
-- **`APPLY`**: applies the currently stored settings, rebooting if necessary.
+- **`APPLY`**: applies the currently stored settings to the GNSS receiver now. Without `APPLY`, changes are applied once the Bluetooth command interface has been idle for 60 seconds, so that a burst of `$SPSET` commands causes only one reconfiguration. Over USB, the changes are applied when the command interface is exited. Use `$SPGET,gnssConfigPending` to learn when the configuration is complete.
 - **`SAVE`**: Saves current settings to NVM
 - **`EXIT`**: Exits the command interface
 - **`REBOOT`**: Restarts the receiver firmware without applying settings.
@@ -354,13 +366,15 @@ Send:
 
 	$SPEXE,LIST*75<CR><LF>
 
-The response is in the form of multiple $SPLST sentences, followed by an acknowledgement of the $SPEXE command.
+The response is in the form of multiple $SPLST sentences, followed by an acknowledgement of the $SPEXE command. The first sentence, `$SPLST,list,int,[count]`, gives the number of $SPLST sentences in the response, including itself. A `$SPCTY` sentence describing the setting types is also sent and is not included in the count.
 
 The $SPLST sentences shall have the following structure:
 
 	$SPLST,[setting name],[data type],[current value]*FF<CR><LF>
 
 The data type contains whether the field is a char[n], int, bool, or float.
+
+Passwords and keys (WiFi passwords, NTRIP Client and Server passwords, and the PointPerfect device profile token) are not sent in the list. A password that is set is shown as `********`, and one that is not set is empty. To read the actual value, use `$SPGET` (for example, `$SPGET,wifiNetwork_0Password`). Responses to `$SPGET` and `$SPSET` for passwords and keys are sent only to the interface that sent the command (Bluetooth or USB), and are not copied to the other interfaces. Setting a password or key to `********` is acknowledged but leaves the stored value unchanged, so writing back a value read from the list does not overwrite it.
 
 !!! example
 	Example response:

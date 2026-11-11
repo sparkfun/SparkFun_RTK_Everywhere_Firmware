@@ -84,10 +84,10 @@ void systemWrite(const uint8_t *buffer, uint16_t length)
         tcpServerWrite(buffer, length);
     }
 
-    // Count the number of commands, 1 systemPrint call per command
+    // The LIST command is counting its rows: commandSendExecuteListResponse() counts each $SPLST row,
+    // so discard everything else written during the count
     else if (printEndpoint == PRINT_ENDPOINT_COUNT_COMMANDS)
     {
-        systemWriteCounts++;
     }
 
     else
