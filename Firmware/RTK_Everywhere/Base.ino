@@ -186,8 +186,10 @@ void sendRTCMToConsumers()
         rtcmLastPacketSent = millis();
         rtcmPacketsSent++;
 
-        // Check for too many digits
-        if (settings.enableResetDisplay == true)
+        // Check for too many digits. The 184x88 e-paper shortens large counts (1k, 12k, 1M) instead.
+        if (present.display_type == DISPLAY_184x88)
+            ;
+        else if (settings.enableResetDisplay == true)
         {
             if (rtcmPacketsSent > 99)
                 rtcmPacketsSent = 1; // Trim to two digits to avoid overlap

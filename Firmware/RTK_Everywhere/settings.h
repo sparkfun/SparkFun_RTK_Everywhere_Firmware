@@ -2752,6 +2752,7 @@ bool otaDeveloperOptions = false;
 // Declare forward routines
 //----------------------------------------
 
+#ifdef COMPILE_NETWORK
 bool serverConnectUsingUrl(const char * subsystem,
                            const char * chip,
                            const char * url,
@@ -2761,5 +2762,6 @@ bool serverConnectUsingUrl(const char * subsystem,
                            void (*addHeaders)(HTTPClient &https),
                            t_http_codes expectedResponseCode,
                            size_t &fileBytes);
+#endif // COMPILE_NETWORK
 
 #endif // __SETTINGS_H__

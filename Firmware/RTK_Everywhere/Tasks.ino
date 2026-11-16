@@ -2632,6 +2632,7 @@ void buttonCheckTask(void *e)
             else if ((systemState == STATE_DISPLAY_SETUP) && doubleTap)
             {
                 lastSetupMenuChange.setTimerToMillis(); // Prevent a timeout during state change
+                forceDisplayUpdate = true; // Show the new mode starting before its (blocking) configuration
                 uint8_t thisIsButton = 0;
                 for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
                 {
@@ -2695,6 +2696,7 @@ void buttonCheckTask(void *e)
                     requestChangeState(STATE_DISPLAY_SETUP);
                     lastSetupMenuChange.setTimerToMillis();
                     setupSelectedButton = 0; // Highlight the first button
+                    forceDisplayUpdate = true; // Show the menu now, not at the next display interval
                     break;
 
                 case STATE_PROFILE:
