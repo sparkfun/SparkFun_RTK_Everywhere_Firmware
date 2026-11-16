@@ -10,6 +10,7 @@ DisplayTest.ino
       SPEXE,DISPLAYTEST,0       return to the normal display
       SPEXE,DISPLAYTEST,LIST    list the scenarios
       SPEXE,DISPLAYTEST,INVERT  white on black from now on (experiment), NORMAL to undo
+      SPEXE,DISPLAYTEST,DUMP    print the next status frame as 88 lines of '#' and '.'
   The command exits the menus so displayUpdate() runs again.
 
   Only the display reads the mocked values - every dt*() accessor below passes the real
@@ -100,12 +101,37 @@ const displayTestScenario_t displayTestScenarios[] = {
         0, 0, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 0, DT_LOG_PULSE, 0, 0, DT_SCREEN_STRIP_GHOST_FULL},
     {"S6 strip ghosting, black on white", STATE_ROVER_RTK_FIX, false, DT_WIFI_OFF, 0, false, 0, false, false, nullptr, 90,
         0, 0, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 0, DT_LOG_PULSE, 0, 0, DT_SCREEN_STRIP_GHOST_PLAIN},
+    // Edge cases from the e-paper proposal
+    {"20 rover position stopped: NO DATA", STATE_ROVER_FIX, false, DT_WIFI_INTERNET, -30, false, 0, false, false, &DynamicModel_4_Properties, 90,
+        1.8, 14, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 0, DT_LOG_PULSE, 0, 0, DT_SCREEN_STATUS, true},
+    {"24 rover logging on, nothing written", STATE_ROVER_RTK_FIX, true, DT_WIFI_OFF, 0, false, 0, true, false, nullptr, 90,
+        0.012, 30, false, false, false, false, false, nullptr, CORR_BLUETOOTH, 0, false, false, 0, DT_LOG_IDLE, 0, 0},
+    {"27b rover 0.995 m shows 1.0 m", STATE_ROVER_FIX, false, DT_WIFI_OFF, 0, false, 0, false, false, &DynamicModel_3_Properties, 60,
+        0.995, 12, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 0, DT_LOG_PULSE, 0, 0},
+    {"27c rover 12.34 m shows 12 m", STATE_ROVER_FIX, false, DT_WIFI_OFF, 0, false, 0, false, false, &DynamicModel_3_Properties, 60,
+        12.34, 6, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 0, DT_LOG_PULSE, 0, 0},
+    {"27d rover over 30 m shows >30 m", STATE_ROVER_FIX, false, DT_WIFI_OFF, 0, false, 0, false, false, &DynamicModel_3_Properties, 60,
+        30.6, 4, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 0, DT_LOG_PULSE, 0, 0},
+    {"25b base 1,000 sent shows 1k", STATE_BASE_FIXED_TRANSMITTING, false, DT_WIFI_INTERNET, -30, false, 0, false, true, nullptr, 90,
+        0, 28, false, false, false, false, false, DT_LONG_IP, DT_NO_CORRECTION, DT_BCAST(BCAST_NTRIP_SERVER), true, false, 1000, DT_LOG_PULSE, 0, 0},
+    {"25c base 12,400 sent shows 12k", STATE_BASE_FIXED_TRANSMITTING, false, DT_WIFI_INTERNET, -30, false, 0, false, true, nullptr, 90,
+        0, 28, false, false, false, false, false, DT_LONG_IP, DT_NO_CORRECTION, DT_BCAST(BCAST_NTRIP_SERVER), true, false, 12400, DT_LOG_PULSE, 0, 0},
+    {"25e base 1,000,000 sent shows 1M", STATE_BASE_FIXED_TRANSMITTING, false, DT_WIFI_INTERNET, -30, false, 0, false, true, nullptr, 90,
+        0, 28, false, false, false, false, false, DT_LONG_IP, DT_NO_CORRECTION, DT_BCAST(BCAST_NTRIP_SERVER), true, false, 1000000, DT_LOG_PULSE, 0, 0},
+    {"N1 base running, no link: NO OUTPUT", STATE_BASE_FIXED_TRANSMITTING, false, DT_WIFI_OFF, 0, false, 0, false, false, nullptr, 90,
+        0, 28, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 456, DT_LOG_PULSE, 0, 0},
+    {"N3 base, NTRIP up, RTCM stalled", STATE_BASE_FIXED_TRANSMITTING, false, DT_WIFI_INTERNET, -30, false, 0, false, false, nullptr, 90,
+        0, 28, false, false, false, false, false, DT_LONG_IP, DT_NO_CORRECTION, DT_BCAST(BCAST_NTRIP_SERVER), true, false, 999, DT_LOG_PULSE, 0, 0,
+        DT_SCREEN_STATUS, false, true},
+    {"T1 base temp, survey settling", STATE_BASE_TEMP_SETTLE, false, DT_WIFI_OFF, 0, false, 0, false, false, nullptr, 90,
+        1.42, 19, false, false, false, false, false, nullptr, DT_NO_CORRECTION, 0, false, false, 0, DT_LOG_PULSE, 0, 0},
 };
 // clang-format on
 
 const int displayTestScenarioCount = sizeof(displayTestScenarios) / sizeof(displayTestScenarios[0]);
 
 int displayTestScenarioNumber = 0; // 0 = off, else 1-based index into displayTestScenarios[]
+bool displayTestDump = false;      // SPEXE,DISPLAYTEST,DUMP - print the next status frame
 bool displayTestInvert = false;    // SPEXE,DISPLAYTEST,INVERT - white on black experiment
 uint16_t dtStripUpdates = 0;       // Display updates since a strip test scenario was selected
 
@@ -147,6 +173,13 @@ bool displayTestCommand(const char *arg)
         return true;
     }
 
+    if (strcmp(arg, "DUMP") == 0)
+    {
+        displayTestDump = true;
+        forceDisplayUpdate = true;
+        return true;
+    }
+
     if (strcmp(arg, "LIST") == 0)
     {
         for (int i = 0; i < displayTestScenarioCount; i++)
@@ -173,12 +206,9 @@ bool displayTestCommand(const char *arg)
     else
         systemPrintf("DISPLAYTEST: %d - %s\r\n", number, displayTestScenarios[number - 1].name);
 
-    // Strip tests start from a clean panel
-    if ((number > 0) && (displayTestScenarios[number - 1].screen >= DT_SCREEN_STRIP_16))
-    {
-        theDisplay->requestFullUpdate();
-        dtStripUpdates = 0;
-    }
+    // Every scenario starts from a clean panel, so camera captures don't show the previous one
+    theDisplay->requestFullUpdate();
+    dtStripUpdates = 0;
 
     forceDisplayUpdate = true;
     return true;
@@ -479,7 +509,7 @@ bool dtBaseCasterOverride()
     return dtActive() ? dtScenario()->baseCasterOverride : settings.baseCasterOverride;
 }
 
-uint16_t dtRtcmPacketsSent()
+uint32_t dtRtcmPacketsSent()
 {
     return dtActive() ? dtScenario()->rtcmPackets : rtcmPacketsSent;
 }
@@ -492,4 +522,21 @@ float dtSurveyInMeanAccuracy()
 int dtSurveyInObservationTime()
 {
     return dtActive() ? dtScenario()->surveyTime : gnss->getSurveyInObservationTime();
+}
+
+// SPEXE,DISPLAYTEST,DUMP: capture the next status frame drawn...
+void dtCaptureStart()
+{
+    if (displayTestDump)
+        theDisplay->captureStart();
+}
+
+// ...and print it once it has been pushed to the panel
+void dtCapturePrint()
+{
+    if (displayTestDump)
+    {
+        theDisplay->capturePrint();
+        displayTestDump = false;
+    }
 }

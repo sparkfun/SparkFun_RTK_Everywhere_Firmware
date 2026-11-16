@@ -1187,6 +1187,24 @@ void updateBattery()
 
             bluetoothSendBatteryPercent(batteryLevelPercent); // Send over dedicated BLE service
 
+            // e-paper units that can switch themselves off: after 30 s at 1 % without charging or
+            // USB power, leave CHARGE BATTERY on the panel and power down instead of freezing on
+            // the last fix
+            if ((present.display_type == DISPLAY_184x88) && (present.fastPowerOff == true))
+            {
+                static uint8_t emptyReadings = 0;
+                if ((batteryLevelPercent <= 1) && (isCharging() == false) && (isUsbAttached() == false))
+                    emptyReadings++;
+                else
+                    emptyReadings = 0;
+                if (emptyReadings >= 6) // 6 readings, 5 s apart
+                {
+                    systemPrintln("Battery empty. Shutting down...");
+                    powerOffWord = "CHARGE BATTERY";
+                    powerDown(false);
+                }
+            }
+
             // Display the battery data
             if (settings.enablePrintBatteryMessages && !inMainMenu)
             {
@@ -1261,6 +1279,7 @@ void updateBattery()
                 if (minutesSinceLastCharge > settings.shutdownNoChargeTimeoutMinutes)
                 {
                     systemPrintln("Shutting down (no charge)...");
+                    powerOffWord = "AUTO OFF";
                     powerDown(true);
                 }
             }

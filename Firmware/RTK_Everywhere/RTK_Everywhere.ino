@@ -82,11 +82,11 @@ RTK_Everywhere.ino
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
-#define COMPILE_BT       // Comment out to remove Bluetooth functionality
-#define COMPILE_WIFI     // Comment out to remove WiFi functionality
-#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
-#define COMPILE_CELLULAR // Comment out to remove cellular modem support
-#define COMPILE_LORA     // COmment out to remove LoRa functionality
+// #define COMPILE_BT       // Comment out to remove Bluetooth functionality
+// #define COMPILE_WIFI     // Comment out to remove WiFi functionality
+// #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
+// #define COMPILE_CELLULAR // Comment out to remove cellular modem support
+// #define COMPILE_LORA     // COmment out to remove LoRa functionality
 
 #ifdef COMPILE_BT
 //#define COMPILE_AUTHENTICATION // Uncomment to enable MFi authentication (uses Private libraries)
@@ -546,6 +546,8 @@ const uint8_t btMaxEscapeCharacters = 3; // Number of characters needed to enter
 #include "Display.h"
 #include "fontBigDigits.h" // 184x88 big HPA / SIV digits, see printBigDigits()
 #include "fontStripText.h" // 184x88 top strip text, see printStripText()
+#include "fontEPaper.h"    // 184x88 status screen fonts, see DisplayEPaper.ino
+#include "icons_epaper.h"  // 184x88 status screen icons, see DisplayEPaper.ino
 unsigned long minSplashFor = 100; // Display SparkFun Logo for at least 1/10 of a second
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -803,7 +805,7 @@ bool logIncreasing;       // Goes true when log file is greater than lastLogSize
 bool reuseLastLog;        // Goes true if we have a reset due to software (rather than POR)
 bool logMosaicIncreasing; // Goes true when the mosaic SD log is increasing
 
-uint16_t rtcmPacketsSent;    // Used to count RTCM packets sent via processRTCM()
+uint32_t rtcmPacketsSent;    // Used to count RTCM packets sent via processRTCM()
 uint32_t rtcmLastPacketSent; // Time stamp of RTCM going out (to NTRIP Server, ESP-NOW, etc)
 
 uint32_t maxSurveyInWait_s = 60L * 15L; // Re-start survey-in after X seconds

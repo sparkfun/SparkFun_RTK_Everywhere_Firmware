@@ -63,6 +63,7 @@ class HYBRID_DISPLAY
     bool _pushedValid;             // _pushedHash is set
     bool _forceFullUpdate;         // The next push is a full update
     bool _fullUpdateWanted;        // Fix state changed - full update once fullUpdateMinimum_ms has passed
+    bool _holdFullUpdates;         // Setup menu showing - keep rate-limited full updates until it closes
     unsigned long _lastFullUpdate; // millis() of the last full update
     static const unsigned long fullUpdateMinimum_ms = 30000;   // Fix state changes: at most one full update per 30 s
     static const unsigned long fullUpdateBackstop_ms = 600000; // Status screen: full update at least every 10 minutes
@@ -85,6 +86,29 @@ class HYBRID_DISPLAY
     }
     void fullUpdate(void); // e-paper: full update, sending all pixels
 
+    // e-paper only - a copy of the frame for SPEXE,DISPLAYTEST,DUMP. Mirrors pixel(), line(),
+    // rectangle(), rectangleFill() and bitmap() in copy and XOR mode; text drawn with the
+    // library's fonts is not captured.
+    uint8_t *_capture;  // 1 bit per pixel, row-major, or nullptr when not capturing
+    bool _captureXor;   // Current draw mode is XOR
+    void epaperRun(uint8_t x0, uint8_t x1, uint8_t y, uint8_t clr);
+    void capturePixel(int x, int y, bool on)
+    {
+      if ((_capture == nullptr) || (x < 0) || (y < 0) || (x >= 184) || (y >= 88))
+        return;
+      uint16_t index = y * 184 + x;
+      uint8_t mask = 1 << (index % 8);
+      if (_captureXor)
+      {
+        if (on)
+          _capture[index / 8] ^= mask;
+      }
+      else if (on)
+        _capture[index / 8] |= mask;
+      else
+        _capture[index / 8] &= ~mask;
+    }
+
   public:
     // Constructor
     HYBRID_DISPLAY(bool isOLED)
@@ -102,6 +126,9 @@ class HYBRID_DISPLAY
       _forceFullUpdate = false;
       _fullUpdateWanted = false;
       _lastFullUpdate = 0;
+      _capture = nullptr;
+      _captureXor = false;
+      _holdFullUpdates = false;
     }
 
     ~HYBRID_DISPLAY()
@@ -123,6 +150,9 @@ class HYBRID_DISPLAY
     bool begin(TwoWire &wirePort, uint8_t address);
     void requestFullUpdate(void) { _forceFullUpdate = true; } // e-paper: the next push is a full update
     void fixStateChanged(void) { _fullUpdateWanted = true; }  // e-paper: full update soon, rate limited
+    void holdFullUpdates(bool hold) { _holdFullUpdates = hold; } // e-paper: no rate-limited full updates for now
+    void captureStart(void); // e-paper: capture the next frame drawn (after erase()) - see _capture
+    void capturePrint(void); // e-paper: print the captured frame as 88 lines of '#' and '.', then stop
     uint8_t getWidth(void);
     uint8_t getHeight(void);
     bool reset(bool clearDisplay);
@@ -205,6 +235,7 @@ enum
     DT_LOG_STANDARD,
     DT_LOG_PPP,
     DT_LOG_CUSTOM,
+    DT_LOG_IDLE, // Logging on, nothing written
 };
 
 #define DT_BCAST(id) (1 << (id))
@@ -235,16 +266,28 @@ typedef struct
     uint8_t broadcasts;       // DT_BCAST() mask
     bool ntripCasting;
     bool baseCasterOverride;
-    uint16_t rtcmPackets;
+    uint32_t rtcmPackets;
     uint8_t logging;
     float surveyMean;
     uint16_t surveyTime;
     uint8_t screen; // DT_SCREEN_* - left out (0) on the normal status screens
+    bool noData;      // Position stopped updating
+    bool rtcmStalled; // Base: links up, but no RTCM going out
 } displayTestScenario_t;
 
 // 184x88 big digits (fontBigDigits.h), placed after a 10x20 colon printed at cursor x: the colon's
 // ink ends at column 6, then two blank columns
 const uint8_t bigDigitsColonOffset = 9;
+
+// DisplayEPaper.ino: base links that can carry RTCM out of the unit
+typedef struct
+{
+    bool bluetooth;
+    bool espNow;
+    bool lora;
+    bool ntripServer;
+    bool tcpServer; // NTRIP caster or plain TCP server clients
+} epBaseLinks_t;
 
 // displayTestScenario_t.screen
 #define DT_SCREEN_STATUS 0    // The normal displayUpdate() status screen

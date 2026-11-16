@@ -232,8 +232,8 @@ void HYBRID_DISPLAY::displayRegular(void)
     unsigned long sinceFullUpdate = millis() - _lastFullUpdate;
     bool fullDue = (_fullUpdateWanted && (sinceFullUpdate > fullUpdateMinimum_ms))
                    || (sinceFullUpdate > fullUpdateBackstop_ms);
-    if (dtSuppressFullUpdate())
-        fullDue = false; // DisplayTest.ino ghosting test - partial updates only
+    if (dtSuppressFullUpdate() || _holdFullUpdates)
+        fullDue = false; // DisplayTest.ino ghosting test, or the setup menu - partial updates only
 
     if (_forceFullUpdate || fullDue)
         fullUpdate();
@@ -253,6 +253,8 @@ void HYBRID_DISPLAY::erase(void)
     {
         _epaper->erase();
         _frameHash = 2166136261UL; // New frame
+        if (_capture)
+            memset(_capture, 0, 184 * 88 / 8);
     }
 }
 void HYBRID_DISPLAY::invert(bool bInvert)
@@ -288,6 +290,7 @@ void HYBRID_DISPLAY::setDrawMode(grRasterOp_t rop, grEpRasterOp_t eprop)
     {
         hashValue((uint8_t)eprop);
         _epaper->setDrawMode(eprop);
+        _captureXor = (eprop == grEpROPXOR);
     }
 }
 void HYBRID_DISPLAY::pixel(uint8_t x, uint8_t y, uint8_t clr)
@@ -299,6 +302,7 @@ void HYBRID_DISPLAY::pixel(uint8_t x, uint8_t y, uint8_t clr)
         uint8_t args[] = {0, x, y, clr};
         hashBytes(args, sizeof(args));
         _epaper->pixel(x, y, clr);
+        capturePixel(x, y, clr != 0);
     }
 }
 void HYBRID_DISPLAY::line(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t clr)
@@ -309,8 +313,37 @@ void HYBRID_DISPLAY::line(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_
     {
         uint8_t args[] = {1, x0, y0, x1, y1, clr};
         hashBytes(args, sizeof(args));
-        _epaper->line(x0, y0, x1, y1, clr);
+        if (y0 == y1)
+            epaperRun(x0, x1, y0, clr);
+        else if (x0 == x1)
+        {
+            for (uint8_t y = min(y0, y1); y <= max(y0, y1); y++)
+                epaperRun(x0, x0, y, clr);
+        }
+        else
+        {
+            _epaper->line(x0, y0, x1, y1, clr);
+            int dx = abs(x1 - x0), dy = abs(y1 - y0);
+            int steps = max(dx, dy);
+            for (int i = 0; i <= steps; i++)
+                capturePixel(x0 + ((x1 - x0) * i + steps / 2) / steps, y0 + ((y1 - y0) * i + steps / 2) / steps,
+                             clr != 0);
+        }
     }
+}
+// e-paper: one horizontal run of pixels. The library's vertical runs (drawLineVert(), also used
+// for filled rectangles) set extra rows when a run starts and ends inside one 8-row page, so
+// e-paper drawing only uses horizontal runs and single pixels.
+void HYBRID_DISPLAY::epaperRun(uint8_t x0, uint8_t x1, uint8_t y, uint8_t clr)
+{
+    if (x0 > x1)
+        std::swap(x0, x1);
+    if (x0 == x1)
+        _epaper->pixel(x0, y, clr);
+    else
+        _epaper->line(x0, y, x1, y, clr);
+    for (uint8_t x = x0; x <= x1; x++)
+        capturePixel(x, y, clr != 0);
 }
 void HYBRID_DISPLAY::rectangle(uint8_t x0, uint8_t y0, uint8_t width, uint8_t height, uint8_t clr)
 {
@@ -320,7 +353,19 @@ void HYBRID_DISPLAY::rectangle(uint8_t x0, uint8_t y0, uint8_t width, uint8_t he
     {
         uint8_t args[] = {2, x0, y0, width, height, clr};
         hashBytes(args, sizeof(args));
-        _epaper->rectangle(x0, y0, width, height, clr);
+        if ((width == 0) || (height == 0))
+            return;
+        uint8_t x1 = x0 + width - 1;
+        uint8_t y1 = y0 + height - 1;
+        epaperRun(x0, x1, y0, clr);
+        if (y1 != y0)
+            epaperRun(x0, x1, y1, clr);
+        for (uint8_t y = y0 + 1; y < y1; y++)
+        {
+            epaperRun(x0, x0, y, clr);
+            if (x1 != x0)
+                epaperRun(x1, x1, y, clr);
+        }
     }
 }
 void HYBRID_DISPLAY::rectangleFill(uint8_t x0, uint8_t y0, uint8_t width, uint8_t height, uint8_t clr)
@@ -331,7 +376,10 @@ void HYBRID_DISPLAY::rectangleFill(uint8_t x0, uint8_t y0, uint8_t width, uint8_
     {
         uint8_t args[] = {3, x0, y0, width, height, clr};
         hashBytes(args, sizeof(args));
-        _epaper->rectangleFill(x0, y0, width, height, clr);
+        if (width == 0)
+            return;
+        for (uint8_t row = 0; row < height; row++)
+            epaperRun(x0, x0 + width - 1, y0 + row, clr);
     }
 }
 void HYBRID_DISPLAY::bitmap(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t *pBitmap, uint8_t bmp_width, uint8_t bmp_height)
@@ -356,7 +404,43 @@ void HYBRID_DISPLAY::bitmap(uint8_t x0, uint8_t y0, uint8_t *pBitmap, uint8_t bm
         hashBytes(args, sizeof(args));
         hashBitmap(pBitmap, bmp_width, bmp_height);
         _epaper->bitmap(x0, y0, pBitmap, bmp_width, bmp_height);
+        if (_capture)
+        {
+            // The library draws every bit: 0 clears in copy mode and leaves the pixel in XOR mode
+            for (uint8_t y = 0; y < bmp_height; y++)
+                for (uint8_t x = 0; x < bmp_width; x++)
+                    capturePixel(x0 + x, y0 + y, pBitmap[x + (y / 8) * bmp_width] & (1 << (y % 8)));
+        }
     }
+}
+void HYBRID_DISPLAY::captureStart(void)
+{
+    if (_isOLED)
+        return;
+    if (_capture == nullptr)
+        _capture = (uint8_t *)malloc(184 * 88 / 8);
+    if (_capture)
+        memset(_capture, 0, 184 * 88 / 8);
+}
+void HYBRID_DISPLAY::capturePrint(void)
+{
+    if (_capture == nullptr)
+        return;
+    char line[185];
+    systemPrintln("DUMP BEGIN");
+    for (uint16_t y = 0; y < 88; y++)
+    {
+        for (uint16_t x = 0; x < 184; x++)
+        {
+            uint16_t index = y * 184 + x;
+            line[x] = (_capture[index / 8] & (1 << (index % 8))) ? '#' : '.';
+        }
+        line[184] = 0;
+        systemPrintln(line);
+    }
+    systemPrintln("DUMP END");
+    free(_capture);
+    _capture = nullptr;
 }
 void HYBRID_DISPLAY::text(uint8_t x0, uint8_t y0, const char *text, uint8_t clr)
 {
@@ -755,6 +839,7 @@ void displayUpdate()
                     false); // Incase of previous corruption, force re-alignment of CGRAM. Do not init buffers as it
             //  takes time and causes screen to blink.
 
+            dtCaptureStart(); // DisplayTest.ino DUMP - before erase() so the capture starts empty
             theDisplay->erase();
 
             // DisplayTest.ino boot screens replace the status screen entirely
@@ -763,6 +848,7 @@ void displayUpdate()
                 paintBootLogo184x88();
                 dtInvertFrame();
                 theDisplay->displayRegular();
+                dtCapturePrint();
                 return;
             }
             if (dtActive() && (dtScenario()->screen == DT_SCREEN_BOOT_INFO))
@@ -770,6 +856,7 @@ void displayUpdate()
                 paintBootInfo184x88(displayName);
                 dtInvertFrame();
                 theDisplay->displayRegular();
+                dtCapturePrint();
                 return;
             }
             if (dtActive() && (dtScenario()->screen == DT_SCREEN_POWERED_OFF))
@@ -777,6 +864,7 @@ void displayUpdate()
                 paintPoweredOff184x88();
                 dtInvertFrame();
                 theDisplay->displayRegular();
+                dtCapturePrint();
                 return;
             }
             if (dtStripTestActive())
@@ -796,13 +884,27 @@ void displayUpdate()
                 return;
             }
 
-            // e-paper: a change of state (NO FIX -> RTK FIX, etc.) earns a full update to clear ghosting
+            // e-paper: a change of state (NO FIX -> RTK FIX, etc.) earns a full update to clear ghosting.
+            // Not when the setup menu opens - its black-and-white flash would delay the menu by seconds.
             if (present.display_type == DISPLAY_184x88)
             {
                 static SystemState previousState = STATE_NOT_SET;
-                if ((previousState != STATE_NOT_SET) && (dtSystemState() != previousState))
+                if ((previousState != STATE_NOT_SET) && (dtSystemState() != previousState) &&
+                    (dtSystemState() != STATE_DISPLAY_SETUP))
                     theDisplay->fixStateChanged();
                 previousState = dtSystemState();
+                theDisplay->holdFullUpdates(dtSystemState() == STATE_DISPLAY_SETUP);
+            }
+
+            // e-paper rover and base status screens - DisplayEPaper.ino
+            if ((present.display_type == DISPLAY_184x88) && epPaintStatus(dtSystemState()))
+            {
+                if (dtActive() && (dtScenario()->screen == DT_SCREEN_BORDER))
+                    drawFrame(); // DisplayTest.ino: mark the panel's outermost pixels
+                dtInvertFrame();
+                theDisplay->displayRegular();
+                dtCapturePrint();
+                return;
             }
 
             iconPropertyList.clear();   // Redundant?
@@ -1282,8 +1384,9 @@ void displayPoweredOff()
 }
 
 // 184x88 power screens: the SparkPNT logo (rows 3-26), a status word in Terminus Bold 20
-// (rows 36-50) and a detail line in 8x16 (rows 62-77). The powered-off image stays on the panel,
-// and boot draws the same layout with STARTING - only the words change between the two.
+// (rows 36-50) and a detail line (rows 62-74) in Terminus Bold 20, or 8x16 if it doesn't fit.
+// The powered-off image stays on the panel, and boot draws the same layout with STARTING - only
+// the words change between the two.
 void paintPowerScreen184x88(const char *word, const char *detail)
 {
     uint8_t width = theDisplay->getWidth();
@@ -1293,7 +1396,11 @@ void paintPowerScreen184x88(const char *word, const char *detail)
     uint8_t wordWidth = stripTextWidth(&stripText20, word);
     printStripText((wordWidth < width) ? (width - wordWidth) / 2 : 0, 36, &stripText20, word, false);
 
-    printTextCenter(detail, 62, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);
+    uint8_t detailWidth = epTextWidth(&epFontText20, detail) - 1; // Less the space after the last letter
+    if (detailWidth <= width)
+        epPrint((width - detailWidth) / 2, 75, &epFontText20, detail);
+    else
+        printTextCenter(detail, 62, QW_FONT_8X16, QW_EP_FONT_8X16, 1, false);
 }
 
 // Logo, STARTING and the firmware version - shown from the first image after power on until the
@@ -1305,13 +1412,15 @@ void paintStarting184x88()
     paintPowerScreen184x88("STARTING", unitFirmware);
 }
 
-// Logo, POWERED OFF, the model and the 6 character Bluetooth ID
+// Why the unit turned off, shown on the 184x88 off screen: POWERED OFF, CHARGE BATTERY or AUTO OFF
+const char *powerOffWord = "POWERED OFF";
+
+// Logo, powerOffWord, the model and the 6 character Bluetooth ID
 void paintPoweredOff184x88()
 {
     char detail[40];
-    const uint8_t *mac = networkGetMacAddress();
-    snprintf(detail, sizeof(detail), "%s  %02X%02X%02X", displayName, mac[3], mac[4], mac[5]);
-    paintPowerScreen184x88("POWERED OFF", detail);
+    snprintf(detail, sizeof(detail), "%s  %s", displayName, serialNumber);
+    paintPowerScreen184x88(powerOffWord, detail);
 }
 
 // Displays a small error message then hard freeze
@@ -2844,163 +2953,139 @@ void paintClockAccuracy(displayCoords textCoords)
 // Draw the rover icon depending on screen
 // xOverride >= 0 repositions the icon (184x88's dynamic top-row pack, rule 1); pass -1 to keep the
 // icon's own baked-in position (used as-is by the 64x48/128x64 callers).
+// The icons.h dynamic model icon for the GNSS's current setting (or the DisplayTest.ino
+// scenario's), or nullptr when there is none to show
+const iconProperties *dynamicModelIconProperties()
+{
+    const iconProperties *testModel = dtDynamicModel();
+    if (testModel != nullptr)
+        return testModel;
+
+    if (!present.dynamicModel || !online.gnss)
+        return nullptr;
+
+    if (present.gnss_zedf9p || present.gnss_zedx20p)
+    {
+#ifdef COMPILE_ZED
+        // Display icon associated with current Dynamic Model
+        switch (settings.dynamicModel)
+        {
+        default:
+            break;
+
+        case (DYN_MODEL_PORTABLE): // 0
+            return &DynamicModel_1_Properties;
+        case (DYN_MODEL_STATIONARY): // 2
+            return &DynamicModel_2_Properties;
+        case (DYN_MODEL_PEDESTRIAN):
+            return &DynamicModel_3_Properties;
+        case (DYN_MODEL_AUTOMOTIVE):
+            return &DynamicModel_4_Properties;
+        case (DYN_MODEL_SEA):
+            return &DynamicModel_5_Properties;
+        case (DYN_MODEL_AIRBORNE1g):
+            return &DynamicModel_6_Properties;
+        case (DYN_MODEL_AIRBORNE2g):
+            return &DynamicModel_7_Properties;
+        case (DYN_MODEL_AIRBORNE4g):
+            return &DynamicModel_8_Properties;
+        case (DYN_MODEL_WRIST):
+            return &DynamicModel_9_Properties;
+        case (DYN_MODEL_BIKE):
+            return &DynamicModel_10_Properties;
+        case (DYN_MODEL_MOWER):
+            return &DynamicModel_11_Properties;
+        case (DYN_MODEL_ESCOOTER):
+            return &DynamicModel_12_Properties;
+        }
+#endif // COMPILE_ZED
+    }
+    else if (present.gnss_um980)
+    {
+#ifdef COMPILE_UM980
+        // Display icon associated with current Dynamic Model
+        switch (settings.dynamicModel)
+        {
+        default:
+            break;
+
+        case UM980_DYN_MODEL_SURVEY:
+            return &DynamicModel_2_Properties; // Stationary
+        case UM980_DYN_MODEL_UAV:
+            return &DynamicModel_6_Properties; // Airborne1g
+        case UM980_DYN_MODEL_AUTOMOTIVE:
+            return &DynamicModel_4_Properties; // Automotive
+        }
+#endif // COMPILE_UM980
+    }
+    else if (present.gnss_mosaicX5)
+    {
+#ifdef COMPILE_MOSAICX5
+        // Display icon associated with current Dynamic Model
+        switch (settings.dynamicModel)
+        {
+        default:
+            break;
+
+        case MOSAIC_DYN_MODEL_STATIC:
+        case MOSAIC_DYN_MODEL_QUASISTATIC:
+            return &DynamicModel_2_Properties; // Stationary
+        case MOSAIC_DYN_MODEL_PEDESTRIAN:
+            return &DynamicModel_3_Properties; // Pedestrian
+        case MOSAIC_DYN_MODEL_AUTOMOTIVE:
+        case MOSAIC_DYN_MODEL_RACECAR:
+            return &DynamicModel_4_Properties; // Automotive
+        case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
+            return &DynamicModel_Tractor_Props; // Tractor
+        case MOSAIC_DYN_MODEL_UAV:
+            return &DynamicModel_6_Properties; // Airborne1g
+        case MOSAIC_DYN_MODEL_UNLIMITED:
+            return &DynamicModel_8_Properties; // Airborne4g
+        }
+#endif // COMPILE_MOSAICX5
+    }
+    else if (present.gnss_lg290p && present.dynamicModel)
+    {
+#ifdef COMPILE_LG290P
+        // Display icon associated with current navigation mode
+        switch (settings.dynamicModel)
+        {
+        default:
+            break;
+
+        case LG290P_NAV_MODE_NORMAL:
+            return &DynamicModel_1_Properties; // Portable - or Automotive?
+        case LG290P_NAV_MODE_DYNAMIC:
+            return &DynamicModel_6_Properties; // Airborne1g
+        case LG290P_NAV_MODE_MOWER:
+            return &DynamicModel_11_Properties; // Mower
+        case LG290P_NAV_MODE_AGRICULTURE:
+            return &DynamicModel_Tractor_Props; // Tractor
+        }
+#endif // COMPILE_LG290P
+    }
+    return nullptr;
+}
+
 void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList, int16_t xOverride)
 {
-    // DisplayTest.ino scenario - use its dynamic model icon instead of the GNSS setting
-    const iconProperties *testModel = dtDynamicModel();
-    if ((testModel != nullptr) && (xOverride >= 0))
-    {
-        iconPropertyBlinking prop;
-        prop.icon = testModel->iconDisplay[present.display_type];
-        prop.icon.xPos = (uint8_t)xOverride;
-        prop.duty = 0b11111111;
-        pushIcon2x(prop);
+    const iconProperties *model = dynamicModelIconProperties();
+    if (model == nullptr)
         return;
-    }
 
-    if (present.dynamicModel && online.gnss)
+    iconPropertyBlinking prop;
+    prop.icon = model->iconDisplay[present.display_type];
+    prop.duty = 0b11111111;
+    if (prop.icon.bitmap == nullptr)
+        return;
+
+    if (xOverride >= 0)
     {
-        iconPropertyBlinking prop;
-        prop.icon.bitmap = nullptr; // Use this as the test a valid icon
-        prop.duty = 0b11111111;
-
-        if (present.gnss_zedf9p || present.gnss_zedx20p)
-        {
-#ifdef COMPILE_ZED
-            // Display icon associated with current Dynamic Model
-            switch (settings.dynamicModel)
-            {
-            default:
-                break;
-
-            case (DYN_MODEL_PORTABLE): // 0
-                prop.icon = DynamicModel_1_Properties.iconDisplay[present.display_type];
-                break;
-            case (DYN_MODEL_STATIONARY): // 2
-                prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type];
-                break;
-            case (DYN_MODEL_PEDESTRIAN):
-                prop.icon = DynamicModel_3_Properties.iconDisplay[present.display_type];
-                break;
-            case (DYN_MODEL_AUTOMOTIVE):
-                prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type];
-                break;
-            case (DYN_MODEL_SEA):
-                prop.icon = DynamicModel_5_Properties.iconDisplay[present.display_type];
-                break;
-            case (DYN_MODEL_AIRBORNE1g):
-                prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type];
-                break;
-            case (DYN_MODEL_AIRBORNE2g):
-                prop.icon = DynamicModel_7_Properties.iconDisplay[present.display_type];
-                break;
-            case (DYN_MODEL_AIRBORNE4g):
-                prop.icon = DynamicModel_8_Properties.iconDisplay[present.display_type];
-                break;
-            case (DYN_MODEL_WRIST):
-                prop.icon = DynamicModel_9_Properties.iconDisplay[present.display_type];
-                break;
-            case (DYN_MODEL_BIKE):
-                prop.icon = DynamicModel_10_Properties.iconDisplay[present.display_type];
-                break;
-            case (DYN_MODEL_MOWER):
-                prop.icon = DynamicModel_11_Properties.iconDisplay[present.display_type];
-                break;
-            case (DYN_MODEL_ESCOOTER):
-                prop.icon = DynamicModel_12_Properties.iconDisplay[present.display_type];
-                break;
-            }
-#endif // COMPILE_ZED
-        }
-        else if (present.gnss_um980)
-        {
-#ifdef COMPILE_UM980
-            // Display icon associated with current Dynamic Model
-            switch (settings.dynamicModel)
-            {
-            default:
-                break;
-
-            case UM980_DYN_MODEL_SURVEY:
-                prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type]; // Stationary
-                break;
-            case UM980_DYN_MODEL_UAV:
-                prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type]; // Airborne1g
-                break;
-            case UM980_DYN_MODEL_AUTOMOTIVE:
-                prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type]; // Automotive
-                break;
-            }
-#endif // COMPILE_UM980
-        }
-        else if (present.gnss_mosaicX5)
-        {
-#ifdef COMPILE_MOSAICX5
-            // Display icon associated with current Dynamic Model
-            switch (settings.dynamicModel)
-            {
-            default:
-                break;
-
-            case MOSAIC_DYN_MODEL_STATIC:
-            case MOSAIC_DYN_MODEL_QUASISTATIC:
-                prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type]; // Stationary
-                break;
-            case MOSAIC_DYN_MODEL_PEDESTRIAN:
-                prop.icon = DynamicModel_3_Properties.iconDisplay[present.display_type]; // Pedestrian
-                break;
-            case MOSAIC_DYN_MODEL_AUTOMOTIVE:
-            case MOSAIC_DYN_MODEL_RACECAR:
-                prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type]; // Automotive
-                break;
-            case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
-                prop.icon = DynamicModel_Tractor_Props.iconDisplay[present.display_type]; // Tractor
-                break;
-            case MOSAIC_DYN_MODEL_UAV:
-                prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type]; // Airborne1g
-                break;
-            case MOSAIC_DYN_MODEL_UNLIMITED:
-                prop.icon = DynamicModel_8_Properties.iconDisplay[present.display_type]; // Airborne4g
-                break;
-            }
-#endif // COMPILE_MOSAICX5
-        }
-        else if (present.gnss_lg290p && present.dynamicModel)
-        {
-#ifdef COMPILE_LG290P
-            // Display icon associated with current navigation mode
-            switch (settings.dynamicModel)
-            {
-            default:
-                break;
-
-            case LG290P_NAV_MODE_NORMAL:
-                prop.icon = DynamicModel_1_Properties.iconDisplay[present.display_type]; // Portable - or Automotive?
-                break;
-            case LG290P_NAV_MODE_DYNAMIC:
-                prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type]; // Airborne1g
-                break;
-            case LG290P_NAV_MODE_MOWER:
-                prop.icon = DynamicModel_11_Properties.iconDisplay[present.display_type]; // Mower
-                break;
-            case LG290P_NAV_MODE_AGRICULTURE:
-                prop.icon = DynamicModel_Tractor_Props.iconDisplay[present.display_type]; // Tractor
-                break;
-            }
-#endif // COMPILE_LG290P
-        }
-
-        if (prop.icon.bitmap)
-        {
-            if (xOverride >= 0)
-            {
-                prop.icon.xPos = (uint8_t)xOverride;
-                pushIcon2x(prop);
-            }
-            else
-                iconList->push_back(prop);
-        }
+        prop.icon.xPos = (uint8_t)xOverride;
+        pushIcon2x(prop);
     }
+    else
+        iconList->push_back(prop);
 }
 
 void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
@@ -3756,7 +3841,7 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList, uint8_t sivEndX)
             prefix = "Xmit";
 
         char statusText[16];
-        snprintf(statusText, sizeof(statusText), "%s:%d", prefix, dtRtcmPacketsSent());
+        snprintf(statusText, sizeof(statusText), "%s:%lu", prefix, (unsigned long)dtRtcmPacketsSent());
 
         // Try 10x20 (matches the SIV count next to it) first; fall back to 8x16 only if it doesn't
         // fit in the room to the right of the SIV text (rule 3 - shrink the font before letting
@@ -4508,6 +4593,12 @@ void printProfileName(const setupButton *button, char *displayName, size_t displ
 void paintDisplaySetup()
 {
     constructSetupDisplay(&setupButtons); // Construct the vector (linked list) of buttons
+
+    if (present.display_type == DISPLAY_184x88)
+    {
+        epPaintSetupMenu(&setupButtons, setupSelectedButton); // DisplayEPaper.ino
+        return;
+    }
 
     // For the 8X16 font, only the 'top' 12 rows are used
     // The 184x88 menu looks much better in the 10x20 font, so limit the buttons to 4 (same as 64x48)
