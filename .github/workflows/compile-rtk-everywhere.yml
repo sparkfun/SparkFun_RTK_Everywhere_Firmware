@@ -135,8 +135,12 @@ jobs:
           # Build the CRC tool
           make -C ./Firmware/Tools File_CRC
 
-          # Get the most recent file. Use the API, raw.githubusercontent.com caches for up to 5 minutes
+          # Get the most recent file. Use the API, raw.githubusercontent.com caches for up to 5 minutes.
+          # Authenticate the request, the unauthenticated API rate limit is shared by all jobs on the
+          # runner's IP address and returns 403 when exhausted.
           curl --fail --silent --show-error --location \
+            --retry 3 --retry-delay 5 \
+            --header "Authorization: Bearer $GH_TOKEN" \
             --header "Accept: application/vnd.github.raw" \
             --output $CSV_FILE \
             https://api.github.com/repos/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/contents/$CSV_FILE
@@ -166,6 +170,8 @@ jobs:
 
           # Display the updated file
           cat $CSV_FILE
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push CSV to Binaries Repo
         # uses: dmnemec/copy_file_to_another_repo_action #Workaround for Issue: https://github.com/orgs/community/discussions/55820#discussioncomment-5946136
