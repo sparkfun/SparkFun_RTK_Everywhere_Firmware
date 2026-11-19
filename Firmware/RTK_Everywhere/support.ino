@@ -1059,7 +1059,11 @@ bool findSpiffsPartition(void)
         do
         {
             const esp_partition_t *p = esp_partition_get(pi);
+#ifdef BL_ABI_MAJOR
+            if (strcmp(p->label, "userfs") == 0) // Flick: LittleFS is on Baseline's userfs partition
+#else
             if (strcmp(p->label, "spiffs") == 0)
+#endif // BL_ABI_MAJOR
                 return true;
         } while ((pi = (esp_partition_next(pi))));
     }

@@ -163,6 +163,19 @@ const char * getCertName(const char * cert)
 // Get an IP address associated with server
 //----------------------------------------
 #ifdef COMPILE_NETWORK
+#ifdef BL_ABI_MAJOR
+// Flick: resolve through Baseline (IPv4)
+String getServerIpAddress(const char * server)
+{
+    IPAddress ip;
+    if (WiFi.hostByName(server, ip) != 1)
+    {
+        systemPrintf("Failed to resolve %s\r\n", server);
+        return String();
+    }
+    return ip.toString();
+}
+#else  // BL_ABI_MAJOR
 String getServerIpAddress(const char * server)
 {
     struct addrinfo hints, * res, * p;
@@ -212,6 +225,7 @@ String getServerIpAddress(const char * server)
     }
     return ipAddress;
 }
+#endif // BL_ABI_MAJOR
 #endif // COMPILE_NETWORK
 
 //----------------------------------------

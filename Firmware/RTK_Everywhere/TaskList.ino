@@ -2,6 +2,10 @@
 TaskList.ino
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
+// Built with Flick (Baseline's SDK defines BL_ABI_MAJOR), sketches can't take
+// FreeRTOS task snapshots: rtkTaskList() only says so (end of this file).
+#ifndef BL_ABI_MAJOR
+
 //----------------------------------------
 // This is the worst possible programming method that is extremely likely
 // to fail in the future when the data structures or call interface changes!
@@ -140,3 +144,12 @@ void rtkTaskList(Print * display)
     if (snapshotBuffer)
         rtkFree(snapshotBuffer, "Task snapshot buffer");
 }
+
+#else // BL_ABI_MAJOR
+
+void rtkTaskList(Print * display)
+{
+    display->println("Task list: not available in a Flick build");
+}
+
+#endif // BL_ABI_MAJOR

@@ -82,10 +82,10 @@ RTK_Everywhere.ino
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
-#define COMPILE_BT       // Comment out to remove Bluetooth functionality
+// #define COMPILE_BT       // Comment out to remove Bluetooth functionality
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
-#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
-#define COMPILE_CELLULAR // Comment out to remove cellular modem support
+// #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
+// #define COMPILE_CELLULAR // Comment out to remove cellular modem support
 #define COMPILE_LORA     // COmment out to remove LoRa functionality
 
 #ifdef COMPILE_BT
@@ -97,7 +97,7 @@ RTK_Everywhere.ino
 #endif              // COMPILE_ETHERNET
 
 #ifdef COMPILE_WIFI
-#define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
+// #define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
 #define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-NOW functionality.
 #endif                 // COMPILE_WIFI
 
@@ -106,10 +106,10 @@ RTK_Everywhere.ino
 #define COMPILE_UM980    // Comment out to remove UM980 functionality
 #define COMPILE_ZED      // Comment out to remove ZED-F9x functionality
 
-#define COMPILE_IM19_IMU // Comment out to remove IM19_IMU functionality
+// #define COMPILE_IM19_IMU // Comment out to remove IM19_IMU functionality
 // #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
-#define COMPILE_BQ40Z50         // Comment out to remove BQ40Z50 functionality
-#define COMPILE_MP2762A_CHARGER // Comment out to remove MP2762A charger functionality
+// #define COMPILE_BQ40Z50         // Comment out to remove BQ40Z50 functionality
+// #define COMPILE_MP2762A_CHARGER // Comment out to remove MP2762A charger functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET) || defined(COMPILE_CELLULAR)
 #define COMPILE_NETWORK
@@ -127,7 +127,7 @@ RTK_Everywhere.ino
 #ifdef COMPILE_SERIAL_MENUS
 #define COMPILE_MENU_BASE          // Comment out to remove base menu functionality
 #define COMPILE_MENU_CORRECTIONS   // Comment out to remove correction priorities menu functionality
-#define COMPILE_MENU_ETHERNET      // Comment out to remove Ethernet menu functionality
+// #define COMPILE_MENU_ETHERNET      // Comment out to remove Ethernet menu functionality
 #define COMPILE_MENU_FIRMWARE      // Comment out to remove firmware menu functionality
 #define COMPILE_MENU_GNSS          // Comment out to remove GNSS menu functionality
 #define COMPILE_MENU_INSTRUMENTS   // Comment out to remove instruments menu functionality
@@ -179,10 +179,12 @@ RTK_Everywhere.ino
 #include <NetworkClient.h>
 #include <NetworkClientSecure.h>
 #include <NetworkUdp.h>
+#ifndef BL_ABI_MAJOR // Flick: no BSD sockets, names resolve through Baseline
 #include <arpa/inet.h>
 #include <lwip/sockets.h>
 #include <netdb.h>
 #include <sys/socket.h>
+#endif // BL_ABI_MAJOR
 #endif // COMPILE_NETWORK
 
 #define RTK_MAX_CONNECTION_MSEC (15 * MILLISECONDS_IN_A_MINUTE)
@@ -1230,6 +1232,10 @@ void setup()
     bootTimeString[bootTimeIndex++] = "Serial.begin";
 
     Serial.begin(115200); // UART0 for programming and debugging
+
+    // setup() and loop() can block for over 10 seconds (an LG290P reset waits for the
+    // receiver to restart), so leave them off the loop watchdog (the Arduino-ESP32 default)
+    disableLoopWDT();
     systemPrintln();
     systemPrintln();
 
