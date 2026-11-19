@@ -107,11 +107,15 @@ void checkGNSSArrayDefaults(Settings *settingsToCheck, bool recordDefaults)
         {
             defaultsApplied = true;
 
-            // Reset constellations to defaults
+            // Reset constellations to defaults: all enabled. This may run before the receiver
+            // firmware version is known, so don't base the default on constellationSupported().
+            // Unsupported constellations are never displayed or sent to the receiver.
             for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
-            {
-                settings.ubxConstellationsEnabled[x] = constellationSupported(x);
-            }
+                settings.ubxConstellationsEnabled[x] = 1;
+
+            // The receiver retains its own constellation configuration, so push the new values
+            if (recordDefaults)
+                gnssConfigure(GNSS_CONFIG_CONSTELLATION);
         }
 
         if (settings.ubxMessageRates[0] == 254)
@@ -134,8 +138,7 @@ void checkGNSSArrayDefaults(Settings *settingsToCheck, bool recordDefaults)
             defaultsApplied = true;
 
             // Reset Base rates to defaults
-            GNSS_ZED *zed = (GNSS_ZED *)gnss;
-            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+            int firstRTCMRecord = zedFirstRtcmRecord();
             for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
                 settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
         }

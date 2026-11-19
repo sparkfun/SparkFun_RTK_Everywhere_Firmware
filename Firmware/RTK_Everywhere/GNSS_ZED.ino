@@ -3057,6 +3057,19 @@ bool constellationSupported(int constellationNumber)
     return (constellationSupported);
 }
 
+// Return the index of the first RTCM record (RTCM_1005) in the ubxMessages array.
+// Does not depend on the gnss instance or present flags, so it is safe to use while
+// settings are loaded or recorded before the receiver type is known.
+int zedFirstRtcmRecord()
+{
+    for (int x = 0; x < MAX_UBX_MSG; x++)
+    {
+        if (strcmp(ubxMessages[x].msgTextName, "RTCM_1005") == 0)
+            return (x);
+    }
+    return (0);
+}
+
 // Given a spot in the ubxMsg array, return true if this message is supported on this platform and firmware version
 bool messageSupported(int messageNumber)
 {
@@ -3221,8 +3234,7 @@ bool zedCommandList(RTK_Settings_Types type, int settingsIndex, bool inCommands,
     break;
     case tUbMsgRtb: {
         // Record message settings
-        GNSS_ZED *zed = (GNSS_ZED *)gnss;
-        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+        int firstRTCMRecord = zedFirstRtcmRecord();
 
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
@@ -3328,8 +3340,7 @@ bool zedCreateString(RTK_Settings_Types type, int settingsIndex, char *newSettin
     break;
     case tUbMsgRtb: {
         // Locate the first record
-        GNSS_ZED *zed = (GNSS_ZED *)gnss;
-        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+        int firstRTCMRecord = zedFirstRtcmRecord();
 
         // Record message settings
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
@@ -3376,8 +3387,7 @@ bool zedGetSettingValue(RTK_Settings_Types type, const char *suffix, int setting
     }
     break;
     case tUbMsgRtb: {
-        GNSS_ZED *zed = (GNSS_ZED *)gnss;
-        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+        int firstRTCMRecord = zedFirstRtcmRecord();
 
         for (int x = 0; x < qualifier; x++)
         {
@@ -3403,16 +3413,15 @@ bool zedNewSettingValue(struct Settings *tempSettings, RTK_Settings_Types type, 
     switch (type)
     {
     case tCmnCnst:
+        // Settings are parsed before the receiver type and firmware version are known (Facet FP),
+        // so accept every ZED constellation name. Support is checked when the setting is applied.
         for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
         {
-            if (constellationSupported(x) == true)
+            if ((suffix[0] == ubxConstellations[x].textName[0]) &&
+                (strcmp(suffix, ubxConstellations[x].textName) == 0))
             {
-                if ((suffix[0] == ubxConstellations[x].textName[0]) &&
-                    (strcmp(suffix, ubxConstellations[x].textName) == 0))
-                {
-                    tempSettings->ubxConstellationsEnabled[x] = d;
-                    return true;
-                }
+                tempSettings->ubxConstellationsEnabled[x] = d;
+                return true;
             }
         }
         break;
@@ -3430,8 +3439,7 @@ bool zedNewSettingValue(struct Settings *tempSettings, RTK_Settings_Types type, 
         }
         break;
     case tUbMsgRtb:
-        GNSS_ZED *zed = (GNSS_ZED *)gnss;
-        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+        int firstRTCMRecord = zedFirstRtcmRecord();
 
         for (int x = 0; x < qualifier; x++)
         {
@@ -3458,17 +3466,14 @@ bool zedSettingsToFile(char *line, size_t lineSize, RTK_Settings_Types type, int
         return false;
 
     case tUbxConst: {
-        // Record constellation settings
+        // Record all constellation settings. The settings file may be written before the receiver
+        // firmware version is known, so filtering by support here would drop saved values.
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
-            // Only record constellations which are supported on this platform and firmware version
-            if (constellationSupported(x) == true)
-            {
-                // constellation_BeiDou=1
-                snprintf(line, lineSize, "%s%s=%d\r\n", rtkSettingsEntries[settingsIndex].name,
-                         ubxConstellations[x].textName, settings.ubxConstellationsEnabled[x]);
-                nvmRecordStringToFile(line);
-            }
+            // constellation_BeiDou=1
+            snprintf(line, lineSize, "%s%s=%d\r\n", rtkSettingsEntries[settingsIndex].name,
+                     ubxConstellations[x].textName, settings.ubxConstellationsEnabled[x]);
+            nvmRecordStringToFile(line);
         }
     }
     break;
@@ -3486,8 +3491,7 @@ bool zedSettingsToFile(char *line, size_t lineSize, RTK_Settings_Types type, int
     case tUbMsgRtb: {
         // Record message settings
 
-        GNSS_ZED *zed = (GNSS_ZED *)gnss;
-        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+        int firstRTCMRecord = zedFirstRtcmRecord();
 
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
