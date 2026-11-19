@@ -3057,6 +3057,14 @@ bool constellationSupported(int constellationNumber)
     return (constellationSupported);
 }
 
+// Return true if this constellation is supported by every ZED-F9P and ZED-X20P firmware version.
+// generate_settings_defaults_js.py uses the same rule to give these a static Web Config default.
+bool constellationAlwaysSupported(int constellationNumber)
+{
+    return ((ubxConstellations[constellationNumber].f9pFirmwareVersionSupported == 0) &&
+            (ubxConstellations[constellationNumber].x20pFirmwareVersionSupported == 0));
+}
+
 // Return the index of the first RTCM record (RTCM_1005) in the ubxMessages array.
 // Does not depend on the gnss instance or present flags, so it is safe to use while
 // settings are loaded or recorded before the receiver type is known.
@@ -3316,6 +3324,13 @@ bool zedCreateString(RTK_Settings_Types type, int settingsIndex, char *newSettin
         // Record constellation settings
         for (int x = 0; x < rtkSettingsEntries[settingsIndex].qualifier; x++)
         {
+            // Constellations supported by every ZED firmware default to enabled, and the browser
+            // knows that default (settingsDefaults.js), so omit them when they are enabled.
+            // Version-gated constellations are always sent: the browser only shows their
+            // checkbox when it receives them.
+            if (constellationAlwaysSupported(x) && settings.ubxConstellationsEnabled[x])
+                continue;
+
             // Only report constellations which are supported on this platform and firmware version
             if (constellationSupported(x) == true)
             {

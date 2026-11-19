@@ -31,21 +31,20 @@
 #    received CSV data with no static per-element markup, so instead of per-element defaults
 #    this script exports CORRECTIONS_SOURCE_DEFAULT_ORDER, which main.js's initializeArrays()
 #    uses to pre-seed the priority list when the ESP32 omits it (all priorities at default).
-#  - Constellation checkboxes (tLgConst/tUmConst/tMosaicConst) are also expanded into
-#    per-name entries (e.g. "constellation_GPS"), reading each receiver's own name table
-#    from its GNSS_*.h file - their default is always "all enabled"
-#    (checkGNSSArrayDefaults() in menuSupport.ino unconditionally resets them). ZED's
-#    constellations (tUbxConst) are deliberately NOT covered: constellationSupported() in
-#    GNSS_ZED.ino depends on the connected receiver's firmware version, discovered at
-#    runtime, so there's no static default to resolve - see the type-based special case
-#    in settingHasKnownWebConfigDefault() in menuCommands.ino.
+#  - Constellation checkboxes (tLgConst/tUmConst/tMosaicConst/tUbxConst) are also
+#    expanded into per-name entries (e.g. "constellation_GPS"), reading each receiver's
+#    own name table from its GNSS_*.h file - their default is always "all enabled"
+#    (checkGNSSArrayDefaults() in menuSupport.ino). For the ZED (tUbxConst) only the
+#    constellations supported by every ZED firmware are included; version-gated ones
+#    (see constellationSupported() in GNSS_ZED.ino) are always sent by the firmware and
+#    shown by main.js only when received. The firmware omits an always-supported ZED
+#    constellation from the CSV when it is enabled - see zedCreateString() and
+#    constellationAlwaysSupported() in GNSS_ZED.ino.
 #
 # This is a source-of-truth generator, not part of the build: rerun it by hand whenever
 # settings.h changes (same workflow as index_html_zipper.py / main_js_zipper.py).
 #   cd Firmware/Tools
 #   python generate_settings_defaults_js.py
-#
-# Written by: Claude (for SparkFun Electronics)
 
 import ast
 import json
@@ -64,6 +63,7 @@ CONSTELLATION_SOURCE_FILES = {
     "tLgConst": "GNSS_LG290P.h",
     "tUmConst": "GNSS_UM980.h",
     "tMosaicConst": "GNSS_Mosaic.h",
+    "tUbxConst": "GNSS_ZED.h",
 }
 
 # Scalar RTK_Settings_Types whose "name" column maps 1:1 to a single Web Config DOM
@@ -491,6 +491,28 @@ def resolve_constellation_names(type_, text):
         # const mosaicSignalConstellation mosaicSignalConstellations[] = {{name, configName}, ...};
         # emitted using .configName (field 1).
         return struct_array_field(text, "mosaicSignalConstellations", 1)
+    if type_ == "tUbxConst":
+        # const ubxConstellation ubxConstellations[] = {{configKey, gnssID, textName,
+        #   f9pFirmwareVersionSupported, x20pFirmwareVersionSupported, {signals}}, ...};
+        # Only constellations supported by every ZED firmware (both minimum versions 0)
+        # have a static default. Version-gated ones (GLONASS on X20P, SBAS on F9P) are
+        # left out: the firmware always sends them when supported, and main.js shows
+        # their checkbox only when received (divTables). Must match
+        # constellationAlwaysSupported() in GNSS_ZED.ino.
+        block = extract_array_block(text, "ubxConstellations")
+        if block is None:
+            return None
+        names = []
+        for element in split_top_level(block):
+            if not element.startswith("{"):
+                continue
+            parts = split_top_level(element[1 : element.rfind("}")])
+            if len(parts) < 5:
+                continue
+            name = resolve_literal(parts[2], {})
+            if isinstance(name, str) and resolve_literal(parts[3], {}) == 0 and resolve_literal(parts[4], {}) == 0:
+                names.append(name)
+        return names if names else None
     return None
 
 

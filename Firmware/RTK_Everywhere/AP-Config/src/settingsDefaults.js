@@ -118,8 +118,10 @@ const SETTINGS_DEFAULTS = {
   "constellation_BeiDou": {
     "default": true,
     "platforms": [
+      "EVK",
       "FPL",
       "FPM",
+      "FPX",
       "FacetX5",
       "Postcard",
       "TX2",
@@ -140,8 +142,10 @@ const SETTINGS_DEFAULTS = {
   "constellation_GPS": {
     "default": true,
     "platforms": [
+      "EVK",
       "FPL",
       "FPM",
+      "FPX",
       "FacetX5",
       "Postcard",
       "TX2",
@@ -151,8 +155,10 @@ const SETTINGS_DEFAULTS = {
   "constellation_Galileo": {
     "default": true,
     "platforms": [
+      "EVK",
       "FPL",
       "FPM",
+      "FPX",
       "FacetX5",
       "Postcard",
       "TX2",
@@ -172,8 +178,10 @@ const SETTINGS_DEFAULTS = {
   "constellation_QZSS": {
     "default": true,
     "platforms": [
+      "EVK",
       "FPL",
       "FPM",
+      "FPX",
       "FacetX5",
       "Postcard",
       "TX2",

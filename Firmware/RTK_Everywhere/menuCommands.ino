@@ -2225,9 +2225,9 @@ bool settingHasKnownWebConfigDefault(int i)
     // Mosaic always default to "all enabled" (checkGNSSArrayDefaults() in
     // menuSupport.ino unconditionally resets them), so the browser's generated default
     // (settingsDefaults.js) is always correct for those. ZED constellations also default to
-    // "all enabled", but which ones are offered depends on constellationSupported()
-    // (GNSS_ZED.ino), i.e. the receiver's firmware version discovered at runtime, and
-    // settingsDefaults.js does not model that - always send them.
+    // "all enabled", but some are only offered on certain firmware versions
+    // (constellationSupported() in GNSS_ZED.ino), so the whole row can't be skipped.
+    // zedCreateString() skips the always-supported ones individually instead.
     RTK_Settings_Types type = rtkSettingsEntries[i].type;
     if (type == tLgConst || type == tUmConst || type == tMosaicConst)
         return true;
