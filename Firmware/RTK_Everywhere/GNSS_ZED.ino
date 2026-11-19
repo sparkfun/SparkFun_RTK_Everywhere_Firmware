@@ -1576,7 +1576,7 @@ void GNSS_ZED::menuConstellations()
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
-        if (incoming >= 1 && incoming <= MAX_UBX_CONSTELLATIONS)
+        if (incoming >= 1 && incoming <= MAX_UBX_CONSTELLATIONS && constellationSupported(incoming - 1))
         {
             incoming--; // Align choice to constellation array of 0 to 5
 
