@@ -2224,9 +2224,10 @@ bool settingHasKnownWebConfigDefault(int i)
     // name lookup can't tell them apart - distinguish by type instead. LG290P/UM980/
     // Mosaic always default to "all enabled" (checkGNSSArrayDefaults() in
     // menuSupport.ino unconditionally resets them), so the browser's generated default
-    // (settingsDefaults.js) is always correct for those. ZED's constellationSupported()
-    // (GNSS_ZED.ino) depends on the connected receiver's firmware version, discovered
-    // at runtime, so there's no static default for the browser to know - always send it.
+    // (settingsDefaults.js) is always correct for those. ZED constellations also default to
+    // "all enabled", but which ones are offered depends on constellationSupported()
+    // (GNSS_ZED.ino), i.e. the receiver's firmware version discovered at runtime, and
+    // settingsDefaults.js does not model that - always send them.
     RTK_Settings_Types type = rtkSettingsEntries[i].type;
     if (type == tLgConst || type == tUmConst || type == tMosaicConst)
         return true;

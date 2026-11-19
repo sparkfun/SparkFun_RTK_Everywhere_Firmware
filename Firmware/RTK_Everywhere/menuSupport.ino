@@ -112,10 +112,6 @@ void checkGNSSArrayDefaults(Settings *settingsToCheck, bool recordDefaults)
             // Unsupported constellations are never displayed or sent to the receiver.
             for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
                 settings.ubxConstellationsEnabled[x] = 1;
-
-            // The receiver retains its own constellation configuration, so push the new values
-            if (recordDefaults)
-                gnssConfigure(GNSS_CONFIG_CONSTELLATION);
         }
 
         if (settings.ubxMessageRates[0] == 254)
@@ -419,7 +415,13 @@ void checkGNSSArrayDefaults(Settings *settingsToCheck, bool recordDefaults)
     }
 
     if (defaultsApplied == true && recordDefaults)
+    {
+        // The receiver retains its own configuration (constellations, message rates, minCN0,
+        // fix rate, etc.), so request a full reconfiguration to push the defaulted values.
+        // Otherwise the settings and the receiver disagree until the user changes something.
+        gnssConfigureDefaults();
         recordSystemSettings();
+    }
 }
 
 void checkGNSSArrayDefaults()
