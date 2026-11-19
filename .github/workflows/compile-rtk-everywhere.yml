@@ -160,11 +160,14 @@ jobs:
               # Append the SOC,ESP32 release line for > v3.4
               ./Firmware/Tools/File_CRC $BIN_FILE "*,SOC,ESP32,$MAJOR,$MINOR,0,0,0,$BIN_NAME" >> $CSV_FILE
           else
-              # Remove the release candidate (RC) line
-              awk -F, '!($1 == "*" && $2 == "SOC" && $3 == "ESP32" && $8 == "1")' $CSV_FILE > $CSV_FILE.tmp
+              # Remove the release candidate (RC) lines, remember v3.4 uses ESP32,ESP32 instead of SOC,ESP32
+              awk -F, '!($1 == "*" && ($2 == "SOC" || $2 == "ESP32") && $3 == "ESP32" && $8 == "1")' $CSV_FILE > $CSV_FILE.tmp
               mv $CSV_FILE.tmp $CSV_FILE
 
-              # Append the new SOC,ESP32 release candidate line
+              # Append the ESP32,ESP32 release candidate line for v3.4
+              ./Firmware/Tools/File_CRC $BIN_FILE "*,ESP32,ESP32,$MAJOR,$MINOR,0,0,1,soc/esp32/$BIN_NAME" >> $CSV_FILE
+
+              # Append the SOC,ESP32 release candidate line for > v3.4
               ./Firmware/Tools/File_CRC $BIN_FILE "*,SOC,ESP32,$MAJOR,$MINOR,0,0,1,$BIN_NAME" >> $CSV_FILE
           fi
 
