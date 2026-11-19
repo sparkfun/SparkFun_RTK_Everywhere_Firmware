@@ -3407,7 +3407,11 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     }
     else if (strcmp(settingName, "tiltState") == 0)
     {
+#ifdef COMPILE_IM19_IMU
         writeToString(settingValueStr, (int)tiltState);
+#else
+        writeToString(settingValueStr, (int)TILT_DISABLED);
+#endif // COMPILE_IM19_IMU
         knownSetting = true;
     }
     else if (strcmp(settingName, "loggingState") == 0)
@@ -4245,7 +4249,11 @@ void printAvailableSettings()
         else if (commandIndex[i] == COMMAND_TILT_STATE)
         {
             char tiltStateString[4];
+#ifdef COMPILE_IM19_IMU
             snprintf(tiltStateString, sizeof(tiltStateString), "%d", (int)tiltState);
+#else
+            snprintf(tiltStateString, sizeof(tiltStateString), "%d", (int)TILT_DISABLED);
+#endif // COMPILE_IM19_IMU
             commandSendExecuteListResponse("tiltState", "TiltState", tiltStateString);
         }
 

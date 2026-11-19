@@ -2275,7 +2275,7 @@ void nvmDirectoryListing()
         }
 
         // Close the directory
-        close(rootDir);
+        rootDir.close();
     }
 }
 
