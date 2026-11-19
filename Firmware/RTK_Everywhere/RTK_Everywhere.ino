@@ -685,11 +685,11 @@ static NetPriority_t networkPriorityForDisplay = NETWORK_NONE; // Reduce calls t
 
 // IM19 Tilt Compensation
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+TiltState tiltState = TILT_DISABLED; // Reported by menuCommands even when the IMU is not compiled
 #ifdef COMPILE_IM19_IMU
 unsigned long lastTiltCheck;   // Limits polling on IM19 to 1Hz
 bool tiltFailedBegin;          // Goes true if IMU fails beginTilt()
 unsigned long lastTiltBeepMs;  // Emit a beep every 10s if tilt is active
-TiltState tiltState = TILT_DISABLED;
 // Forward routine declaration
 void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char *nmeaType,
                            const int *latitudeComma, const int *longitudeComma,
