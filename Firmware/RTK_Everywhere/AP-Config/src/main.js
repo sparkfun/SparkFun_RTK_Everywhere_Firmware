@@ -216,6 +216,32 @@ function applyPlatformModel(model) {
     }
 }
 
+// Runs once the full settings dump has been parsed. applyPlatformModel() pre-fills
+// defaults before any per-platform code runs, but several dropdowns (pppMode,
+// radioPortBaud, dynamicModel, ...) have their option lists cleared and rebuilt
+// afterwards by the platformPrefix / facetFPGNSS / gnssFirmwareVersionInt handlers.
+// Assigning a value to a <select> that has no matching option is discarded, and
+// rebuilding the list selects the first option, so a setting the ESP32 omitted
+// (because it is at its default) would display as the first option ("Disabled")
+// and be written back that way on the next save. Re-apply the default to every
+// omitted dropdown now that its final option list exists.
+function reapplyOmittedSelectDefaults() {
+    if (typeof SETTINGS_DEFAULTS === 'undefined')
+        return;
+
+    for (const key in SETTINGS_DEFAULTS) {
+        const entry = SETTINGS_DEFAULTS[key];
+        if (entry.default === null || !entry.platforms.includes(platformModel))
+            continue;
+        if (receivedSettings.includes(key))
+            continue; // The ESP32 sent the real value; leave it alone
+
+        const el = ge(key);
+        if (el && el.tagName == "SELECT")
+            el.value = String(entry.default);
+    }
+}
+
 function parseIncoming(msg) {
     //console.log("Incoming message: " + msg);
 
@@ -1045,6 +1071,9 @@ function parseIncoming(msg) {
     //Don't update if all we received was coordinate info
     if (fullPageUpdate == true) {
         fullPageUpdate = false;
+
+        // Must run before the change events below so they see the correct dropdown values
+        reapplyOmittedSelectDefaults();
 
         //Force element updates
         ge("measurementRateHz").dispatchEvent(new CustomEvent('change'));
