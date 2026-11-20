@@ -497,6 +497,7 @@ void deviceNameUnderscoresToSpaces()
 
 // Callback for Service Discovery Protocol
 // This allows the iAP2 record to be created _after_ SDP is initialized
+#ifndef BL_ABI_MAJOR // Flick: SDP is not in Baseline (the iAP2 record needs an RTK Baseline extension)
 extern const int rfcommChanneliAP2;
 extern volatile bool sdpCreateRecordEvent;
 static void esp_sdp_callback(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param)
@@ -549,6 +550,7 @@ static void esp_sdp_callback(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param
         break;
     }
 }
+#endif // BL_ABI_MAJOR
 
 // Begin Bluetooth
 void bluetoothStart()
@@ -651,9 +653,11 @@ void bluetoothStart(bool onlineCheck)
                 recordSystemSettings();
             }
 
+#ifndef BL_ABI_MAJOR
             // The SDP callback will create the iAP2 record
             esp_sdp_register_callback(esp_sdp_callback);
             esp_sdp_init();
+#endif // BL_ABI_MAJOR
         }
 
         beginSuccess &= bluetoothSerialBle->begin(
@@ -844,8 +848,10 @@ void bluetoothEndCommon(bool endMe)
             sppAccessoryMode = false;         // Done with Accessory Mode
             if (endMe)
             {
+#ifndef BL_ABI_MAJOR // Flick: Baseline owns the Bluetooth controller's memory
                 bluetoothSerialSpp->register_callback(nullptr);
                 bluetoothSerialSpp->memrelease(BT_MODE_BTDM); // Release memory - using correct mode
+#endif // BL_ABI_MAJOR
                 delete bluetoothSerialSpp;
                 bluetoothSerialSpp = nullptr;
             }
@@ -859,8 +865,10 @@ void bluetoothEndCommon(bool endMe)
             bluetoothSerialSpp->end();        // Release resources
             if (endMe)
             {
+#ifndef BL_ABI_MAJOR // Flick: Baseline owns the Bluetooth controller's memory
                 bluetoothSerialSpp->register_callback(nullptr);
                 bluetoothSerialSpp->memrelease(BT_MODE_CLASSIC_BT); // Release memory - using correct mode
+#endif // BL_ABI_MAJOR
                 delete bluetoothSerialSpp;
                 bluetoothSerialSpp = nullptr;
             }

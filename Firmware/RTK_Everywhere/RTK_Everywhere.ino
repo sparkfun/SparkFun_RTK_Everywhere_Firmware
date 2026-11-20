@@ -82,7 +82,7 @@ RTK_Everywhere.ino
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
-// #define COMPILE_BT       // Comment out to remove Bluetooth functionality
+#define COMPILE_BT       // Comment out to remove Bluetooth functionality
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
 // #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 // #define COMPILE_CELLULAR // Comment out to remove cellular modem support

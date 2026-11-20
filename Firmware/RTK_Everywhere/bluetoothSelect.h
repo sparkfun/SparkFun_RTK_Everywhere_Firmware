@@ -7,12 +7,19 @@ bluetoothSelect.h
 // We use a local copy of the BluetoothSerial library so that we can increase the RX buffer. See issues:
 // https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/23
 // https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/469
+#ifdef BL_ABI_MAJOR
+// Flick: Baseline's BluetoothSerial, whose buffer sizes are set in bytes (setRxBufferSize, setTxBufferSize)
+#include <BluetoothSerial.h>
+#else  // BL_ABI_MAJOR
 #include "src/BluetoothSerial/BluetoothSerial.h"
+#endif // BL_ABI_MAJOR
 
 #include <BleSerial.h> //Click here to get the library: http://librarymanager/All#ESP32_BleSerial by Avinab Malla
 #include <BleBufferedSerial.h>
 
+#ifndef BL_ABI_MAJOR
 #include "esp_sdp_api.h"
+#endif // BL_ABI_MAJOR
 
 class BTSerialInterface : public virtual Stream
 {
@@ -22,7 +29,9 @@ class BTSerialInterface : public virtual Stream
 
     virtual void disconnect() = 0;
     virtual void end() = 0;
+#ifndef BL_ABI_MAJOR
     virtual esp_err_t register_callback(void * callback) = 0;
+#endif // BL_ABI_MAJOR
     virtual void setTimeout(unsigned long timeout) = 0;
 
     virtual int available() = 0;
@@ -34,23 +43,116 @@ class BTSerialInterface : public virtual Stream
     virtual size_t write(const uint8_t *buffer, size_t size) = 0;
     virtual size_t write(uint8_t value) = 0;
     virtual void flush() = 0;
+#ifndef BL_ABI_MAJOR
     virtual bool connect(uint8_t remoteAddress[], int channel,
                          esp_spp_sec_t sec_mask = (ESP_SPP_SEC_ENCRYPT | ESP_SPP_SEC_AUTHENTICATE),
                          esp_spp_role_t role = ESP_SPP_ROLE_MASTER) = 0; // Needed for Apple Accessory
+#endif // BL_ABI_MAJOR
     virtual bool connected() = 0;
     virtual void enableSSP(bool inputCapability, bool outputCapability) = 0;
+#ifndef BL_ABI_MAJOR
     virtual bool aclConnected() = 0;
     virtual uint8_t *aclGetAddress() = 0;
     virtual std::map<int, std::string> getChannels(const BTAddress &remoteAddress) = 0;
 
     virtual void onConfirmRequest(void (*cbPtr)(uint32_t)) = 0;
+#endif // BL_ABI_MAJOR
     virtual void confirmReply(bool confirm) = 0;
+#ifndef BL_ABI_MAJOR
     virtual void respondPasskey(uint32_t passkey) = 0;
+#endif // BL_ABI_MAJOR
 
     virtual void deleteAllBondedDevices() = 0;
+#ifndef BL_ABI_MAJOR
     virtual void memrelease(int mode) = 0;
+#endif // BL_ABI_MAJOR
 };
 
+#ifdef BL_ABI_MAJOR
+class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
+{
+  public:
+    bool begin(String deviceName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize,
+               const char *serviceID, const char *rxID, const char *txID)
+    {
+        // Flick: Baseline's buffers are in bytes. RTK's send queue held up to txQueueSize writes of up to
+        // 330 bytes (one SPP packet), so the send buffer gets that much room.
+        BluetoothSerial::setRxBufferSize(rxQueueSize);
+        BluetoothSerial::setTxBufferSize((size_t)txQueueSize * 330);
+        return BluetoothSerial::begin(deviceName, isMaster, disableBLE);
+    }
+
+    void disconnect()
+    {
+        BluetoothSerial::disconnect();
+    }
+
+    void end()
+    {
+        BluetoothSerial::end();
+    }
+
+    void setTimeout(unsigned long timeout)
+    {
+        BluetoothSerial::setTimeout(timeout);
+    }
+
+    int available()
+    {
+        return BluetoothSerial::available();
+    }
+
+    size_t readBytes(uint8_t *buffer, size_t bufferSize)
+    {
+        return BluetoothSerial::readBytes(buffer, bufferSize);
+    }
+
+    int read()
+    {
+        return BluetoothSerial::read();
+    }
+
+    int peek()
+    {
+        return BluetoothSerial::peek();
+    }
+
+    size_t write(const uint8_t *buffer, size_t size)
+    {
+        return BluetoothSerial::write(buffer, size);
+    }
+
+    size_t write(uint8_t value)
+    {
+        return BluetoothSerial::write(&value, 1);
+    }
+
+    void flush()
+    {
+        BluetoothSerial::flush();
+    }
+
+    bool connected()
+    {
+        return (BluetoothSerial::connected());
+    }
+
+    void enableSSP(bool inputCapability, bool outputCapability)
+    {
+        BluetoothSerial::enableSSP(inputCapability, outputCapability);
+    }
+
+    void confirmReply(bool confirm)
+    {
+        BluetoothSerial::confirmReply(confirm);
+    }
+
+    void deleteAllBondedDevices()
+    {
+        BluetoothSerial::deleteAllBondedDevices();
+    }
+};
+#else  // BL_ABI_MAJOR
 class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
 {
     // Everything is already implemented in BluetoothSerial since the code was
@@ -174,6 +276,7 @@ class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
         BluetoothSerial::memrelease(mode);
     }
 };
+#endif // BL_ABI_MAJOR
 
 //class BTLESerial : public virtual BTSerialInterface, public BleSerial
 
@@ -202,10 +305,12 @@ class BTLESerial : public virtual BTSerialInterface, public BleBufferedSerial
         // BleSerial::end();
     }
 
+#ifndef BL_ABI_MAJOR
     esp_err_t register_callback(void * callback)
     {
         return ESP_OK;
     }
+#endif // BL_ABI_MAJOR
 
     void setTimeout(unsigned long timeout)
     {
@@ -255,10 +360,12 @@ class BTLESerial : public virtual BTSerialInterface, public BleBufferedSerial
         // BleSerial::flush();
     }
 
+#ifndef BL_ABI_MAJOR
     bool connect(uint8_t remoteAddress[], int channel, esp_spp_sec_t sec_mask, esp_spp_role_t role)
     {
         return false;
     }
+#endif // BL_ABI_MAJOR
 
     bool connected()
     {
@@ -268,6 +375,7 @@ class BTLESerial : public virtual BTSerialInterface, public BleBufferedSerial
 
     void enableSSP(bool inputCapability, bool outputCapability) {}
 
+#ifndef BL_ABI_MAJOR
     bool aclConnected()
     {
         return false;
@@ -285,14 +393,19 @@ class BTLESerial : public virtual BTSerialInterface, public BleBufferedSerial
     }
 
     void onConfirmRequest(void (*cbPtr)(uint32_t)) {}
+#endif // BL_ABI_MAJOR
 
     void confirmReply(bool confirm) {}
 
+#ifndef BL_ABI_MAJOR
     void respondPasskey(uint32_t passkey) {}
+#endif // BL_ABI_MAJOR
 
     void deleteAllBondedDevices() {}
 
+#ifndef BL_ABI_MAJOR
     void memrelease(int mode) {}
+#endif // BL_ABI_MAJOR
 
     // Callbacks removed in v2 of BleSerial. Using polled connected() in bluetoothUpdate()
     // override BLEServerCallbacks
@@ -307,8 +420,10 @@ class BTLESerial : public virtual BTSerialInterface, public BleBufferedSerial
     //     // Server->startAdvertising(); //No longer used in v2 of BleSerial
     // }
 
+#ifndef BL_ABI_MAJOR
   private:
     esp_spp_cb_t connectionCallback;
+#endif // BL_ABI_MAJOR
 };
 
 #endif // COMPILE_BT
