@@ -2727,6 +2727,16 @@ void buttonCheckTask(void *e)
     vTaskDelete(buttonTaskHandle);
 }
 
+#ifdef BL_ABI_MAJOR
+// Flick: gnssRead and handleGNSSData never write internal flash (logging goes to the SD card), so
+// their stacks can be in PSRAM, leaving internal RAM for Bluetooth Classic, BLE and WiFi together.
+// A task with a PSRAM stack must never write LittleFS, Preferences or other flash itself.
+#define gnssTaskCreate(fn, name, stack, arg, priority, handle, core) \
+    xTaskCreatePinnedToCoreWithCaps(fn, name, stack, arg, priority, handle, core, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)
+#else
+#define gnssTaskCreate xTaskCreatePinnedToCore
+#endif
+
 void idleTask(void *e)
 {
     int cpu = xPortGetCoreID();
@@ -2812,7 +2822,7 @@ bool tasksStartGnssUart()
     // Reads data from GNSS and stores data into circular buffer
     if (!task.gnssReadTaskRunning)
     {
-        if (xTaskCreatePinnedToCore(gnssReadTask,                  // Function to call
+        if (gnssTaskCreate(gnssReadTask,                           // Function to call
                                     "gnssRead",                    // Just for humans
                                     gnssReadTaskStackSize,         // Stack Size
                                     nullptr,                       // Task input parameter
@@ -2825,7 +2835,7 @@ bool tasksStartGnssUart()
     // Reads data from circular buffer and sends data to SD, SPP, or network clients
     if (!task.handleGnssDataTaskRunning)
     {
-        if (xTaskCreatePinnedToCore(handleGnssDataTask,                  // Function to call
+        if (gnssTaskCreate(handleGnssDataTask,                           // Function to call
                                     "handleGNSSData",                    // Just for humans
                                     handleGnssDataTaskStackSize,         // Stack Size
                                     nullptr,                             // Task input parameter

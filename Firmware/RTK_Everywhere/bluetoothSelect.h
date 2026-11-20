@@ -281,9 +281,17 @@ class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
 //class BTLESerial : public virtual BTSerialInterface, public BleSerial
 
 //Use buffered BLE serial to handle LIST command over CLI interface
-class BTLESerial : public virtual BTSerialInterface, public BleBufferedSerial 
+class BTLESerial : public virtual BTSerialInterface, public BleBufferedSerial
 {
   public:
+#ifdef BL_ABI_MAJOR
+    // Flick: queue 4 packets (2 KB) instead of 10. The FreeRTOS queue is in internal RAM,
+    // which must also hold Bluetooth Classic and WiFi.
+    BTLESerial() : BleBufferedSerial(DEFAULT_BLE_TX_TIMEOUT, DEFAULT_BLE_TX_NOTIFY_DELAY, 4)
+    {
+    }
+#endif
+
     // Missing from BleSerial
     bool begin(String deviceName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize,
                const char *serviceID, const char *rxID, const char *txID)

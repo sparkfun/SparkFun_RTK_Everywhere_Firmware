@@ -1432,10 +1432,20 @@ void createNMEASentence(customNmeaType_e textID, char *nmeaMessage, size_t sizeO
 //----------------------------------------
 // Get the default settings
 //----------------------------------------
+#ifdef BL_ABI_MAJOR
+#include <new>
+#include <type_traits>
+static_assert(std::is_trivially_destructible<Settings>::value, "getDefaultSettings constructs over a live Settings");
+#endif
 void getDefaultSettings(struct Settings *tempSettings)
 {
+#ifdef BL_ABI_MAJOR
+    // Flick: build the defaults in place instead of keeping a 4 KB copy in internal RAM
+    new (tempSettings) Settings();
+#else
     static const Settings defaultSettings;
     memcpy(tempSettings, &defaultSettings, sizeof(defaultSettings));
+#endif
 }
 
 //----------------------------------------
