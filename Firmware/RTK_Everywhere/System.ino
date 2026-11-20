@@ -445,7 +445,13 @@ bool serverConnectUsingUrl(const char * subsystem,
         }
 
         // Get the stream
+#ifdef BL_ABI_MAJOR
+        // Flick: HTTPClient has no stream yet
+        systemPrintln("ERROR: HTTP downloads are not available in a Flick build yet");
+        break;
+#else  // BL_ABI_MAJOR
         stream = https.getStreamPtr();
+#endif // BL_ABI_MAJOR
         success = true;
     } while (0);
 
@@ -691,7 +697,13 @@ String serverSelectFileNameFromDirectoryListing(const char * url,
         }
 
         // Get TCP stream
+#ifdef BL_ABI_MAJOR
+        // Flick: HTTPClient has no stream yet
+        systemPrintln("ERROR: HTTP downloads are not available in a Flick build yet");
+        break;
+#else  // BL_ABI_MAJOR
         stream = http.getStreamPtr();
+#endif // BL_ABI_MAJOR
 
         // Locate the beginning of the directory listing
         if (dirPrefix && (stream->find(dirPrefix) == false))

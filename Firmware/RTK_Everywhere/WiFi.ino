@@ -28,12 +28,21 @@ static const char *wifiAuthorizationName[] = {
 
     // Compatible with ESP32 core v3.2.1, 16 reported, 18 listed here:
     // https://github.com/espressif/esp-idf/blob/master/components/esp_wifi/include/esp_wifi_types_generic.h#L86
+#ifdef BL_ABI_MAJOR // Flick: Baseline runs ESP-IDF 5.5 (17 modes)
+    "WPA3_EXT_PSK",
+    "WPA3_EXT_PSK_MIXED_MODE",
+    "DPP",
+    "WPA3_ENTERPRISE",
+    "WPA2_WPA3_ENTERPRISE",
+    "WPA_ENTERPRISE",
+#else  // BL_ABI_MAJOR
     //"WPA3_EXT_PSK",
     //"WPA3_EXT_PSK_MIXED_MODE",
     //"DPP",
     //"WPA3_ENTERPRISE",
     //"WPA2_WPA3_ENTERPRISE",
     //"WPA_ENTERPRISE",
+#endif // BL_ABI_MAJOR
 };
 static const int wifiAuthorizationNameEntries = sizeof(wifiAuthorizationName) / sizeof(wifiAuthorizationName[0]);
 
@@ -707,6 +716,7 @@ const char *wifiPrintState(wl_status_t wifiStatus)
 //*********************************************************************
 // Callback for all WiFi RX Packets
 // Get RSSI of all incoming management packets: https://esp32.com/viewtopic.php?t=13889
+#ifndef BL_ABI_MAJOR // Flick: ESP-NOW packets carry their RSSI
 void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
 {
     const wifi_promiscuous_pkt_t *ppkt; // Defined in esp_wifi_types_native.h
@@ -719,6 +729,7 @@ void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
     ppkt = (wifi_promiscuous_pkt_t *)buf;
     packetRSSI = ppkt->rx_ctrl.rssi;
 }
+#endif // BL_ABI_MAJOR
 
 //*********************************************************************
 // Get the broadcast IP address being used for the software access point (AP)
@@ -1751,6 +1762,22 @@ bool RTK_WIFI::setWiFiMode(uint8_t setMode, uint8_t xorMode)
 //   Returns true if successful and false upon failure
 bool RTK_WIFI::setWiFiProtocols(wifi_interface_t interface, bool enableWiFiProtocols, bool enableLongRangeProtocol)
 {
+#ifdef BL_ABI_MAJOR
+    // Flick: 802.11b/g/n are always on; only the long range protocol changes.
+    // With neither enabled, the interface is being stopped and WiFi.mode() turns it off.
+    if (!enableWiFiProtocols && !enableLongRangeProtocol)
+        return true;
+    if (settings.debugWifiState && _verbose)
+        systemPrintf("Setting WiFi %s long range protocol %s\r\n", (interface == WIFI_IF_AP) ? "soft AP" : "station",
+                     enableLongRangeProtocol ? "on" : "off");
+    if (!WiFi.setLongRange(enableLongRangeProtocol, interface))
+    {
+        systemPrintf("ERROR: Failed to set the WiFi %s radio protocols!\r\n",
+                     (interface == WIFI_IF_AP) ? "soft AP" : "station");
+        return false;
+    }
+    return true;
+#else  // BL_ABI_MAJOR
     uint8_t newProtocols;
     uint8_t oldProtocols;
     bool started;
@@ -1828,6 +1855,7 @@ bool RTK_WIFI::setWiFiProtocols(wifi_interface_t interface, bool enableWiFiProto
 
     // Return the final status
     return started;
+#endif // BL_ABI_MAJOR
 }
 
 //*********************************************************************
@@ -2629,6 +2657,10 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
                 systemPrintf("WiFi: ESP-NOW stopped\r\n");
         }
 
+#ifdef BL_ABI_MAJOR
+        // Flick: promiscuous mode is never started
+        _started = _started & ~(WIFI_EN_PROMISCUOUS_RX_CALLBACK | WIFI_EN_SET_PROMISCUOUS_MODE);
+#else  // BL_ABI_MAJOR
         // Stop the promiscuous RX callback handler
         if (stopping & WIFI_EN_PROMISCUOUS_RX_CALLBACK)
         {
@@ -2660,6 +2692,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
                 systemPrintf("WiFi: Promiscuous mode stopped\r\n");
             _started = _started & ~WIFI_EN_SET_PROMISCUOUS_MODE;
         }
+#endif // BL_ABI_MAJOR
 
         // Handle WiFi set channel
         if (stopping & WIFI_EN_SET_CHANNEL)
@@ -3147,6 +3180,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             _started = _started | WIFI_EN_SET_CHANNEL;
         }
 
+#ifndef BL_ABI_MAJOR // Flick: ESP-NOW packets carry their RSSI
         // Set promiscuous mode
         if (starting & WIFI_EN_SET_PROMISCUOUS_MODE)
         {
@@ -3178,6 +3212,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
                 systemPrintf("WiFi: Promiscuous RX callback established\r\n");
             _started = _started | WIFI_EN_PROMISCUOUS_RX_CALLBACK;
         }
+#endif // BL_ABI_MAJOR
 
         // Start ESP-NOW
         if (starting & WIFI_EN_START_ESP_NOW)

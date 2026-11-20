@@ -1870,13 +1870,25 @@ HardwareSerial * loraEsp32UartSelect()
 //----------------------------------------
 // Determine the ESP32 UART that connects to the LoRa chip
 //----------------------------------------
+// True when the LoRa radio shares UART0 with the console (Serial)
+static inline bool loraSerialIsConsole(HardwareSerial * loraSerial)
+{
+#ifdef BL_ABI_MAJOR
+    // Flick: Serial is Baseline's console, not a HardwareSerial
+    (void)loraSerial;
+    return false;
+#else  // BL_ABI_MAJOR
+    return loraSerial == &Serial;
+#endif // BL_ABI_MAJOR
+}
+
 void loraEsp32UartConfigure8E1(HardwareSerial * loraSerial)
 {
     int rx;
     int tx;
 
     // Select the ESP32 UART that connects to the LoRa chip
-    if ((productVariant == RTK_TORCH) && (loraSerial != &Serial))
+    if ((productVariant == RTK_TORCH) && (!loraSerialIsConsole(loraSerial)))
     {
         rx = pin_GnssUart_RX;
         tx = pin_GnssUart_TX;
@@ -1930,7 +1942,7 @@ void loraEsp32UartRestore(HardwareSerial * loraSerial)
     {
         if (productVariant == RTK_TORCH)
         {
-            if (loraSerial != &Serial)
+            if (!loraSerialIsConsole(loraSerial))
             {
                 loraSerial->flush();
                 loraSerial->end();
@@ -1954,7 +1966,7 @@ void loraSerialCapture(HardwareSerial * loraSerial, uint32_t serialConfig)
     loraSerial->flush();
     if (productVariant == RTK_TORCH)
     {
-        if (loraSerial == &Serial)
+        if (loraSerialIsConsole(loraSerial))
             // Connect ESP32 UART 0 to LoRa / STM32WL UART 2
             muxSelectLoRaCommunication(serialConfig);
         else
@@ -1974,7 +1986,7 @@ void loraSerialRelease(HardwareSerial * loraSerial)
     loraSerial->flush();
     if (productVariant == RTK_TORCH)
     {
-        if (loraSerial == &Serial)
+        if (loraSerialIsConsole(loraSerial))
             // Connect ESP32 UART 0 to CH340 (USB)
             muxSelectUsb();
         else

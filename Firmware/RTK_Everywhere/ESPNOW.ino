@@ -149,6 +149,11 @@ void espNowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
     //        wifi_pkt_rx_ctrl_t * rx_ctrl;   // Rx control info of ESPNOW packet
     //    } esp_now_recv_info_t;
 
+#ifdef BL_ABI_MAJOR
+    // Flick: the RSSI comes with the packet (no promiscuous mode)
+    packetRSSI = mac->rx_ctrl ? mac->rx_ctrl->rssi : -255;
+#endif // BL_ABI_MAJOR
+
     // Display the packet
     if (settings.debugEspNow == true)
     {
