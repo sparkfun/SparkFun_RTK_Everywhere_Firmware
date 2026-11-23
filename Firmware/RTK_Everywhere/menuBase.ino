@@ -157,10 +157,8 @@ void menuBase()
         {
             settings.fixedBase ^= 1;
 
-            // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
-            // This prevents a user, while in Rover mode, but changing a Base setting, from entering Base mode
-            if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
-                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+            // Restart Base mode (after the menu exits) if operating as a base, otherwise, just change setting
+            gnssBaseTypeChanged();
         }
         else if (settings.fixedBase == true && incoming == 2)
         {

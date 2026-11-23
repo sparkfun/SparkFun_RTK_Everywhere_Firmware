@@ -461,6 +461,10 @@ bool gnssFixedBaseCoordinatesApplied();
 void gnssFixedBaseMarkApplied();
 void gnssFixedBaseSettingsChanged();
 
+// Restart Base mode when the base type (Survey-In / Fixed) changes
+void gnssBaseTypeChanged();
+bool gnssCmdUpdateBaseType(const char *settingName, void *settingData, int settingType);
+
 // Restore the GNSS to the factory settings
 void gnssFactoryReset();
 

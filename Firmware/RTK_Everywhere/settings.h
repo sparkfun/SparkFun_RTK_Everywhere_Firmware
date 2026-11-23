@@ -1429,7 +1429,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Base operation
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, tCoordInp, 0, & settings.coordinateInputType, "coordinateInputType", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _double,   4, & settings.fixedAltitude, "fixedAltitude", gnssCmdUpdateFixedBase, },
-    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.fixedBase, "fixedBase", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.fixedBase, "fixedBase", gnssCmdUpdateBaseType, },
     { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.fixedBaseCoordinateType, "fixedBaseCoordinateType", gnssCmdUpdateFixedBase, },
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _double,   3, & settings.fixedEcefX, "fixedEcefX", gnssCmdUpdateFixedBase, },
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _double,   3, & settings.fixedEcefY, "fixedEcefY", gnssCmdUpdateFixedBase, },

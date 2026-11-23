@@ -1675,7 +1675,12 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
     else if (strcmp(settingName, "baseTypeFixed") == 0)
     {
-        settings.fixedBase = ((settingValue == 1) ? true : false);
+        bool newFixedBase = ((settingValue == 1) ? true : false);
+        if (newFixedBase != settings.fixedBase)
+        {
+            settings.fixedBase = newFixedBase;
+            gnssBaseTypeChanged(); // Restart Base mode if operating as a base
+        }
         knownSetting = true;
     }
     else if (strcmp(settingName, "fixedBaseCoordinateTypeECEF") == 0)

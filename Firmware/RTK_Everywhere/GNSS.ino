@@ -855,6 +855,39 @@ void gnssFixedBaseSettingsChanged()
         gnssConfigure(GNSS_CONFIG_BASE_FIXED); // Request receiver to use new settings
 }
 
+// Call after settings.fixedBase is changed (Survey-In <-> Fixed). Switching between Survey-In and Fixed requires
+// walking the base state machine again: STATE_BASE_NOT_STARTED requests configureBase() for the new base type, then
+// STATE_BASE_CONFIG_WAIT starts either the survey-in (STATE_BASE_TEMP_SETTLE) or the fixed base
+// (STATE_BASE_FIXED_NOT_STARTED). Simply requesting GNSS_CONFIG_BASE does not do this because the state machine
+// stays in the old base state. If not operating as a base, just change the setting: this prevents a user, while in
+// Rover mode but changing a Base setting, from entering Base mode.
+void gnssBaseTypeChanged()
+{
+    bool runningSurveyIn = (systemState >= STATE_BASE_TEMP_SETTLE) && (systemState <= STATE_BASE_TEMP_TRANSMITTING);
+    bool runningFixed = (systemState >= STATE_BASE_FIXED_NOT_STARTED) && (systemState <= STATE_BASE_FIXED_TRANSMITTING);
+    bool configuring = (systemState == STATE_BASE_NOT_STARTED) || (systemState == STATE_BASE_CONFIG_WAIT);
+
+    // Only restart if the running base type no longer matches the setting. This avoids interrupting a running
+    // base when the setting is re-sent with the same value (ie, the menu toggled twice, or an app re-sending
+    // all its settings). While configuring, the base type may already have been used, so restart to be safe.
+    if ((runningSurveyIn && settings.fixedBase) || (runningFixed && !settings.fixedBase) || configuring)
+    {
+        if (settings.debugGnssConfig)
+            systemPrintf("Base type changed to %s, restarting Base mode\r\n",
+                         settings.fixedBase ? "Fixed" : "Survey-In");
+        requestChangeState(STATE_BASE_NOT_STARTED);
+    }
+}
+
+//----------------------------------------
+// Restart Base mode following a base type change from a set command (ie, $SPSET,fixedBase,1)
+//----------------------------------------
+bool gnssCmdUpdateBaseType(const char *settingName, void *settingData, int settingType)
+{
+    gnssBaseTypeChanged();
+    return (true);
+}
+
 //----------------------------------------
 // Apply new fixed base coordinates following a set command (ie, $SPSET,fixedEcefX,-1280206.568)
 //----------------------------------------
