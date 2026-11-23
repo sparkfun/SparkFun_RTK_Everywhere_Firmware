@@ -16,6 +16,25 @@ static const uint32_t maxFixedBaseStartWait_ms = 5 * 60 * 1000;
 static uint32_t fixedBaseStartWait_ms = 0;  // Time spent in STATE_BASE_FIXED_NOT_STARTED
 static uint32_t fixedBaseStartLastTick = 0; // millis() of the last STATE_BASE_FIXED_NOT_STARTED update
 
+// Base restart requests made when a base setting changes (ie, from the serial menu or the CLI). These are not made
+// with requestChangeState() because they only make sense if the unit is still operating as a base when the state
+// machine runs again: the user may have switched modes (ie, System menu 'R') before leaving the menu. A generic state
+// request would be applied anyway and pull the unit back into Base mode.
+static volatile bool baseRestartRequested = false;       // Survey-In <-> Fixed change: restart Base mode
+static volatile bool fixedBaseReapplyRequested = false;  // Fixed base coordinates changed while transmitting
+
+// Restart Base mode (STATE_BASE_NOT_STARTED) if still operating as a base when the state machine next runs
+void stateRequestBaseRestart()
+{
+    baseRestartRequested = true;
+}
+
+// Return to STATE_BASE_FIXED_NOT_STARTED if still transmitting as a fixed base when the state machine next runs
+void stateRequestFixedBaseReapply()
+{
+    fixedBaseReapplyRequested = true;
+}
+
 // Given the current state, see if conditions have moved us to a new state
 // A user pressing the mode button (change between rover/base) is handled by buttonCheckTask()
 void stateUpdate()
@@ -34,6 +53,20 @@ void stateUpdate()
                 changeState(requestedSystemState);
                 lastStateTime = millis();
             }
+        }
+
+        // Base setting changes. Ignored if the unit is no longer in the matching base state.
+        if (baseRestartRequested == true)
+        {
+            baseRestartRequested = false;
+            if ((systemState >= STATE_BASE_NOT_STARTED) && (systemState <= STATE_BASE_FIXED_TRANSMITTING))
+                changeState(STATE_BASE_NOT_STARTED);
+        }
+        if (fixedBaseReapplyRequested == true)
+        {
+            fixedBaseReapplyRequested = false;
+            if (systemState == STATE_BASE_FIXED_TRANSMITTING)
+                changeState(STATE_BASE_FIXED_NOT_STARTED);
         }
 
         if (settings.enablePrintStates && ((millis() - lastStateTime) > 15000))

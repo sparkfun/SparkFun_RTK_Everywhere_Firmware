@@ -338,6 +338,25 @@ void gnssUpdate()
             }
         }
 
+        // Starting a survey-in or a fixed base only makes sense in the matching base states. A request can be left
+        // over if the mode changed before it was serviced (ie, coordinates changed, then System menu 'R' to Rover,
+        // or a request bit restored from NVM at power on). Servicing it would put the receiver into base mode while
+        // the system is a rover. The state machine requests these again when it enters the base states.
+        if (gnssConfigurePending(GNSS_CONFIG_BASE_SURVEY) && (systemState != STATE_BASE_TEMP_SETTLE) &&
+            (systemState != STATE_BASE_TEMP_SURVEY_STARTED))
+        {
+            if (settings.debugGnssConfig)
+                systemPrintln("Ignoring BASE SURVEY request: not in survey-in base mode");
+            gnssConfigureClear(GNSS_CONFIG_BASE_SURVEY);
+        }
+        if (gnssConfigurePending(GNSS_CONFIG_BASE_FIXED) && (systemState != STATE_BASE_FIXED_NOT_STARTED) &&
+            (systemState != STATE_BASE_FIXED_TRANSMITTING))
+        {
+            if (settings.debugGnssConfig)
+                systemPrintln("Ignoring BASE FIXED request: not in fixed base mode");
+            gnssConfigureClear(GNSS_CONFIG_BASE_FIXED);
+        }
+
         if (gnssConfigureRequested(GNSS_CONFIG_BASE_SURVEY))
         {
             if (gnss->surveyInStart() == true)
@@ -867,7 +886,7 @@ void gnssFixedBaseSettingsChanged()
         // starting rather than transmitting, and applies the fixed base start timeout: if the new coordinates
         // can't be applied, the unit returns to Rover rather than continue to transmit the old coordinates.
         if (systemState == STATE_BASE_FIXED_TRANSMITTING)
-            requestChangeState(STATE_BASE_FIXED_NOT_STARTED);
+            stateRequestFixedBaseReapply();
     }
 }
 
@@ -891,7 +910,7 @@ void gnssBaseTypeChanged()
         if (settings.debugGnssConfig)
             systemPrintf("Base type changed to %s, restarting Base mode\r\n",
                          settings.fixedBase ? "Fixed" : "Survey-In");
-        requestChangeState(STATE_BASE_NOT_STARTED);
+        stateRequestBaseRestart();
     }
 }
 
