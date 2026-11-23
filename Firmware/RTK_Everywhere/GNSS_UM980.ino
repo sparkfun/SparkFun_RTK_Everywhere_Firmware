@@ -463,7 +463,7 @@ bool GNSS_UM980::fixedBaseStart()
 
     if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
     {
-        _um980->setModeBaseECEF(settings.fixedEcefX, settings.fixedEcefY, settings.fixedEcefZ);
+        response &= _um980->setModeBaseECEF(settings.fixedEcefX, settings.fixedEcefY, settings.fixedEcefZ);
     }
     else if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
     {
@@ -477,10 +477,30 @@ bool GNSS_UM980::fixedBaseStart()
         // If settings.um980FixedBaseLLHSubtractSeparation is true, subtract the separation before applying
         // If you use ECEF coordinates, the Base position correct
         if (settings.um980FixedBaseLLHSubtractSeparation)
-            totalFixedAltitude -= _um980->getGeoidalSeparation();
+        {
+            // The geoidal separation comes from the receiver's current position solution. Without a fix it is
+            // zero or stale, which would apply the wrong altitude. Because the coordinates are then recorded as
+            // applied, the wrong altitude would stick. Wait for a fix: returning false leaves the
+            // GNSS_CONFIG_BASE_FIXED request set so gnssUpdate() tries again.
+            if (isFixed() == false)
+            {
+                static uint32_t lastWaitPrint = 0;
+                if ((lastWaitPrint == 0) || ((millis() - lastWaitPrint) > 5000))
+                {
+                    lastWaitPrint = millis();
+                    systemPrintln("Fixed base: waiting for GNSS fix to determine the geoidal separation");
+                }
+                return (false);
+            }
 
-        _um980->setModeBaseGeodetic(settings.fixedLat, settings.fixedLong, totalFixedAltitude);
+            totalFixedAltitude -= _um980->getGeoidalSeparation();
+        }
+
+        response &= _um980->setModeBaseGeodetic(settings.fixedLat, settings.fixedLong, totalFixedAltitude);
     }
+
+    if (response == false)
+        systemPrintln("Fixed base start failed");
 
     return (response);
 }

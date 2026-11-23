@@ -9,6 +9,13 @@ States.ino
 
 static uint32_t lastStateTime = 0;
 
+// Fixed base start timeout. If the receiver can't be put into fixed base mode within this time, give up and return
+// to Rover rather than retry forever (each failed LG290P attempt includes a save and reset). Generous because the
+// UM980 waits for a fix before applying geodetic coordinates with the geoidal separation subtracted.
+static const uint32_t maxFixedBaseStartWait_ms = 5 * 60 * 1000;
+static uint32_t fixedBaseStartWait_ms = 0;  // Time spent in STATE_BASE_FIXED_NOT_STARTED
+static uint32_t fixedBaseStartLastTick = 0; // millis() of the last STATE_BASE_FIXED_NOT_STARTED update
+
 // Given the current state, see if conditions have moved us to a new state
 // A user pressing the mode button (change between rover/base) is handled by buttonCheckTask()
 void stateUpdate()
@@ -323,7 +330,8 @@ void stateUpdate()
                 {
                     gnssConfigure(GNSS_CONFIG_BASE_FIXED); // Request start of fixed base
                     changeState(STATE_BASE_FIXED_NOT_STARTED);
-                    RTK_MODE(RTK_MODE_BASE_FIXED); // Now allow NTRIP Server to start
+                    // RTK_MODE_BASE_FIXED (which allows the NTRIP Server and Base Caster to start) is set once
+                    // the fixed base has been started. See STATE_BASE_FIXED_NOT_STARTED.
                 }
             }
         }
@@ -451,10 +459,32 @@ void stateUpdate()
         // User has switched to base with fixed option enabled. Let's configure and try to get there.
         // If fixed base fails, gnssConfigure() will attempt again
         case (STATE_BASE_FIXED_NOT_STARTED): {
-            if (gnssConfigureComplete())
+            // Only wait for the requests needed to transmit as a fixed base. Waiting for every request
+            // (gnssConfigureComplete()) would leave the base stuck here if an unrelated request kept failing.
+            if ((gnssConfigurePending(GNSS_CONFIG_BASE) == false) &&
+                (gnssConfigurePending(GNSS_CONFIG_BASE_FIXED) == false) &&
+                (gnssConfigurePending(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE) == false))
             {
-                baseStatusLedOn(); // Turn on the base/status LED
+                baseStatusLedOn();             // Turn on the base/status LED
+                RTK_MODE(RTK_MODE_BASE_FIXED); // Now allow NTRIP Server to start
                 changeState(STATE_BASE_FIXED_TRANSMITTING);
+                break;
+            }
+
+            // Accumulate the time spent waiting. Gaps (ie, while the serial menu is open, during which neither the
+            // state machine nor gnssUpdate() run) are capped so they don't count against the timeout.
+            uint32_t elapsed = millis() - fixedBaseStartLastTick;
+            fixedBaseStartLastTick = millis();
+            fixedBaseStartWait_ms += (elapsed > 1000) ? 1000 : elapsed;
+
+            if (fixedBaseStartWait_ms > maxFixedBaseStartWait_ms)
+            {
+                systemPrintf("ERROR: Failed to start fixed base within %d seconds. Returning to Rover mode.\r\n",
+                             (int)(maxFixedBaseStartWait_ms / 1000));
+                displayBaseFail(1000);
+                gnssConfigureClear(GNSS_CONFIG_BASE_FIXED); // Stop retrying
+                gnssConfigureClear(GNSS_CONFIG_MESSAGE_RATE_RTCM_BASE);
+                changeState(STATE_ROVER_NOT_STARTED);
             }
         }
         break;
@@ -808,6 +838,13 @@ void changeState(SystemState newState)
             initialState = getState(systemState);
             arrow = " --> ";
         }
+    }
+
+    // Start the fixed base start timeout
+    if ((newState == STATE_BASE_FIXED_NOT_STARTED) && (systemState != STATE_BASE_FIXED_NOT_STARTED))
+    {
+        fixedBaseStartWait_ms = 0;
+        fixedBaseStartLastTick = millis();
     }
 
     // Set the new state

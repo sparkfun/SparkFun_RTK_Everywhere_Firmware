@@ -547,6 +547,47 @@ void menuBaseCoordinateType()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
+// Limits for the commonly used base coordinates. The antenna limits match those used by menuBase().
+static const double commonCoordsMaxAntennaHeight_mm = 15000.0; // settings.antennaHeight_mm is int16_t
+static const double commonCoordsMaxAntennaPhaseCenter_mm = 200.0;
+
+// Read a line from the commonly used coordinates file, trying the SD card then LittleFS
+// Returns true if the line was found. On failure, lineData is an empty string.
+bool commonCoordsReadLine(const char *fileName, int lineToFind, char *lineData, int lineDataLength)
+{
+    lineData[0] = 0;
+    if (getFileLineSD(fileName, lineToFind, lineData, lineDataLength))
+        return (true);
+    if (getFileLineLFS(fileName, lineToFind, lineData, lineDataLength))
+        return (true);
+    lineData[0] = 0; // Never parse a partially filled buffer
+    return (false);
+}
+
+// Verify that a geodetic entry from the commonly used coordinates file is usable
+// The file can be edited by hand or by the web config, so the values must be checked before use
+bool commonCoordsGeodeticValid(double lat, double lon, double height_m, double apc_m)
+{
+    if ((lat < -90.0) || (lat > 90.0) || (lon < -180.0) || (lon > 180.0))
+    {
+        systemPrintln("Latitude must be -90 to 90 and longitude -180 to 180. Coordinates not used.");
+        return (false);
+    }
+    if (fabs(height_m * 1000.0) > commonCoordsMaxAntennaHeight_mm)
+    {
+        systemPrintf("Antenna height must be -%0.0f to %0.0fmm. Coordinates not used.\r\n",
+                     commonCoordsMaxAntennaHeight_mm, commonCoordsMaxAntennaHeight_mm);
+        return (false);
+    }
+    if (fabs(apc_m * 1000.0) > commonCoordsMaxAntennaPhaseCenter_mm)
+    {
+        systemPrintf("Antenna phase center must be -%0.0f to %0.0fmm. Coordinates not used.\r\n",
+                     commonCoordsMaxAntennaPhaseCenter_mm, commonCoordsMaxAntennaPhaseCenter_mm);
+        return (false);
+    }
+    return (true);
+}
+
 // Set commonly used base coordinates
 bool menuCommonBaseCoords()
 {
@@ -695,8 +736,11 @@ bool menuCommonBaseCoords()
                     // Identify which type of method they used
                     CoordinateInputType latCoordinateInputType =
                         coordinateIdentifyInputType(userEntry, &fixedLat);
-                    if (latCoordinateInputType != COORDINATE_INPUT_TYPE_INVALID_UNKNOWN)
+                    if ((latCoordinateInputType != COORDINATE_INPUT_TYPE_INVALID_UNKNOWN) && (fixedLat >= -90.0) &&
+                        (fixedLat <= 90.0))
                         latitude = fixedLat;
+                    else
+                        systemPrintln("Invalid latitude. Must be -90 to 90 degrees.");
                 }
             }
             else if (incoming == (COMMON_COORDINATES_MAX_STATIONS + 2))
@@ -710,8 +754,11 @@ bool menuCommonBaseCoords()
                     // Identify which type of method they used
                     CoordinateInputType longCoordinateInputType =
                         coordinateIdentifyInputType(userEntry, &fixedLong);
-                    if (longCoordinateInputType != COORDINATE_INPUT_TYPE_INVALID_UNKNOWN)
+                    if ((longCoordinateInputType != COORDINATE_INPUT_TYPE_INVALID_UNKNOWN) && (fixedLong >= -180.0) &&
+                        (fixedLong <= 180.0))
                         longitude = fixedLong;
+                    else
+                        systemPrintln("Invalid longitude. Must be -180 to 180 degrees.");
                 }
             }
             else if (incoming == (COMMON_COORDINATES_MAX_STATIONS + 3))
@@ -747,7 +794,21 @@ bool menuCommonBaseCoords()
                 systemPrint("(ex: 1800.0): ");
                 double height;
                 if (getUserInputDouble(&height) == INPUT_RESPONSE_VALID)
-                    antennaHeight_mm = height;
+                {
+                    // Same limits as menuBase(). settings.antennaHeight_mm is int16_t.
+                    if (fabs(height) <= commonCoordsMaxAntennaHeight_mm)
+                    {
+                        antennaHeight_mm = height;
+                        // Keep the HAE values consistent with the new antenna height
+                        if (enteredHaeMark)
+                            haeApc = haeMark + ((antennaHeight_mm + antennaPhaseCenter_mm) / 1000.0);
+                        else
+                            haeMark = haeApc - ((antennaHeight_mm + antennaPhaseCenter_mm) / 1000.0);
+                    }
+                    else
+                        systemPrintf("Invalid antenna height. Must be -%0.0f to %0.0fmm.\r\n",
+                                     commonCoordsMaxAntennaHeight_mm, commonCoordsMaxAntennaHeight_mm);
+                }
             }
             else if (incoming == (COMMON_COORDINATES_MAX_STATIONS + 6))
             {
@@ -765,10 +826,14 @@ bool menuCommonBaseCoords()
                          getProductHousingPropertiesFromVariant(RTK_POSTCARD)->antennaPhaseCenter_mm,
                          getProductHousingPropertiesFromVariant(RTK_TORCH)->antennaPhaseCenter_mm);
 
-                if (getNewSetting((const char *)&apcPrompt[0], -200.0, 200.0, &antennaPhaseCenter_mm) ==
-                    INPUT_RESPONSE_VALID)
+                if (getNewSetting((const char *)&apcPrompt[0], -commonCoordsMaxAntennaPhaseCenter_mm,
+                                  commonCoordsMaxAntennaPhaseCenter_mm, &antennaPhaseCenter_mm) == INPUT_RESPONSE_VALID)
                 {
-                    // Nothing to do. antennaPhaseCenter_mm was modified if the input was inbounds.
+                    // antennaPhaseCenter_mm was modified. Keep the HAE values consistent with it.
+                    if (enteredHaeMark)
+                        haeApc = haeMark + ((antennaHeight_mm + antennaPhaseCenter_mm) / 1000.0);
+                    else
+                        haeMark = haeApc - ((antennaHeight_mm + antennaPhaseCenter_mm) / 1000.0);
                 }
             }
         }
@@ -842,15 +907,17 @@ bool menuCommonBaseCoords()
             char *ptr = newCoords;
             if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
             {
-                if (!getFileLineSD(stationCoordinateGeodeticFileName, selectedCoords, newCoords, sizeof(newCoords)))
-                    getFileLineLFS(stationCoordinateGeodeticFileName, selectedCoords, newCoords, sizeof(newCoords));
                 double lat;
                 double lon;
                 double alt;
                 double height;
                 double apc;
                 char baseName[100];
-                if (sscanf(ptr,"%[^,],%lf,%lf,%lf,%lf,%lf", baseName, &lat, &lon, &alt, &height, &apc) == 6)
+                if (commonCoordsReadLine(stationCoordinateGeodeticFileName, selectedCoords, newCoords,
+                                         sizeof(newCoords)) == false)
+                    systemPrintln("No coordinates selected");
+                else if ((sscanf(ptr, "%[^,],%lf,%lf,%lf,%lf,%lf", baseName, &lat, &lon, &alt, &height, &apc) == 6) &&
+                         commonCoordsGeodeticValid(lat, lon, height, apc))
                 {
                     latitude = lat;
                     longitude = lon;
@@ -863,13 +930,14 @@ bool menuCommonBaseCoords()
             }
             else
             {
-                if (!getFileLineSD(stationCoordinateECEFFileName, selectedCoords, newCoords, sizeof(newCoords)))
-                    getFileLineLFS(stationCoordinateECEFFileName, selectedCoords, newCoords, sizeof(newCoords));
                 double x;
                 double y;
                 double z;
                 char baseName[100];
-                if (sscanf(ptr,"%[^,],%lf,%lf,%lf", baseName, &x, &y, &z) == 4)
+                if (commonCoordsReadLine(stationCoordinateECEFFileName, selectedCoords, newCoords, sizeof(newCoords)) ==
+                    false)
+                    systemPrintln("No coordinates selected");
+                else if (sscanf(ptr, "%[^,],%lf,%lf,%lf", baseName, &x, &y, &z) == 4)
                 {
                     ecefx = x;
                     ecefy = y;
@@ -921,15 +989,17 @@ bool menuCommonBaseCoords()
             char *ptr = newCoords;
             if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
             {
-                if (!getFileLineSD(stationCoordinateGeodeticFileName, selectedCoords, newCoords, sizeof(newCoords)))
-                    getFileLineLFS(stationCoordinateGeodeticFileName, selectedCoords, newCoords, sizeof(newCoords));
                 double lat;
                 double lon;
                 double alt;
                 double height;
                 double apc;
                 char baseName[100];
-                if (sscanf(ptr,"%[^,],%lf,%lf,%lf,%lf,%lf", baseName, &lat, &lon, &alt, &height, &apc) == 6)
+                if (commonCoordsReadLine(stationCoordinateGeodeticFileName, selectedCoords, newCoords,
+                                         sizeof(newCoords)) == false)
+                    systemPrintln("No coordinates selected");
+                else if ((sscanf(ptr, "%[^,],%lf,%lf,%lf,%lf,%lf", baseName, &lat, &lon, &alt, &height, &apc) == 6) &&
+                         commonCoordsGeodeticValid(lat, lon, height, apc))
                 {
                     settings.fixedLat = lat;
                     settings.fixedLong = lon;
@@ -942,13 +1012,14 @@ bool menuCommonBaseCoords()
             }
             else
             {
-                if (!getFileLineSD(stationCoordinateECEFFileName, selectedCoords, newCoords, sizeof(newCoords)))
-                    getFileLineLFS(stationCoordinateECEFFileName, selectedCoords, newCoords, sizeof(newCoords));
                 double x;
                 double y;
                 double z;
                 char baseName[100];
-                if (sscanf(ptr,"%[^,],%lf,%lf,%lf", baseName, &x, &y, &z) == 4)
+                if (commonCoordsReadLine(stationCoordinateECEFFileName, selectedCoords, newCoords, sizeof(newCoords)) ==
+                    false)
+                    systemPrintln("No coordinates selected");
+                else if (sscanf(ptr, "%[^,],%lf,%lf,%lf", baseName, &x, &y, &z) == 4)
                 {
                     settings.fixedEcefX = x;
                     settings.fixedEcefY = y;

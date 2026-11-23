@@ -637,6 +637,14 @@ bool gnssConfigureRequested(uint32_t configureBit)
     return (settings.gnssConfigureRequest & mask);
 }
 
+// Return true if a given bit is set. Unlike gnssConfigureRequested(), does not print a debug message, so it can be
+// polled (ie, by the state machine) without flooding the output.
+bool gnssConfigurePending(uint32_t configureBit)
+{
+    uint32_t mask = (1 << configureBit);
+    return (settings.gnssConfigureRequest & mask);
+}
+
 // Set all bits in the request bitfield to cause the GNSS receiver to go through a full (re)configuration
 void gnssConfigureDefaults()
 {
@@ -852,7 +860,15 @@ void gnssFixedBaseSettingsChanged()
 {
     if ((settings.fixedBase == true) &&
         ((systemState == STATE_BASE_FIXED_NOT_STARTED) || (systemState == STATE_BASE_FIXED_TRANSMITTING)))
+    {
         gnssConfigure(GNSS_CONFIG_BASE_FIXED); // Request receiver to use new settings
+
+        // Return to STATE_BASE_FIXED_NOT_STARTED until the new coordinates are applied. This shows the base as
+        // starting rather than transmitting, and applies the fixed base start timeout: if the new coordinates
+        // can't be applied, the unit returns to Rover rather than continue to transmit the old coordinates.
+        if (systemState == STATE_BASE_FIXED_TRANSMITTING)
+            requestChangeState(STATE_BASE_FIXED_NOT_STARTED);
+    }
 }
 
 // Call after settings.fixedBase is changed (Survey-In <-> Fixed). Switching between Survey-In and Fixed requires

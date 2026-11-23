@@ -1670,7 +1670,10 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
     else if (strcmp(settingName, "fixedHAEAPC") == 0)
     {
-        // TODO: check this!!
+        // Display only - intentionally ignored. The web config computes fixedAltitude (the HAE of the mark) from the
+        // HAE APC the user entered, and sends fixedAltitude. The firmware stores the mark height and adds the antenna
+        // height and phase center itself (see fixedBaseStart()). Applying this value as well would double count the
+        // antenna. Newer web configs no longer send it; it is accepted here for older ones.
         knownSetting = true;
     }
     else if (strcmp(settingName, "baseTypeFixed") == 0)

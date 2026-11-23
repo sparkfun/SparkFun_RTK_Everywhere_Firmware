@@ -1179,6 +1179,8 @@ function sendData() {
     var clsElements = document.querySelectorAll(".form-control, .form-dropdown");
     for (let x = 0; x < clsElements.length; x++) {
         var id = clsElements[x].id;
+        // fixedHAEAPC is display only. adjustHAE() converts it into fixedAltitude, which is what the firmware uses.
+        if (id == "fixedHAEAPC") continue;
         var currentValue = clsElements[x].value;
         if (initialSettings[id] !== currentValue) {
             settingCSV += id + "," + currentValue + ",";
@@ -2819,13 +2821,13 @@ function adjustHAE() {
         ge("fixedHAEAPC").disabled = false;
         ge("fixedAltitude").disabled = true;
         hae = Number(ge("fixedHAEAPC").value) - (Number(ge("antennaHeightM").value) + Number(ge("antennaPhaseCenter").value) / 1000);
-        ge("fixedAltitude").value = hae.toFixed(3);
+        ge("fixedAltitude").value = hae.toFixed(4); //Match the 4 decimal places (0.1mm) the firmware stores
     }
     else {
         ge("fixedHAEAPC").disabled = true;
         ge("fixedAltitude").disabled = false;
         hae = Number(ge("fixedAltitude").value) + (Number(ge("antennaHeightM").value) + Number(ge("antennaPhaseCenter").value) / 1000);
-        ge("fixedHAEAPC").value = hae.toFixed(3);
+        ge("fixedHAEAPC").value = hae.toFixed(4);
     }
 }
 
@@ -3461,7 +3463,7 @@ function identifyInputType(userEntry) {
         coordinateInputType = CoordinateTypes.COORDINATE_INPUT_TYPE_DDMM;
 
         var intPortion = Math.trunc(userEntry); //Get DDDMM
-        var decimal = intPortion / 100; //Get DDD
+        var decimal = Math.trunc(intPortion / 100); //Get DDD
         intPortion -= (decimal * 100);
         var minutes = userEntry; //Get DDDMM.mmmmmmm
         minutes -= (decimal * 100); //Remove DDD
@@ -3538,6 +3540,14 @@ function identifyInputType(userEntry) {
         if (negativeSign == true) {
             convertedCoordinate *= -1.0;
         }
+    }
+
+    //Minutes and seconds must be 0 to < 60. Otherwise a typo (ie, 40 75.0) becomes a plausible but wrong coordinate.
+    //Matches the firmware's coordinateIdentifyInputType(). minutes and seconds are undefined for DD.ddddddddd.
+    if (((typeof minutes !== 'undefined') && (isNaN(minutes) || (minutes < 0) || (minutes >= 60))) ||
+        ((typeof seconds !== 'undefined') && (isNaN(seconds) || (seconds < 0) || (seconds >= 60)))) {
+        convertedCoordinate = 0.0;
+        return (CoordinateTypes.COORDINATE_INPUT_TYPE_INVALID_UNKNOWN);
     }
 
     //console.log("convertedCoordinate: " + convertedCoordinate.toFixed(9));
