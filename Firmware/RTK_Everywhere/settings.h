@@ -1421,21 +1421,21 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    i  d  i  v  i  c  r  F    X
 //    g  s  x  k  c  h  d  P    2  Type       Qual                Variable                  Name              afterSetCmd
     // Antenna
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.antennaHeight_mm, "antennaHeight", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _float,    2, & settings.antennaPhaseCenter_mm, "antennaPhaseCenter", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _int16_t,  0, & settings.antennaHeight_mm, "antennaHeight", gnssCmdUpdateFixedBase, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _float,    2, & settings.antennaPhaseCenter_mm, "antennaPhaseCenter", gnssCmdUpdateFixedBase, },
     { 1, 1, 0, 1, 1, 0, 1, ALL, 0, _uint16_t, 0, & settings.ARPLoggingInterval_s, "ARPLoggingInterval", nullptr, },
     { 1, 1, 0, 1, 1, 0, 1, ALL, 0, _bool,     0, & settings.enableARPLogging, "enableARPLogging", nullptr, },
 
     // Base operation
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, tCoordInp, 0, & settings.coordinateInputType, "coordinateInputType", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _double,   4, & settings.fixedAltitude, "fixedAltitude", nullptr, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _double,   4, & settings.fixedAltitude, "fixedAltitude", gnssCmdUpdateFixedBase, },
     { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.fixedBase, "fixedBase", nullptr, },
-    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.fixedBaseCoordinateType, "fixedBaseCoordinateType", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _double,   3, & settings.fixedEcefX, "fixedEcefX", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _double,   3, & settings.fixedEcefY, "fixedEcefY", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _double,   3, & settings.fixedEcefZ, "fixedEcefZ", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _double,   9, & settings.fixedLat, "fixedLat", nullptr, },
-    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _double,   9, & settings.fixedLong, "fixedLong", nullptr, },
+    { 0, 1, 0, 1, 1, 1, 1, ALL, 1, _bool,     0, & settings.fixedBaseCoordinateType, "fixedBaseCoordinateType", gnssCmdUpdateFixedBase, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _double,   3, & settings.fixedEcefX, "fixedEcefX", gnssCmdUpdateFixedBase, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _double,   3, & settings.fixedEcefY, "fixedEcefY", gnssCmdUpdateFixedBase, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _double,   3, & settings.fixedEcefZ, "fixedEcefZ", gnssCmdUpdateFixedBase, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _double,   9, & settings.fixedLat, "fixedLat", gnssCmdUpdateFixedBase, },
+    { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _double,   9, & settings.fixedLong, "fixedLong", gnssCmdUpdateFixedBase, },
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _int,      0, & settings.observationSeconds, "observationSeconds", nullptr, },
     { 1, 1, 0, 1, 1, 1, 1, ALL, 1, _float,    2, & settings.observationPositionAccuracy, "observationPositionAccuracy", nullptr, },
     { 0, 1, 0, 1, 0, 1, 1, ALL, 1, _float,    1, & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy", nullptr, },
@@ -1871,7 +1871,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // UM980 GNSS Receiver
 #ifdef  COMPILE_UM980
     { 1, 1, 1, 0, 0, 1, 0, U98, 0, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellation_", gnssCmdUpdateConstellations, },
-    { 1, 1, 0, 0, 0, 1, 0, U98, 0, _bool,     0, & settings.um980FixedBaseLLHSubtractSeparation, "um980FixedBaseLLHSubtractSeparation", nullptr },
+    { 1, 1, 0, 0, 0, 1, 0, U98, 0, _bool,     0, & settings.um980FixedBaseLLHSubtractSeparation, "um980FixedBaseLLHSubtractSeparation", gnssCmdUpdateFixedBase },
     { 0, 1, 1, 0, 0, 1, 0, U98, 0, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 1, 0, U98, 0, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "messageRateRTCMBase_", gnssCmdUpdateMessageRates, },
     { 0, 1, 1, 0, 0, 1, 0, U98, 0, tUmMRRvRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMRover, "messageRateRTCMRover_", gnssCmdUpdateMessageRates, },

@@ -166,102 +166,95 @@ void menuBase()
         {
             settings.fixedBaseCoordinateType ^= 1;
 
-            // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
-            // This prevents a user, while in Rover mode, but changing a Base setting, from entering Base mode
-            if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
-                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+            // Re-apply the fixed base coordinates if operating as a fixed base, otherwise, just change setting
+            gnssFixedBaseSettingsChanged();
         }
 
         else if (settings.fixedBase == true && incoming == 3)
         {
+            // Collect all the values first. The settings are only changed once every value is valid so that a
+            // partial or mistyped entry does not leave a mix of new and old coordinates.
             if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
             {
+                double fixedEcefX;
+                double fixedEcefY;
+                double fixedEcefZ;
+
                 systemPrintln("Enter the fixed ECEF coordinates that will be used in Base mode:");
 
                 systemPrint("ECEF X in meters (ex: -1280182.9200): ");
-                double fixedEcefX;
-
-                // Progress with additional prompts only if the user enters valid data
-                if (getUserInputDouble(&fixedEcefX) == INPUT_RESPONSE_VALID)
+                if (getUserInputDouble(&fixedEcefX) != INPUT_RESPONSE_VALID)
+                    systemPrintln("\r\nInvalid ECEF X. Coordinates not changed.");
+                else
                 {
-                    settings.fixedEcefX = fixedEcefX;
-
-                    systemPrint("\nECEF Y in meters (ex: -4716808.5807): ");
-                    double fixedEcefY;
-
-                    if (getUserInputDouble(&fixedEcefY) == INPUT_RESPONSE_VALID)
+                    systemPrint("\r\nECEF Y in meters (ex: -4716808.5807): ");
+                    if (getUserInputDouble(&fixedEcefY) != INPUT_RESPONSE_VALID)
+                        systemPrintln("\r\nInvalid ECEF Y. Coordinates not changed.");
+                    else
                     {
-                        settings.fixedEcefY = fixedEcefY;
-
-                        systemPrint("\nECEF Z in meters (ex: 4086669.6393): ");
-                        double fixedEcefZ;
-                        if (getUserInputDouble(&fixedEcefZ) == INPUT_RESPONSE_VALID)
+                        systemPrint("\r\nECEF Z in meters (ex: 4086669.6393): ");
+                        if (getUserInputDouble(&fixedEcefZ) != INPUT_RESPONSE_VALID)
+                            systemPrintln("\r\nInvalid ECEF Z. Coordinates not changed.");
+                        else
                         {
+                            settings.fixedEcefX = fixedEcefX;
+                            settings.fixedEcefY = fixedEcefY;
                             settings.fixedEcefZ = fixedEcefZ;
 
-                            // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just
-                            // change setting This prevents a user, while in Rover mode, but changing a Base setting,
-                            // from entering Base mode
-                            if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
-                                gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+                            // Re-apply the fixed base coordinates if operating as a fixed base, otherwise, just
+                            // change setting
+                            gnssFixedBaseSettingsChanged();
                         }
                     }
                 }
             }
             else if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
             {
-                // Progress with additional prompts only if the user enters valid data
                 char userEntry[50];
+                double fixedLat = 0.0;
+                double fixedLong = 0.0;
+                double fixedAltitude;
+                CoordinateInputType latCoordinateInputType;
+                CoordinateInputType longCoordinateInputType;
 
                 systemPrintln("Enter the fixed Lat/Long/Altitude coordinates that will be used in Base mode:");
 
                 systemPrint("Latitude in degrees (ex: 40.090335429, 40 05.4201257, 40-05.4201257, 4005.4201257, 40 05 "
                             "25.207544, etc): ");
-                if (getUserInputString(userEntry, sizeof(userEntry)) == INPUT_RESPONSE_VALID)
+                if ((getUserInputString(userEntry, sizeof(userEntry)) != INPUT_RESPONSE_VALID) ||
+                    ((latCoordinateInputType = coordinateIdentifyInputType(userEntry, &fixedLat)) ==
+                     COORDINATE_INPUT_TYPE_INVALID_UNKNOWN) ||
+                    (fixedLat < -90.0) || (fixedLat > 90.0))
+                    systemPrintln("\r\nInvalid latitude. Coordinates not changed.");
+                else
                 {
-                    double fixedLat = 0.0;
-                    // Identify which type of method they used
-                    CoordinateInputType latCoordinateInputType = coordinateIdentifyInputType(userEntry, &fixedLat);
-                    if (latCoordinateInputType != COORDINATE_INPUT_TYPE_INVALID_UNKNOWN)
+                    systemPrint("\r\nLongitude in degrees (ex: -105.184774720, -105 11.0864832, -105-11.0864832, "
+                                "-105 11 05.188992, etc): ");
+                    if ((getUserInputString(userEntry, sizeof(userEntry)) != INPUT_RESPONSE_VALID) ||
+                        ((longCoordinateInputType = coordinateIdentifyInputType(userEntry, &fixedLong)) ==
+                         COORDINATE_INPUT_TYPE_INVALID_UNKNOWN) ||
+                        (fixedLong < -180.0) || (fixedLong > 180.0))
+                        systemPrintln("\r\nInvalid longitude. Coordinates not changed.");
+                    else if (latCoordinateInputType != longCoordinateInputType)
+                        systemPrintln("\r\nCoordinate types must match! Coordinates not changed.");
+                    else
                     {
-                        // Progress with additional prompts only if the user enters valid data
-                        systemPrint("\r\nLongitude in degrees (ex: -105.184774720, -105 11.0864832, -105-11.0864832, "
-                                    "-105 11 05.188992, etc): ");
-                        if (getUserInputString(userEntry, sizeof(userEntry)) == INPUT_RESPONSE_VALID)
+                        systemPrint("\r\nAltitude in meters (ex: 1560.2284): ");
+                        if (getUserInputDouble(&fixedAltitude) != INPUT_RESPONSE_VALID)
+                            systemPrintln("\r\nInvalid altitude. Coordinates not changed.");
+                        else
                         {
-                            double fixedLong = 0.0;
-                            // Identify which type of method they used
-                            CoordinateInputType longCoordinateInputType =
-                                coordinateIdentifyInputType(userEntry, &fixedLong);
-                            if (longCoordinateInputType != COORDINATE_INPUT_TYPE_INVALID_UNKNOWN)
-                            {
-                                if (latCoordinateInputType == longCoordinateInputType)
-                                {
-                                    settings.fixedLat = fixedLat;
-                                    settings.fixedLong = fixedLong;
-                                    settings.coordinateInputType = latCoordinateInputType;
+                            settings.fixedLat = fixedLat;
+                            settings.fixedLong = fixedLong;
+                            settings.fixedAltitude = fixedAltitude;
+                            settings.coordinateInputType = latCoordinateInputType;
 
-                                    systemPrint("\r\nAltitude in meters (ex: 1560.2284): ");
-                                    double fixedAltitude;
-                                    if (getUserInputDouble(&fixedAltitude) == INPUT_RESPONSE_VALID)
-                                    {
-                                        settings.fixedAltitude = fixedAltitude;
-
-                                        // Change GNSS receiver configuration if the receiver is in Base mode,
-                                        // otherwise, just change setting This prevents a user, while in Rover mode, but
-                                        // changing a Base setting, from entering Base mode
-                                        if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
-                                            gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
-                                    }
-                                }
-                                else
-                                {
-                                    systemPrintln("\r\nCoordinate types must match!");
-                                }
-                            } // idInput on fixedLong
-                        } // getString for fixedLong
-                    } // idInput on fixedLat
-                } // getString for fixedLat
+                            // Re-apply the fixed base coordinates if operating as a fixed base, otherwise, just
+                            // change setting
+                            gnssFixedBaseSettingsChanged();
+                        }
+                    }
+                }
             } // COORD_TYPE_GEODETIC
         } // Fixed base and '3'
 
@@ -274,17 +267,10 @@ void menuBase()
             if (getNewSetting("Enter the antenna height (a.k.a. pole length) in millimeters", -15000, 15000,
                               &settings.antennaHeight_mm) == INPUT_RESPONSE_VALID)
             {
-                // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
-                // This prevents a user, while in Rover mode but changing a Base setting, from entering Base mode
-                if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
-                    gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+                // Re-apply the fixed base coordinates if operating as a fixed base, otherwise, just change setting
+                // fixedBaseStart() detects the changed antenna height and re-applies even if already in fixed base
+                gnssFixedBaseSettingsChanged();
                 // TODO Does any other hardware need to be reconfigured after this setting change? Tilt sensor?
-                // TODO I'm not sure if gnssConfigure(GNSS_CONFIG_BASE) is the right choice here - and in 9 other places?
-                // GNSS::configureBase can exit early if the unit is already in Base mode
-                // I think we should be using gnssConfigure(GNSS_CONFIG_BASE_FIXED) or
-                // gnssConfigure(GNSS_CONFIG_BASE_SURVEY) depending on which mode we are in?
-                // Oh... GNSS::fixedBaseStart() also exits early if the unit is already in fixed base...
-                // What to do? Do we need a way to force the fixed base / survey-in settings?
             }
         }
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 6)
@@ -302,10 +288,8 @@ void menuBase()
             if (getNewSetting((const char *)&arpPrompt[0], -200.0, 200.0,
                 &settings.antennaPhaseCenter_mm) == INPUT_RESPONSE_VALID)
             {
-                // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
-                // This prevents a user, while in Rover mode but changing a Base setting, from entering Base mode
-                if (gnss->gnssInBaseSurveyInMode() || gnss->gnssInBaseFixedMode())
-                    gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+                // Re-apply the fixed base coordinates if operating as a fixed base, otherwise, just change setting
+                gnssFixedBaseSettingsChanged();
             }
         }
 
@@ -352,10 +336,8 @@ void menuBase()
         else if (incoming == 7)
         {
             if (menuCommonBaseCoords()) // Commonly used base coordinates - returns true if coordinates were loaded
-                // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
-                // This prevents a user, while in Rover mode but changing a Base setting, from entering Base mode
-                if (gnss->gnssInBaseFixedMode())
-                    gnssConfigure(GNSS_CONFIG_BASE); // Request receiver to use new settings
+                // Re-apply the fixed base coordinates if operating as a fixed base, otherwise, just change setting
+                gnssFixedBaseSettingsChanged();
         }
 
         else if (incoming == 8)

@@ -351,6 +351,7 @@ void gnssUpdate()
         {
             if (gnss->fixedBaseStart() == true)
             {
+                gnssFixedBaseMarkApplied(); // Record the coordinates now in use by the receiver
                 gnssConfigureClear(GNSS_CONFIG_BASE_FIXED);
                 gnssConfigure(GNSS_CONFIG_SAVE); // Request receiver commit this change to NVM
             }
@@ -758,6 +759,108 @@ bool gnssCmdUpdateMessageRates(const char *settingName, void *settingData, int s
     if (requested == false)
         gnssConfigure(GNSS_CONFIG_MESSAGE_RATE_RTCM_ROVER);
 
+    return (true);
+}
+
+//----------------------------------------
+// Fixed base coordinate tracking
+//
+// The GNSS receivers store their fixed base mode and coordinates in their own NVM. fixedBaseStart() skips
+// reconfiguration when the receiver is already in fixed base mode to avoid needless (and on some platforms,
+// ie LG290P, slow) resets. To detect when the user has entered new coordinates, a fingerprint (CRC32) of all the
+// settings used by fixedBaseStart() is recorded once the coordinates are applied. If the current fingerprint does
+// not match the recorded one, the coordinates are re-applied even if the receiver is already in fixed base mode.
+//
+// The fingerprint is stored in its own LittleFS file (not in settings) because it describes the state of the
+// receiver, which is shared by all profiles.
+//----------------------------------------
+static const char *fixedBaseAppliedFileName = "/fixedBaseApplied.txt";
+static uint32_t fixedBaseAppliedFingerprint = 0;
+static bool fixedBaseAppliedFingerprintLoaded = false;
+
+// Compute a fingerprint of all the settings that fixedBaseStart() sends to the receiver
+uint32_t gnssFixedBaseFingerprint()
+{
+    uint32_t crc = 0;
+    crc = crc32Compute(crc, (const uint8_t *)&settings.fixedBaseCoordinateType, sizeof(settings.fixedBaseCoordinateType));
+    crc = crc32Compute(crc, (const uint8_t *)&settings.fixedEcefX, sizeof(settings.fixedEcefX));
+    crc = crc32Compute(crc, (const uint8_t *)&settings.fixedEcefY, sizeof(settings.fixedEcefY));
+    crc = crc32Compute(crc, (const uint8_t *)&settings.fixedEcefZ, sizeof(settings.fixedEcefZ));
+    crc = crc32Compute(crc, (const uint8_t *)&settings.fixedLat, sizeof(settings.fixedLat));
+    crc = crc32Compute(crc, (const uint8_t *)&settings.fixedLong, sizeof(settings.fixedLong));
+    crc = crc32Compute(crc, (const uint8_t *)&settings.fixedAltitude, sizeof(settings.fixedAltitude));
+    crc = crc32Compute(crc, (const uint8_t *)&settings.antennaHeight_mm, sizeof(settings.antennaHeight_mm));
+    crc = crc32Compute(crc, (const uint8_t *)&settings.antennaPhaseCenter_mm, sizeof(settings.antennaPhaseCenter_mm));
+    crc = crc32Compute(crc, (const uint8_t *)&settings.um980FixedBaseLLHSubtractSeparation,
+                       sizeof(settings.um980FixedBaseLLHSubtractSeparation));
+    return (crc);
+}
+
+// Returns true if the current fixed base settings match those last applied to the receiver
+bool gnssFixedBaseCoordinatesApplied()
+{
+    if (fixedBaseAppliedFingerprintLoaded == false)
+    {
+        fixedBaseAppliedFingerprintLoaded = true;
+        fixedBaseAppliedFingerprint = 0;
+
+        if (LittleFS.exists(fixedBaseAppliedFileName))
+        {
+            File file = LittleFS.open(fixedBaseAppliedFileName, FILE_READ);
+            if (file)
+            {
+                uint32_t value;
+                if (file.read((uint8_t *)&value, sizeof(value)) == sizeof(value))
+                    fixedBaseAppliedFingerprint = value;
+                file.close();
+            }
+        }
+    }
+
+    bool applied = (fixedBaseAppliedFingerprint == gnssFixedBaseFingerprint());
+    if (settings.debugGnssConfig && (applied == false))
+        systemPrintln("Fixed base coordinates have changed and need to be applied");
+    return (applied);
+}
+
+// Record that the current fixed base settings have been applied to the receiver
+void gnssFixedBaseMarkApplied()
+{
+    uint32_t fingerprint = gnssFixedBaseFingerprint();
+    fixedBaseAppliedFingerprintLoaded = true;
+    if (fingerprint == fixedBaseAppliedFingerprint)
+        return; // Nothing changed, avoid a needless flash write
+
+    fixedBaseAppliedFingerprint = fingerprint;
+
+    File file = LittleFS.open(fixedBaseAppliedFileName, FILE_WRITE);
+    if (!file)
+    {
+        if (settings.debugGnssConfig)
+            systemPrintf("%s failed to open\r\n", fixedBaseAppliedFileName);
+        return;
+    }
+    file.write((const uint8_t *)&fingerprint, sizeof(fingerprint));
+    file.close();
+}
+
+// Call after any setting used by fixedBaseStart() is changed (coordinates, coordinate type, antenna height, APC).
+// If the system is operating as a fixed base, request the receiver use the new settings. Otherwise, just change the
+// setting: this prevents a user, while in Rover mode but changing a Base setting, from entering Base mode. The new
+// settings are applied the next time fixed base mode starts.
+void gnssFixedBaseSettingsChanged()
+{
+    if ((settings.fixedBase == true) &&
+        ((systemState == STATE_BASE_FIXED_NOT_STARTED) || (systemState == STATE_BASE_FIXED_TRANSMITTING)))
+        gnssConfigure(GNSS_CONFIG_BASE_FIXED); // Request receiver to use new settings
+}
+
+//----------------------------------------
+// Apply new fixed base coordinates following a set command (ie, $SPSET,fixedEcefX,-1280206.568)
+//----------------------------------------
+bool gnssCmdUpdateFixedBase(const char *settingName, void *settingData, int settingType)
+{
+    gnssFixedBaseSettingsChanged();
     return (true);
 }
 

@@ -819,12 +819,12 @@ uint16_t GNSS_MOSAIC::fileBufferExtractData(uint8_t *fileBuffer, int fileBytesTo
 //----------------------------------------
 bool GNSS_MOSAIC::fixedBaseStart()
 {
-    // If we are already in the appropriate base mode, no changes needed
+    // If we are already in the appropriate base mode, using the current coordinates, no changes needed
     // 0 - Unknown, 1 - Rover, 2 - Base Survey In, 3 - Base Fixed Geodetic, 4 - Base Fixed Cartesian
     int currentMode = getMode();
-    if (currentMode == 3 && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
-        return (true); // No changes needed
-    if (currentMode == 4 && settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
+    bool modeMatches = (currentMode == 3 && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC) ||
+                       (currentMode == 4 && settings.fixedBaseCoordinateType == COORD_TYPE_ECEF);
+    if (modeMatches && gnssFixedBaseCoordinatesApplied())
         return (true); // No changes needed
 
     bool response = true;

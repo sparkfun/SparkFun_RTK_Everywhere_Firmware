@@ -452,6 +452,15 @@ bool gnssCmdUpdateConstellations(const char *settingName, void *settingData, int
 // Update the message rates following a set command
 bool gnssCmdUpdateMessageRates(const char *settingName, void *settingData, int settingType);
 
+// Request the fixed base coordinates be re-applied following a set command
+bool gnssCmdUpdateFixedBase(const char *settingName, void *settingData, int settingType);
+
+// Fixed base coordinate tracking - used by fixedBaseStart() to detect changed coordinates
+uint32_t gnssFixedBaseFingerprint();
+bool gnssFixedBaseCoordinatesApplied();
+void gnssFixedBaseMarkApplied();
+void gnssFixedBaseSettingsChanged();
+
 // Restore the GNSS to the factory settings
 void gnssFactoryReset();
 

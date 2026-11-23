@@ -749,13 +749,13 @@ bool GNSS_ZED::fixedBaseStart()
     if (online.gnss == false)
         return (false);
 
-    // If we are already in the appropriate base mode, no changes needed
+    // If we are already in the appropriate base mode, using the current coordinates, no changes needed
 
     // 0 - Rover, 1 - Base Survey-In, 2 - Base Fixed ECEF, 3 - Base Fixed LLH
     int currentMode = getMode();
-    if (currentMode == 2 && settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
-        return (true); // No changes needed
-    if (currentMode == 3 && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
+    bool modeMatches = (currentMode == 2 && settings.fixedBaseCoordinateType == COORD_TYPE_ECEF) ||
+                       (currentMode == 3 && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC);
+    if (modeMatches && gnssFixedBaseCoordinatesApplied())
         return (true); // No changes needed
 
     // If a previous Survey-In left the receiver's TMODE survey state active/valid, switching

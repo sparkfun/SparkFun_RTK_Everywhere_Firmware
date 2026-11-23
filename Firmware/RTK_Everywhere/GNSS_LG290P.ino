@@ -523,8 +523,8 @@ bool GNSS_LG290P::fixedBaseStart()
     if (online.gnss == false)
         return (false);
 
-    // If we are already in the appropriate base mode, no changes needed
-    if (gnssInBaseFixedMode())
+    // If we are already in the appropriate base mode, using the current coordinates, no changes needed
+    if (gnssInBaseFixedMode() && gnssFixedBaseCoordinatesApplied())
         return (true); // No changes needed
 
     if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)

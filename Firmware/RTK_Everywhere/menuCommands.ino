@@ -1602,26 +1602,37 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
     if (strcmp(settingName, "fixedLatText") == 0)
     {
+        // Invalid entries are rejected and the previous coordinate is kept. Previously the coordinate was
+        // silently set to 0.0, which would send the base to the equator / prime meridian.
         double newCoordinate = 0.0;
         CoordinateInputType newCoordinateInputType =
             coordinateIdentifyInputType((char *)settingValueStr, &newCoordinate);
-        if (newCoordinateInputType == COORDINATE_INPUT_TYPE_INVALID_UNKNOWN)
-            settings.fixedLat = 0.0;
+        if ((newCoordinateInputType == COORDINATE_INPUT_TYPE_INVALID_UNKNOWN) || (newCoordinate < -90.0) ||
+            (newCoordinate > 90.0))
+            systemPrintf("Invalid fixed base latitude '%s' ignored. Latitude remains %0.9f\r\n", settingValueStr,
+                         settings.fixedLat);
         else
         {
             settings.fixedLat = newCoordinate;
             settings.coordinateInputType = newCoordinateInputType;
+            gnssFixedBaseSettingsChanged(); // Re-apply the coordinates if operating as a fixed base
         }
         knownSetting = true;
     }
     else if (strcmp(settingName, "fixedLongText") == 0)
     {
+        // Invalid entries are rejected and the previous coordinate is kept
         double newCoordinate = 0.0;
-        if (coordinateIdentifyInputType((char *)settingValueStr, &newCoordinate) ==
-            COORDINATE_INPUT_TYPE_INVALID_UNKNOWN)
-            settings.fixedLong = 0.0;
+        if ((coordinateIdentifyInputType((char *)settingValueStr, &newCoordinate) ==
+             COORDINATE_INPUT_TYPE_INVALID_UNKNOWN) ||
+            (newCoordinate < -180.0) || (newCoordinate > 180.0))
+            systemPrintf("Invalid fixed base longitude '%s' ignored. Longitude remains %0.9f\r\n", settingValueStr,
+                         settings.fixedLong);
         else
+        {
             settings.fixedLong = newCoordinate;
+            gnssFixedBaseSettingsChanged(); // Re-apply the coordinates if operating as a fixed base
+        }
         knownSetting = true;
     }
 
@@ -1670,6 +1681,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     else if (strcmp(settingName, "fixedBaseCoordinateTypeECEF") == 0)
     {
         settings.fixedBaseCoordinateType = ((settingValue == 1) ? COORD_TYPE_ECEF : COORD_TYPE_GEODETIC);
+        gnssFixedBaseSettingsChanged(); // Re-apply the coordinates if operating as a fixed base
         knownSetting = true;
     }
 

@@ -455,8 +455,8 @@ bool GNSS_UM980::fixedBaseStart()
     if (online.gnss == false)
         return (false);
 
-    // If we are already in the appropriate base mode, no changes needed
-    if (gnssInBaseFixedMode())
+    // If we are already in the appropriate base mode, using the current coordinates, no changes needed
+    if (gnssInBaseFixedMode() && gnssFixedBaseCoordinatesApplied())
         return (true);
 
     bool response = true;
@@ -1466,11 +1466,8 @@ void GNSS_UM980::menuGnssSpecificConfiguration()
         if (incoming == 1)
         {
             settings.um980FixedBaseLLHSubtractSeparation ^= 1;
-            // Change GNSS receiver configuration if the receiver is in Base mode, otherwise, just change setting
-            // This prevents a user, while in Rover mode, but changing a Base setting, from entering Base mode
-            // GNSS_CONFIG_BASE is ignored if we are already in Base mode. Use GNSS_CONFIG_BASE_FIXED
-            if (gnss->gnssInBaseFixedMode())
-                gnssConfigure(GNSS_CONFIG_BASE_FIXED); // Request receiver to use new settings
+            // Re-apply the fixed base coordinates if operating as a fixed base, otherwise, just change setting
+            gnssFixedBaseSettingsChanged();
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)

@@ -1735,8 +1735,8 @@ function checkLatLong() {
         errorCount++;
         erroredFields.push(id);
     }
-    else if ((convertedCoordinate < -180) || (convertedCoordinate > 180)) {
-        var errorText = "Must be -180 to 180";
+    else if ((convertedCoordinate < -90) || (convertedCoordinate > 90)) {
+        var errorText = "Must be -90 to 90";
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
         errorCount++;
