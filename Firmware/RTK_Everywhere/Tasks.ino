@@ -100,7 +100,7 @@ const int rtcmParserCount = sizeof(rtcmParserTable) / sizeof(rtcmParserTable[0])
 //----------------------------------------
 
 volatile static RING_BUFFER_OFFSET dataHead; // Head advances as data comes in from GNSS's UART
-volatile int32_t availableHandlerSpace;      // settings.gnssHandlerBufferSize - usedSpace
+volatile int32_t availableHandlerSpace;      // Free bytes excluding the reserved byte
 static bool ringBufferSpaceMeasured;        // Set after the consumer accounts for all tails
 volatile const char *slowConsumer;
 
@@ -1540,14 +1540,6 @@ void handleGnssDataTask(void *e)
     if (settings.printTaskStartStop)
         systemPrintln("Task handleGnssDataTask started");
 
-    // Initialize the tails
-    btRingBufferTail = 0;
-    tcpClientZeroTail();
-    tcpServerZeroTail();
-    udpServerZeroTail();
-    sdRingBufferTail = 0;
-    usbRingBufferTail = 0;
-
     // Run task until a request is raised
     task.handleGnssDataTaskStopRequest = false;
     while (task.handleGnssDataTaskStopRequest == false)
@@ -2753,20 +2745,23 @@ bool tasksStartGnssUart()
     }
 
     if (ringBufferSemaphore == nullptr)
-        ringBufferSemaphore = xSemaphoreCreateMutex();
-    if (ringBufferSemaphore == nullptr)
     {
-        systemPrintln("ERROR: Failed to create ringBufferSemaphore");
-        return false;
-    }
+        ringBufferSemaphore = xSemaphoreCreateMutex();
+        if (ringBufferSemaphore == nullptr)
+        {
+            systemPrintln("ERROR: Failed to create ringBufferSemaphore");
+            return false;
+        }
 
-    // Keep the GNSS startup allowance. On a mode change the ring may still hold data.
-    // Admit optional records after the consumer measures the tails and reserves the last byte.
-    if (xSemaphoreTake(ringBufferSemaphore, ringBuffer_longWait_ms) != pdPASS)
-        return false;
-    availableHandlerSpace = settings.gnssHandlerBufferSize;
-    ringBufferSpaceMeasured = false;
-    xSemaphoreGive(ringBufferSemaphore);
+        // Start with an empty ring. Keep its data and all tails when the tasks resume or change mode.
+        btRingBufferTail = 0;
+        tcpClientZeroTail();
+        tcpServerZeroTail();
+        udpServerZeroTail();
+        sdRingBufferTail = 0;
+        usbRingBufferTail = 0;
+        availableHandlerSpace = settings.gnssHandlerBufferSize - 1;
+    }
 
     // Reads data from GNSS and stores data into circular buffer
     if (!task.gnssReadTaskRunning)
