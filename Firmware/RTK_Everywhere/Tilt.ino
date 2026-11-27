@@ -646,6 +646,13 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
     if (!correcting && (!altitudeComma || !settings.outputTipAltitude))
         return;
 
+    char newSentence[150] = {0};
+    if ((size_t)sentenceLength >= sizeof(newSentence))
+    {
+        systemPrintf("applyCompensationCommon: %s newSentence not big enough!\r\n", nmeaType);
+        return;
+    }
+
     uint8_t latitudeStart = 0;
     uint8_t latitudeStop = 0;
     uint8_t longitudeStart = 0;
@@ -705,7 +712,8 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
         else
             commasOk = false; // If we have altitudeComma, we must also have undulationComma
     }
-    commasOk &= checksumStart > 0;
+    // The replacement checksum and CRLF must also fit in the original record.
+    commasOk &= checksumStart > 0 && checksumStart + sizeof("*00\r\n") - 1 <= (size_t)sentenceLength;
 
     if (!commasOk)
     {
@@ -713,22 +721,18 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
         return;
     }
 
-    char altitudeStr[strlen("-1602.3481") + 1]; // 4 decimals
-    char undulationStr[strlen("-1602.3481") + 1]; // 4 decimals
     float altitude;
     float undulation;
 
     if (altitudeComma)
     {
         // Extract the altitude
-        strncpy(altitudeStr, &nmeaSentence[altitudeStart], altitudeStop - altitudeStart);
-        altitude = (float)atof(altitudeStr);
+        altitude = (float)atof(nmeaSentence + altitudeStart);
 
         if (undulationComma)
         {
             // Extract the undulation
-            strncpy(undulationStr, &nmeaSentence[undulationStart], undulationStop - undulationStart);
-            undulation = (float)atof(undulationStr);
+            undulation = (float)atof(nmeaSentence + undulationStart);
 
             // If this is GGA, store the undulation so we can compare in GNS
             if (strncmp(nmeaType, "GGA", sizeof(nmeaType)) == 0)
@@ -760,14 +764,6 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
         }
     }
 
-    char newSentence[150] = {0};
-
-    if (sizeof(newSentence) < sentenceLength)
-    {
-        systemPrintf("applyCompensationCommon: %s newSentence not big enough!\r\n", nmeaType);
-        return;
-    }
-
     char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     if (correcting)
@@ -792,11 +788,7 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
         }
 
         // Add tilt-compensated Latitude
-        strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-        // We can't allow the message length to change. Truncate if needed
-        while (strlen(newSentence) > latitudeStop)
-            *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
+        strncat(newSentence, coordinateStringDDMM, latitudeStop - latitudeStart);
 
         // We can't allow the message length to change. Pad with zeros if needed
         while (strlen(newSentence) < latitudeStop)
@@ -822,11 +814,7 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
         }
 
         // Add tilt-compensated Longitude
-        strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-        // We can't allow the message length to change. Truncate if needed
-        while (strlen(newSentence) > longitudeStop)
-            *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
+        strncat(newSentence, coordinateStringDDMM, longitudeStop - longitudeStart);
 
         // We can't allow the message length to change. Pad with zeros if needed
         while (strlen(newSentence) < longitudeStop)
@@ -944,12 +932,7 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
     }
 
     // Add tilt-compensated Altitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
-
-    // We can't allow the message length to change. Truncate if needed
-    // altitudeStop is the position of the comma.
-    while (strlen(newSentence) > altitudeStop)
-        *(newSentence + strlen(newSentence) - 1) = 0; // Move the NULL terminator
+    strncat(newSentence, coordinateStringDDMM, altitudeStop - altitudeStart);
 
     // We can't allow the message length to change. Pad with zeros if needed
     while (strlen(newSentence) < altitudeStop)
