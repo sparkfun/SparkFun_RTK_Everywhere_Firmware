@@ -42,15 +42,51 @@ IM19 * tiltSensor;
 uint32_t tiltCrc;
 float previousGGAUndulation = -9999.9999;
 
+// The main loop reads the IM19. The GNSS task takes a copy for each position sentence.
+struct TiltPosition
+{
+    double latitude;
+    double longitude;
+    double altitude;
+    TiltState state;
+};
+static TiltPosition tiltPosition = {0, 0, 0, TILT_DISABLED};
+static portMUX_TYPE tiltPositionMux = portMUX_INITIALIZER_UNLOCKED;
+
+TiltState tiltGetState()
+{
+    portENTER_CRITICAL(&tiltPositionMux);
+    const TiltState state = tiltPosition.state;
+    portEXIT_CRITICAL(&tiltPositionMux);
+    return state;
+}
+
+static void tiltUpdatePosition()
+{
+    TiltPosition position = {};
+    position.state = tiltState;
+    if (position.state == TILT_CORRECTING)
+    {
+        position.latitude = tiltSensor->getNaviLatitude();
+        position.longitude = tiltSensor->getNaviLongitude();
+        position.altitude = tiltSensor->getNaviAltitude();
+    }
+
+    portENTER_CRITICAL(&tiltPositionMux);
+    if (tiltPosition.state != TILT_REQUEST_STOP)
+        tiltPosition = position;
+    portEXIT_CRITICAL(&tiltPositionMux);
+}
+
 // Tilt compensation sensor state machine
 void tiltUpdate()
 {
+    if (tiltGetState() == TILT_REQUEST_STOP)
+        tiltState = TILT_REQUEST_STOP;
+
     // If the user has disabled the device, shut it down
     if (settings.enableTiltCompensation == false && tiltState != TILT_DISABLED)
-    {
-        tiltStop(); // Stop serial inteface. Mark IMU offline.
-        tiltState = TILT_DISABLED;
-    }
+        tiltStop();
 
     switch (tiltState)
     {
@@ -189,10 +225,10 @@ void tiltUpdate()
         break;
 
     case TILT_REQUEST_STOP:
-        tiltStop(); // Stop serial inteface. Mark IMU offline.
-        tiltState = TILT_DISABLED;
+        tiltStop();
         break;
     }
+    tiltUpdatePosition();
 }
 
 /*Datasheet initialization steps:
@@ -445,22 +481,33 @@ bool tiltGetVersion(int &major, int &minor, int &patch, int &revision, int &rele
     return true;
 }
 
-// Stops serial inteface. Marks tilt offline.
+// Stop the serial interface and mark tilt offline.
 void tiltStop()
 {
+    portENTER_CRITICAL(&tiltPositionMux);
+    const bool requestedStop = tiltPosition.state == TILT_REQUEST_STOP;
+    tiltPosition.state = TILT_DISABLED;
+    portEXIT_CRITICAL(&tiltPositionMux);
+    tiltState = TILT_DISABLED;
+
     // Free the resources
     if (tiltSensor != nullptr)
     {
+        // The IM19 library allocates these packets separately from the sensor.
+        delete tiltSensor->packetNavi;
+        tiltSensor->packetNavi = nullptr;
+        delete tiltSensor->packetGnss;
+        tiltSensor->packetGnss = nullptr;
         delete tiltSensor;
         tiltSensor = nullptr;
     }
 
     // Gracefully stop the UART before freeing resources
-    while (SerialForTilt->available())
+    while (SerialForTilt != nullptr && SerialForTilt->available())
         SerialForTilt->read();
 
     // Beep to indicate we are going offline - but only from tiltRequestStop
-    if (tiltState == TILT_REQUEST_STOP)
+    if (requestedStop)
         beepDurationMs(1000);
 
     online.imu_im19 = false;
@@ -469,15 +516,14 @@ void tiltStop()
 // Called by other tasks. Prevents stopping serial port while within a library transaction.
 void tiltRequestStop()
 {
-    tiltState = TILT_REQUEST_STOP;
+    portENTER_CRITICAL(&tiltPositionMux);
+    tiltPosition.state = TILT_REQUEST_STOP;
+    portEXIT_CRITICAL(&tiltPositionMux);
 }
 
 bool tiltIsCorrecting()
 {
-    if (tiltState == TILT_CORRECTING)
-        return (true);
-
-    return (false);
+    return tiltGetState() == TILT_CORRECTING;
 }
 
 // Restore the tilt sensor to factory settings
@@ -553,10 +599,6 @@ void applyCompensationGNS(char *nmeaSentence, int sentenceLength)
 // Modify a GLL sentence with tilt compensation
 void applyCompensationGLL(char *nmeaSentence, int sentenceLength)
 {
-    // GLL only needs to be changed in tilt mode
-    if (tiltIsCorrecting() == false)
-        return;
-
     //$GNGLL,4005.41769994,N,10507.40740734,W,214210.00,A,A*6D
     const int latitudeComma = 1;
     const int longitudeComma = 3;
@@ -567,10 +609,6 @@ void applyCompensationGLL(char *nmeaSentence, int sentenceLength)
 // Modify a RMC sentence with tilt compensation
 void applyCompensationRMC(char *nmeaSentence, int sentenceLength)
 {
-    // RMC only needs to be changed in tilt mode
-    if (tiltIsCorrecting() == false)
-        return;
-
     //$GNRMC,214210.00,A,4005.41769994,N,10507.40740734,W,0.000,,070923,,,A,V*01
     const int latitudeComma = 3;
     const int longitudeComma = 5;
@@ -601,6 +639,13 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
                            const int *latitudeComma, const int *longitudeComma,
                            const int *altitudeComma, const int *undulationComma)
 {
+    portENTER_CRITICAL(&tiltPositionMux);
+    const TiltPosition position = tiltPosition;
+    portEXIT_CRITICAL(&tiltPositionMux);
+    const bool correcting = position.state == TILT_CORRECTING;
+    if (!correcting && (!altitudeComma || !settings.outputTipAltitude))
+        return;
+
     uint8_t latitudeStart = 0;
     uint8_t latitudeStop = 0;
     uint8_t longitudeStart = 0;
@@ -725,14 +770,14 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
 
     char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
-    if (tiltIsCorrecting() == true)
+    if (correcting)
     {
         // Add start of message up to latitudeStart
         strncat(newSentence, nmeaSentence, latitudeStart);
 
         // Convert tilt-compensated latitude to DDMM
         // This will add 8 decimal places - which may need to be adjusted to match GNSS
-        coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+        coordinateConvertInput(abs(position.latitude), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                                sizeof(coordinateStringDDMM));
 
         // Check if latitude length has changed
@@ -762,7 +807,7 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
 
         // Convert tilt-compensated longitude to DDDMM
         // This will add 8 decimal places - which may need to be adjusted to match GNSS
-        coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDDMM, coordinateStringDDMM,
+        coordinateConvertInput(abs(position.longitude), COORDINATE_INPUT_TYPE_DDDMM, coordinateStringDDMM,
                                sizeof(coordinateStringDDMM));
 
         // Check if longitude length has changed
@@ -828,18 +873,18 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
 
     // Calculate newAltitude based on tilt mode and outputTipAltitude setting
     float newAltitude = 0;
-    if (tiltIsCorrecting() == true)
+    if (correcting)
     {
         // If tilt is active and outputTipAltitude is disabled, then subtract undulation from IMU altitude
         // and add pole+ARP. I.e. output altitude as if the pole were vertical.
         if (settings.outputTipAltitude == false)
         {
-            newAltitude = tiltSensor->getNaviAltitude() - undulation +
+            newAltitude = position.altitude - undulation +
                           ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
 
             if (settings.enableImuCompensationDebug == true && !inMainMenu)
                 systemPrintf("Navi altitude (%.4f) - undulation (%.4f) + pole length (%.4f) + APC (%.4f) = %.4f\r\n",
-                             tiltSensor->getNaviAltitude(),
+                             position.altitude,
                              undulation,
                              settings.antennaHeight_mm / 1000.0,
                              settings.antennaPhaseCenter_mm / 1000.0,
@@ -848,11 +893,11 @@ void applyCompensationCommon(char *nmeaSentence, int sentenceLength, const char 
         // If tilt is active and outputTipAltitude is enabled, then subtract undulation from IMU altitude
         else if (settings.outputTipAltitude == true)
         {
-            newAltitude = tiltSensor->getNaviAltitude() - undulation;
+            newAltitude = position.altitude - undulation;
 
             if (settings.enableImuCompensationDebug == true && !inMainMenu)
                 systemPrintf("Navi altitude (%.4f) - undulation (%.4f) = %.4f\r\n",
-                             tiltSensor->getNaviAltitude(),
+                             position.altitude,
                              undulation,
                              newAltitude);
         }

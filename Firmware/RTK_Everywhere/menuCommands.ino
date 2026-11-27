@@ -3428,7 +3428,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     }
     else if (strcmp(settingName, "tiltState") == 0)
     {
-        writeToString(settingValueStr, (int)tiltState);
+        writeToString(settingValueStr, (int)tiltGetState());
         knownSetting = true;
     }
     else if (strcmp(settingName, "loggingState") == 0)
@@ -4266,7 +4266,7 @@ void printAvailableSettings()
         else if (commandIndex[i] == COMMAND_TILT_STATE)
         {
             char tiltStateString[4];
-            snprintf(tiltStateString, sizeof(tiltStateString), "%d", (int)tiltState);
+            snprintf(tiltStateString, sizeof(tiltStateString), "%d", (int)tiltGetState());
             commandSendExecuteListResponse("tiltState", "TiltState", tiltStateString);
         }
 

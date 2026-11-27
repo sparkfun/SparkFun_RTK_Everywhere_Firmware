@@ -454,7 +454,7 @@ bool dtTiltCorrecting()
 {
 #ifdef COMPILE_IM19_IMU
     if (!dtActive())
-        return (present.imu_im19 == true) && (settings.enableTiltCompensation == true) && (tiltState == TILT_CORRECTING);
+        return (present.imu_im19 == true) && (settings.enableTiltCompensation == true) && tiltIsCorrecting();
 #endif
     return dtActive() ? dtScenario()->tilt : false;
 }
