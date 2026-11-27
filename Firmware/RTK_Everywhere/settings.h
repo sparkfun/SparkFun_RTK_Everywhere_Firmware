@@ -1163,6 +1163,7 @@ struct Settings
     // UM980
     bool enableImuCompensationDebug = false;
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
+    bool enableTiltAttitude = false; // Add IM19 GPFMI to the rover output
     bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
 #ifdef COMPILE_UM980
     uint8_t um980Constellations[MAX_UM980_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
@@ -1866,6 +1867,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 0, 0, 1, 0, NON, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation", gnssCmdUpdateSetting, },
     { 0, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug", nullptr, },
     { 0, 0, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableImuDebug, "enableImuDebug", nullptr, },
+    { 1, 1, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableTiltAttitude, "enableTiltAttitude", nullptr, },
     { 1, 1, 0, 0, 0, 1, 0, ALL, 0, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation", nullptr, },
 
     // UM980 GNSS Receiver
@@ -2690,7 +2692,19 @@ TwoWire * i2c_1;
 
 HardwareSerial *serialGNSS = nullptr;  // Don't instantiate until we know what gnssPlatform we're on
 HardwareSerial *serial2GNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
-HardwareSerial *uart2Serial; // Shared serial port between LoRa and Tilt
+#ifdef COMPILE_IM19_IMU
+// Observe the bytes read by the IM19 library on the shared UART.
+class Uart2Serial : public HardwareSerial
+{
+  public:
+    using HardwareSerial::HardwareSerial;
+    using HardwareSerial::read;
+    int read() override;
+};
+#else
+using Uart2Serial = HardwareSerial;
+#endif
+Uart2Serial *uart2Serial; // Shared serial port between LoRa and Tilt
 
 #define SerialForLoRa uart2Serial
 #define SerialForTilt uart2Serial

@@ -1210,7 +1210,7 @@ bool beginUart2Serial()
         return true;
 
     // Allocate the serial port object
-    uart2Serial = new HardwareSerial(2);
+    uart2Serial = new Uart2Serial(2);
 
     // Determine if the allocation failed
     if (uart2Serial == nullptr)

@@ -1035,6 +1035,13 @@ function parseIncoming(msg) {
             show("tiltConfig");
         }
 
+        else if (id == "hasIM19") {
+            if (val == "1")
+                show("tiltAttitudeConfig");
+            else
+                hide("tiltAttitudeConfig");
+        }
+
         // PointPerfect configuration has been removed from the Web Config interface. It will be restored if u-blox offers
         // the global corrections network.
         else if (id.includes("pointPerfectService")) {

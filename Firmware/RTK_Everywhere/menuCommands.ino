@@ -1238,9 +1238,18 @@ bool commandCheckListForVariable(const char *settingName, const char **entry, in
     return false;
 }
 
+// Profiles load before IM19 detection. Check presence when the CLI or web page uses the setting.
+static bool settingHardwarePresent(const char *settingName)
+{
+    return present.imu_im19 || strcmp(settingName, "enableTiltAttitude") != 0;
+}
+
 // Given a settingName, and string value, update a given setting
 SettingValueResponse updateSettingWithValue(bool inCommands, const char *settingName, const char *settingValueStr)
 {
+    if (!settingHardwarePresent(settingName))
+        return SETTING_UNKNOWN;
+
     int i;
     char *ptr;
     int qualifier;
@@ -2333,6 +2342,7 @@ void createSettingsString(char *newSettings)
     // We can't depend on enableTiltCompensation setting because all FP platforms transmit it.
     if (variantHousingProperties->tiltPossible == true)
         stringRecord(newSettings, "hasTilt", "1");
+    stringRecord(newSettings, "hasIM19", present.imu_im19 ? "1" : "0");
 
     char apDeviceBTID[30];
     snprintf(apDeviceBTID, sizeof(apDeviceBTID), "Device Bluetooth ID: %s", serialNumber);
@@ -2340,7 +2350,8 @@ void createSettingsString(char *newSettings)
 
     for (int i = 0; i < numRtkSettingsEntries; i++)
     {
-        if (rtkSettingsEntries[i].inWebConfig && (settingAvailableOnPlatform(i) == true))
+        if (rtkSettingsEntries[i].inWebConfig && settingAvailableOnPlatform(i) &&
+            settingHardwarePresent(rtkSettingsEntries[i].name))
         {
             // Whether the browser already knows this setting's platform-effective
             // default (see settingsDefaults.js) and so can correctly redisplay it if
@@ -3051,6 +3062,9 @@ void writeToString(char *settingValueStr, char *value)
 // Ex: $SPGET,batteryLevelPercent*19
 SettingValueResponse getSettingValue(bool inCommands, const char *settingName, char *settingValueStr)
 {
+    if (!settingHardwarePresent(settingName))
+        return SETTING_UNKNOWN;
+
     int i;
     int qualifier;
     char suffix[51];
@@ -3495,6 +3509,9 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
 // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/190
 void commandList(bool inCommands, int i)
 {
+    if (!settingHardwarePresent(rtkSettingsEntries[i].name))
+        return;
+
     int qualifier;
     char settingName[100];
     char settingType[100];

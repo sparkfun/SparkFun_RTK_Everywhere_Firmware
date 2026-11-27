@@ -37,6 +37,9 @@ Tilt.ino
 
 #ifdef COMPILE_IM19_IMU
 
+#include <atomic>
+#include <cmath>
+
 IM19 * tiltSensor;
 
 uint32_t tiltCrc;
@@ -78,15 +81,218 @@ static void tiltUpdatePosition()
     portEXIT_CRITICAL(&tiltPositionMux);
 }
 
+static const uint32_t fmiIntervalMs = 200; // The IM19 sends FMI at 5 Hz.
+static const uint32_t fmiRetryMs = 10000;
+static std::atomic<TaskHandle_t> tiltLoopTask{nullptr};
+static bool fmiRequested;
+static bool fmiOnConfirmed; // ON reply or valid FMI while attitude is requested
+static bool fmiMayBeOn; // From the first ON attempt until a full quiet interval after OFF
+static bool fmiSeenSinceOff;
+static uint32_t fmiLastOffMs;
+static uint32_t fmiActivityMs; // Last ON attempt, acknowledgment or valid FMI
+static bool fmiWaitingForNavi;
+static uint32_t fmiQuietSinceMs;
+static uint32_t fmiLastNaviMs;
+static bool fmiReading;
+static size_t fmiLength;
+static const char fmiPrefix[] = "$GPFMI,";
+static char lastFmiUtc[sizeof("hhmmss.ss") - 1];
+
+static bool tiltAttitudeEnabled()
+{
+    const SystemState state = (systemState == STATE_DISPLAY_SETUP) ? lastSystemState : systemState;
+    return present.imu_im19 && settings.enableTiltAttitude && settings.enableTiltCompensation && inRoverMode(state) &&
+           !(tcpServerInCasterMode && online.tcpServer);
+}
+
+// Check the native sentence without converting or rounding any of its fields.
+static bool tiltFmiValid(char *line)
+{
+    if (strncmp(line, fmiPrefix, sizeof(fmiPrefix) - 1) != 0)
+        return false;
+    const char *digits = "0123456789";
+    const char *utc = line + sizeof(fmiPrefix) - 1;
+    if (strspn(utc, digits) != 6 || utc[6] != '.' || strspn(utc + 7, digits) != 2 || utc[9] != ',')
+        return false;
+    if (strncmp(utc, "24", 2) >= 0 || utc[2] > '5' || (utc[4] > '5' && strncmp(utc, "235960", 6) != 0))
+        return false;
+
+    // Latitude through navigation mode are ten comma-terminated numeric fields.
+    const char *field = utc + 10;
+    for (int fieldNumber = 2; fieldNumber <= 11; fieldNumber++)
+    {
+        if (*field == '-' || *field == '+')
+            field++;
+        size_t count = strspn(field, digits);
+        field += count;
+        if (*field == '.' && fieldNumber != 9 && fieldNumber != 11) // NSAT and NAVMOD are integers
+        {
+            size_t fraction = strspn(field + 1, digits);
+            field += 1 + fraction;
+            count += fraction;
+        }
+        if (count == 0 || *field != ',')
+            return false;
+        field++;
+    }
+    return strlen(field) == sizeof("00000000*00") - 1 && strspn(field, "0123456789ABCDEFabcdef") == 8 &&
+           commandValid(line);
+}
+
+static void tiltFmiByte(uint8_t data)
+{
+    static char line[160]; // Includes the checksum and CRLF
+    if (data == '$')
+        fmiLength = 0;
+    else if (fmiLength == 0)
+        return;
+
+    if (fmiLength == sizeof(line) || (fmiLength && line[fmiLength - 1] == '\r' && data != '\n') ||
+        (data != '\r' && data != '\n' && (data < ' ' || data > '~')))
+    {
+        fmiLength = 0;
+        return;
+    }
+    line[fmiLength++] = data;
+    if (data != '\n')
+        return;
+
+    size_t length = fmiLength;
+    fmiLength = 0;
+    if (length < sizeof(fmiPrefix) || line[length - 2] != '\r')
+        return;
+    line[length - 2] = 0; // commandValid expects a string ending in *HH
+    const char *utc = line + sizeof(fmiPrefix) - 1;
+    if (!tiltFmiValid(line))
+        return;
+    if (!fmiRequested)
+    {
+        fmiSeenSinceOff = true;
+        fmiWaitingForNavi = true;
+        return;
+    }
+    fmiMayBeOn = true;
+    fmiOnConfirmed = true; // The sensor is sending FMI even if the command reply was lost.
+    fmiActivityMs = millis();
+    if (memcmp(utc, lastFmiUtc, sizeof(lastFmiUtc)) == 0)
+        return;
+    line[length - 2] = '\r';
+    if (tiltAttitudeEnabled() && task.gnssReadTaskRunning && task.handleGnssDataTaskRunning &&
+        storeGnssRecord((const uint8_t *)line, length, true))
+        memcpy(lastFmiUtc, utc, sizeof(lastFmiUtc));
+}
+
+// The library can read more bytes while it initializes its binary packets.
+// Inspect only bytes read by the main loop, including those nested reads.
+int Uart2Serial::read()
+{
+    int data = HardwareSerial::read();
+    if (data >= 0 && xTaskGetCurrentTaskHandle() == tiltLoopTask.load(std::memory_order_relaxed) && fmiReading)
+        tiltFmiByte(data);
+    return data;
+}
+
+// A library call can decode NAVI between polls. Compare epochs to catch it too.
+static bool tiltNewNavi()
+{
+    static double lastTimestamp;
+    if (!tiltSensor->packetNavi)
+        return false;
+    const double timestamp = tiltSensor->getNaviTimestamp();
+    if (!std::isfinite(timestamp) || timestamp == lastTimestamp)
+        return false;
+    lastTimestamp = timestamp;
+    return true;
+}
+
+static void tiltSendFmiOff(bool reportFailure, uint16_t timeoutMs)
+{
+    fmiSeenSinceOff = false;
+    fmiWaitingForNavi = true;
+    fmiLastOffMs = millis();
+    tiltNewNavi(); // Start with the first NAVI after this command.
+    if (!tiltSensor->sendCommand("NASC_OUTPUT=UART1,OFF", timeoutMs) && reportFailure)
+        systemPrintln("IM19 did not acknowledge attitude output OFF");
+}
+
+// Count silence between fresh binary epochs. Restart after an FMI or a gap in NAVI.
+static bool tiltFmiOffQuiet(uint32_t quietMs)
+{
+    if (!tiltNewNavi())
+        return false;
+    const uint32_t now = millis();
+    if (fmiWaitingForNavi || now - fmiLastNaviMs > 2 * fmiIntervalMs)
+    {
+        fmiQuietSinceMs = now;
+        fmiWaitingForNavi = false;
+    }
+    fmiLastNaviMs = now;
+    return now - fmiQuietSinceMs >= quietMs;
+}
+
+static void tiltReadNavigation(bool readForCompensation)
+{
+    const bool requested = tiltAttitudeEnabled();
+    const bool changed = requested != fmiRequested;
+    if (changed)
+    {
+        fmiRequested = requested;
+        fmiOnConfirmed = false;
+        fmiActivityMs = millis() - fmiRetryMs; // Apply the change as soon as the sensor is ready.
+        fmiLength = 0;
+        memset(lastFmiUtc, 0, sizeof(lastFmiUtc));
+    }
+
+    // Drain buffered navigation before a command clears the UART.
+    fmiReading = requested ? !changed : fmiMayBeOn; // Skip old ASCII when entering rover output.
+    if (readForCompensation || requested || fmiMayBeOn)
+        tiltSensor->update();
+    fmiReading = requested || fmiMayBeOn;
+
+    if (!requested)
+    {
+        if (fmiMayBeOn)
+        {
+            if (changed || (fmiSeenSinceOff && millis() - fmiLastOffMs >= fmiRetryMs))
+                tiltSendFmiOff((changed || settings.enableImuDebug) && !inMainMenu, 500);
+            else if (tiltFmiOffQuiet(fmiRetryMs))
+            {
+                fmiMayBeOn = false;
+                fmiReading = false;
+            }
+        }
+        return;
+    }
+    if (!tiltSensor->packetNavi)
+        return;
+    const bool newEpoch = tiltNewNavi();
+    if ((fmiOnConfirmed && !newEpoch) || millis() - fmiActivityMs < fmiRetryMs)
+        return;
+
+    // sendCommand can read a valid FMI while waiting for the reply.
+    fmiMayBeOn = true;
+    fmiOnConfirmed = false;
+    if (tiltSensor->sendCommand("NASC_OUTPUT=UART1,ON"))
+        fmiOnConfirmed = true;
+    fmiActivityMs = millis();
+    if (!fmiOnConfirmed && (changed || settings.enableImuDebug) && !inMainMenu)
+        systemPrintln("IM19 did not acknowledge attitude output ON");
+}
+
 // Tilt compensation sensor state machine
 void tiltUpdate()
 {
+    tiltLoopTask.store(xTaskGetCurrentTaskHandle(), std::memory_order_relaxed);
     if (tiltGetState() == TILT_REQUEST_STOP)
         tiltState = TILT_REQUEST_STOP;
 
     // If the user has disabled the device, shut it down
     if (settings.enableTiltCompensation == false && tiltState != TILT_DISABLED)
         tiltStop();
+
+    const bool readForCompensation = tiltState != TILT_STARTED || gnss->isRTKFix();
+    if (tiltState == TILT_STARTED || tiltState == TILT_INITIALIZED || tiltState == TILT_CORRECTING)
+        tiltReadNavigation(readForCompensation);
 
     switch (tiltState)
     {
@@ -127,11 +333,8 @@ void tiltUpdate()
 
     case TILT_STARTED:
         // RTK Fix required for isInitialized so don't check tilt until we have RTK Fix.
-        if (gnss->isRTKFix() == false)
+        if (!readForCompensation)
             break;
-
-        // Waiting for user to rock unit back and forth
-        tiltSensor->update(); // Check for the most recent incoming binary data
 
         // Check IMU state at 1Hz
         if (millis() - lastTiltCheck > 1000)
@@ -167,9 +370,6 @@ void tiltUpdate()
         break;
 
     case TILT_INITIALIZED:
-        // Waiting for user to rock unit back and forth
-        tiltSensor->update(); // Check for the most recent incoming binary data
-
         // Check IMU state at 1Hz
         if ((millis() - lastTiltCheck) > 1000)
         {
@@ -194,9 +394,6 @@ void tiltUpdate()
         break;
 
     case TILT_CORRECTING:
-        // Check to see if we've stopped correcting
-        tiltSensor->update(); // Check for the most recent incoming binary data
-
         // Check IMU state at 1Hz
         if ((millis() - lastTiltCheck) > 1000)
         {
@@ -229,6 +426,7 @@ void tiltUpdate()
         break;
     }
     tiltUpdatePosition();
+    fmiReading = false;
 }
 
 /*Datasheet initialization steps:
@@ -444,6 +642,7 @@ void beginTilt()
         {
             systemPrintln("Tilt sensor configuration complete");
             online.imu_im19 = true;
+            fmiWaitingForNavi = true; // A closed UART cannot establish silence.
             return; // Success
         }
     }
@@ -481,6 +680,34 @@ bool tiltGetVersion(int &major, int &minor, int &patch, int &revision, int &rele
     return true;
 }
 
+// Allow one second per OFF attempt, including the command reply and observation.
+static void tiltStopFmi()
+{
+    const uint32_t attemptMs = 1000;
+    const uint32_t maxAttempts = 3;
+    const uint32_t start = millis();
+    for (uint32_t attempt = 1; attempt <= maxAttempts && millis() - start < maxAttempts * attemptMs; attempt++)
+    {
+        tiltSendFmiOff(false, 100);
+        while (millis() - start < attempt * attemptMs)
+        {
+            // Check the deadline again even if more bytes arrive while we read.
+            for (uint16_t remaining = tiltSensor->serialAvailable(); remaining > 0; remaining--)
+                tiltSensor->updateOnce();
+            if (!tiltSensor->serialAvailable() && tiltFmiOffQuiet(3 * fmiIntervalMs))
+            {
+                fmiMayBeOn = false;
+                return;
+            }
+            delay(5);
+        }
+    }
+    if (fmiSeenSinceOff)
+        systemPrintln("IM19 still sending attitude after OFF");
+    else
+        systemPrintln("IM19 attitude OFF unconfirmed: insufficient binary navigation");
+}
+
 // Stop the serial interface and mark tilt offline.
 void tiltStop()
 {
@@ -489,6 +716,25 @@ void tiltStop()
     tiltPosition.state = TILT_DISABLED;
     portEXIT_CRITICAL(&tiltPositionMux);
     tiltState = TILT_DISABLED;
+
+    fmiRequested = false;
+    fmiReading = fmiMayBeOn;
+    if (tiltSensor && fmiMayBeOn)
+    {
+        // With both packet buffers supplied, the library can decode incoming
+        // frames without waiting for a GNSS or NAVI setup reply during shutdown.
+        IM19_NAVI_t naviPacket;
+        IM19_GNSS_t gnssPacket;
+        IM19_NAVI_t *savedNavi = tiltSensor->packetNavi;
+        IM19_GNSS_t *savedGnss = tiltSensor->packetGnss;
+        tiltSensor->packetNavi = &naviPacket;
+        tiltSensor->packetGnss = &gnssPacket;
+        tiltStopFmi();
+        tiltSensor->packetNavi = savedNavi;
+        tiltSensor->packetGnss = savedGnss;
+    }
+    fmiReading = false;
+    fmiLength = 0;
 
     // Free the resources
     if (tiltSensor != nullptr)
@@ -1859,7 +2105,7 @@ void im19InitUart()
     // Initialize the UART communicating with the IM19
     if (SerialForTilt == nullptr)
     {
-        SerialForTilt = new HardwareSerial(2);
+        SerialForTilt = new Uart2Serial(2);
         if (SerialForTilt == nullptr)
             reportFatalError("Failed to allocate the SerialForTilt port!");
     }
