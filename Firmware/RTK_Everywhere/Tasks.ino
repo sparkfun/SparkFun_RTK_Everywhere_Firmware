@@ -1259,6 +1259,10 @@ bool storeGnssRecord(const uint8_t *record, int32_t length, bool attitude)
     int32_t space;
     int32_t use;
 
+    // Leave one byte free so consumers can distinguish full from empty.
+    if (length <= 0 || length >= settings.gnssHandlerBufferSize)
+        return false;
+
     // The tilt reader also drains binary navigation from the IM19. Keep it moving if a consumer is busy.
     if (xSemaphoreTake(ringBufferSemaphore, attitude ? 0 : ringBuffer_longWait_ms) == pdPASS)
     {
@@ -1273,7 +1277,7 @@ bool storeGnssRecord(const uint8_t *record, int32_t length, bool attitude)
             xSemaphoreGive(ringBufferSemaphore);
             return false;
         }
-        use = settings.gnssHandlerBufferSize - space;
+        use = settings.gnssHandlerBufferSize - 1 - space;
         consumer = (char *)slowConsumer;
         if (bytesToCopy > space) // Paul removed the && (!inMainMenu)) check 7-25-25
         {
@@ -1375,68 +1379,23 @@ bool storeGnssRecord(const uint8_t *record, int32_t length, bool attitude)
                 bufferedData += messageLength;
             }
 
-            // Account for any data in the ring buffer not described by the array
-            //
-            //                      |           |
-            //                      +-----------+
-            //                      |  Oldest   |
-            //                      |           |
-            //                      |   ring    |
-            //                      |  buffer   | <-- used
-            //                      |   data    |
-            //                      +-----------+ Valid, still in ring buffer
-            //                      |           |
-            //     rbOffsetTail --> +-----------+ <-- bufferedData
-            //                      |           |
-            //                      |  Newest   |
-            //                      +-----------+ <-- rbOffsetHead
-            //                      |           |
-            //
-            if (bufferedData < use)
-                discardedBytes = use - bufferedData;
-
-            // Writing to the SD card, the network or Bluetooth, a partial
-            // message may be written leaving the tail pointer mid-message
-            //
-            //                      |           |
-            //     rbOffsetTail --> +-----------+
-            //                      |  Oldest   |
-            //                      |           |
-            //                      |   ring    |
-            //                      |  buffer   | <-- used
-            //                      |   data    | Valid, still in ring buffer
-            //                      +-----------+ <--
-            //                      |           |
-            //                      +-----------+
-            //                      |           |
-            //                      |  Newest   |
-            //                      +-----------+ <-- rbOffsetHead
-            //                      |           |
-            //
-            else if (bufferedData > use)
-            {
-                // Remove the remaining portion of the oldest entry in the array
-                discardedBytes = messageLength + use - bufferedData;
+            // If the consumer is partway through a message, discard up to the next boundary.
+            if (bufferedData > use)
                 WRAP_OFFSET(rbOffsetTail, 1, rbOffsetEntries);
-            }
 
-            // rbOffsetTail now points to the beginning of a message in the
-            // ring buffer
-            // Determine the amount of data to discard
-            bytesToDiscard = discardedBytes;
-            if (bytesToDiscard < bytesToCopy)
-                bytesToDiscard = bytesToCopy;
+            bytesToDiscard = bytesToCopy;
             if (bytesToDiscard < AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD)
                 bytesToDiscard = AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD;
 
-            // Walk the ring buffer messages from oldest to newest
-            while ((discardedBytes < bytesToDiscard) && (rbOffsetTail != rbOffsetHead))
+            // Measure from the consumer's tail even when its message has fallen out of the offset history.
+            while (true)
             {
-                // Determine the length of the oldest message
-                WRAP_OFFSET(rbOffsetTail, 1, rbOffsetEntries);
                 discardedBytes = rbOffsetArray[rbOffsetTail] - previousTail;
                 if (discardedBytes < 0)
                     discardedBytes += settings.gnssHandlerBufferSize;
+                if ((discardedBytes >= bytesToDiscard) || (rbOffsetTail == rbOffsetHead))
+                    break;
+                WRAP_OFFSET(rbOffsetTail, 1, rbOffsetEntries);
             }
 
             // Discard the oldest data from the ring buffer
@@ -1454,13 +1413,6 @@ bool storeGnssRecord(const uint8_t *record, int32_t length, bool attitude)
 
             // Update the tails. This needs semaphore protection
             updateRingBufferTails(previousTail, rbOffsetArray[rbOffsetTail]);
-        }
-
-        if (!attitude && bytesToCopy > (space + discardedBytes - 1)) // GNSS discard sanity check
-        {
-            systemPrintf("Ring buffer update error %s: bytesToCopy (%d) is > space (%d) + discardedBytes (%d) - 1\r\n",
-                         getTimeStamp(), bytesToCopy, space, discardedBytes);
-            systemFlush(); // Flush Serial - the code is about to go bang...!
         }
 
         // Add another message to the ring buffer
