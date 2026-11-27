@@ -1024,6 +1024,8 @@ void beginGnssUart()
     // after discarding the oldest data
     length = settings.gnssHandlerBufferSize;
     rbOffsetEntries = (length >> 1) / AVERAGE_SENTENCE_LENGTH_IN_BYTES;
+    if (rbOffsetEntries == 0)
+        rbOffsetEntries = 1; // Every write stores its end offset.
     length = settings.gnssHandlerBufferSize + (rbOffsetEntries * sizeof(RING_BUFFER_OFFSET));
     ringBuffer = nullptr;
 
