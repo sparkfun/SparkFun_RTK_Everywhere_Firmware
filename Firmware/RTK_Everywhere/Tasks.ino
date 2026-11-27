@@ -101,6 +101,7 @@ const int rtcmParserCount = sizeof(rtcmParserTable) / sizeof(rtcmParserTable[0])
 
 volatile static RING_BUFFER_OFFSET dataHead; // Head advances as data comes in from GNSS's UART
 volatile int32_t availableHandlerSpace;      // settings.gnssHandlerBufferSize - usedSpace
+static bool ringBufferSpaceMeasured;        // Set after the consumer accounts for all tails
 volatile const char *slowConsumer;
 
 // Buffer the incoming Bluetooth stream so that it can be passed in bulk over I2C
@@ -882,12 +883,7 @@ void utcAdjust(double offsetSeconds, char *msg, size_t maxLen)
 // If we get a complete NMEA/UBX/RTCM message, pass on to SD/BT/TCP/UDP interfaces
 void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 {
-    int32_t bytesToCopy;
-    const char *consumer;
     uint16_t message;
-    RING_BUFFER_OFFSET remainingBytes;
-    int32_t space;
-    int32_t use;
 
     // Display the message
     if ((settings.enablePrintLogFileMessages || PERIODIC_DISPLAY(PD_GNSS_DATA_RX)) && (!inMainMenu))
@@ -1251,26 +1247,32 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     if (parse->length == 0)
         return;
 
-    // Use a semaphore to prevent handleGnssDataTask from gatecrashing
-    if (ringBufferSemaphore == nullptr)
-        ringBufferSemaphore = xSemaphoreCreateMutex();
-    if (ringBufferSemaphore == nullptr)
-    {
-        systemPrintln("ERROR: Failed to create ringBufferSemaphore");
-        return;
-    }
+    storeGnssRecord(parse->buffer, parse->length, false);
+}
 
-    // Take the semaphore. Long wait. handleGnssDataTask could block
-    // Enable printing of the ring buffer offsets (s d 10) and the SD buffer sizes (s h 7)
-    // to see this in action. No more gatecrashing!
-    if (xSemaphoreTake(ringBufferSemaphore, ringBuffer_longWait_ms) == pdPASS)
+// Append one whole record. Optional attitude data may use only space already free.
+bool storeGnssRecord(const uint8_t *record, int32_t length, bool attitude)
+{
+    int32_t bytesToCopy;
+    const char *consumer;
+    RING_BUFFER_OFFSET remainingBytes;
+    int32_t space;
+    int32_t use;
+
+    // The tilt reader also drains binary navigation from the IM19. Keep it moving if a consumer is busy.
+    if (xSemaphoreTake(ringBufferSemaphore, attitude ? 0 : ringBuffer_longWait_ms) == pdPASS)
     {
-        ringBufferSemaphoreHolder = "processUart1Message";
+        ringBufferSemaphoreHolder = attitude ? "tiltUpdate" : "processUart1Message";
 
         // Determine if this message will fit into the ring buffer
         int32_t discardedBytes = 0;
-        bytesToCopy = parse->length;
+        bytesToCopy = length;
         space = availableHandlerSpace; // Take a copy of availableHandlerSpace here
+        if (attitude && (!ringBufferSpaceMeasured || bytesToCopy > space || rbOffsetEntries == 0))
+        {
+            xSemaphoreGive(ringBufferSemaphore);
+            return false;
+        }
         use = settings.gnssHandlerBufferSize - space;
         consumer = (char *)slowConsumer;
         if (bytesToCopy > space) // Paul removed the && (!inMainMenu)) check 7-25-25
@@ -1454,7 +1456,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             updateRingBufferTails(previousTail, rbOffsetArray[rbOffsetTail]);
         }
 
-        if (bytesToCopy > (space + discardedBytes - 1)) // Sanity check
+        if (!attitude && bytesToCopy > (space + discardedBytes - 1)) // GNSS discard sanity check
         {
             systemPrintf("Ring buffer update error %s: bytesToCopy (%d) is > space (%d) + discardedBytes (%d) - 1\r\n",
                          getTimeStamp(), bytesToCopy, space, discardedBytes);
@@ -1480,17 +1482,17 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             systemPrintf("DH: %4d --> ", newDataHead);
 
         // Copy the data into the ring buffer
-        memcpy(&ringBuffer[newDataHead], parse->buffer, bytesToCopy);
+        memcpy(&ringBuffer[newDataHead], record, bytesToCopy);
         newDataHead = newDataHead + bytesToCopy;
         if (newDataHead >= settings.gnssHandlerBufferSize)
             newDataHead = newDataHead - settings.gnssHandlerBufferSize;
 
         // Determine the remaining bytes
-        remainingBytes = parse->length - bytesToCopy;
+        remainingBytes = length - bytesToCopy;
         if (remainingBytes)
         {
             // Copy the remaining bytes into the beginning of the ring buffer
-            memcpy(ringBuffer, &parse->buffer[bytesToCopy], remainingBytes);
+            memcpy(ringBuffer, record + bytesToCopy, remainingBytes);
             newDataHead = newDataHead + remainingBytes;
             if (newDataHead >= settings.gnssHandlerBufferSize)
                 newDataHead = newDataHead - settings.gnssHandlerBufferSize;
@@ -1510,13 +1512,12 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 
         // handleGnssDataTask will be chomping at the bit. Let it fly!
         xSemaphoreGive(ringBufferSemaphore);
+        return true;
     }
-    else
-    {
-        if (settings.debugGnss && (!inMainMenu))
-            systemPrintf("processUart1Message could not get ringBuffer semaphore - held by %s\r\n",
-                         ringBufferSemaphoreHolder);
-    }
+    if (!attitude && settings.debugGnss && !inMainMenu)
+        systemPrintf("processUart1Message could not get ringBuffer semaphore - held by %s\r\n",
+                     ringBufferSemaphoreHolder);
+    return false;
 }
 
 // Remove previous messages from the ring buffer
@@ -1627,15 +1628,6 @@ void handleGnssDataTask(void *e)
         }
 
         usedSpace = 0;
-
-        // Use a semaphore to prevent handleGnssDataTask from gatecrashing
-        if (ringBufferSemaphore == nullptr)
-            ringBufferSemaphore = xSemaphoreCreateMutex();
-        if (ringBufferSemaphore == nullptr)
-        {
-            systemPrintln("ERROR: Failed to create ringBufferSemaphore");
-            continue;
-        }
 
         // Take the semaphore. Short wait. processUart1Message shouldn't block for long
         if (xSemaphoreTake(ringBufferSemaphore, ringBuffer_shortWait_ms) == pdPASS)
@@ -2045,6 +2037,7 @@ void handleGnssDataTask(void *e)
             if (freeSpace)
                 freeSpace -= 1;
             availableHandlerSpace = freeSpace;
+            ringBufferSpaceMeasured = true;
 
             //----------------------------------------------------------------------
             // Display the millisecond values for the different ring buffer consumers
@@ -2807,7 +2800,21 @@ bool tasksStartGnssUart()
         return false;
     }
 
+    if (ringBufferSemaphore == nullptr)
+        ringBufferSemaphore = xSemaphoreCreateMutex();
+    if (ringBufferSemaphore == nullptr)
+    {
+        systemPrintln("ERROR: Failed to create ringBufferSemaphore");
+        return false;
+    }
+
+    // Keep the GNSS startup allowance. On a mode change the ring may still hold data.
+    // Admit optional records after the consumer measures the tails and reserves the last byte.
+    if (xSemaphoreTake(ringBufferSemaphore, ringBuffer_longWait_ms) != pdPASS)
+        return false;
     availableHandlerSpace = settings.gnssHandlerBufferSize;
+    ringBufferSpaceMeasured = false;
+    xSemaphoreGive(ringBufferSemaphore);
 
     // Reads data from GNSS and stores data into circular buffer
     if (!task.gnssReadTaskRunning)
