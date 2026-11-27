@@ -1859,7 +1859,7 @@ HardwareSerial * loraEsp32UartSelect()
     else if (productVariant == RTK_FACET_FP)
     {
         if (SerialForLoRa == nullptr)
-            SerialForLoRa = new HardwareSerial(2);
+            SerialForLoRa = new Uart2Serial(2);
         loraSerial = SerialForLoRa;
     }
     else

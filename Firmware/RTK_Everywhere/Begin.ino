@@ -1024,6 +1024,8 @@ void beginGnssUart()
     // after discarding the oldest data
     length = settings.gnssHandlerBufferSize;
     rbOffsetEntries = (length >> 1) / AVERAGE_SENTENCE_LENGTH_IN_BYTES;
+    if (rbOffsetEntries == 0)
+        rbOffsetEntries = 1; // Every write stores its end offset.
     length = settings.gnssHandlerBufferSize + (rbOffsetEntries * sizeof(RING_BUFFER_OFFSET));
     ringBuffer = nullptr;
 
@@ -1208,7 +1210,7 @@ bool beginUart2Serial()
         return true;
 
     // Allocate the serial port object
-    uart2Serial = new HardwareSerial(2);
+    uart2Serial = new Uart2Serial(2);
 
     // Determine if the allocation failed
     if (uart2Serial == nullptr)

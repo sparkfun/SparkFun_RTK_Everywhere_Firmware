@@ -98,6 +98,28 @@ To get the current tilt sensor state, send:
 
 The receiver returns the numeric `TiltState` enum value. The response does not include the IM19 navigation-status bitfield.
 
+## Enabling IM19 Attitude Output
+
+On an IM19 rover with tilt compensation enabled, `enableTiltAttitude` adds the native
+`$GPFMI` sentence to the GNSS data stream. The setting defaults to off. Send each
+command with a CRLF terminator.
+
+```text
+$SPGET,enableTiltAttitude*75
+$SPSET,enableTiltAttitude,1*7C
+$SPEXE,SAVE*76
+$SPEXE,EXIT*77
+```
+
+`SPGET` reads the current value. `SAVE` keeps the setting in the active profile.
+Use `$SPSET,enableTiltAttitude,0*7D` to turn it off.
+
+Read `$GPFMI` on the data connection. Match its UTC (`hhmmss.ss`) to GGA or RMC.
+Latitude and longitude are signed decimal degrees, height is in meters and roll,
+pitch and yaw are in radians. The last field before the checksum is the full
+32-bit IM19 status in hexadecimal. Check it even when the checksum is valid.
+For example, the IM19 sets bit 0 when its filter is uninitialized. [Sentence fields and status bits](menu_tilt.md#im19-attitude-output)
+
 ## Getting Logging State
 
 To get the current microSD logging state, send:

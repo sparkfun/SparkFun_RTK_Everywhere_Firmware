@@ -13,6 +13,7 @@ Compatibility Icons
 
 - EVK: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Facet mosaic: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+- FPL-T, FPM-T and FPX-T: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - Postcard: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
 - Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 - TX2: :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
@@ -28,8 +29,53 @@ Tilt Compensation menu
 
 The Tilt Compensation menu controls how the tilt sensor is configured.
 
-- **1** - By default, tilt compensation is enabled but can be disabled if desired.
-- **2** - The pole length must be set accurately to enter tilt compensation mode. The default is 1.8 meters.
+- **4** - By default, tilt compensation is enabled but can be disabled if desired.
+- **1** - The pole length must be set accurately to enter tilt compensation mode. The default is 1.8 meters.
+
+## IM19 Attitude Output
+
+In Instrument Setup, turn on option **5**, **Output IM19 attitude (GPFMI)**. The
+same setting appears under **Instrument Configuration** on the web page and as
+`enableTiltAttitude` in the CLI. It defaults to off. The attitude control
+appears when the firmware recognizes an IM19.
+
+With tilt compensation enabled in rover mode, the receiver forwards one native
+sentence for each new UTC accepted by the buffer. Output continues on entry to setup from rover.
+The sentence goes to enabled Bluetooth, TCP, UDP and USB GNSS forwarding outputs.
+On models with host logging, the ESP32 host SD log also records it. The Torch has
+streaming outputs only. A direct GNSS port carries the GNSS module's own output.
+
+Attitude sentences share the output buffer with GNSS data. A busy or full buffer
+can drop an attitude sentence. With attitude enabled, a slow output can lose
+older GNSS data sooner.
+
+Turning off attitude output stops forwarding. While tilt is running, the receiver
+confirms OFF after ten seconds of new binary navigation messages (NAVI) without a
+valid `$GPFMI`. It retries OFF if attitude sentences keep arriving.
+
+If attitude output may still be on when tilt stops, the receiver tries OFF up to
+three times over about three seconds. It confirms OFF after three attitude
+intervals (600 ms) with new NAVI messages and no valid `$GPFMI`. It reports
+continued attitude output or too little navigation to confirm OFF. If all three
+attempts fail to stop the IM19, it can keep sending `$GPFMI` until tilt
+compensation starts again or the receiver restarts.
+
+```text
+$GPFMI,UTC,Lat,Lon,HGT,ROLL,PITCH,YAW,HRMS,NSAT,AGEDIFF,NAVMOD,STATUS*HH<CR><LF>
+```
+
+| Fields | Meaning |
+|--------|---------|
+| `UTC` | UTC time of day as `hhmmss.ss`. Match this to GGA or RMC and use RMC for the date, including at midnight. |
+| `Lat`, `Lon`, `HGT` | Fused latitude and longitude in signed decimal degrees and height in meters. The configured pole length affects the reported position. |
+| `ROLL`, `PITCH`, `YAW` | IM19 angles in radians. Multiply by 180 and divide by pi for degrees. RMC course gives the direction of travel. |
+| `HRMS`, `NSAT`, `AGEDIFF`, `NAVMOD` | Horizontal RMS position error, satellite count, differential correction age and GNSS solution mode, as reported by the IM19. |
+| `STATUS`, `HH` | The full 32-bit IM19 navigation status in eight hex digits, followed by the two-digit NMEA checksum. |
+
+Check the status bits before using the angles. The IM19 can send a sentence before
+its filter has converged. For example, `0x00000001` means the filter is uninitialized,
+`0x00000008` flags excessive tilt, `0x00010000` flags lost GNSS and `0x00020000`
+marks initialization complete. Several bits can be set at once.
 
 ## Entering Tilt Compensation Mode
 

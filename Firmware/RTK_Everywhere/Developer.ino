@@ -364,6 +364,7 @@ void menuTilt() {}
 void nmeaApplyCompensation(char *nmeaSentence, int arraySize) {}
 void tiltDetect() {systemPrintln("**Tilt Not Compiled**");}
 void tiltForceDetectionReboot() {}
+TiltState tiltGetState() {return tiltState;}
 bool tiltIsCorrecting() {return(false);}
 void tiltRequestStop() {}
 void tiltSensorFactoryReset() {}

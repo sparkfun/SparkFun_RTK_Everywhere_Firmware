@@ -1716,6 +1716,8 @@ void menuInstrument()
         {
             systemPrint("4) Tilt Compensation: ");
             systemPrintf("%s\r\n", settings.enableTiltCompensation ? "Enabled" : "Disabled");
+            systemPrintf("5) Output IM19 attitude (GPFMI): %s\r\n",
+                         settings.enableTiltAttitude ? "Enabled" : "Disabled");
         }
 
         systemPrintln("x) Exit");
@@ -1743,6 +1745,10 @@ void menuInstrument()
         else if (incoming == 4 && present.imu_im19)
         {
             settings.enableTiltCompensation ^= 1;
+        }
+        else if (incoming == 5 && present.imu_im19)
+        {
+            settings.enableTiltAttitude ^= 1;
         }
 
         else if (incoming == 'x')
