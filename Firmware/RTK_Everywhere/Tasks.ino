@@ -1398,19 +1398,6 @@ bool storeGnssRecord(const uint8_t *record, int32_t length, bool attitude)
                 WRAP_OFFSET(rbOffsetTail, 1, rbOffsetEntries);
             }
 
-            // Discard the oldest data from the ring buffer
-            // Printing the slow consumer is not that useful as any consumer will be
-            // considered 'slow' if its data wraps over the end of the buffer and
-            // needs a second write to clear...
-            if (!inMainMenu)
-            {
-                if (consumer)
-                    systemPrintf("Ring buffer full: discarding %d bytes, %s could be slow\r\n", discardedBytes,
-                                 consumer);
-                else
-                    systemPrintf("Ring buffer full: discarding %d bytes\r\n", discardedBytes);
-            }
-
             // Update the tails. This needs semaphore protection
             updateRingBufferTails(previousTail, rbOffsetArray[rbOffsetTail]);
         }
@@ -1423,15 +1410,12 @@ bool storeGnssRecord(const uint8_t *record, int32_t length, bool attitude)
         availableHandlerSpace = availableHandlerSpace + discardedBytes - bytesToCopy;
 
         // Copy dataHead so we can update with a single write - redundant with the semaphore
-        RING_BUFFER_OFFSET newDataHead = dataHead;
+        const RING_BUFFER_OFFSET previousHead = dataHead;
+        RING_BUFFER_OFFSET newDataHead = previousHead;
 
         // Fill the buffer to the end and then start at the beginning
         if ((newDataHead + bytesToCopy) > settings.gnssHandlerBufferSize)
             bytesToCopy = settings.gnssHandlerBufferSize - newDataHead;
-
-        // Display the dataHead offset
-        if (settings.enablePrintRingBufferOffsets && (!inMainMenu))
-            systemPrintf("DH: %4d --> ", newDataHead);
 
         // Copy the data into the ring buffer
         memcpy(&ringBuffer[newDataHead], record, bytesToCopy);
@@ -1454,16 +1438,22 @@ bool storeGnssRecord(const uint8_t *record, int32_t length, bool attitude)
         WRAP_OFFSET(rbOffsetHead, 1, rbOffsetEntries);
         rbOffsetArray[rbOffsetHead] = newDataHead;
 
-        // Display the dataHead offset
-        if (settings.enablePrintRingBufferOffsets && (!inMainMenu))
-            systemPrintf("%4d @ %s\r\n", newDataHead, getTimeStamp());
-
         // Update dataHead in a single write - redundant with the semaphore
         // handleGnssDataTask will use it as soon as it updates
         dataHead = newDataHead;
 
         // handleGnssDataTask will be chomping at the bit. Let it fly!
         xSemaphoreGive(ringBufferSemaphore);
+
+        if (discardedBytes && !inMainMenu)
+        {
+            if (consumer)
+                systemPrintf("Ring buffer full: discarding %d bytes, %s could be slow\r\n", discardedBytes, consumer);
+            else
+                systemPrintf("Ring buffer full: discarding %d bytes\r\n", discardedBytes);
+        }
+        if (settings.enablePrintRingBufferOffsets && !inMainMenu)
+            systemPrintf("DH: %4d --> %4d @ %s\r\n", previousHead, newDataHead, getTimeStamp());
         return true;
     }
     if (!attitude && settings.debugGnss && !inMainMenu)
